@@ -83,7 +83,12 @@ Respond with ONLY a JSON object matching the schema above.`;
 ## Moments (${moments.length}):
 ${moments
   .map(
-    (m, i) => `${i}. [${m.type}] (arc: ${m.arcId}, ${m.arcRole}) ${m.statement}`,
+    (m, i) => {
+      const topEvidence = m.evidence.slice(0, 2).map(e => `"${e.quote.slice(0, 100)}"`).join("; ");
+      return `${i}. [${m.type}] (arc: ${m.arcId}, ${m.arcRole}) agency=${m.agency}
+   ${m.statement}
+   significance: ${m.significance}${topEvidence ? `\n   evidence: ${topEvidence}` : ""}`;
+    },
   )
   .join("\n")}
 

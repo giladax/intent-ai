@@ -65,6 +65,7 @@ export async function runPipeline(logPath: string): Promise<{
   const { transitions, outcomes } = await detectTransitionsAndOutcomes(
     sessionMoments,
     sessionId,
+    sessionChunks,
   );
 
   // 9. Narrative

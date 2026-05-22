@@ -1,5 +1,6 @@
 import type {
   SessionMoment,
+  SessionChunk,
   IntentTransition,
   AcceptedOutcome,
 } from "../adapters/types.js";
@@ -17,6 +18,7 @@ import type { SessionShape as PromptSessionShape } from "../llm/prompts/classify
 export async function detectTransitionsAndOutcomes(
   moments: SessionMoment[],
   sessionId: string,
+  chunks?: SessionChunk[],
 ): Promise<{ transitions: IntentTransition[]; outcomes: AcceptedOutcome[] }> {
   // Convert SessionMoment[] to Pass2Moment[] for the prompt builder
   const pass2Moments: Pass2Moment[] = moments.map((m) => ({
@@ -40,8 +42,8 @@ export async function detectTransitionsAndOutcomes(
     }),
   }));
 
-  // Collect all files from moments' evidence
-  const filesInSession = collectFiles(moments);
+  // Collect all files from chunks
+  const filesInSession = collectFiles(chunks);
 
   const shapeObj: PromptSessionShape = { shape: "narrative" }; // default; shape not needed for transitions
   const { system, user } = buildTransitionsPrompt({
@@ -80,11 +82,13 @@ export async function detectTransitionsAndOutcomes(
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-function collectFiles(moments: SessionMoment[]): string[] {
+function collectFiles(chunks?: SessionChunk[]): string[] {
+  if (!chunks) return [];
   const files = new Set<string>();
-  for (const m of moments) {
-    // topicFingerprint might hint at files, but we'll use evidence sourceEventIds
-    // In practice, files come from the chunks — for now return empty
+  for (const chunk of chunks) {
+    for (const f of chunk.filesInScope) {
+      files.add(f);
+    }
   }
   return Array.from(files);
 }
