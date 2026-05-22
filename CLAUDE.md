@@ -299,3 +299,35 @@ Postgres 16 via Docker Compose on port **5433** (not 5432 — avoids conflict wi
 - Zod for LLM output validation (lenient schemas — `.optional().default()` and `.passthrough()` to handle LLM variance)
 - No classes — pipeline steps are exported functions
 - All types in `src/adapters/types.ts`
+
+## Anti-Patterns
+
+### NO regex for behavioral/semantic classification
+
+**Bad:**
+```typescript
+// DON'T DO THIS — brittle, misses nuance, false positives
+const devUsedReasoning = /\b(because|actually|instead|but)\b/i.test(text);
+const isRejection = /\b(no|don't|not|reject|wrong)\b/.test(text);
+const isCommitment = /\b(let's go with|decided|commit)\b/i.test(text);
+```
+
+**Good:**
+```typescript
+// Use LLM with structured output for semantic classification
+const result = await callHaiku(
+  "Classify this developer response.",
+  `Response: "${text}"\nContext: ${aiProposal}`,
+  z.object({
+    engagement: z.enum(["passive", "active", "challenging"]),
+    intent: z.enum(["acceptance", "rejection", "question", "delegation", "refinement"]),
+    reasoning: z.string(),
+  })
+);
+```
+
+**Why:** Regex can't distinguish "actually, that's a great idea" (agreement) from "actually, let's not do that" (rejection). A developer saying "but I like it" is not a rejection. The word "no" in "no problem" is not a rejection. Semantic classification requires language understanding, not pattern matching.
+
+**Where this applies:** Exchange analysis (`analyze.ts`), candidate moment type detection (`chr3-synthesis.ts`), topic shift detection (`chunk.ts`). These should all migrate to structured LLM output (Haiku — cheap, ~$0.001 per classification).
+
+**Acceptable regex uses:** ID parsing (`rawEventId.match(/-text-(\d+)$/)`), JSON extraction from LLM responses, file path filtering. Anything purely structural, not semantic.
