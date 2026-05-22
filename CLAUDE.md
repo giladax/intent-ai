@@ -366,52 +366,44 @@ const result = await callHaiku(
 
 **Acceptable regex uses:** ID parsing (`rawEventId.match(/-text-(\d+)$/)`), JSON extraction from LLM responses, file path filtering. Anything purely structural, not semantic.
 
-## Current State & Next Steps
+## Current State
 
 ### What's built and working
 
-- Full pipeline: parse → normalize (+ causal threading) → [analyze + classify + chunk] (parallel) → session digest → moments (2-pass with dedup) → transitions → narrative
-- 96 tests passing across 13 files
-- Real digest produced from a live CC session (this development session) — 50 moments, 10 transitions, 11 arcs
-- Layer 0 (causal threading + interaction analysis) complete
-- `analyze.ts` uses Haiku structured output for exchange classification (regex removed)
-- Session digest injects cross-chunk context into each chunk's moment detection prompt
-- Dedup pre-filter removes overlap duplicates, flags contradictions for pass 2
-- Chromosome evaluation harness: alleles per chromosome, organism assembler, LLM-as-judge, learning runner
+- Full pipeline: parse → normalize → [analyze + classify + chunk] (parallel) → session digest → moments (2-pass with dedup) → transitions → narrative
+- `intent digest <path>` — processes CC logs, stores to Postgres
+- `intent explore` — conversational REPL over stored digests, with drill-down to raw events
+- 112 tests passing across 14 files
+- Chromosome evolution complete: 4 phases + crossover, winner identified
+- `analyze.ts` uses Haiku structured output (regex removed)
+- Session digest injects cross-chunk context into each chunk's pass 1 prompt
+- DB storage: raw SQL inserts with UUID mapping, batched for large sessions
 - LangSmith integration: tracing, datasets, experiment logging
 
-### Chromosome Evolution Results
+### Winning Organism
 
-| Gen | Best Organism | Judge Score | Key Discovery |
-|-----|--------------|-------------|--------------|
-| Gen 0 | α {1a, 2b, 3b, 4b} | 4.0/5 | Baseline — programmatic fitness scored 65% |
-| Phase 1 | {1a, 2b, 3b, 4a} | 4.35/5 | Conversation-only data ties with conversation+actions |
-| Phase 2 | {1a, 2b, 3c, 4a} | 4.80/5 | Haiku pre-computation wins after regex removal |
+`{1b_scorer, 2f_hybrid, 3c_full_precompute, 4a_conversation}` — 4.80/5
 
-**Critical learning:** Regex for semantic classification was POISON — made 3c score WORSE than 3b. After replacing with Haiku structured output, 3c became the best allele. See CLAUDE.md anti-pattern section.
+| Phase | Varied | Winner | Score | Learning |
+|-------|--------|--------|-------|----------|
+| 1 (Data) | Chr 4 | 4a conversation only | 4.35/5 | Tool data doesn't help |
+| 2 (Synthesis) | Chr 3 | 3c full precompute (Haiku) | 4.80/5 | Haiku > regex; bad pre-computation = poison |
+| 3 (Format) | Chr 2 | 2a/2c tie; 2f hybrid bred | 4.80/5 | Exchange grouping is dominant trait |
+| 4 (Instructions) | Chr 1 | 1a/1b tie | 4.35/5 | Pre-computation makes prompts irrelevant |
 
 ### Known issues
 
-1. **`collectFiles` bug in transitions.ts** — function body is empty, LLM hallucinates file paths for outcomes
-2. **Narrative evidence flow** — `buildNarrativePrompt` strips agency, significance, and evidence from moments (line 86). Narrative LLM works blind on attribution.
-3. **DB write fails** — timestamp format issue in `storeSessionDigest`
-4. **All moments scored "high" confidence** — no discrimination. Prompt tuning needed.
-5. **`chunk.ts` still uses regex** for topic shift detection (`TOPIC_SHIFT_PATTERNS`). Should migrate to Haiku.
+1. **All moments scored "high" confidence** — no discrimination. Prompt tuning needed.
+2. **`chunk.ts` still uses regex** for topic shift detection (`TOPIC_SHIFT_PATTERNS`). Should migrate to Haiku.
+3. **Winning organism not wired as default** — orchestrator still uses the original pipeline, not the chromosome winner.
 
-### Immediate next tasks (for a fresh session)
+### Next steps
 
-**Priority 1: Finish & Fix (~30 min)**
-1. **Fix `collectFiles` bug** in `src/pipeline/transitions.ts` — function body is empty, LLM hallucinating file paths. Thread `chunks[].filesInScope` through.
-2. **Fix narrative evidence flow** — `buildNarrativePrompt` in `src/llm/prompts/narrative.ts` line 86 strips agency, significance, and evidence from moments. Add these fields so the narrative LLM can attribute decisions correctly.
+1. **Digest another session** — pick a CC session from a different project (`~/.claude/projects/`). Run `intent digest` and `intent explore` to test generalization.
+2. **Add cross-session querying** — explore across multiple digested sessions, not just one.
+3. **Wire winning organism as default** — make the orchestrator use `{1b, 2f, 3c, 4a}` instead of the original pipeline.
+4. **Validate on all 4 fixture scopes** — design, implementation, pivot, full.
 
-**Priority 2: Finish Chromosome Evolution (~20 min, ~$0.30)**
-3. **Phase 3 (Format)** — lock `{1a, 3c, 4a}`, vary Chr 2 (2a, 2b, 2c, 2e). Use `run-phase1.ts` pattern.
-4. **Phase 4 (Instructions)** — lock best Chr 2, vary Chr 1 (1a, 1b).
-5. **Validate winner** on ALL 4 fixture scopes (design, implementation, pivot, full).
+### Agent skills
 
-**Priority 3: Build `intent explore` (~1 hr)**
-6. **Implement `intent explore`** — conversational REPL over stored digests. Readline loop, loads session narrative + moments + transitions from Postgres, sends as context to Sonnet with user questions. See spec in `docs/superpowers/specs/2026-05-21-execution-memory-design.md` under "Explore Command."
-
-**Priority 4: Validate on Other Sessions**
-7. **Digest a different CC session** — pick a session from another project (`~/.claude/projects/`). Run `intent digest` and evaluate if the pipeline generalizes beyond our own conversation.
-8. **Add that session as a new eval fixture** with its own `ScopeCriteria`.
+Pipeline optimization strategies, schemas, and playbooks are in `.claude/skills/agents/`. Read these before modifying the pipeline or running experiments.
