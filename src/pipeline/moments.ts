@@ -1,4 +1,4 @@
-import type { SessionChunk } from "../adapters/types.js";
+import type { SessionChunk, PipelineDirectives } from "../adapters/types.js";
 import type { SessionShape, SessionMoment } from "../adapters/types.js";
 import { callSonnet } from "../llm/client.js";
 import {
@@ -20,6 +20,7 @@ import type { SessionShape as PromptSessionShape } from "../llm/prompts/classify
 export async function detectMoments(
   chunks: SessionChunk[],
   sessionShape: SessionShape,
+  directives?: PipelineDirectives,
 ): Promise<SessionMoment[]> {
   const shapeObj: PromptSessionShape = { shape: sessionShape };
 
@@ -29,6 +30,7 @@ export async function detectMoments(
       const { system, user } = buildPass1Prompt({
         chunk,
         sessionShape: shapeObj,
+        directives,
       });
       const result = await callSonnet(system, user, Pass1OutputSchema);
       return { chunkIndex: chunk.chunkIndex, moments: result.moments };

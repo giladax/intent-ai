@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import { runPipeline } from "../pipeline/orchestrator.js";
 import { parseClaudeCodeLog } from "../adapters/claude-code.js";
 import { normalize } from "../pipeline/normalize.js";
+import { analyzeInteractions } from "../pipeline/analyze.js";
 import { chunkSession } from "../pipeline/chunk.js";
 import { discoverLatestLog, discoverLogs } from "../utils/log-discovery.js";
 import type {
@@ -118,6 +119,16 @@ async function runDryRun(
         .map(([k, v]) => `${k}:${v}`)
         .join(", ")}`,
     );
+
+    // Directives
+    const directives = analyzeInteractions(normalizedEvents);
+    console.log(`  Directives:`);
+    console.log(`    detectPassiveAcceptance: ${directives.promptSections.detectPassiveAcceptance}`);
+    console.log(`    trackDelegation:         ${directives.promptSections.trackDelegation}`);
+    console.log(`    detectIgnoredProposals:  ${directives.promptSections.detectIgnoredProposals}`);
+    console.log(`    isLearningExchange:      ${directives.promptSections.isLearningExchange}`);
+    const { totalExchanges, shortResponseCount, questionCount } = directives.exchangeSummary;
+    console.log(`    Exchanges: ${totalExchanges} total, ${shortResponseCount} short, ${questionCount} with questions`);
 
     if (paths.length > 1) console.log();
   }

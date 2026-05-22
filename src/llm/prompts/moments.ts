@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { NormalizedDevEvent, SessionChunk } from "../../adapters/types.js";
+import type { NormalizedDevEvent, SessionChunk, PipelineDirectives } from "../../adapters/types.js";
 import type { SessionShape } from "./classify.js";
 
 // ── Zod Schemas ──────────────────────────────────────────────────────
@@ -66,13 +66,45 @@ export type Pass2Output = z.infer<typeof Pass2OutputSchema>;
 export interface Pass1Input {
   chunk: SessionChunk;
   sessionShape: SessionShape;
+  directives?: PipelineDirectives;
 }
 
 export function buildPass1Prompt(input: Pass1Input): {
   system: string;
   user: string;
 } {
-  const { chunk, sessionShape } = input;
+  const { chunk, sessionShape, directives } = input;
+
+  let directiveGuidance = "";
+  if (directives?.promptSections) {
+    const sections = directives.promptSections;
+    const notes: string[] = [];
+
+    if (sections.detectPassiveAcceptance) {
+      notes.push(
+        "Note: This session contains many short developer responses. When you see 'yes', 'ok', 'sure' — distinguish active agreement from passive acceptance. This matters for agency classification.",
+      );
+    }
+    if (sections.trackDelegation) {
+      notes.push(
+        "Note: The developer frequently defers decisions. Look for moments where the AI made choices the developer didn't engage with.",
+      );
+    }
+    if (sections.detectIgnoredProposals) {
+      notes.push(
+        "Note: The AI made proposals that the developer didn't fully address. Flag proposals that received no direct response as potential ignored proposals.",
+      );
+    }
+    if (sections.isLearningExchange) {
+      notes.push(
+        "Note: The developer is asking questions to understand. Focus on what insights or understanding emerged, not just what actions were taken.",
+      );
+    }
+
+    if (notes.length > 0) {
+      directiveGuidance = "\n\n## Interaction Signals\n\n" + notes.join("\n\n");
+    }
+  }
 
   const system = `You are an expert at identifying meaningful moments in developer coding sessions. You read a sequence of events from one chunk of a session and extract the moments that matter.
 
@@ -99,7 +131,7 @@ A "moment" is a point where something meaningful happened — a decision was mad
 5. **topicFingerprint** should be a short, stable identifier for the topic area (e.g., "auth-middleware", "test-setup", "api-schema"). Use kebab-case. Two moments about the same topic should share a fingerprint.
 6. **Fewer is better.** A chunk of 20 events might have 2-5 moments. Don't pad. If nothing meaningful happened, return an empty array.
 
-${getShapeGuidance(sessionShape.shape)}
+${getShapeGuidance(sessionShape.shape)}${directiveGuidance}
 
 ## Output Format
 
@@ -131,7 +163,7 @@ Return ONLY a JSON object:
 
 ## Events (${chunk.events.length} total):
 
-${formatEvents(chunk.events)}
+${formatThreadedEvents(chunk.events)}
 
 Extract the meaningful moments from this chunk. Return JSON only.`;
 
@@ -251,7 +283,83 @@ Don't flag every file read. Look for judgments and insights.`;
   }
 }
 
-function formatEvents(events: NormalizedDevEvent[]): string {
+/**
+ * Format events grouped by exchange (user intent + following AI events).
+ * Events not part of any exchange render as standalone.
+ */
+function formatThreadedEvents(events: NormalizedDevEvent[]): string {
+  // Find all intent (user message) indices
+  const intentIndices: number[] = [];
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].category === "intent") {
+      intentIndices.push(i);
+    }
+  }
+
+  // If no intents, fall back to flat format
+  if (intentIndices.length === 0) {
+    return formatEventsFlat(events);
+  }
+
+  const blocks: string[] = [];
+
+  // Events before the first intent (standalone)
+  if (intentIndices[0] > 0) {
+    const standalone = events.slice(0, intentIndices[0]);
+    blocks.push(formatEventsFlat(standalone));
+  }
+
+  // Each exchange: intent + following AI events until next intent
+  for (let k = 0; k < intentIndices.length; k++) {
+    const devIdx = intentIndices[k];
+    const nextIntentIdx =
+      k + 1 < intentIndices.length ? intentIndices[k + 1] : events.length;
+
+    const devEvent = events[devIdx];
+    const aiEvents = events.slice(devIdx + 1, nextIntentIdx);
+
+    const devDetail = truncateDetail(devEvent.content.detail);
+
+    let block = `── Exchange ──\n[${devEvent.causalOrder}] DEV: "${devDetail}"`;
+
+    if (aiEvents.length > 0) {
+      block += "\n  AI:";
+      for (const ae of aiEvents) {
+        block += `\n    - ${formatAiEvent(ae)}`;
+      }
+    }
+
+    blocks.push(block);
+  }
+
+  return blocks.join("\n\n");
+}
+
+function formatAiEvent(e: NormalizedDevEvent): string {
+  const files = e.content.filesAffected ?? [];
+  const detail = truncateDetail(e.content.detail);
+
+  switch (e.category) {
+    case "proposal":
+    case "reflection":
+      return `[${e.causalOrder}] "${detail}"`;
+    case "action": {
+      // Extract tool name from summary (format: "Tool: Name on /path")
+      const toolMatch = e.content.summary.match(/^Tool:\s+(\S+)/);
+      const toolName = toolMatch?.[1] ?? "Action";
+      if (files.length > 0) {
+        return `[${e.causalOrder}] ${toolName} ${files[0]}`;
+      }
+      return `[${e.causalOrder}] ${toolName}`;
+    }
+    case "result":
+      return `[${e.causalOrder}] Result: ${truncateDetail(e.content.summary)}`;
+    default:
+      return `[${e.causalOrder}] ${detail}`;
+  }
+}
+
+function formatEventsFlat(events: NormalizedDevEvent[]): string {
   return events
     .map((e) => {
       const actor = e.actor === "user" ? "DEV" : "AI";
@@ -259,12 +367,12 @@ function formatEvents(events: NormalizedDevEvent[]): string {
       const files = e.content.filesAffected?.length
         ? ` [${e.content.filesAffected.join(", ")}]`
         : "";
-      // Truncate detail to keep prompt within bounds
-      const detail =
-        e.content.detail.length > 400
-          ? e.content.detail.slice(0, 400) + "..."
-          : e.content.detail;
+      const detail = truncateDetail(e.content.detail);
       return `[${e.causalOrder}] ${actor}/${category}${files}: ${detail}`;
     })
     .join("\n\n");
+}
+
+function truncateDetail(text: string): string {
+  return text.length > 400 ? text.slice(0, 400) + "..." : text;
 }

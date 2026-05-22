@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { parseClaudeCodeLog } from "../adapters/claude-code.js";
 import { normalize } from "./normalize.js";
+import { analyzeInteractions } from "./analyze.js";
 import { classifySession } from "./classify.js";
 import { chunkSession } from "./chunk.js";
 import { detectMoments } from "./moments.js";
@@ -26,14 +27,14 @@ export async function runPipeline(logPath: string): Promise<{
   outcomes: AcceptedOutcome[];
 }> {
   // 1. Parse
-  log("[1/9] Parsing CC log...");
+  log("[1/10] Parsing CC log...");
   const rawEvents = await parseClaudeCodeLog(logPath);
 
   // 2. Generate sessionId
   const sessionId = crypto.randomUUID();
 
   // 3. Normalize
-  log(`[2/9] Normalizing ${rawEvents.length} events...`);
+  log(`[2/10] Normalizing ${rawEvents.length} events...`);
   const normalizedEvents = normalize(rawEvents, sessionId);
 
   // Large session warning
@@ -45,28 +46,32 @@ export async function runPipeline(logPath: string): Promise<{
     );
   }
 
-  // 4. Classify
-  log("[3/9] Classifying session shape...");
+  // 4. Analyze interactions
+  log("[3/10] Analyzing interactions...");
+  const directives = analyzeInteractions(normalizedEvents);
+
+  // 5. Classify
+  log("[4/10] Classifying session shape...");
   const sessionShape = await classifySession(normalizedEvents);
 
-  // 5. Chunk
+  // 6. Chunk
   const sessionChunks = chunkSession(normalizedEvents, sessionId);
-  log(`[4/9] Chunking into ${sessionChunks.length} windows...`);
+  log(`[5/10] Chunking into ${sessionChunks.length} windows...`);
 
-  // 6. Detect moments (pass 1 + 2)
-  log("[5/9] Detecting moments (pass 1)...");
-  log("[6/9] Detecting moments (pass 2)...");
-  const sessionMoments = await detectMoments(sessionChunks, sessionShape);
+  // 7. Detect moments (pass 1 + 2)
+  log("[6/10] Detecting moments (pass 1)...");
+  log("[7/10] Detecting moments (pass 2)...");
+  const sessionMoments = await detectMoments(sessionChunks, sessionShape, directives);
 
-  // 7. Transitions + outcomes
-  log("[7/9] Detecting transitions & outcomes...");
+  // 8. Transitions + outcomes
+  log("[8/10] Detecting transitions & outcomes...");
   const { transitions, outcomes } = await detectTransitionsAndOutcomes(
     sessionMoments,
     sessionId,
   );
 
-  // 8. Narrative
-  log("[8/9] Generating narrative...");
+  // 9. Narrative
+  log("[9/10] Generating narrative...");
   const narrative = await generateNarrative(
     sessionMoments,
     transitions,
@@ -75,8 +80,8 @@ export async function runPipeline(logPath: string): Promise<{
   );
   narrative.sessionId = sessionId;
 
-  // 9. Store
-  log("[9/9] Storing to database...");
+  // 10. Store
+  log("[10/10] Storing to database...");
 
   // Derive timestamps from raw events
   const timestamps = rawEvents
