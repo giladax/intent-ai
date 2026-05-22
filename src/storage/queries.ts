@@ -52,8 +52,8 @@ export async function storeSessionDigest(data: {
     sourceType: data.sourceType,
     sourcePath: data.sourcePath,
     sessionShape: data.sessionShape,
-    startedAt: data.startedAt,
-    endedAt: data.endedAt,
+    startedAt: data.startedAt ? new Date(data.startedAt.toISOString()) : null,
+    endedAt: data.endedAt ? new Date(data.endedAt.toISOString()) : null,
   });
 
   // 2. raw_events
