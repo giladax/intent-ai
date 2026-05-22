@@ -237,6 +237,106 @@ export const behavioral: FormatAllele = {
   },
 };
 
+// ── 2f: Hybrid (behavioral headers + full detail, no compression) ───
+// Breeding: 2c's engagement headers + 2a's uncompressed content for ALL exchanges.
+// 2c's weakness was compressing "passive" exchanges to summaries, losing quotable detail.
+// 2f keeps the header labels but always shows full raw events like 2a does.
+
+export const hybrid: FormatAllele = {
+  name: "2f_hybrid",
+  render(
+    exchanges: TurnExchange[],
+    events: NormalizedDevEvent[],
+    _directives?: PipelineDirectives,
+  ): string {
+    if (exchanges.length === 0) {
+      // Fall back to flat if no exchanges
+      return events
+        .map((e) => {
+          const actor = e.actor === "user" ? "DEV" : "AI";
+          const category = e.category.toUpperCase();
+          const files = e.content.filesAffected?.length
+            ? ` [${e.content.filesAffected.join(", ")}]`
+            : "";
+          const detail = truncateDetail(e.content.detail);
+          return `[${e.causalOrder}] ${actor}/${category}${files}: ${detail}`;
+        })
+        .join("\n\n");
+    }
+
+    const blocks: string[] = [];
+
+    for (const ex of exchanges) {
+      const engagement = classifyEngagement(ex);
+      const header = buildBehavioralHeader(ex, engagement);
+
+      // Always full detail — never compress, even for passive exchanges
+      let content = `  DEV: "${truncateDetail(ex.devEvent.content.detail)}"`;
+      if (ex.aiTurnEvents.length > 0) {
+        content += "\n  AI:";
+        for (const ae of ex.aiTurnEvents) {
+          content += `\n    - ${formatAiEvent(ae)}`;
+        }
+      }
+
+      blocks.push(`${header}\n${content}`);
+    }
+
+    return blocks.join("\n\n");
+  },
+};
+
+// ── 2g: Annotated Flat (flat stream with inline behavioral markers) ──
+// Mutation: keeps 2a's pure sequential format (no exchange grouping) which
+// allows the LLM to "think freely" across event boundaries, but injects
+// inline behavioral annotations on DEV events so the LLM gets engagement
+// signal without structural constraints.
+
+export const annotatedFlat: FormatAllele = {
+  name: "2g_annotated_flat",
+  render(
+    exchanges: TurnExchange[],
+    events: NormalizedDevEvent[],
+    _directives?: PipelineDirectives,
+  ): string {
+    // Build a lookup: devEvent.id → exchange metadata
+    const exchangeByDevId = new Map<string, TurnExchange>();
+    for (const ex of exchanges) {
+      exchangeByDevId.set(ex.devEvent.id, ex);
+    }
+
+    return events
+      .map((e) => {
+        const actor = e.actor === "user" ? "DEV" : "AI";
+        const category = e.category.toUpperCase();
+        const files = e.content.filesAffected?.length
+          ? ` [${e.content.filesAffected.join(", ")}]`
+          : "";
+        const detail = e.content.detail.length > 400
+          ? e.content.detail.slice(0, 400) + "..."
+          : e.content.detail;
+
+        // For DEV events, inject behavioral annotation if we have exchange data
+        let annotation = "";
+        if (e.actor === "user" && e.category === "intent") {
+          const ex = exchangeByDevId.get(e.id);
+          if (ex) {
+            const engagement = classifyEngagement(ex);
+            const flags: string[] = [engagement.toUpperCase()];
+            if (ex.devAskedQuestion) flags.push("question");
+            if (ex.devUsedReasoning) flags.push("reasoning");
+            if (ex.devIntroducedNewTopic) flags.push("new-topic");
+            if (ex.aiProposedMultipleOptions) flags.push("multi-option");
+            annotation = ` (${flags.join(", ")})`;
+          }
+        }
+
+        return `[${e.causalOrder}] ${actor}/${category}${annotation}${files}: ${detail}`;
+      })
+      .join("\n\n");
+  },
+};
+
 // ── Behavioral helpers ──────────────────────────────────────────────
 
 type Engagement = "passive" | "standard" | "challenge";
