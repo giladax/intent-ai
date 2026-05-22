@@ -28,7 +28,7 @@ export interface FormatAllele {
 
 export interface SynthesisAllele {
   name: string;
-  process(events: NormalizedDevEvent[]): SynthesizedData;
+  process(events: NormalizedDevEvent[]): SynthesizedData | Promise<SynthesizedData>;
 }
 
 // ── Chr 4: Data Selection — what raw data enters ────────────────────

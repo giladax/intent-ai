@@ -131,7 +131,7 @@ export async function detectMomentsWithOrganism(
   const selectedNormalized = normalize(selectedEvents, sessionId);
 
   // Chr 3: Synthesis — pre-compute
-  const synthesized = organism.synthesis.process(
+  const synthesized = await organism.synthesis.process(
     selectedNormalized.length > 0 ? selectedNormalized : normalizedEvents,
   );
 

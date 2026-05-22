@@ -5,6 +5,83 @@ import type {
   PipelineDirectives,
 } from "../../adapters/types.js";
 
+// ── 2a: Flat (no grouping, raw event stream) ─────────────────────────
+
+export const flat: FormatAllele = {
+  name: "2a_flat",
+  render(
+    _exchanges: TurnExchange[],
+    events: NormalizedDevEvent[],
+    _directives?: PipelineDirectives,
+  ): string {
+    return events
+      .map((e) => {
+        const actor = e.actor === "user" ? "DEV" : "AI";
+        const category = e.category.toUpperCase();
+        const files = e.content.filesAffected?.length
+          ? ` [${e.content.filesAffected.join(", ")}]`
+          : "";
+        const detail = e.content.detail.length > 400
+          ? e.content.detail.slice(0, 400) + "..."
+          : e.content.detail;
+        return `[${e.causalOrder}] ${actor}/${category}${files}: ${detail}`;
+      })
+      .join("\n\n");
+  },
+};
+
+// ── 2e: Pre-labeled (exchanges with inline classification labels) ────
+
+export const prelabeled: FormatAllele = {
+  name: "2e_prelabeled",
+  render(
+    exchanges: TurnExchange[],
+    events: NormalizedDevEvent[],
+    _directives?: PipelineDirectives,
+  ): string {
+    if (exchanges.length === 0) {
+      return "(no exchanges)";
+    }
+
+    const blocks: string[] = [];
+
+    for (const ex of exchanges) {
+      const engagement = ex.devResponseChars < 15 && !ex.devAskedQuestion
+        ? "passive"
+        : ex.devUsedReasoning || ex.devIntroducedNewTopic
+          ? "challenging"
+          : "active";
+
+      const devDetail = ex.devEvent.content.detail.length > 400
+        ? ex.devEvent.content.detail.slice(0, 400) + "..."
+        : ex.devEvent.content.detail;
+
+      let block = `── Exchange [${engagement}] ──\n  DEV: "${devDetail}"`;
+
+      // Summarize AI response instead of showing all events
+      const aiProposals = ex.aiTurnEvents
+        .filter((e) => e.category === "proposal" || e.category === "reflection")
+        .map((e) => e.content.summary)
+        .slice(0, 2);
+      const aiActions = ex.aiTurnEvents
+        .filter((e) => e.category === "action")
+        .map((e) => e.content.summary)
+        .slice(0, 3);
+
+      if (aiProposals.length > 0) {
+        block += `\n  AI proposed: ${aiProposals.join("; ")}`;
+      }
+      if (aiActions.length > 0) {
+        block += `\n  AI did: ${aiActions.join(", ")}`;
+      }
+
+      blocks.push(block);
+    }
+
+    return blocks.join("\n\n");
+  },
+};
+
 // ── Helpers ─────────────────────────────────────────────────────────
 
 function truncateDetail(text: string): string {

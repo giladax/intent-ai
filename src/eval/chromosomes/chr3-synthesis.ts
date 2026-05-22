@@ -1,6 +1,17 @@
 import type { SynthesisAllele, SynthesizedData, EnrichedExchange } from "./types.js";
 import type { NormalizedDevEvent, TurnExchange } from "../../adapters/types.js";
 import { analyzeInteractions } from "../../pipeline/analyze.js";
+import { classifyExchanges } from "../../pipeline/classify-exchanges.js";
+
+// ── 3a: No Synthesis (raw events only) ──────────────────────────────
+
+export const noSynthesis: SynthesisAllele = {
+  name: "3a_none",
+  process(events: NormalizedDevEvent[]): SynthesizedData {
+    const directives = analyzeInteractions(events);
+    return { exchanges: [], directives };
+  },
+};
 
 // ── 3b: Exchange Pairs (reuses existing analyzeInteractions) ────────
 
@@ -297,3 +308,33 @@ function extractNotableQuotes(
 
   return quotes;
 }
+
+// ── 3e: Haiku-Classified (LLM replaces regex heuristics) ────────────
+// Uses Haiku to classify exchanges instead of regex patterns.
+// Replaces computeAgency + computeCandidateType with semantic classification.
+
+export const haikuClassified: SynthesisAllele = {
+  name: "3e_haiku_classified",
+  async process(events: NormalizedDevEvent[]): Promise<SynthesizedData> {
+    const directives = analyzeInteractions(events);
+    const exchanges = buildExchanges(events);
+
+    // Classify all exchanges with Haiku in a single batch call
+    const classifications = await classifyExchanges(exchanges);
+
+    // Build enriched exchanges from Haiku classifications
+    const enrichedExchanges: EnrichedExchange[] = exchanges.map((ex, i) => {
+      const classification = classifications[i];
+      return {
+        devEvent: ex.devEvent,
+        aiTurnEvents: ex.aiTurnEvents,
+        agency: classification?.agency ?? "ambiguous",
+        candidateType: classification?.candidateType ?? null,
+        topicFingerprint: computeTopicFingerprint(ex),
+        notableQuotes: extractNotableQuotes(ex),
+      };
+    });
+
+    return { exchanges, directives, enrichedExchanges };
+  },
+};

@@ -18,6 +18,7 @@ export interface ScopeCriteria {
   name: string;
   fixture: string;
   expectedShape: string;
+  groundTruth?: string;  // human-written summary of what this fixture covers (for LLM judge)
   expectedDirectives: {
     detectPassiveAcceptance: boolean;
     trackDelegation: boolean;
@@ -45,6 +46,7 @@ export const designScope: ScopeCriteria = {
   name: "design-phase",
   fixture: "scope-design.jsonl",
   expectedShape: "narrative",
+  groundTruth: "The developer submitted a detailed PRD for an Execution Memory System, then went through a structured brainstorming process with the AI. Key decisions: corrected Python to TypeScript (developer-driven rejection of AI assumption), chose monolith CLI architecture (AI recommended, developer accepted), identified moment detection as 'painted gold' (developer's exact words — this is the core differentiator), accepted all 7 findings from an adversarial review of the moment detection design, committed to eval-driven development. The developer was highly engaged during design questions (long responses, reasoning, challenging AI proposals) but increasingly delegated implementation details with short responses ('ok', 'yes', 'a').",
   expectedDirectives: {
     detectPassiveAcceptance: false,  // developer was engaged in design Q&A
     trackDelegation: true,          // lots of "ok", "yes" to AI proposals
@@ -118,6 +120,7 @@ export const implementationScope: ScopeCriteria = {
   name: "implementation-phase",
   fixture: "scope-implementation.jsonl",
   expectedShape: "narrative",
+  groundTruth: "The developer transitioned from design to implementation. Key events: discovered the @constellos/claude-code-kit package for parsing CC logs (collaborative discovery), hit a chunking bug where file cluster shifts produced 27 micro-chunks instead of reasonable segments (struggle), fixed it with a forward window approach (breakthrough), encountered repeated Zod schema mismatches between LLM output and expected types (AI struggle), and achieved the first successful end-to-end digest run (execution milestone). The developer delegated heavily during implementation ('ok', 'yes') but engaged deeply when debugging the chunking issue.",
   expectedDirectives: {
     detectPassiveAcceptance: false,
     trackDelegation: true,          // heavy delegation during implementation
@@ -181,6 +184,7 @@ export const pivotScope: ScopeCriteria = {
   name: "quality-pivot",
   fixture: "scope-pivot.jsonl",
   expectedShape: "narrative",
+  groundTruth: "The developer rejected the initial pipeline output quality, saying 'we lack actual worthwhile meaning.' This triggered a major pivot: an architecture review revealed evidence was being destroyed at each pipeline stage, numerical interaction scores were declared 'meaningless,' and the developer drove a redesign toward actionable pipeline directives instead of scores. The developer then committed to causal threading as the foundational Layer 0 improvement. Throughout this phase, the developer was highly engaged — driving decisions, challenging AI proposals, and reasoning through alternatives. This was the most developer-driven phase of the entire session.",
   expectedDirectives: {
     detectPassiveAcceptance: false,
     trackDelegation: false,         // developer was driving hard here
@@ -246,6 +250,7 @@ export const fullScope: ScopeCriteria = {
   name: "full-session",
   fixture: "scope-full.jsonl",
   expectedShape: "narrative",
+  groundTruth: "A complete AI-assisted development session spanning design, implementation, quality rejection, and architectural pivot. The developer started with a detailed PRD, went through structured brainstorming (correcting Python to TypeScript, choosing monolith architecture, identifying moment detection as 'painted gold'). Implementation followed with heavy delegation, punctuated by the claude-code-kit discovery and a chunking bug struggle/breakthrough cycle. The developer then rejected output quality ('we lack actual worthwhile meaning'), drove a pivot from numerical scores to actionable directives, and committed to causal threading as Layer 0. The session shows a clear arc from engaged design to delegated implementation to developer-driven quality pivot.",
   expectedDirectives: {
     detectPassiveAcceptance: false,
     trackDelegation: true,
