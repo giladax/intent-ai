@@ -4,6 +4,7 @@ import "dotenv/config";
 import { Command } from "commander";
 import { up, down } from "./infra.js";
 import { registerDigestCommand } from "./digest.js";
+import { registerExploreCommand } from "./explore.js";
 
 const program = new Command();
 
@@ -13,13 +14,7 @@ program
   .version("1.0.0");
 
 registerDigestCommand(program);
-
-program
-  .command("explore")
-  .description("Explore digested sessions interactively")
-  .action(() => {
-    console.log("explore: not yet implemented");
-  });
+registerExploreCommand(program);
 
 program
   .command("eval")

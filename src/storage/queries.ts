@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { getDb } from "./connection.js";
 import {
   sessions,
@@ -353,4 +353,150 @@ export async function listSessions(): Promise<
   }
 
   return result;
+}
+
+// ── Transition & Outcome Queries ────────────────────────────────────
+
+export async function getSessionTransitions(
+  sessionId: string,
+): Promise<IntentTransition[]> {
+  const db = getDb();
+
+  const transitionRows = await db
+    .select()
+    .from(transitions)
+    .where(eq(transitions.sessionId, sessionId));
+
+  const result: IntentTransition[] = [];
+
+  for (const t of transitionRows) {
+    const tmRows = await db
+      .select()
+      .from(transitionMoments)
+      .where(eq(transitionMoments.transitionId, t.id));
+
+    result.push({
+      id: t.id,
+      sessionId,
+      fromStatement: t.fromStatement,
+      toStatement: t.toStatement,
+      reason: t.reason ?? "",
+      originMomentIds: tmRows.map((r) => r.momentId),
+      arcId: t.arcId ?? undefined,
+      confidence: (t.confidence as IntentTransition["confidence"]) ?? "low",
+    });
+  }
+
+  return result;
+}
+
+export async function getSessionOutcomes(
+  sessionId: string,
+): Promise<AcceptedOutcome[]> {
+  const db = getDb();
+
+  const outcomeRows = await db
+    .select()
+    .from(outcomes)
+    .where(eq(outcomes.sessionId, sessionId));
+
+  const result: AcceptedOutcome[] = [];
+
+  for (const o of outcomeRows) {
+    const omRows = await db
+      .select()
+      .from(outcomeMoments)
+      .where(eq(outcomeMoments.outcomeId, o.id));
+
+    const ofRows = await db
+      .select()
+      .from(outcomeFiles)
+      .where(eq(outcomeFiles.outcomeId, o.id));
+
+    result.push({
+      id: o.id,
+      sessionId,
+      statement: o.statement,
+      supportingMomentIds: omRows.map((r) => r.momentId),
+      supportingFiles: ofRows.map((r) => r.filePath),
+      confidence: (o.confidence as AcceptedOutcome["confidence"]) ?? "low",
+    });
+  }
+
+  return result;
+}
+
+// ── Chunk Event Queries ─────────────────────────────────────────────
+
+export async function getChunkEvents(
+  sessionId: string,
+  chunkId: string,
+): Promise<NormalizedDevEvent[]> {
+  const db = getDb();
+
+  // Look up the chunk to get its event range
+  const chunkRows = await db
+    .select()
+    .from(chunks)
+    .where(and(eq(chunks.id, chunkId), eq(chunks.sessionId, sessionId)))
+    .limit(1);
+
+  if (chunkRows.length === 0) return [];
+
+  const chunk = chunkRows[0];
+
+  // Query normalized events by causalOrder range
+  const eventRows = await db
+    .select()
+    .from(normalizedEvents)
+    .where(
+      and(
+        eq(normalizedEvents.sessionId, sessionId),
+        gte(normalizedEvents.causalOrder, chunk.eventRangeStart),
+        lte(normalizedEvents.causalOrder, chunk.eventRangeEnd),
+      ),
+    );
+
+  return eventRows.map((e) => ({
+    id: e.id,
+    sessionId,
+    timestamp: "",
+    causalOrder: e.causalOrder,
+    category: e.category as NormalizedDevEvent["category"],
+    actor: e.actor as NormalizedDevEvent["actor"],
+    content: {
+      summary: e.summary,
+      detail: e.detail ?? "",
+      filesAffected: e.filesAffected ?? undefined,
+    },
+    rawEventId: e.rawEventId ?? "",
+    turnId: "",
+  }));
+}
+
+// ── Most Recent Session ─────────────────────────────────────────────
+
+export async function getMostRecentSession(): Promise<{
+  id: string;
+  shape: string;
+  startedAt: Date | null;
+  endedAt: Date | null;
+} | null> {
+  const db = getDb();
+
+  const rows = await db
+    .select()
+    .from(sessions)
+    .orderBy(desc(sessions.createdAt))
+    .limit(1);
+
+  if (rows.length === 0) return null;
+
+  const s = rows[0];
+  return {
+    id: s.id,
+    shape: s.sessionShape ?? "unknown",
+    startedAt: s.startedAt,
+    endedAt: s.endedAt,
+  };
 }
