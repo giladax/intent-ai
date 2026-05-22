@@ -9,17 +9,17 @@ import { detectMomentsWithOrganism } from "./src/eval/organism.js";
 import { randomUUID } from "crypto";
 
 // Alleles
-import { hunter } from "./src/eval/chromosomes/chr1-instructions.js";
-import { threaded } from "./src/eval/chromosomes/chr2-formats.js";
+import { hunter, scorer } from "./src/eval/chromosomes/chr1-instructions.js";
+import { hybrid } from "./src/eval/chromosomes/chr2-formats.js";
 import { conversationOnly } from "./src/eval/chromosomes/chr4-data.js";
-import { exchangePairs, fullPrecompute } from "./src/eval/chromosomes/chr3-synthesis.js";
+import { fullPrecompute } from "./src/eval/chromosomes/chr3-synthesis.js";
 import type { Organism } from "./src/eval/chromosomes/types.js";
 
 const FIXTURE = "tests/eval/fixtures/scope-design.jsonl";
 
 async function main() {
-  console.log("═══ Phase 2: Synthesis (Chr 3) ═══");
-  console.log("Hold: {1a_hunter, 2b_threaded, 4a_conversation}");
+  console.log("═══ Phase 4: Instructions (Chr 1) ═══");
+  console.log("Hold: {2f_hybrid, 3c_full_precompute, 4a_conversation}");
   console.log("Fixture: scope-design.jsonl\n");
 
   // Parse once, reuse
@@ -32,10 +32,9 @@ async function main() {
   console.log(`  ${rawEvents.length} raw → ${normalizedEvents.length} normalized → ${chunks.length} chunks`);
   console.log(`  Shape: ${sessionShape}\n`);
 
-  // Phase 2: Synthesis — lock 4a (conversation only), vary Chr 3
   const organisms: Organism[] = [
-    { name: "3b_exchange_pairs", instructions: hunter, format: threaded, synthesis: exchangePairs, dataSelection: conversationOnly },
-    { name: "3c_full_precompute", instructions: hunter, format: threaded, synthesis: fullPrecompute, dataSelection: conversationOnly },
+    { name: "1a_hunter", instructions: hunter, format: hybrid, synthesis: fullPrecompute, dataSelection: conversationOnly },
+    { name: "1b_scorer", instructions: scorer, format: hybrid, synthesis: fullPrecompute, dataSelection: conversationOnly },
   ];
 
   for (const org of organisms) {
@@ -46,9 +45,7 @@ async function main() {
       const moments = await detectMomentsWithOrganism(org, rawEvents, chunks, sessionShape, normalizedEvents);
       console.log(`    ${moments.length} moments detected (${((Date.now() - start) / 1000).toFixed(1)}s)`);
 
-      // Judge
       console.log(`    Judging...`);
-      // Create a minimal narrative for judging (skip transitions/narrative to save cost)
       const mockNarrative = {
         sessionId,
         sessionShape,
@@ -62,11 +59,12 @@ async function main() {
 
       const score = await judgeOutput(designScope, moments, mockNarrative);
       console.log(`    Score: ${score.overall.toFixed(2)}/5`);
-      console.log(`    Coverage: ${score.momentCoverage.score}/5 — ${score.momentCoverage.reasoning.slice(0, 100)}`);
-      console.log(`    Quality: ${score.momentQuality.score}/5 — ${score.momentQuality.reasoning.slice(0, 100)}`);
+      console.log(`    Coverage: ${score.momentCoverage.score}/5 — ${score.momentCoverage.reasoning.slice(0, 120)}`);
+      console.log(`    Quality:  ${score.momentQuality.score}/5 — ${score.momentQuality.reasoning.slice(0, 120)}`);
+      console.log(`    Insight:  ${score.narrativeInsight.score}/5 — ${score.narrativeInsight.reasoning.slice(0, 120)}`);
       console.log();
     } catch (err) {
-      console.log(`    FAILED: ${err instanceof Error ? err.message.slice(0, 100) : String(err)}`);
+      console.log(`    FAILED: ${err instanceof Error ? err.message.slice(0, 150) : String(err)}`);
       console.log();
     }
   }
