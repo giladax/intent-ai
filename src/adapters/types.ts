@@ -39,6 +39,44 @@ export interface NormalizedDevEvent {
     filesAffected?: string[];
   };
   rawEventId: string;
+  respondingTo?: string;
+  turnId: string;
+}
+
+// ── Turn Exchange ───────────────────────────────────────────────────
+// Groups a developer event with the AI events that follow it,
+// capturing interaction patterns for the causal threading pipeline.
+
+export interface TurnExchange {
+  devEvent: NormalizedDevEvent;
+  aiTurnEvents: NormalizedDevEvent[];
+  devResponseChars: number;
+  devAskedQuestion: boolean;
+  devUsedReasoning: boolean;
+  devIntroducedNewTopic: boolean;
+  aiProposedMultipleOptions: boolean;
+  devRespondedToAllOptions: boolean;
+}
+
+// ── Pipeline Directives ─────────────────────────────────────────────
+// Aggregated signals derived from turn exchanges,
+// used to steer downstream prompt assembly and analysis.
+
+export interface PipelineDirectives {
+  promptSections: {
+    detectPassiveAcceptance: boolean;
+    trackDelegation: boolean;
+    detectIgnoredProposals: boolean;
+    isLearningExchange: boolean;
+  };
+  exchangeSummary: {
+    totalExchanges: number;
+    shortResponseCount: number;
+    questionCount: number;
+    reasoningCount: number;
+    newTopicCount: number;
+    ignoredProposals: string[];
+  };
 }
 
 // ── Session Chunk ────────────────────────────────────────────────────
