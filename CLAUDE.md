@@ -154,17 +154,27 @@ src/
     normalize.ts   Raw → Normalized events + causal threading (respondingTo, turnId)
     analyze.ts     Interaction analysis → PipelineDirectives (behavioral flags)
     classify.ts    Session shape classification (Haiku)
+    classify-exchanges.ts  Haiku batch classifier for exchange engagement/intent/agency
     chunk.ts       Deterministic chunking (pause, file shift, topic shift, size cap)
     moments.ts     Two-pass moment detection (Sonnet)
+    session-digest.ts  Cross-chunk context (developer statements, topic flow, boundary exchanges)
+    dedup-moments.ts   Deterministic pre-filter between pass 1 and pass 2
     transitions.ts Intent transitions + accepted outcomes (Sonnet)
     narrative.ts   Session narrative generation (Sonnet)
     orchestrator.ts End-to-end pipeline runner
   llm/
-    client.ts      Anthropic SDK wrapper (lazy init, retries, Zod validation)
+    client.ts      Anthropic SDK wrapper (lazy init, retries, Zod validation, LangSmith tracing)
     prompts/       Prompt builders per pipeline step
   storage/         Postgres via Drizzle ORM
   cli/             Commander.js CLI (digest, explore, eval, up, down)
-  eval/            Fitness function for chromosome evaluation
+  eval/
+    fitness.ts     Programmatic scoring against ScopeCriteria
+    judge.ts       LLM-as-judge (Haiku, 5-dimension scoring with reasoning)
+    runner.ts      Runs organisms against fixtures
+    organism.ts    Assembles 4 alleles into a node processor
+    chromosomes/   Allele implementations per chromosome
+    langsmith-setup.ts      Dataset upload to LangSmith
+    langsmith-experiment.ts Experiment logging
   utils/           CC log discovery
 ```
 
@@ -187,7 +197,7 @@ npx vitest run              # same, explicit
 npx tsc --noEmit            # type check
 ```
 
-86 tests across 11 files. All pipeline steps have tests. Moment/transition/narrative tests mock LLM calls.
+96 tests across 13 files. All pipeline steps have tests. Moment/transition/narrative tests mock LLM calls.
 
 ## Eval Workflow (EDD)
 
@@ -371,13 +381,15 @@ const result = await callHaiku(
 
 ### What's built and working
 
-- Full pipeline: parse → normalize (+ causal threading) → analyze (+ directives) → classify → chunk → moments (2-pass) → transitions → narrative
-- 86+ tests passing across 11 files
-- Real digest produced from a live CC session (this development session)
+- Full pipeline: parse → normalize (+ causal threading) → [analyze + classify + chunk] (parallel) → session digest → moments (2-pass with dedup) → transitions → narrative
+- 96 tests passing across 13 files
+- Real digest produced from a live CC session (this development session) — 50 moments, 10 transitions, 11 arcs
 - Layer 0 (causal threading + interaction analysis) complete
-- Chromosome evaluation harness: 4 alleles per chromosome, organism assembler, fitness function, LLM-as-judge, Haiku exchange classifier
+- `analyze.ts` uses Haiku structured output for exchange classification (regex removed)
+- Session digest injects cross-chunk context into each chunk's moment detection prompt
+- Dedup pre-filter removes overlap duplicates, flags contradictions for pass 2
+- Chromosome evaluation harness: alleles per chromosome, organism assembler, LLM-as-judge, learning runner
 - LangSmith integration: tracing, datasets, experiment logging
-- Session digest + dedup pre-filters (just committed, needs testing)
 
 ### Chromosome Evolution Results
 
@@ -391,11 +403,11 @@ const result = await callHaiku(
 
 ### Known issues
 
-1. **Moment detection misclassifies agency** — "AI proposed" when developer requested (see adversarial review example in this session's digest)
-2. **No cross-chunk context** — chunk 3 doesn't know what happened in chunks 0-2. Session digest (`src/pipeline/session-digest.ts`) just implemented but needs testing + wiring into orchestrator
-3. **Regex used for semantic classification** — `analyze.ts` and `chr3-synthesis.ts` use regex for behavioral classification. Should migrate to Haiku structured output. `src/pipeline/classify-exchanges.ts` built but not yet integrated.
-4. **`collectFiles` bug in transitions.ts** — function body is empty, LLM hallucinates file paths for outcomes
-5. **DB write fails** — timestamp format issue in `storeSessionDigest`
+1. **`collectFiles` bug in transitions.ts** — function body is empty, LLM hallucinates file paths for outcomes
+2. **Narrative evidence flow** — `buildNarrativePrompt` strips agency, significance, and evidence from moments (line 86). Narrative LLM works blind on attribution.
+3. **DB write fails** — timestamp format issue in `storeSessionDigest`
+4. **All moments scored "high" confidence** — no discrimination. Prompt tuning needed.
+5. **`chunk.ts` still uses regex** for topic shift detection (`TOPIC_SHIFT_PATTERNS`). Should migrate to Haiku.
 
 ### Immediate next tasks (for a fresh session)
 
