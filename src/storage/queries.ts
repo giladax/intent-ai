@@ -1,4 +1,12 @@
 import { eq, and, gte, lte, desc } from "drizzle-orm";
+
+function batchArray<T>(arr: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    batches.push(arr.slice(i, i + size));
+  }
+  return batches;
+}
 import { getDb } from "./connection.js";
 import {
   sessions,
@@ -56,10 +64,11 @@ export async function storeSessionDigest(data: {
     endedAt: data.endedAt ? new Date(data.endedAt.toISOString()) : null,
   });
 
-  // 2. raw_events
-  if (data.rawEvents.length > 0) {
+  // 2. raw_events (batched to avoid param limit)
+  const rawBatches = batchArray(data.rawEvents, 50);
+  for (const batch of rawBatches) {
     await db.insert(rawEvents).values(
-      data.rawEvents.map((e) => ({
+      batch.map((e) => ({
         id: e.id,
         sessionId: data.sessionId,
         source: e.source,
@@ -70,10 +79,11 @@ export async function storeSessionDigest(data: {
     );
   }
 
-  // 3. normalized_events
-  if (data.normalizedEvents.length > 0) {
+  // 3. normalized_events (batched)
+  const normBatches = batchArray(data.normalizedEvents, 50);
+  for (const batch of normBatches) {
     await db.insert(normalizedEvents).values(
-      data.normalizedEvents.map((e) => ({
+      batch.map((e) => ({
         id: e.id,
         sessionId: data.sessionId,
         rawEventId: e.rawEventId,
@@ -131,7 +141,9 @@ export async function storeSessionDigest(data: {
       })),
     );
     if (evidenceRows.length > 0) {
-      await db.insert(momentEvidence).values(evidenceRows);
+      for (const batch of batchArray(evidenceRows, 50)) {
+        await db.insert(momentEvidence).values(batch);
+      }
     }
 
     // 7. moment_relations
