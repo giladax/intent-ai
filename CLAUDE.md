@@ -66,6 +66,32 @@ CC log → parse → normalize (+ threading) → [classify + chunk + analyze] �
 
 This is the baseline (Topology L, all nodes using default organisms). The chromosome framework evolves toward better configurations by testing combinations against real eval fixtures.
 
+### Node Semantic Definitions
+
+Each pipeline node has a PURPOSE — the reasoning question it answers. The purpose drives which chromosomes make sense and what the LLM should focus on.
+
+| Node | Purpose | Question it answers | What the pipeline loses without it |
+|------|---------|--------------------|------------------------------------|
+| **normalize** | Structure raw signal | "What is the conversation topology? Who said what to whom, in what order?" | No causal threading, no turn pairing — downstream sees a flat log |
+| **analyze** | Characterize interaction | "How is the developer engaging? Passive, challenging, delegating?" | No behavioral context — LLM can't distinguish rubber-stamp from active decision |
+| **classify** | Determine reasoning strategy | "What kind of session is this? What should we look for?" | Same generic prompt for debugging and brainstorming sessions |
+| **chunk** | Bound the reasoning window | "Where are the natural topic boundaries?" | LLM tries to process 900 events at once, or splits arbitrarily |
+| **moment detector** | Separate signal from noise | "Where did the developer's understanding shift? Which exchanges were inflection points vs routine?" | Every event treated as equally important — no cognitive compression |
+| **transitions** | Track intent evolution | "How did what-the-developer-was-trying-to-do change over time?" | Moments are isolated points, no arc connecting them |
+| **narrative** | Reconstruct the cognitive arc | "What's the story of how understanding evolved in this session?" | Raw data structures, no human-readable execution memory |
+| **critic** (planned) | Quality gate | "Does the narrative actually reflect what happened? Is evidence cited? Are claims supported?" | Hallucinated or generic output passes unchecked |
+| **router** (planned) | Optimize cost/quality | "Is this session simple enough to skip expensive steps?" | Every session pays full cost regardless of complexity |
+
+**How purpose drives chromosomes:**
+
+The moment detector's purpose is "separate signal from noise." This means:
+- **Chr 1 (Instructions)** should frame the task as signal detection, not exhaustive analysis
+- **Chr 2 (Format)** should make inflection points visually distinct from routine exchanges
+- **Chr 3 (Synthesis)** should pre-label routine vs notable exchanges so the LLM focuses on the notable ones
+- **Chr 4 (Data)** should include enough context to distinguish signal from noise, but not so much that noise drowns signal
+
+A node without a clear semantic purpose is a node that shouldn't exist. If you can't state what question it answers, it's either redundant or needs to be split into nodes with clearer purposes.
+
 ### Pipeline State Flow
 
 Each step enriches a shared context — never replaces upstream data.
