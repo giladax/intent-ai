@@ -46,17 +46,14 @@ export async function runPipeline(logPath: string): Promise<{
     );
   }
 
-  // 4. Analyze interactions
-  log("[3/10] Analyzing interactions...");
-  const directives = analyzeInteractions(normalizedEvents);
-
-  // 5. Classify
-  log("[4/10] Classifying session shape...");
-  const sessionShape = await classifySession(normalizedEvents);
-
-  // 6. Chunk
-  const sessionChunks = chunkSession(normalizedEvents, sessionId);
-  log(`[5/10] Chunking into ${sessionChunks.length} windows...`);
+  // 4-5-6. Analyze + Classify + Chunk in parallel (all depend only on normalizedEvents)
+  log("[3/10] Analyzing + classifying + chunking (parallel)...");
+  const [directives, sessionShape, sessionChunks] = await Promise.all([
+    Promise.resolve(analyzeInteractions(normalizedEvents)),
+    classifySession(normalizedEvents),
+    Promise.resolve(chunkSession(normalizedEvents, sessionId)),
+  ]);
+  log(`  Shape: ${sessionShape}, ${sessionChunks.length} chunks, ${directives.exchangeSummary.totalExchanges} exchanges`);
 
   // 7. Detect moments (pass 1 + 2)
   log("[6/10] Detecting moments (pass 1)...");
