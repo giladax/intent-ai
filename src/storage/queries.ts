@@ -1,4 +1,5 @@
 import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 function batchArray<T>(arr: T[], size: number): T[][] {
   const batches: T[][] = [];
@@ -54,34 +55,18 @@ export async function storeSessionDigest(data: {
 }): Promise<void> {
   const db = getDb();
 
-  // 1. sessions
-  await db.insert(sessions).values({
-    id: data.sessionId,
-    sourceType: data.sourceType,
-    sourcePath: data.sourcePath,
-    sessionShape: data.sessionShape,
-    startedAt: data.startedAt ? new Date(data.startedAt.toISOString()) : null,
-    endedAt: data.endedAt ? new Date(data.endedAt.toISOString()) : null,
-  });
+  // 1. sessions — use raw client for timestamp compatibility
+  const client = (await import("./connection.js")).getClient();
+  await client`INSERT INTO sessions (id, source_type, source_path, session_shape, started_at, ended_at, created_at)
+    VALUES (${data.sessionId}, ${data.sourceType}, ${data.sourcePath}, ${data.sessionShape},
+            ${data.startedAt?.toISOString() ?? null}, ${data.endedAt?.toISOString() ?? null}, NOW())`;
 
-  // 2. raw_events (batched to avoid param limit)
-  const rawBatches = batchArray(data.rawEvents, 50);
-  for (const batch of rawBatches) {
-    await db.insert(rawEvents).values(
-      batch.map((e) => ({
-        id: e.id,
-        sessionId: data.sessionId,
-        source: e.source,
-        timestamp: e.timestamp ? new Date(e.timestamp) : null,
-        type: e.type,
-        raw: e.raw,
-      })),
-    );
-  }
+  // 2. raw_events — skip storing raw events to save space/time
+  // The raw JSONL file is the source of truth; we don't need to duplicate it in Postgres.
+  // If needed later, add a reference to the source file path (already in sessions table).
 
   // 3. normalized_events (batched)
-  const normBatches = batchArray(data.normalizedEvents, 50);
-  for (const batch of normBatches) {
+  for (const batch of batchArray(data.normalizedEvents, 20)) {
     await db.insert(normalizedEvents).values(
       batch.map((e) => ({
         id: e.id,
@@ -97,28 +82,35 @@ export async function storeSessionDigest(data: {
     );
   }
 
-  // 4. chunks
+  // 4. chunks — map pipeline IDs to UUIDs
+  const chunkIdMap = new Map<string, string>();
   if (data.chunks.length > 0) {
-    await db.insert(chunks).values(
-      data.chunks.map((c) => ({
-        id: c.id,
+    const chunkValues = data.chunks.map((c) => {
+      const uuid = randomUUID();
+      chunkIdMap.set(c.id, uuid);
+      return {
+        id: uuid,
         sessionId: data.sessionId,
         chunkIndex: c.chunkIndex,
         topicHint: c.topicHint,
         filesInScope: c.filesInScope,
         eventRangeStart: c.eventRange[0],
         eventRangeEnd: c.eventRange[1],
-      })),
-    );
+      };
+    });
+    await db.insert(chunks).values(chunkValues);
   }
 
-  // 5. moments
+  // 5. moments — map pipeline IDs to UUIDs
+  const momentIdMap = new Map<string, string>();
   if (data.moments.length > 0) {
-    await db.insert(moments).values(
-      data.moments.map((m) => ({
-        id: m.id,
+    const momentValues = data.moments.map((m) => {
+      const uuid = randomUUID();
+      momentIdMap.set(m.id, uuid);
+      return {
+        id: uuid,
         sessionId: data.sessionId,
-        chunkId: m.chunkId,
+        chunkId: chunkIdMap.get(m.chunkId) ?? null,
         type: m.type,
         statement: m.statement,
         significance: m.significance,
@@ -127,81 +119,99 @@ export async function storeSessionDigest(data: {
         topicFingerprint: m.topicFingerprint,
         arcId: m.arcId ?? null,
         arcRole: m.arcRole ?? null,
-      })),
-    );
+      };
+    });
+    await db.insert(moments).values(momentValues);
 
-    // 6. moment_evidence
-    const evidenceRows = data.moments.flatMap((m) =>
-      m.evidence.map((e) => ({
-        momentId: m.id,
+    // 6. moment_evidence — use mapped moment UUIDs, skip non-UUID sourceEventIds
+    const evidenceRows = data.moments.flatMap((m) => {
+      const momentUuid = momentIdMap.get(m.id)!;
+      return m.evidence.map((e) => ({
+        momentId: momentUuid,
         quote: e.quote,
-        sourceEventId: e.sourceEventId || null,
+        sourceEventId: null, // sourceEventId from pipeline isn't a UUID
         sourceType: e.sourceType,
         quoteType: e.quoteType,
-      })),
-    );
+      }));
+    });
     if (evidenceRows.length > 0) {
-      for (const batch of batchArray(evidenceRows, 50)) {
+      for (const batch of batchArray(evidenceRows, 20)) {
         await db.insert(momentEvidence).values(batch);
       }
     }
 
-    // 7. moment_relations
+    // 7. moment_relations — map pipeline IDs to UUIDs
     const relationRows = data.moments.flatMap((m) =>
-      m.relatedMomentIds.map((relId) => ({
-        momentId: m.id,
-        relatedMomentId: relId,
-        relationType: "evolved_into" as const,
-      })),
+      m.relatedMomentIds
+        .filter((relId) => momentIdMap.has(relId))
+        .map((relId) => ({
+          momentId: momentIdMap.get(m.id)!,
+          relatedMomentId: momentIdMap.get(relId)!,
+          relationType: "evolved_into" as const,
+        })),
     );
     if (relationRows.length > 0) {
       await db.insert(momentRelations).values(relationRows);
     }
   }
 
-  // 8. transitions
+  // 8. transitions — generate UUIDs
+  const transitionIdMap = new Map<string, string>();
   if (data.transitions.length > 0) {
     await db.insert(transitions).values(
-      data.transitions.map((t) => ({
-        id: t.id,
-        sessionId: data.sessionId,
-        fromStatement: t.fromStatement,
-        toStatement: t.toStatement,
-        reason: t.reason,
-        arcId: t.arcId ?? null,
-        confidence: t.confidence,
-      })),
+      data.transitions.map((t) => {
+        const uuid = randomUUID();
+        transitionIdMap.set(t.id, uuid);
+        return {
+          id: uuid,
+          sessionId: data.sessionId,
+          fromStatement: t.fromStatement,
+          toStatement: t.toStatement,
+          reason: t.reason,
+          arcId: t.arcId ?? null,
+          confidence: t.confidence,
+        };
+      }),
     );
 
-    // 9. transition_moments
+    // 9. transition_moments — map both IDs
     const tmRows = data.transitions.flatMap((t) =>
-      t.originMomentIds.map((mId) => ({
-        transitionId: t.id,
-        momentId: mId,
-      })),
+      t.originMomentIds
+        .filter((mId) => momentIdMap.has(mId))
+        .map((mId) => ({
+          transitionId: transitionIdMap.get(t.id)!,
+          momentId: momentIdMap.get(mId)!,
+        })),
     );
     if (tmRows.length > 0) {
       await db.insert(transitionMoments).values(tmRows);
     }
   }
 
-  // 10. outcomes
+  // 10. outcomes — generate UUIDs
+  const outcomeIdMap = new Map<string, string>();
   if (data.outcomes.length > 0) {
     await db.insert(outcomes).values(
-      data.outcomes.map((o) => ({
-        id: o.id,
-        sessionId: data.sessionId,
-        statement: o.statement,
-        confidence: o.confidence,
-      })),
+      data.outcomes.map((o) => {
+        const uuid = randomUUID();
+        outcomeIdMap.set(o.id, uuid);
+        return {
+          id: uuid,
+          sessionId: data.sessionId,
+          statement: o.statement,
+          confidence: o.confidence,
+        };
+      }),
     );
 
-    // 11. outcome_moments
+    // 11. outcome_moments — map both IDs
     const omRows = data.outcomes.flatMap((o) =>
-      o.supportingMomentIds.map((mId) => ({
-        outcomeId: o.id,
-        momentId: mId,
-      })),
+      o.supportingMomentIds
+        .filter((mId) => momentIdMap.has(mId))
+        .map((mId) => ({
+          outcomeId: outcomeIdMap.get(o.id)!,
+          momentId: momentIdMap.get(mId)!,
+        })),
     );
     if (omRows.length > 0) {
       await db.insert(outcomeMoments).values(omRows);
@@ -210,7 +220,7 @@ export async function storeSessionDigest(data: {
     // 12. outcome_files
     const ofRows = data.outcomes.flatMap((o) =>
       o.supportingFiles.map((fp) => ({
-        outcomeId: o.id,
+        outcomeId: outcomeIdMap.get(o.id)!,
         filePath: fp,
       })),
     );
