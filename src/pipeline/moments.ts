@@ -84,12 +84,15 @@ function toSessionMoment(
     relatedMomentIds: m.relatedMomentIds.map((id) => `moment-${id}`),
     arcId: m.arcId,
     arcRole: mapArcRole(m.arcRole),
-    evidence: m.evidence.map((e) => ({
-      quote: e.quote,
-      sourceEventId: e.sourceEventId ?? "",
-      sourceType: mapSourceType(e.sourceType),
-      quoteType: e.quoteType === "verbatim" ? "verbatim" : "summarized",
-    })),
+    evidence: m.evidence.map((e) => {
+      const ev = typeof e === "string" ? { quote: e, sourceType: "ai" as const, quoteType: "verbatim" as const } : e;
+      return {
+        quote: ev.quote,
+        sourceEventId: ("sourceEventId" in ev ? ev.sourceEventId : undefined) ?? "",
+        sourceType: mapSourceType(ev.sourceType ?? "ai"),
+        quoteType: ev.quoteType === "verbatim" ? ("verbatim" as const) : ("summarized" as const),
+      };
+    }),
   };
 }
 
