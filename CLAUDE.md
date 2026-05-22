@@ -223,6 +223,15 @@ Before changing any prompt or pipeline step:
 
 Overall: 65%. Narrative quality: 100%. Moment detection: 0% (generic fingerprints). Directive accuracy: 75%.
 
+### Learning Results (Phase 1-2)
+
+| Phase | Varied | Winner | Score | Key Learning |
+|-------|--------|--------|-------|-------------|
+| Phase 1 (Data) | Chr 4 | 4a (conversation only) | 4.35/5 | Tool data doesn't help for design sessions |
+| Phase 2 (Synthesis) | Chr 3 | 3c (full precompute, Haiku) | 4.80/5 | Haiku classification > regex. Bad pre-computation is worse than none. |
+
+**Current best organism:** `{1a_hunter, 2b_threaded, 3c_full_precompute, 4a_conversation}` — 4.80/5, 5/5 coverage on design-scope fixture.
+
 ### Fitness weights (actual, in `src/eval/fitness.ts`)
 
 | Metric | Weight |
@@ -370,9 +379,15 @@ const result = await callHaiku(
 - LangSmith integration: tracing, datasets, experiment logging
 - Session digest + dedup pre-filters (just committed, needs testing)
 
-### Gen 0 baseline
+### Chromosome Evolution Results
 
-Overall fitness: 65%. Narrative quality: 100%. Moment detection: 0% (generic fingerprints). With LLM judge: α (current) scored 4.0-4.8/5, β (pre-computed) 3.8, δ (minimal) 3.5-4.0.
+| Gen | Best Organism | Judge Score | Key Discovery |
+|-----|--------------|-------------|--------------|
+| Gen 0 | α {1a, 2b, 3b, 4b} | 4.0/5 | Baseline — programmatic fitness scored 65% |
+| Phase 1 | {1a, 2b, 3b, 4a} | 4.35/5 | Conversation-only data ties with conversation+actions |
+| Phase 2 | {1a, 2b, 3c, 4a} | 4.80/5 | Haiku pre-computation wins after regex removal |
+
+**Critical learning:** Regex for semantic classification was POISON — made 3c score WORSE than 3b. After replacing with Haiku structured output, 3c became the best allele. See CLAUDE.md anti-pattern section.
 
 ### Known issues
 
@@ -384,8 +399,8 @@ Overall fitness: 65%. Narrative quality: 100%. Moment detection: 0% (generic fin
 
 ### Immediate next tasks (for a fresh session)
 
-1. **Wire session digest into orchestrator** — `src/pipeline/session-digest.ts` exists but isn't called. Add to `orchestrator.ts`, pass digest to `detectMoments`, inject context headers into chunk prompts.
-2. **Fix the TS type error** in `src/pipeline/moments.ts:89` — `sourceEventId` property access on union type.
-3. **Run the learning strategy** — `npx tsx run-learn.ts` (~$1.00, tests one chromosome at a time with judge scoring). Was interrupted by disk space.
-4. **Replace regex classification with Haiku** — `src/pipeline/classify-exchanges.ts` exists. Create a new Chr 3 allele that uses it instead of regex patterns in `analyze.ts`.
-5. **Fix `collectFiles`** in `src/pipeline/transitions.ts` — thread `chunks[].filesInScope` to outcomes.
+1. **Continue chromosome evolution — Phase 3 (Format)** — lock `{1a, 3c, 4a}`, vary Chr 2 (2a flat, 2b threaded, 2c behavioral, 2e prelabeled). Use `run-phase1.ts` pattern, ~$0.10.
+2. **Phase 4 (Instructions)** — lock best Chr 2 from Phase 3, vary Chr 1 (1a hunter, 1b scorer). Then validate winner on pivot-scope fixture.
+3. **Fix `collectFiles` bug** in `src/pipeline/transitions.ts` — function body is empty, LLM hallucinating file paths.
+4. **Fix narrative evidence flow** — `buildNarrativePrompt` strips agency, significance, and evidence from moments (line 86 shows only type + arc + statement). Add these fields.
+5. **Run full digest with winning organism** on the complete session log and compare to previous digests.
