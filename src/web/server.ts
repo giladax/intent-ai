@@ -355,7 +355,7 @@ ${sessionContexts}
   });
 
   // SPA fallback — serve index.html for non-API routes
-  app.get("*", (_req, res) => {
+  app.get("/{*path}", (_req, res) => {
     res.sendFile(join(__dirname, "public", "index.html"));
   });
 
