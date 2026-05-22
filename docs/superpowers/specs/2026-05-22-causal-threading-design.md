@@ -19,49 +19,51 @@ respondingTo?: string;  // ID of event this responds to
 turnId: string;         // groups events from same assistant/user message
 ```
 
+**Turn grouping:** `turnId` is derived from the `RawDevEvent.id` by stripping the block suffix. Current ID format is `<uuid>-<type>-<index>` — the `turnId` is the `<uuid>` prefix. Events from the same CC log entry (same assistant message with multiple content blocks) share a `turnId`.
+
 **Threading rules (single pass, deterministic):**
 
-- AI response after user turn → responds to that turn
-- Tool call in same AI turn → responds to first event in turn (shares `turnId`)
-- Tool result → responds to its tool call
-- User turn → responds to most recent AI turn's last event
+| Current Event | `respondingTo` target | `turnId` |
+|--------------|----------------------|----------|
+| First event in AI turn | Most recent user event's ID | Shared with all events in this AI turn |
+| Non-first event in same AI turn | First event of this AI turn | Same `turnId` as above |
+| Tool result | The tool_call event it answers | Own `turnId` (from its raw log entry) |
+| User turn (conversation_turn) | Most recent AI turn's last event | Own `turnId` |
 
-**Turn grouping:** All events from the same CC log entry share a `turnId` (the message's uuid from the raw log).
+**Edge cases:**
+- First event in session: `respondingTo = undefined`
+- Zero exchanges (all AI, no user turns): all events get `respondingTo` pointing to previous event sequentially, directives return defaults (all flags false)
 
 ### 2. Interaction Analysis (new `analyze.ts`)
 
 Takes threaded `NormalizedDevEvent[]`, produces `PipelineDirectives`.
 
-**Step 1 — Pair exchanges:** Match each user turn to the AI turn it responds to → `TurnExchange[]`
+**Step 1 — Pair exchanges:** Match each user `intent` event to the AI turn it `respondingTo` → `TurnExchange[]`
 
 ```typescript
 interface TurnExchange {
-  devEvent: NormalizedDevEvent;
-  aiTurnEvents: NormalizedDevEvent[];
+  devEvent: NormalizedDevEvent;          // single conversation_turn event
+  aiTurnEvents: NormalizedDevEvent[];    // all events sharing the AI turnId being responded to
   devResponseChars: number;
   devAskedQuestion: boolean;
-  devUsedReasoning: boolean;       // "because", "actually", "instead"
-  devIntroducedNewTopic: boolean;  // new files or direction
-  aiProposedMultipleOptions: boolean;
-  devRespondedToAllOptions: boolean;
+  devUsedReasoning: boolean;             // "because", "actually", "instead", "but"
+  devIntroducedNewTopic: boolean;        // mentions files not in AI turn
+  aiProposedMultipleOptions: boolean;    // AI text contains "A)", "B)", "option" patterns
+  devRespondedToAllOptions: boolean;     // dev response references multiple options
 }
 ```
 
-**Step 2 — Compute directives:** Apply routing rules to exchanges → `PipelineDirectives`
+One `TurnExchange` per `conversation_turn` event. If an exchange spans a chunk boundary, the exchange is assigned to the chunk containing the dev event.
+
+**Step 2 — Compute directives:**
 
 ```typescript
 interface PipelineDirectives {
   promptSections: {
-    detectPassiveAcceptance: boolean;   // 70%+ short responses
-    trackDelegation: boolean;           // dev defers decisions
-    detectIgnoredProposals: boolean;    // AI proposals with no response
-    isLearningExchange: boolean;        // dev asking questions
-  };
-  enabledLenses: {
-    behavioral: boolean;
-    causal: boolean;
-    understanding: boolean;
-    projectManagement: boolean;
+    detectPassiveAcceptance: boolean;   // 70%+ exchanges have devResponseChars < 15
+    trackDelegation: boolean;           // 50%+ exchanges have !devUsedReasoning && !devIntroducedNewTopic
+    detectIgnoredProposals: boolean;    // any exchange has aiProposedMultipleOptions && !devRespondedToAllOptions
+    isLearningExchange: boolean;        // 40%+ exchanges have devAskedQuestion
   };
   exchangeSummary: {
     totalExchanges: number;
@@ -69,40 +71,52 @@ interface PipelineDirectives {
     questionCount: number;
     reasoningCount: number;
     newTopicCount: number;
-    ignoredProposals: string[];
+    ignoredProposals: string[];         // summaries of AI proposals with no dev response
   };
-  likelySchema: "quest" | "siege" | "construction" | "exploration" | "rescue" | "pivot_chain";
 }
 ```
 
+**Removed from earlier draft:** `enabledLenses` and `likelySchema` are deferred to Layer 1 spec. This layer only produces `promptSections` (used now) and `exchangeSummary` (facts for downstream).
+
 ### 3. Threaded Prompt Format (in `moments.ts`)
 
-Replace flat event rendering with threaded exchange format:
+Replace flat event rendering with exchange-grouped format. The format is illustrative — exact formatting is implementation detail:
 
 ```
-── Exchange 1 ──────────────────────────
+── Exchange 1 ──
 DEV: "fix the auth bug"
-  └─ AI [turn-002]:
-     ├── "I'll check the middleware..."
-     ├── Read auth.ts → [contents]
-     └── "I see the issue — missing expiry check"
+  AI [turn-002]:
+    - "I'll check the middleware..."
+    - Read auth.ts → [contents]
+    - "I see the issue — missing expiry check"
 ```
 
-Conditionally inject guidance sections based on `promptSections`.
+**Conditional guidance injection:** When `promptSections.detectPassiveAcceptance` is true, append to the system prompt:
+
+> "This session contains many short developer responses. When you see responses like 'yes', 'ok', 'sure' — distinguish active agreement from passive acceptance. This matters for agency classification."
+
+Similarly for `trackDelegation`, `detectIgnoredProposals`, `isLearningExchange`.
 
 ### 4. Pipeline Integration (in `orchestrator.ts`)
 
-Insert `analyzeInteractions()` between normalize and classify. Pass directives through to moment detection.
+```
+parse → normalize (+ threading) → analyzeInteractions → classify → chunk → moments(directives) → ...
+```
+
+- `analyzeInteractions(normalizedEvents)` returns `PipelineDirectives`
+- `detectMoments(chunks, sessionShape, directives)` — updated signature, passes directives to prompt builder
+- Step count updates from 9 to 10 in progress logging
 
 ## Files
 
 | File | Change |
 |------|--------|
-| `src/adapters/types.ts` | Add `respondingTo`, `turnId`, `TurnExchange`, `PipelineDirectives` |
+| `src/adapters/types.ts` | Add `respondingTo`, `turnId` to `NormalizedDevEvent`. Add `TurnExchange`, `PipelineDirectives` types. |
 | `src/pipeline/normalize.ts` | Add threading pass after category assignment |
 | `src/pipeline/analyze.ts` | New — exchange pairing + directive computation |
-| `src/pipeline/orchestrator.ts` | Insert analyze step, pass directives downstream |
-| `src/llm/prompts/moments.ts` | Threaded format + conditional guidance injection |
+| `src/pipeline/orchestrator.ts` | Insert analyze step, pass directives to moments |
+| `src/pipeline/moments.ts` | Accept directives param, pass to prompt builder |
+| `src/llm/prompts/moments.ts` | Accept directives, threaded format + conditional guidance |
 
 ## What Does NOT Change
 
@@ -110,7 +124,8 @@ Adapter, chunking, storage schema, transitions, outcomes, narrative. Those are L
 
 ## Testing
 
-- Threading rules: given event sequence → verify `respondingTo` and `turnId`
-- Exchange pairing: given threaded events → verify `TurnExchange[]`
-- Directives: given exchanges with short responses → verify `detectPassiveAcceptance = true`
-- Smoke test: run against real CC log, verify threaded output matches expected exchange format
+- Threading: given event sequence → verify `respondingTo` and `turnId` for each event
+- Exchange pairing: given threaded events → verify correct `TurnExchange[]` output
+- Directives: given exchanges with 70%+ short responses → verify `detectPassiveAcceptance = true`
+- Directives: zero exchanges → all flags false, empty summary
+- Smoke test: run against real CC log, print threaded exchanges, verify structure
