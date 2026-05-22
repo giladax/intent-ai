@@ -49,7 +49,7 @@ export async function runPipeline(logPath: string): Promise<{
   // 4-5-6. Analyze + Classify + Chunk in parallel (all depend only on normalizedEvents)
   log("[3/10] Analyzing + classifying + chunking (parallel)...");
   const [directives, sessionShape, sessionChunks] = await Promise.all([
-    Promise.resolve(analyzeInteractions(normalizedEvents)),
+    analyzeInteractions(normalizedEvents),
     classifySession(normalizedEvents),
     Promise.resolve(chunkSession(normalizedEvents, sessionId)),
   ]);

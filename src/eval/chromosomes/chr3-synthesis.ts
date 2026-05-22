@@ -77,8 +77,7 @@ function buildExchanges(events: NormalizedDevEvent[]): TurnExchange[] {
     const devDetail = devEvent.content.detail;
     const devResponseChars = devDetail.length;
     const devAskedQuestion = devDetail.includes("?");
-    const devUsedReasoning =
-      /\b(because|actually|instead|but|however|rather)\b/i.test(devDetail);
+    const devUsedReasoning = false; // Determined by Haiku classifier, not regex
 
     exchanges.push({
       devEvent,

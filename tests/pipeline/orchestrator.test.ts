@@ -26,6 +26,17 @@ vi.mock("../../src/storage/queries.js", () => ({
   storeSessionDigest: vi.fn(),
 }));
 
+vi.mock("../../src/pipeline/classify-exchanges.js", () => ({
+  classifyExchanges: vi.fn(async (exchanges: unknown[]) =>
+    (exchanges as unknown[]).map(() => ({
+      engagement: "active",
+      intent: "acceptance",
+      agency: "collaborative",
+      candidateType: null,
+    }))
+  ),
+}));
+
 // Import after mocks
 import { runPipeline } from "../../src/pipeline/orchestrator.js";
 import { parseClaudeCodeLog } from "../../src/adapters/claude-code.js";

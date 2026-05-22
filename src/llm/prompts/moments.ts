@@ -431,7 +431,7 @@ function formatThreadedEvents(events: NormalizedDevEvent[]): string {
     const devEvent = events[devIdx];
     const aiEvents = events.slice(devIdx + 1, nextIntentIdx);
 
-    const devDetail = truncateDetail(devEvent.content.detail);
+    const devDetail = truncateDetail(devEvent.content.detail, TRUNCATION_LIMITS.intent);
 
     let block = `── Exchange ──\n[${devEvent.causalOrder}] DEV: "${devDetail}"`;
 
@@ -450,14 +450,14 @@ function formatThreadedEvents(events: NormalizedDevEvent[]): string {
 
 function formatAiEvent(e: NormalizedDevEvent): string {
   const files = e.content.filesAffected ?? [];
-  const detail = truncateDetail(e.content.detail);
+  const limit = TRUNCATION_LIMITS[e.category as keyof typeof TRUNCATION_LIMITS] ?? 400;
+  const detail = truncateDetail(e.content.detail, limit);
 
   switch (e.category) {
     case "proposal":
     case "reflection":
       return `[${e.causalOrder}] "${detail}"`;
     case "action": {
-      // Extract tool name from summary (format: "Tool: Name on /path")
       const toolMatch = e.content.summary.match(/^Tool:\s+(\S+)/);
       const toolName = toolMatch?.[1] ?? "Action";
       if (files.length > 0) {
@@ -466,7 +466,7 @@ function formatAiEvent(e: NormalizedDevEvent): string {
       return `[${e.causalOrder}] ${toolName}`;
     }
     case "result":
-      return `[${e.causalOrder}] Result: ${truncateDetail(e.content.summary)}`;
+      return `[${e.causalOrder}] Result: ${truncateDetail(e.content.summary, TRUNCATION_LIMITS.result)}`;
     default:
       return `[${e.causalOrder}] ${detail}`;
   }
@@ -486,6 +486,15 @@ function formatEventsFlat(events: NormalizedDevEvent[]): string {
     .join("\n\n");
 }
 
-function truncateDetail(text: string): string {
-  return text.length > 400 ? text.slice(0, 400) + "..." : text;
+function truncateDetail(text: string, maxChars: number = 400): string {
+  return text.length > maxChars ? text.slice(0, maxChars) + "..." : text;
 }
+
+// Longer limits for signal-rich content, shorter for noise
+const TRUNCATION_LIMITS = {
+  intent: 800,      // developer messages — the core signal
+  proposal: 800,    // AI proposals — carry decision content
+  reflection: 600,  // AI reasoning after tool results
+  action: 200,      // tool calls — name + path is enough
+  result: 200,      // tool results — mostly file contents (noise)
+} as const;
