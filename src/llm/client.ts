@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { z } from "zod";
+import { traceable } from "langsmith/traceable";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -10,6 +11,12 @@ const HAIKU_MODEL = "claude-haiku-4-5";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
+
+// ── LangSmith ────────────────────────────────────────────────────────
+
+const langsmithEnabled = Boolean(
+  process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_TRACING === "true",
+);
 
 // ── Lazy Client ──────────────────────────────────────────────────────
 
@@ -98,7 +105,7 @@ async function callModel<T>(
   );
 }
 
-async function rawCall(
+async function rawCallImpl(
   model: string,
   systemPrompt: string,
   userPrompt: string,
@@ -131,6 +138,15 @@ async function rawCall(
 
   return textBlock.text;
 }
+
+// Wrap with LangSmith traceable if enabled, otherwise use raw implementation
+const rawCall = langsmithEnabled
+  ? traceable(rawCallImpl, {
+      name: "anthropic_llm_call",
+      run_type: "llm",
+      metadata: { provider: "anthropic" },
+    })
+  : rawCallImpl;
 
 function validateJson<T>(text: string, schema: z.ZodType<T>): T {
   // Strip markdown code fences if present

@@ -2,6 +2,7 @@ import "dotenv/config";
 import { designScope } from "./tests/eval/session-criteria.js";
 import { runOrganismBatch } from "./src/eval/runner.js";
 import { judgeOutput } from "./src/eval/judge.js";
+import { logPhaseOutcome, type ExperimentEntry } from "./src/eval/langsmith-experiment.js";
 import type { Organism } from "./src/eval/chromosomes/types.js";
 import type { FitnessResult } from "./src/eval/fitness.js";
 import type { JudgeScore } from "./src/eval/judge.js";
@@ -198,6 +199,21 @@ async function runPhase(config: {
 
   const winner = phaseResults[winnerIdx];
   console.log(`\n  Winner: ${winner.alleleName} — ${winner.score.overall.toFixed(1)}/5`);
+
+  // Log to LangSmith (no-op if env vars not set)
+  try {
+    const experimentEntries: ExperimentEntry[] = phaseResults.map((r, i) => ({
+      organismName: r.alleleName,
+      organism: config.organisms[i],
+      fixture: designScope.fixture,
+      fitnessResult: r.fitnessResult,
+      judgeScore: r.score,
+      momentsDetected: r.fitnessResult.scores.momentsDetected,
+    }));
+    await logPhaseOutcome(config.phaseName, experimentEntries, winner.alleleName);
+  } catch (err) {
+    process.stderr.write(`  LangSmith logging failed (non-fatal): ${err instanceof Error ? err.message : String(err)}\n`);
+  }
 
   return {
     phaseName: config.phaseName,
