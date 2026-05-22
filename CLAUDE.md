@@ -399,10 +399,11 @@ const result = await callHaiku(
 
 ### Next steps
 
-1. **Digest another session** — pick a CC session from a different project (`~/.claude/projects/`). Run `intent digest` and `intent explore` to test generalization.
-2. **Add cross-session querying** — explore across multiple digested sessions, not just one.
-3. **Wire winning organism as default** — make the orchestrator use `{1b, 2f, 3c, 4a}` instead of the original pipeline.
-4. **Validate on all 4 fixture scopes** — design, implementation, pivot, full.
+1. **Build web dashboard** — browse all digested sessions, view moments/arcs/narrative, drill into evidence. React + Vite, served from `intent web`.
+2. **Digest another session** — pick a CC session from a different project (`~/.claude/projects/`). Run `intent digest` and `intent explore` to test generalization.
+3. **Add cross-session querying** — explore across multiple digested sessions, not just one.
+4. **Wire winning organism as default** — make the orchestrator use `{1b, 2f, 3c, 4a}` instead of the original pipeline.
+5. **Validate on all 4 fixture scopes** — design, implementation, pivot, full.
 
 ### Agent skills
 
