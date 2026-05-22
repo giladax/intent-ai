@@ -47,9 +47,9 @@ export const Pass1OutputSchema = z.object({
 });
 
 const Pass2MomentSchema = Pass1MomentSchema.passthrough().extend({
-  arcId: z.string(),
-  arcRole: z.enum(["origin", "development", "turning_point", "resolution"]),
-  relatedMomentIds: z.array(z.number()),
+  arcId: z.string().optional().default("general"),
+  arcRole: z.enum(["origin", "development", "turning_point", "resolution"]).optional().default("development"),
+  relatedMomentIds: z.array(z.number()).optional().default([]),
 });
 
 export const Pass2OutputSchema = z.object({

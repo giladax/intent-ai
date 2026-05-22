@@ -143,7 +143,16 @@ function validateJson<T>(text: string, schema: z.ZodType<T>): T {
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    process.stderr.write(`  ⚠ JSON parse failed. Response length: ${cleaned.length} chars. Last 100 chars: "${cleaned.slice(-100)}"\n`);
+    process.stderr.write(`  ⚠ JSON parse failed. Response length: ${cleaned.length} chars. First 50 chars: "${cleaned.slice(0, 50)}". Last 100 chars: "${cleaned.slice(-100)}"\n`);
+    // Try to find and extract JSON object from the response
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+        const result = schema.safeParse(parsed);
+        if (result.success) return result.data;
+      } catch { /* fall through to error */ }
+    }
     throw new ValidationError(`LLM returned invalid JSON: ${cleaned.slice(0, 200)}`);
   }
 
