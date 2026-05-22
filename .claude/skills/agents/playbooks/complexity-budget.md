@@ -24,6 +24,8 @@ Every added node, edge, loop, verifier, or agent increases:
 | Additional tool | +2 |
 | Cross-graph communication | +8 |
 | Multi-agent supervisor | +10 |
+| Pre-computation step (accurate) | +1 (pays for itself by simplifying downstream) |
+| Pre-computation step (inaccurate) | +5 (poison — actively misleads downstream nodes) |
 
 ## Required Justification
 
