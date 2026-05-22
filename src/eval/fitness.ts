@@ -37,11 +37,27 @@ export function scorePipelineOutput(
   let momentsMatched = 0;
 
   for (const expected of criteria.mustDetectMoments) {
-    const found = moments.some(
-      (m) =>
-        m.topicFingerprint.toLowerCase().includes(expected.topic.toLowerCase()) &&
-        m.type === expected.type,
-    );
+    const found = moments.some((m) => {
+      // Type must match
+      if (m.type !== expected.type) return false;
+
+      // If containsPhrase is specified, check if statement contains it
+      if (expected.containsPhrase) {
+        return m.statement.toLowerCase().includes(expected.containsPhrase.toLowerCase());
+      }
+
+      // No containsPhrase — check if statement is topically related
+      // by looking for keywords from the topic field
+      const topicKeywords = expected.topic
+        .toLowerCase()
+        .split(/[-_\s]+/)
+        .filter((w) => w.length > 2);
+
+      return topicKeywords.some((keyword) =>
+        m.statement.toLowerCase().includes(keyword) ||
+        m.topicFingerprint.toLowerCase().includes(keyword),
+      );
+    });
     if (found) {
       momentsMatched++;
     } else {

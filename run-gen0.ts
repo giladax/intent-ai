@@ -1,179 +1,169 @@
-import 'dotenv/config';
-import { parseClaudeCodeLog } from './src/adapters/claude-code.js';
-import { normalize } from './src/pipeline/normalize.js';
-import { chunkSession } from './src/pipeline/chunk.js';
-import { classifySession } from './src/pipeline/classify.js';
-import { analyzeInteractions } from './src/pipeline/analyze.js';
-import { detectMoments } from './src/pipeline/moments.js';
-import { detectTransitionsAndOutcomes } from './src/pipeline/transitions.js';
-import { generateNarrative } from './src/pipeline/narrative.js';
-import { randomUUID } from 'crypto';
-import { designScope } from './tests/eval/session-criteria.js';
-import { scorePipelineOutput } from './src/eval/fitness.js';
-import type { ScopeCriteria } from './tests/eval/session-criteria.js';
-import type {
-  SessionMoment,
-  SessionNarrative,
-  PipelineDirectives,
-} from './src/adapters/types.js';
+import "dotenv/config";
+import { designScope } from "./tests/eval/session-criteria.js";
+import { runOrganismBatch } from "./src/eval/runner.js";
+import type { Organism } from "./src/eval/chromosomes/types.js";
+import type { FitnessResult } from "./src/eval/fitness.js";
 
-const FIXTURE_PATH = 'tests/eval/fixtures/scope-design.jsonl';
+// ── Chr 1: Instructions ─────────────────────────────────────────────
+import { hunter, scorer } from "./src/eval/chromosomes/chr1-instructions.js";
+
+// ── Chr 2: Formats ──────────────────────────────────────────────────
+import { threaded, behavioral } from "./src/eval/chromosomes/chr2-formats.js";
+
+// ── Chr 3: Synthesis ────────────────────────────────────────────────
+import {
+  exchangePairs,
+  fullPrecompute,
+} from "./src/eval/chromosomes/chr3-synthesis.js";
+
+// ── Chr 4: Data Selection ───────────────────────────────────────────
+import {
+  conversationOnly,
+  conversationActions,
+} from "./src/eval/chromosomes/chr4-data.js";
+
+// ── Organism Definitions ────────────────────────────────────────────
+
+const organismAlpha: Organism = {
+  name: "alpha (current)",
+  instructions: hunter,
+  format: threaded,
+  synthesis: exchangePairs,
+  dataSelection: conversationActions,
+};
+
+const organismBeta: Organism = {
+  name: "beta (pre-comp)",
+  instructions: scorer,
+  format: threaded,
+  synthesis: fullPrecompute,
+  dataSelection: conversationActions,
+};
+
+const organismGamma: Organism = {
+  name: "gamma (behavioral)",
+  instructions: hunter,
+  format: behavioral,
+  synthesis: fullPrecompute,
+  dataSelection: conversationActions,
+};
+
+const organismDelta: Organism = {
+  name: "delta (minimal)",
+  instructions: scorer,
+  format: behavioral,
+  synthesis: fullPrecompute,
+  dataSelection: conversationOnly,
+};
+
+const FIXTURE_PATH = "tests/eval/fixtures/scope-design.jsonl";
 
 async function main() {
-  const criteria: ScopeCriteria = designScope;
-  const sessionId = randomUUID();
+  const organisms = [organismAlpha, organismBeta, organismGamma, organismDelta];
 
-  console.log('Loading fixture...');
-  const startTime = Date.now();
+  console.log("=== Gen 0: Chromosome Evaluation ===");
+  console.log(`Fixture: ${designScope.fixture}`);
+  console.log(`Organisms: ${organisms.map((o) => o.name).join(", ")}`);
+  console.log("");
 
-  let moments: SessionMoment[] = [];
-  let narrative: SessionNarrative;
-  let directives: PipelineDirectives;
+  const results = await runOrganismBatch(
+    organisms,
+    FIXTURE_PATH,
+    designScope,
+  );
 
-  try {
-    // Step 1: Parse
-    const rawEvents = await parseClaudeCodeLog(FIXTURE_PATH);
-    console.log(`  Parsed ${rawEvents.length} raw events`);
+  printComparisonTable(results);
+  printDetailedResults(results);
+}
 
-    // Step 2: Normalize
-    const normalized = normalize(rawEvents, sessionId);
-    console.log(`  Normalized to ${normalized.length} events`);
+function printComparisonTable(results: FitnessResult[]) {
+  const pct = (n: number) => `${Math.round(n * 100)}%`.padStart(6);
 
-    // Step 3: Chunk
-    const chunks = chunkSession(normalized, sessionId);
-    console.log(`  Chunked into ${chunks.length} chunks`);
+  // Header
+  const colWidth = 16;
+  const pad = (s: string) => s.padEnd(colWidth);
 
-    // Step 4: Classify session shape
-    console.log('  Classifying session shape...');
-    const sessionShape = await classifySession(normalized);
-    console.log(`  Shape: ${sessionShape}`);
+  console.log("");
+  console.log(
+    "=== Gen 0 Results =====================================================",
+  );
+  console.log(`Fixture: scope-design.jsonl`);
+  console.log("");
 
-    // Step 5: Analyze interactions (deterministic)
-    directives = analyzeInteractions(normalized);
-    console.log(`  Directives computed (${directives.exchangeSummary.totalExchanges} exchanges)`);
+  // Column headers
+  const header =
+    "             " +
+    results.map((r) => pad(r.chromosomeName.slice(0, colWidth))).join("  ");
+  console.log(header);
 
-    // Step 6: Detect moments (LLM)
-    console.log('  Detecting moments...');
-    moments = await detectMoments(chunks, sessionShape, directives);
-    console.log(`  Found ${moments.length} moments`);
+  const line =
+    "             " +
+    results.map(() => pad("────────────────")).join("  ");
+  console.log(line);
 
-    // Step 7: Detect transitions & outcomes (LLM)
-    console.log('  Detecting transitions & outcomes...');
-    const { transitions, outcomes } = await detectTransitionsAndOutcomes(moments, sessionId);
-    console.log(`  Found ${transitions.length} transitions, ${outcomes.length} outcomes`);
-
-    // Step 8: Generate narrative (LLM)
-    console.log('  Generating narrative...');
-    narrative = await generateNarrative(moments, transitions, outcomes, sessionShape);
-    console.log('  Narrative generated');
-  } catch (err) {
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.error(`\nPipeline FAILED after ${elapsed}s:`);
-    console.error(err);
-    console.log('\n--- SCORE: 0 (pipeline error) ---');
-    process.exit(1);
-  }
-
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-  // Score
-  const result = scorePipelineOutput(criteria, moments, narrative, directives);
-
-  // ── Print Report ────────────────────────────────────────────────────
-  const pct = (n: number) => `${Math.round(n * 100)}%`;
-  const check = (ok: boolean) => (ok ? 'v' : 'x');
-
-  console.log('');
-  console.log('=== Gen 0 Fitness Report ================================================');
-  console.log(`Chromosome: current (threaded exchanges)`);
-  console.log(`Fixture: scope-design.jsonl (257 lines)`);
-  console.log(`Time: ${elapsed}s`);
-  console.log('');
-
-  // Moments Detected
-  const totalMoments = criteria.mustDetectMoments.length;
-  const detectedCount = totalMoments - result.details.missingMoments.length;
-  console.log(`Moments Detected:    ${detectedCount}/${totalMoments} (${pct(result.scores.momentsDetected)})`);
-
-  for (const expected of criteria.mustDetectMoments) {
-    const key = `${expected.topic} / ${expected.type}`;
-    const found = !result.details.missingMoments.includes(key);
-    console.log(`  ${check(found)} ${key}${found ? '' : ' -- NOT FOUND'}`);
-  }
-
-  console.log('');
-
-  // Moments Correct
-  if (result.details.falsePositives.length === 0) {
-    console.log(`Moments Correct:     ${pct(result.scores.momentsCorrect)} (no false positives)`);
-  } else {
-    console.log(`Moments Correct:     ${pct(result.scores.momentsCorrect)}`);
-    for (const fp of result.details.falsePositives) {
-      console.log(`  x ${fp}`);
-    }
-  }
-
-  console.log('');
-
-  // Narrative Musts
-  const narrativeTotal = criteria.narrativeMusts.length;
-  const narrativeFound = narrativeTotal - result.details.missingNarrativePhrases.length;
-  console.log(`Narrative Musts:     ${narrativeFound}/${narrativeTotal} (${pct(result.scores.narrativeMusts)})`);
-
-  for (const phrase of criteria.narrativeMusts) {
-    const found = !result.details.missingNarrativePhrases.includes(phrase);
-    console.log(`  ${check(found)} "${phrase}"${found ? '' : ' -- NOT FOUND'}`);
-  }
-
-  console.log('');
-
-  // Narrative Must-Nots
-  if (result.details.badNarrativePhrases.length === 0) {
-    console.log(`Narrative Must-Nots: ${pct(result.scores.narrativeMustNots)} (none found -- good)`);
-  } else {
-    console.log(`Narrative Must-Nots: ${pct(result.scores.narrativeMustNots)}`);
-    for (const phrase of result.details.badNarrativePhrases) {
-      console.log(`  x "${phrase}" -- FOUND (bad)`);
-    }
-  }
-
-  console.log('');
-
-  // Directives
-  const expectedDirs = criteria.expectedDirectives;
-  const actualDirs = directives.promptSections;
-  const dirFlags: [string, boolean, boolean][] = [
-    ['detectPassiveAcceptance', expectedDirs.detectPassiveAcceptance, actualDirs.detectPassiveAcceptance],
-    ['trackDelegation', expectedDirs.trackDelegation, actualDirs.trackDelegation],
-    ['detectIgnoredProposals', expectedDirs.detectIgnoredProposals, actualDirs.detectIgnoredProposals],
-    ['isLearningExchange', expectedDirs.isLearningExchange, actualDirs.isLearningExchange],
+  // Rows
+  const rows: [string, (r: FitnessResult) => string][] = [
+    ["Moments:  ", (r) => pct(r.scores.momentsDetected)],
+    ["Precis.:  ", (r) => pct(r.scores.momentsCorrect)],
+    ["Narr.Q:   ", (r) => pct(r.scores.narrativeMusts)],
+    ["Narr.P:   ", (r) => pct(r.scores.narrativeMustNots)],
+    ["Direct.:  ", (r) => pct(r.scores.directivesCorrect)],
+    ["TOTAL:    ", (r) => pct(r.totalScore)],
+    [
+      "Tokens:   ",
+      (r) => {
+        const k = Math.round(r.tokensUsed / 1000);
+        return `${k}K`.padStart(6);
+      },
+    ],
+    ["Cost:     ", (r) => `$${r.costEstimate.toFixed(2)}`.padStart(6)],
   ];
-  const dirMatch = dirFlags.filter(([, e, a]) => e === a).length;
-  console.log(`Directives:          ${dirMatch}/${dirFlags.length} (${pct(result.scores.directivesCorrect)})`);
 
-  for (const [name, expected, actual] of dirFlags) {
-    const match = expected === actual;
-    console.log(`  ${check(match)} ${name}: expected=${expected}, got=${actual}`);
+  for (const [label, fn] of rows) {
+    const values = results.map((r) => pad(fn(r))).join("  ");
+    console.log(`  ${label}${values}`);
   }
 
-  console.log('');
+  console.log("");
+}
 
-  // Total
-  console.log(`TOTAL SCORE: ${pct(result.totalScore)}`);
+function printDetailedResults(results: FitnessResult[]) {
+  for (const r of results) {
+    console.log(`--- ${r.chromosomeName} ---`);
 
-  // Moment details for debugging
-  console.log('');
-  console.log('--- Detected Moments (for debugging) ---');
-  for (const m of moments) {
-    console.log(`  [${m.type}] ${m.topicFingerprint}: ${m.statement.slice(0, 100)}`);
+    if (r.details.missingMoments.length > 0) {
+      console.log("  Missing moments:");
+      for (const m of r.details.missingMoments) {
+        console.log(`    x ${m}`);
+      }
+    }
+
+    if (r.details.falsePositives.length > 0) {
+      console.log("  False positives:");
+      for (const fp of r.details.falsePositives) {
+        console.log(`    x ${fp}`);
+      }
+    }
+
+    if (r.details.missingNarrativePhrases.length > 0) {
+      console.log("  Missing narrative phrases:");
+      for (const p of r.details.missingNarrativePhrases) {
+        console.log(`    x "${p}"`);
+      }
+    }
+
+    if (r.details.badNarrativePhrases.length > 0) {
+      console.log("  Bad narrative phrases:");
+      for (const p of r.details.badNarrativePhrases) {
+        console.log(`    x "${p}"`);
+      }
+    }
+
+    console.log("");
   }
-
-  console.log('');
-  console.log('--- Narrative Summary ---');
-  console.log(narrative.summary.slice(0, 500));
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  console.error("Fatal error:", err);
   process.exit(1);
 });
