@@ -15,6 +15,16 @@ npx tsx src/cli/index.ts digest --dry-run  # deterministic pipeline only, no LLM
 
 Requires: `ANTHROPIC_API_KEY` and `DATABASE_URL` in `.env` (see `.env.example`).
 
+## Web Dashboard
+
+```bash
+npx tsx src/cli/index.ts up                  # start Postgres
+npx tsx src/cli/index.ts web --port 3456     # start dashboard
+# Open http://localhost:3456
+```
+
+Three-panel layout: Features | Sessions+Story | Chat. Create projects, tag sessions to features, chat about features across sessions.
+
 ## Architecture
 
 ### Pipeline as a Configurable Graph
@@ -399,11 +409,20 @@ const result = await callHaiku(
 
 ### Next steps
 
-1. **Build web dashboard** — browse all digested sessions, view moments/arcs/narrative, drill into evidence. React + Vite, served from `intent web`.
-2. **Digest another session** — pick a CC session from a different project (`~/.claude/projects/`). Run `intent digest` and `intent explore` to test generalization.
-3. **Add cross-session querying** — explore across multiple digested sessions, not just one.
-4. **Wire winning organism as default** — make the orchestrator use `{1b, 2f, 3c, 4a}` instead of the original pipeline.
-5. **Validate on all 4 fixture scopes** — design, implementation, pivot, full.
+**Priority 1: Feature model + multi-session digest**
+1. **Add `relevance` to feature_sessions** — `ALTER TABLE feature_sessions ADD COLUMN relevance TEXT DEFAULT 'high'`. Sessions can tag to multiple features with relevance (high/medium/low).
+2. **Add "Project" section** to FeatureList — infrastructure/chore sessions that aren't feature work. Not everything is a feature. A session can be: pure feature, cross-cutting (multiple features), infrastructure, or mixed.
+3. **Digest sessions from other projects** — brain (4 sessions), telegram (2), telegram-tmp (1). Run `intent digest <path>` on each. Test that the dashboard shows them.
+4. **Test feature grouping** — create features manually, tag sessions, verify cross-session story and chat work.
+
+**Priority 2: Polish**
+5. **Wire winning organism as default** — make the orchestrator use `{1b, 2f, 3c, 4a}`.
+6. **Validate on all 4 fixture scopes** — design, implementation, pivot, full.
+
+**Future: KNN-based feature discovery**
+7. Add pgvector embeddings to sessions/moments.
+8. Auto-suggest features from session clusters.
+9. Dynamic classification on search query.
 
 ### Agent skills
 
