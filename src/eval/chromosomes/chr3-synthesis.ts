@@ -1,7 +1,7 @@
 import type { SynthesisAllele, SynthesizedData, EnrichedExchange } from "./types.js";
 import type { NormalizedDevEvent, TurnExchange } from "../../adapters/types.js";
 import { analyzeInteractions } from "../../pipeline/analyze.js";
-import { classifyExchanges } from "../../pipeline/classify-exchanges.js";
+import { classifyExchanges, type ExchangeClassification } from "../../pipeline/classify-exchanges.js";
 
 // ── 3a: No Synthesis (raw events only) ──────────────────────────────
 
@@ -24,16 +24,32 @@ export const exchangePairs: SynthesisAllele = {
   },
 };
 
-// ── 3c: Full Pre-compute ────────────────────────────────────────────
-// Exchange pairs + deterministic agency + candidate types +
-// topic fingerprints from file paths + notable quotes
+// ── 3c: Full Pre-compute (Haiku-powered) ───────────────────────────
+// Exchange pairs + Haiku semantic classification + deterministic
+// topic fingerprints from file paths + smart quote extraction
 
 export const fullPrecompute: SynthesisAllele = {
   name: "3c_full_precompute",
-  process(events: NormalizedDevEvent[]): SynthesizedData {
+  async process(events: NormalizedDevEvent[]): Promise<SynthesizedData> {
     const directives = analyzeInteractions(events);
     const exchanges = buildExchanges(events);
-    const enrichedExchanges = exchanges.map((ex) => enrichExchange(ex));
+
+    // Semantic classification via Haiku (replaces regex)
+    const classifications = await classifyExchanges(exchanges);
+
+    // Combine Haiku classification with deterministic enrichment
+    const enrichedExchanges = exchanges.map((ex, i) => {
+      const cls = classifications[i];
+      return {
+        devEvent: ex.devEvent,
+        aiTurnEvents: ex.aiTurnEvents,
+        agency: cls?.agency ?? "ambiguous",
+        candidateType: cls?.candidateType ?? null,
+        topicFingerprint: computeTopicFingerprint(ex),
+        notableQuotes: extractNotableQuotes(ex, cls),
+      };
+    });
+
     return { exchanges, directives, enrichedExchanges };
   },
 };
@@ -79,130 +95,21 @@ function buildExchanges(events: NormalizedDevEvent[]): TurnExchange[] {
   return exchanges;
 }
 
-// ── Enrichment (Chr 3c) ─────────────────────────────────────────────
-
-function enrichExchange(ex: TurnExchange): EnrichedExchange {
-  return {
-    devEvent: ex.devEvent,
-    aiTurnEvents: ex.aiTurnEvents,
-    agency: computeAgency(ex),
-    candidateType: computeCandidateType(ex),
-    topicFingerprint: computeTopicFingerprint(ex),
-    notableQuotes: extractNotableQuotes(ex),
-  };
-}
-
-/**
- * Deterministic agency classification from exchange flags.
- */
-function computeAgency(
-  ex: TurnExchange,
-): "developer" | "ai" | "collaborative" | "ambiguous" {
-  const devChars = ex.devResponseChars;
-  const asked = ex.devAskedQuestion;
-  const reasoned = ex.devUsedReasoning;
-
-  // Developer drove it: long response, reasoning, or introduced new topic
-  if (reasoned || ex.devIntroducedNewTopic) {
-    return "developer";
-  }
-
-  // Passive acceptance: very short response, no question, no reasoning
-  if (devChars < 15 && !asked && !reasoned) {
-    // Check if AI did significant work
-    const aiActions = ex.aiTurnEvents.filter((e) => e.category === "action");
-    if (aiActions.length > 0) {
-      return "ai";
-    }
-    return "ambiguous";
-  }
-
-  // Asked a question → collaborative
-  if (asked) {
-    return "collaborative";
-  }
-
-  // Medium response — collaborative if AI also contributed
-  if (ex.aiTurnEvents.length > 2) {
-    return "collaborative";
-  }
-
-  return "ambiguous";
-}
-
-/**
- * Deterministic candidate type from exchange content heuristics.
- */
-function computeCandidateType(ex: TurnExchange): string | null {
-  const devText = ex.devEvent.content.detail.toLowerCase();
-  const aiTexts = ex.aiTurnEvents
-    .filter((e) => e.category === "proposal" || e.category === "reflection")
-    .map((e) => e.content.detail.toLowerCase())
-    .join(" ");
-
-  // Rejection patterns
-  if (
-    /\b(no|don'?t|not|reject|wrong|instead|actually)\b/.test(devText) &&
-    devText.length > 10
-  ) {
-    return "rejection";
-  }
-
-  // Question → could be discovery or proposal
-  if (ex.devAskedQuestion && devText.length > 30) {
-    return "discovery";
-  }
-
-  // Commitment patterns
-  if (
-    /\b(let'?s go with|we'?ll use|decided|commit|chosen|choosing)\b/i.test(
-      devText,
-    )
-  ) {
-    return "commitment";
-  }
-
-  // Pivot patterns
-  if (
-    /\b(actually|wait|hold on|let'?s switch|instead of|change direction)\b/i.test(
-      devText,
-    )
-  ) {
-    return "pivot";
-  }
-
-  // Confirmation patterns
-  if (/\b(yes|ok|sure|looks good|that'?s right|perfect|great)\b/i.test(devText)) {
-    if (devText.length < 20) return "confirmation";
-  }
-
-  // AI proposal that dev accepted passively
-  if (
-    ex.devResponseChars < 15 &&
-    aiTexts.includes("suggest") ||
-    aiTexts.includes("recommend") ||
-    aiTexts.includes("propose")
-  ) {
-    return "proposal";
-  }
-
-  // Struggle: repeated actions on same files
-  const actionFiles = ex.aiTurnEvents
-    .filter((e) => e.category === "action")
-    .flatMap((e) => e.content.filesAffected ?? []);
-  const uniqueFiles = new Set(actionFiles);
-  if (actionFiles.length > 3 && uniqueFiles.size === 1) {
-    return "struggle";
-  }
-
-  return null;
-}
+// ── Enrichment helpers ──────────────────────────────────────────────
+// (Old regex-based computeAgency and computeCandidateType removed.
+//  3c now uses Haiku classification via classifyExchanges.)
 
 /**
  * Topic fingerprint from file paths in the exchange.
+ * Uses directory structure (most meaningful) rather than filename.
+ * Examples:
+ *   src/pipeline/normalize.ts → "pipeline"
+ *   src/llm/prompts/moments.ts → "llm-prompts"
+ *   tests/eval/fixtures/scope-design.jsonl → "eval-fixtures"
+ *   src/adapters/types.ts → "adapters"
  */
 function computeTopicFingerprint(ex: TurnExchange): string {
-  // Collect all file paths
+  // Collect all file paths from the exchange
   const allFiles: string[] = [];
   if (ex.devEvent.content.filesAffected) {
     allFiles.push(...ex.devEvent.content.filesAffected);
@@ -214,127 +121,202 @@ function computeTopicFingerprint(ex: TurnExchange): string {
   }
 
   if (allFiles.length === 0) {
-    // Fall back to text-based topic extraction
-    return extractTopicFromText(ex.devEvent.content.detail);
+    // No files — derive from developer's message content
+    return deriveTopicFromContent(ex);
   }
 
-  // Find the most common directory/file stem
-  const stems = allFiles.map((f) => {
-    const parts = f.split("/");
-    const filename = parts[parts.length - 1];
-    return filename.replace(/\.[^.]+$/, "").replace(/[._]/g, "-").toLowerCase();
-  });
+  // Extract meaningful directory segments, ignoring noise
+  const segments = allFiles
+    .map(extractMeaningfulSegment)
+    .filter(Boolean) as string[];
 
-  // Use the most common stem
-  const stemCounts = new Map<string, number>();
-  for (const s of stems) {
-    stemCounts.set(s, (stemCounts.get(s) ?? 0) + 1);
+  if (segments.length === 0) return "general";
+
+  // Most common segment wins
+  const counts = new Map<string, number>();
+  for (const s of segments) {
+    counts.set(s, (counts.get(s) ?? 0) + 1);
   }
 
-  let bestStem = stems[0];
+  let best = segments[0];
   let bestCount = 0;
-  for (const [stem, count] of stemCounts) {
+  for (const [seg, count] of counts) {
     if (count > bestCount) {
-      bestStem = stem;
+      best = seg;
       bestCount = count;
     }
   }
 
-  return bestStem;
+  return best;
 }
 
-function extractTopicFromText(text: string): string {
-  const lower = text.toLowerCase();
+/**
+ * Extract the most meaningful directory segment from a file path.
+ * Skips generic prefixes (src/, tests/, docs/) and returns the
+ * domain-level directory.
+ */
+function extractMeaningfulSegment(filePath: string): string | null {
+  // Normalize: remove leading /, project root noise
+  const normalized = filePath
+    .replace(/^\/[^/]+\/[^/]+\/dev\/[^/]+\//, "") // strip absolute prefix
+    .replace(/^\.\//, "");
 
-  // Check for common topic keywords
-  const topics = [
-    "typescript",
-    "database",
-    "postgres",
-    "storage",
-    "testing",
-    "eval",
-    "pipeline",
-    "narrative",
-    "moment",
-    "chunk",
-    "normalize",
-    "adapter",
-    "architecture",
-    "deployment",
-    "auth",
-    "api",
-    "schema",
-    "migration",
-  ];
+  const parts = normalized.split("/").filter(Boolean);
 
-  for (const topic of topics) {
-    if (lower.includes(topic)) return topic;
+  // Skip generic top-level dirs
+  const skipPrefixes = ["src", "tests", "test", "docs", "lib", "dist", "build"];
+  let meaningful = parts.filter((p) => !skipPrefixes.includes(p));
+
+  // Take the first meaningful directory (not the filename)
+  if (meaningful.length > 1) {
+    // Drop the filename, take the deepest directory
+    meaningful = meaningful.slice(0, -1);
   }
 
-  // Extract first noun-like word after common patterns
-  const match = lower.match(
-    /\b(?:about|for|with|the|our|my|this)\s+(\w+)/,
-  );
-  if (match) return match[1];
+  if (meaningful.length === 0) {
+    // All parts were generic — use the second part of the original
+    if (parts.length >= 2) return parts[1];
+    return null;
+  }
+
+  // Join up to 2 levels: "pipeline" or "llm-prompts" or "eval-fixtures"
+  return meaningful
+    .slice(0, 2)
+    .join("-")
+    .replace(/[._]/g, "-")
+    .toLowerCase();
+}
+
+/**
+ * Derive topic from developer message content when no files are present.
+ * Uses the first substantive noun phrase, not a keyword list.
+ */
+function deriveTopicFromContent(ex: TurnExchange): string {
+  const devText = ex.devEvent.content.detail.toLowerCase();
+
+  // If developer mentions specific technical concepts, use them
+  // But do this from the actual content, not a hardcoded list
+  const words = devText
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+
+  // Skip common stop words
+  const stopWords = new Set([
+    "this", "that", "with", "from", "have", "will", "would", "could",
+    "should", "what", "when", "where", "which", "about", "also",
+    "just", "like", "some", "more", "than", "then", "very", "been",
+    "into", "only", "your", "they", "them", "their", "does", "don't",
+    "want", "need", "make", "sure", "think", "know", "look", "good",
+    "well", "okay", "right", "actually", "because", "instead",
+  ]);
+
+  const meaningfulWords = words.filter((w) => !stopWords.has(w));
+
+  if (meaningfulWords.length > 0) {
+    return meaningfulWords[0];
+  }
 
   return "general";
 }
 
 /**
  * Extract notable quotes from the exchange.
+ * Selects the most meaningful quotes, not just first/longest.
+ * Uses the classification to know what kind of quote to look for.
  */
 function extractNotableQuotes(
   ex: TurnExchange,
+  classification?: ExchangeClassification | null,
 ): { speaker: "dev" | "ai"; text: string }[] {
   const quotes: { speaker: "dev" | "ai"; text: string }[] = [];
 
-  // Dev quotes: look for strong language, decisions, questions
   const devText = ex.devEvent.content.detail;
-  if (devText.length > 20 && devText.length < 500) {
-    quotes.push({ speaker: "dev", text: devText.slice(0, 200) });
-  }
 
-  // AI quotes: look for proposals and reflections
-  for (const ae of ex.aiTurnEvents) {
-    if (
-      (ae.category === "proposal" || ae.category === "reflection") &&
-      ae.content.detail.length > 30
-    ) {
-      quotes.push({ speaker: "ai", text: ae.content.detail.slice(0, 200) });
-      break; // One AI quote per exchange is enough
+  // Developer quote — always include if substantive
+  if (devText.length > 5) {
+    if (devText.length <= 300) {
+      // Short enough to include verbatim
+      quotes.push({ speaker: "dev", text: devText });
+    } else {
+      // Long — extract the most meaningful sentence
+      quotes.push({ speaker: "dev", text: extractKeySentence(devText) });
     }
   }
 
+  // AI quote — pick based on what's happening in this exchange
+  const aiProposals = ex.aiTurnEvents.filter((e) => e.category === "proposal");
+  const aiReflections = ex.aiTurnEvents.filter((e) => e.category === "reflection");
+  const aiActions = ex.aiTurnEvents.filter((e) => e.category === "action");
+
+  if (classification?.intent === "rejection" || classification?.intent === "challenge") {
+    // Developer pushed back — include the AI proposal they rejected
+    const rejected = aiProposals[0] ?? aiReflections[0];
+    if (rejected) {
+      quotes.push({ speaker: "ai", text: extractFirstSentence(rejected.content.detail) });
+    }
+  } else if (classification?.candidateType === "discovery") {
+    // Discovery — include the AI's reflection that revealed new info
+    const discovery = aiReflections[0] ?? aiProposals[0];
+    if (discovery) {
+      quotes.push({ speaker: "ai", text: extractFirstSentence(discovery.content.detail) });
+    }
+  } else if (aiProposals.length > 0) {
+    // Default — include first AI proposal sentence
+    quotes.push({ speaker: "ai", text: extractFirstSentence(aiProposals[0].content.detail) });
+  }
+
+  // Action summary if the AI did something concrete
+  if (aiActions.length > 0) {
+    const actionSummary = aiActions
+      .map((a) => a.content.summary)
+      .slice(0, 3)
+      .join(", ");
+    quotes.push({ speaker: "ai", text: `[Actions: ${actionSummary}]` });
+  }
+
   return quotes;
+}
+
+/**
+ * Extract the first meaningful sentence from text.
+ */
+function extractFirstSentence(text: string): string {
+  // Split on sentence boundaries
+  const sentences = text.split(/[.!?]\s+/);
+  const first = sentences[0] ?? text;
+  return first.length > 200 ? first.slice(0, 200) + "..." : first + ".";
+}
+
+/**
+ * Extract the most "decisive" sentence from a long developer message.
+ * Looks for sentences with strong language: "I want", "let's", "we should", "actually", etc.
+ */
+function extractKeySentence(text: string): string {
+  const sentences = text.split(/[.!?]\s+/).filter((s) => s.length > 10);
+
+  // Score each sentence by "decisiveness"
+  const scored = sentences.map((s) => {
+    let score = 0;
+    const lower = s.toLowerCase();
+    if (lower.includes("i want") || lower.includes("i prefer")) score += 3;
+    if (lower.includes("let's") || lower.includes("we should")) score += 2;
+    if (lower.includes("actually") || lower.includes("instead")) score += 2;
+    if (lower.includes("not") || lower.includes("don't")) score += 1;
+    if (s.includes("?")) score += 1;
+    // Longer = more informative
+    score += Math.min(s.length / 50, 2);
+    return { sentence: s, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0]?.sentence ?? text.slice(0, 200);
+  return best.length > 200 ? best.slice(0, 200) + "..." : best;
 }
 
 // ── 3e: Haiku-Classified (LLM replaces regex heuristics) ────────────
 // Uses Haiku to classify exchanges instead of regex patterns.
 // Replaces computeAgency + computeCandidateType with semantic classification.
 
-export const haikuClassified: SynthesisAllele = {
-  name: "3e_haiku_classified",
-  async process(events: NormalizedDevEvent[]): Promise<SynthesizedData> {
-    const directives = analyzeInteractions(events);
-    const exchanges = buildExchanges(events);
-
-    // Classify all exchanges with Haiku in a single batch call
-    const classifications = await classifyExchanges(exchanges);
-
-    // Build enriched exchanges from Haiku classifications
-    const enrichedExchanges: EnrichedExchange[] = exchanges.map((ex, i) => {
-      const classification = classifications[i];
-      return {
-        devEvent: ex.devEvent,
-        aiTurnEvents: ex.aiTurnEvents,
-        agency: classification?.agency ?? "ambiguous",
-        candidateType: classification?.candidateType ?? null,
-        topicFingerprint: computeTopicFingerprint(ex),
-        notableQuotes: extractNotableQuotes(ex),
-      };
-    });
-
-    return { exchanges, directives, enrichedExchanges };
-  },
-};
+// 3e is now identical to 3c (both use Haiku). Kept as alias for backward compat.
+export const haikuClassified: SynthesisAllele = fullPrecompute;
