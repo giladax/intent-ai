@@ -278,6 +278,30 @@ Evolutionary optimization of the pipeline. See `docs/superpowers/specs/2026-05-2
 
 **Eval:** Fixtures from our real CC session in `tests/eval/fixtures/` (4 scopes: design, implementation, pivot, full). Criteria in `tests/eval/session-criteria.ts`. Fitness function in `src/eval/fitness.ts`.
 
+## Caching & Pre-computed State
+
+Pipeline outputs are expensive to compute. Cache and reuse them:
+
+- **Moments from previous runs** should be stored in Postgres and reusable. If a session has already been digested, `intent explore` loads the stored moments/transitions/narrative — it does NOT re-run the pipeline.
+- **Haiku classifications** from `analyzeInteractions` should be cacheable per session. If the same session is re-digested (e.g., with a different organism), the Haiku exchange classifications don't need to re-run.
+- **Session digest** (developer statements, topic flow, boundary exchanges) is deterministic — compute once, reuse across organism experiments.
+
+### When to use cached vs fresh
+
+| Scenario | Use cached | Recompute |
+|----------|-----------|-----------|
+| `intent explore` on a digested session | Always — load from Postgres | Never |
+| Re-running eval with same fixture + same organism | Use cached moments | Only if organism changed |
+| Chromosome experiment (varying one allele) | Cache shared pipeline steps (parse, normalize, chunk, classify) | Only the step that changed |
+| New session log | — | Everything |
+
+### `intent explore` can drill down
+
+When the user asks about a specific moment, `explore` should be able to go back to the raw chunk events for that moment — not just the stored moment statement. This means explore needs access to:
+1. Stored digest (moments, transitions, narrative) — for answering high-level questions
+2. Raw normalized events — for drilling into specific exchanges when the user asks "show me what happened"
+3. The chunk that contains the moment — for providing surrounding context
+
 ## Debugging Pipeline Runs
 
 No integrated tracing system yet. To debug:
