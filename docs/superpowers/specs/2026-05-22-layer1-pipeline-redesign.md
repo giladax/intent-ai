@@ -68,9 +68,11 @@ function routeSession(shape: SessionShape, directives: PipelineDirectives, event
 }
 ```
 
-**Simple path:** Skip moments/transitions. Generate a lightweight narrative directly from the exchange summary and event stats using Haiku. One cheap LLM call.
+**Simple path:** Chunking always runs (needed for context). Skip moments/transitions/precompute. Generate a lightweight `SessionNarrative`-compatible object directly from the exchange summary, event stats, and chunk topic hints using Haiku. One cheap LLM call. Output is storage-compatible.
 
 **Standard path:** Full pipeline with pre-computation improvements below.
+
+**`buildPass1Prompt` interface change:** Receives `PrecomputedChunkContext` instead of raw `SessionChunk`. The chunk's events are still accessible via `precomputed.exchanges[].devEvent` and `.aiTurnEvents`.
 
 **Files:** `src/pipeline/orchestrator.ts`, `src/pipeline/simple-narrative.ts` (new)
 
@@ -105,9 +107,10 @@ interface EnrichedExchange {
 - Dev message > 30 chars with reasoning words → `developer`
 - Dev message < 15 chars after AI proposal → `ai`
 - Dev asked question, AI answered, dev refined → `collaborative`
+- **Fallback:** 15-30 chars without reasoning words → `ambiguous` (LLM decides)
 
 **Candidate type rules (deterministic):**
-- Dev used "actually", "instead", "but" + introduced new direction → `pivot` or `rejection`
+- Dev used "actually", "instead", "but" + different files than AI turn → `pivot` or `rejection`
 - Dev < 15 chars, affirmative → `confirmation` (possibly passive)
 - Same file edited after tool_result error → `struggle`
 - Dev introduced new topic with reasoning → `proposal` or `commitment`
@@ -162,7 +165,12 @@ function deriveTransitions(moments: SessionMoment[]): IntentTransition[] {
   const arcGroups = groupBy(moments, m => m.arcId);
 
   for (const [arcId, arcMoments] of arcGroups) {
-    const sorted = arcMoments.sort((a, b) => /* causal order */);
+    // Sort by moment ID index (moment-0, moment-1, ...) which preserves causal order
+    const sorted = arcMoments.sort((a, b) => {
+      const idxA = parseInt(a.id.split("-")[1]);
+      const idxB = parseInt(b.id.split("-")[1]);
+      return idxA - idxB;
+    });
     for (let i = 1; i < sorted.length; i++) {
       if (sorted[i].arcRole === "turning_point") {
         transitions.push({
@@ -180,9 +188,9 @@ function deriveTransitions(moments: SessionMoment[]): IntentTransition[] {
 }
 ```
 
-The Sonnet transitions call becomes optional — only used if the deterministic derivation misses cross-arc transitions. For most sessions, transitions are fully deterministic.
+No Sonnet call for transitions. If a cross-arc transition exists (one arc resolves, a different arc begins immediately after), detect it deterministically: find adjacent moment pairs where `arcId` differs and the later moment has `arcRole === "origin"`.
 
-**Also fix the `collectFiles` bug:** Thread `chunks[].filesInScope` through to outcomes.
+**Fix the `collectFiles` bug:** Outcomes derive files from `state.chunks` — for each outcome's supporting moments, collect `filesInScope` from the chunks those moments belong to.
 
 **Files:** `src/pipeline/transitions.ts`, `src/llm/prompts/transitions.ts`
 
@@ -207,7 +215,7 @@ interface CriticResult {
 - Are any statements too generic (could describe any session)?
 - Does agency attribution match the moments' agency fields?
 
-If issues found → revise narrative with the critic's feedback (max 2 iterations). Critic is Haiku (cheap), revision is Sonnet.
+If issues found → re-invoke `generateNarrative` with the original inputs plus the critic's issues appended as revision instructions (max 2 iterations). Critic is Haiku (cheap), revision is Sonnet.
 
 **Files:** `src/llm/prompts/critic.ts` (new), `src/pipeline/narrative.ts`
 
@@ -219,16 +227,17 @@ Refactor orchestrator to use a shared `PipelineState` object instead of explicit
 interface PipelineState {
   sessionId: string;
   logPath: string;
+  route: PipelineRoute;
   rawEvents: RawDevEvent[];
   normalizedEvents: NormalizedDevEvent[];
-  shape: SessionShape;
-  chunks: SessionChunk[];
-  directives: PipelineDirectives;
-  precomputed: PrecomputedChunkContext[];
-  moments: SessionMoment[];
-  transitions: IntentTransition[];
-  outcomes: AcceptedOutcome[];
-  narrative: SessionNarrative;
+  shape?: SessionShape;
+  chunks?: SessionChunk[];
+  directives?: PipelineDirectives;
+  precomputed?: PrecomputedChunkContext[];
+  moments?: SessionMoment[];
+  transitions?: IntentTransition[];
+  outcomes?: AcceptedOutcome[];
+  narrative?: SessionNarrative;        // both paths produce this
 }
 ```
 
