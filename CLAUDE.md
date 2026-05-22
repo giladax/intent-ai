@@ -399,8 +399,18 @@ const result = await callHaiku(
 
 ### Immediate next tasks (for a fresh session)
 
-1. **Continue chromosome evolution — Phase 3 (Format)** — lock `{1a, 3c, 4a}`, vary Chr 2 (2a flat, 2b threaded, 2c behavioral, 2e prelabeled). Use `run-phase1.ts` pattern, ~$0.10.
-2. **Phase 4 (Instructions)** — lock best Chr 2 from Phase 3, vary Chr 1 (1a hunter, 1b scorer). Then validate winner on pivot-scope fixture.
-3. **Fix `collectFiles` bug** in `src/pipeline/transitions.ts` — function body is empty, LLM hallucinating file paths.
-4. **Fix narrative evidence flow** — `buildNarrativePrompt` strips agency, significance, and evidence from moments (line 86 shows only type + arc + statement). Add these fields.
-5. **Run full digest with winning organism** on the complete session log and compare to previous digests.
+**Priority 1: Finish & Fix (~30 min)**
+1. **Fix `collectFiles` bug** in `src/pipeline/transitions.ts` — function body is empty, LLM hallucinating file paths. Thread `chunks[].filesInScope` through.
+2. **Fix narrative evidence flow** — `buildNarrativePrompt` in `src/llm/prompts/narrative.ts` line 86 strips agency, significance, and evidence from moments. Add these fields so the narrative LLM can attribute decisions correctly.
+
+**Priority 2: Finish Chromosome Evolution (~20 min, ~$0.30)**
+3. **Phase 3 (Format)** — lock `{1a, 3c, 4a}`, vary Chr 2 (2a, 2b, 2c, 2e). Use `run-phase1.ts` pattern.
+4. **Phase 4 (Instructions)** — lock best Chr 2, vary Chr 1 (1a, 1b).
+5. **Validate winner** on ALL 4 fixture scopes (design, implementation, pivot, full).
+
+**Priority 3: Build `intent explore` (~1 hr)**
+6. **Implement `intent explore`** — conversational REPL over stored digests. Readline loop, loads session narrative + moments + transitions from Postgres, sends as context to Sonnet with user questions. See spec in `docs/superpowers/specs/2026-05-21-execution-memory-design.md` under "Explore Command."
+
+**Priority 4: Validate on Other Sessions**
+7. **Digest a different CC session** — pick a session from another project (`~/.claude/projects/`). Run `intent digest` and evaluate if the pipeline generalizes beyond our own conversation.
+8. **Add that session as a new eval fixture** with its own `ScopeCriteria`.
