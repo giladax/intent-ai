@@ -17,6 +17,25 @@ export const momentRelationTypeEnum = pgEnum("moment_relation_type", [
   "contradicts",
 ]);
 
+// ── Projects ──────────────────────────────────────────────────────────
+
+export const projects = pgTable("projects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  path: text("path").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Features ──────────────────────────────────────────────────────────
+
+export const features = pgTable("features", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").references(() => projects.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description").default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // ── Sessions ───────────────────────────────────────────────────────────
 
 export const sessions = pgTable("sessions", {
@@ -24,10 +43,19 @@ export const sessions = pgTable("sessions", {
   sourceType: text("source_type").notNull(),
   sourcePath: text("source_path").notNull(),
   sessionShape: text("session_shape"),
+  sourceHash: text("source_hash"),
   startedAt: timestamp("started_at", { withTimezone: true }),
   endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ── Feature Sessions (join table) ─────────────────────────────────────
+
+export const featureSessions = pgTable("feature_sessions", {
+  featureId: uuid("feature_id").references(() => features.id).notNull(),
+  sessionId: uuid("session_id").references(() => sessions.id).notNull(),
+  role: text("role").notNull(),
+}, (t) => [primaryKey({ columns: [t.featureId, t.sessionId] })]);
 
 // ── Raw Events ─────────────────────────────────────────────────────────
 

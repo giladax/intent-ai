@@ -37,4 +37,13 @@ program
     down();
   });
 
+program
+  .command("web")
+  .description("Start the web dashboard")
+  .option("-p, --port <port>", "Port", "3456")
+  .action(async (opts: { port: string }) => {
+    const { startWebServer } = await import("../web/server.js");
+    await startWebServer(parseInt(opts.port));
+  });
+
 program.parse();
