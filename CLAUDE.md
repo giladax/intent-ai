@@ -17,7 +17,46 @@ Requires: `ANTHROPIC_API_KEY` and `DATABASE_URL` in `.env` (see `.env.example`).
 
 ## Architecture
 
-### Pipeline Flow (current)
+### Pipeline as a Configurable Graph
+
+The pipeline is NOT a fixed sequence. It's a **graph of nodes**, where each node dynamically composes its behavior at runtime.
+
+**A node** is a processing unit that can be:
+- 0 LLM calls (deterministic — normalize, chunk, pre-compute)
+- 1 LLM call (classify, detect moments)
+- Multiple LLM calls (fan-out per chunk, critic loop, router → specialists)
+
+**Each node is an organism** — 4 chromosomes composed in parallel:
+
+```
+          ┌─ Chr 1: Instructions ─────┐
+          │   (prompt, or deterministic │
+          │    logic, or router)        │
+          │                            │
+          ├─ Chr 2: Format ────────────┤
+          │   (how input is rendered    ├──▶  NODE OUTPUT
+          │    for this node)           │
+          │                            │
+          ├─ Chr 3: Synthesis ─────────┤
+          │   (what's pre-computed)     │
+          │                            │
+          └─ Chr 4: Data Selection ───┘
+              (what raw data enters)
+```
+
+**Chromosomes are independent** — they don't feed each other. They're all assembled into one processing unit. A node can select its prompt, format, synthesis strategy, and data filter **dynamically** based on upstream analysis (e.g., a router node picks which prompt allele to use based on session shape).
+
+**The topology** (how nodes connect) is also a variable:
+
+```
+Linear:    A → B → C → D
+Routed:    A → router → {B_simple | B_full} → C
+Top-down:  A → planner → fan-out [B₁, B₂, B₃] → merge → C
+Critic:    A → B → critic → {pass: C | fail: revise → critic}
+Hybrid:    All of the above combined
+```
+
+### Current Implementation (static, being evolved)
 
 ```
 CC log → parse → normalize (+ threading) → [classify + chunk + analyze] → moments p1 → moments p2 → transitions → narrative
@@ -25,7 +64,7 @@ CC log → parse → normalize (+ threading) → [classify + chunk + analyze] �
        adapter   deterministic             Haiku     deterministic        Sonnet ×N     Sonnet ×1     Sonnet ×1    Sonnet ×1
 ```
 
-Steps 1-3 and chunking are deterministic (no LLM). Moments pass 1 fans out per chunk in parallel.
+This is the baseline (Topology L, all nodes using default organisms). The chromosome framework evolves toward better configurations by testing combinations against real eval fixtures.
 
 ### Key Design Principles
 
@@ -33,6 +72,7 @@ Steps 1-3 and chunking are deterministic (no LLM). Moments pass 1 fans out per c
 2. **Evidence flows through the pipeline** — never truncate or strip evidence between stages.
 3. **Behavioral signals > content** — HOW the developer interacts (passive/challenge/delegation) matters more than WHAT was discussed.
 4. **Eval-Driven Development** — write eval fixtures and criteria BEFORE implementation. Use real CC session data.
+5. **Dynamic composition** — nodes select their prompt, format, and data strategy at runtime. A passive exchange gets minimal context; a developer challenge gets full evidence. The router decides, not a hardcoded config.
 
 ### Source Layout
 
@@ -92,16 +132,17 @@ npx tsc --noEmit            # type check
 
 ## Chromosome Framework
 
-The pipeline is being optimized using a genetic algorithm approach. Each pipeline node is an **organism** composed of 4 chromosomes:
+Evolutionary optimization of the pipeline. See `docs/superpowers/specs/2026-05-22-chromosome-framework.md` for full spec.
 
-- **Chr 1: Instructions** — what the node does (system prompt or deterministic logic)
-- **Chr 2: Format** — how input is rendered (flat, threaded, behavioral headers, change ledger)
-- **Chr 3: Synthesis** — what's pre-computed (none, exchange pairs, full pre-computation, arc grouping)
-- **Chr 4: Data Selection** — what raw data enters (conversation only, +actions, +results, +diffs)
+**3 levels of configuration:**
 
-The **topology** (how nodes connect) is also a variable: linear, routed, top-down, critic loop, or hybrid.
+1. **Per-node organisms** — each node selects alleles for its 4 chromosomes. A node might dynamically pick its prompt allele based on input (e.g., use "exchange scorer" prompt for pre-computed inputs, "moment hunter" for raw inputs).
 
-Eval fixtures from our real CC session data are in `tests/eval/fixtures/`. Criteria in `tests/eval/session-criteria.ts`.
+2. **Topology** — how nodes connect. Linear, routed (skip steps for simple sessions), top-down (arc planner → per-arc detection), critic loop, or hybrid.
+
+3. **Per-exchange adaptation** — within a single node, different exchanges can get different treatment. A passive "ok" gets minimal context; a developer challenge gets full evidence with behavioral headers. The pre-computation step (Chr 3) determines the treatment.
+
+**Eval:** Fixtures from our real CC session in `tests/eval/fixtures/` (4 scopes: design, implementation, pivot, full). Criteria in `tests/eval/session-criteria.ts`. Fitness function in `src/eval/fitness.ts`. Gen 0 baseline: 65% (narrative quality 100%, moment detection 0% due to generic fingerprints).
 
 ## Models
 
