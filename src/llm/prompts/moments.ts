@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type { NormalizedDevEvent, SessionChunk, PipelineDirectives } from "../../adapters/types.js";
 import type { SessionShape } from "./classify.js";
+import type { SessionDigest } from "../../pipeline/session-digest.js";
+import type { DedupResult } from "../../pipeline/dedup-moments.js";
 
 // ── Zod Schemas ──────────────────────────────────────────────────────
 
@@ -67,13 +69,15 @@ export interface Pass1Input {
   chunk: SessionChunk;
   sessionShape: SessionShape;
   directives?: PipelineDirectives;
+  digest?: SessionDigest;
+  totalChunks?: number;
 }
 
 export function buildPass1Prompt(input: Pass1Input): {
   system: string;
   user: string;
 } {
-  const { chunk, sessionShape, directives } = input;
+  const { chunk, sessionShape, directives, digest, totalChunks } = input;
 
   let directiveGuidance = "";
   if (directives?.promptSections) {
@@ -157,10 +161,14 @@ Return ONLY a JSON object:
   ]
 }`;
 
+  const contextHeader = digest && totalChunks
+    ? buildContextHeader(chunk.chunkIndex, totalChunks, digest)
+    : "";
+
   const user = `## Session Shape: ${sessionShape.shape}
 ## Chunk ${chunk.chunkIndex} — Topic: ${chunk.topicHint}
 ## Files in scope: ${chunk.filesInScope.slice(0, 15).join(", ")}
-
+${contextHeader}
 ## Events (${chunk.events.length} total):
 
 ${formatThreadedEvents(chunk.events)}
@@ -176,13 +184,14 @@ export interface Pass2Input {
   pass1Moments: { chunkIndex: number; moments: Pass1Moment[] }[];
   sessionShape: SessionShape;
   totalChunks: number;
+  dedupResult?: DedupResult;
 }
 
 export function buildPass2Prompt(input: Pass2Input): {
   system: string;
   user: string;
 } {
-  const { pass1Moments, sessionShape, totalChunks } = input;
+  const { pass1Moments, sessionShape, totalChunks, dedupResult } = input;
 
   const system = `You are an expert at synthesizing developer session moments into coherent arcs. You receive moments detected across multiple chunks of a single session and must:
 
@@ -225,9 +234,113 @@ ${moments
   )
   .join("\n\n")}
 
+${buildDedupSection(dedupResult)}
 Synthesize these into final moments with arc assignments. Return JSON only.`;
 
   return { system, user };
+}
+
+// ── Dedup Section Builder ─────────────────────────────────────────────
+
+/**
+ * Build a section for pass 2 that summarizes dedup actions already taken
+ * and flags remaining issues for the LLM to resolve.
+ */
+function buildDedupSection(dedupResult?: DedupResult): string {
+  if (!dedupResult) return "";
+
+  const sections: string[] = [];
+
+  // Duplicates already removed
+  if (dedupResult.removed.length > 0) {
+    sections.push(
+      `## Pre-filter: Duplicates Removed (${dedupResult.removed.length})\n` +
+      dedupResult.removed
+        .slice(0, 10) // cap output
+        .map((r) => `- Chunk ${r.chunkIndex}: [${r.moment.type}] "${r.moment.statement.slice(0, 80)}" — ${r.reason}`)
+        .join("\n"),
+    );
+  }
+
+  // Contradictions to resolve
+  if (dedupResult.contradictions.length > 0) {
+    sections.push(
+      `## Contradictions to Resolve\nThese events were cited with different agency across chunks. Determine the correct agency:\n` +
+      dedupResult.contradictions
+        .map(
+          (c) =>
+            `- Event ${c.eventId}: ${c.entries.map((e) => `chunk ${e.chunkIndex}=${e.agency}`).join(" vs ")}`,
+        )
+        .join("\n"),
+    );
+  }
+
+  // Boundary merges to consider
+  if (dedupResult.boundaryMerges.length > 0) {
+    sections.push(
+      `## Boundary Exchanges\nThese moments span chunk boundaries with the same topic — consider merging:\n` +
+      dedupResult.boundaryMerges
+        .map(
+          (b) =>
+            `- Topic "${b.topicFingerprint}": chunks ${b.chunkA}-${b.chunkB}`,
+        )
+        .join("\n"),
+    );
+  }
+
+  return sections.length > 0 ? "\n" + sections.join("\n\n") + "\n" : "";
+}
+
+// ── Context Header Builder ────────────────────────────────────────────
+
+/**
+ * Build a compact cross-chunk context header for pass 1 prompts.
+ * Target: 200-400 tokens. Gives the LLM awareness of where this chunk
+ * sits in the session without overwhelming.
+ */
+function buildContextHeader(
+  chunkIndex: number,
+  totalChunks: number,
+  digest: SessionDigest,
+): string {
+  const lines: string[] = [];
+  lines.push(`\n## Session Context (Chunk ${chunkIndex} of ${totalChunks - 1})`);
+
+  // Prior topics — summarize chunks before this one
+  const priorTopics = digest.topicFlow
+    .filter((t) => t.chunkIndex < chunkIndex)
+    .map((t) => `Chunk ${t.chunkIndex}: ${t.topicHint}`)
+    .slice(-5); // last 5 max
+
+  if (priorTopics.length > 0) {
+    lines.push(`Prior topics: ${priorTopics.join(", ")}`);
+  }
+
+  // Key developer statements from prior chunks (most recent 5)
+  const priorStatements = digest.developerStatements
+    .filter((s) => s.chunkIndex < chunkIndex)
+    .slice(-5)
+    .map((s) => {
+      const truncated = s.text.length > 80 ? s.text.slice(0, 80) + "..." : s.text;
+      return `[${s.causalOrder}] "${truncated}"`;
+    });
+
+  if (priorStatements.length > 0) {
+    lines.push(`Key developer statements: ${priorStatements.join(", ")}`);
+  }
+
+  // Boundary exchanges involving this chunk
+  const boundaries = digest.boundaryExchanges.filter(
+    (b) => b.chunkA === chunkIndex || b.chunkB === chunkIndex,
+  );
+  if (boundaries.length > 0) {
+    const boundaryNotes = boundaries.map(
+      (b) => `Exchange spanning chunks ${b.chunkA}-${b.chunkB}`,
+    );
+    lines.push(`Boundary: ${boundaryNotes.join("; ")}`);
+  }
+
+  return lines.join("\n");
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # Layer 0: Causal Threading & Interaction Analysis — Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Claude:** REQUIRED SUB-SKILL: Use .agent skills for EDD and agenting logic improvement
 
 **Goal:** Add causal threading and interaction analysis so downstream LLM steps receive structured exchanges and actionable directives.
 

@@ -61,7 +61,7 @@ export async function runPipeline(logPath: string): Promise<{
   // 7. Detect moments (pass 1 + 2)
   log("[6/10] Detecting moments (pass 1)...");
   log("[7/10] Detecting moments (pass 2)...");
-  const sessionMoments = await detectMoments(sessionChunks, sessionShape, directives);
+  const sessionMoments = await detectMoments(sessionChunks, sessionShape, directives, normalizedEvents);
 
   // 8. Transitions + outcomes
   log("[8/10] Detecting transitions & outcomes...");

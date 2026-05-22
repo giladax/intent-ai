@@ -1,4 +1,4 @@
-import type { SessionChunk, PipelineDirectives } from "../adapters/types.js";
+import type { SessionChunk, NormalizedDevEvent, PipelineDirectives } from "../adapters/types.js";
 import type { SessionShape, SessionMoment } from "../adapters/types.js";
 import { callSonnet } from "../llm/client.js";
 import {
@@ -10,6 +10,8 @@ import {
   type Pass2Moment,
 } from "../llm/prompts/moments.js";
 import type { SessionShape as PromptSessionShape } from "../llm/prompts/classify.js";
+import { buildSessionDigest } from "./session-digest.js";
+import { dedupMoments } from "./dedup-moments.js";
 
 /**
  * Two-pass moment detection across session chunks.
@@ -21,8 +23,13 @@ export async function detectMoments(
   chunks: SessionChunk[],
   sessionShape: SessionShape,
   directives?: PipelineDirectives,
+  normalizedEvents?: NormalizedDevEvent[],
 ): Promise<SessionMoment[]> {
   const shapeObj: PromptSessionShape = { shape: sessionShape };
+
+  // ── Build session digest for cross-chunk context ───────────────────
+  const allEvents = normalizedEvents ?? chunks.flatMap((c) => c.events);
+  const digest = buildSessionDigest(chunks, allEvents);
 
   // ── Pass 1: per-chunk extraction in parallel ───────────────────────
   const pass1Results = await Promise.all(
@@ -31,17 +38,23 @@ export async function detectMoments(
         chunk,
         sessionShape: shapeObj,
         directives,
+        digest,
+        totalChunks: chunks.length,
       });
       const result = await callSonnet(system, user, Pass1OutputSchema);
       return { chunkIndex: chunk.chunkIndex, moments: result.moments };
     }),
   );
 
+  // ── Dedup before pass 2 ────────────────────────────────────────────
+  const dedupResult = dedupMoments(pass1Results, chunks);
+
   // ── Pass 2: cross-chunk merge & arc assignment ─────────────────────
   const { system, user } = buildPass2Prompt({
-    pass1Moments: pass1Results,
+    pass1Moments: dedupResult.moments,
     sessionShape: shapeObj,
     totalChunks: chunks.length,
+    dedupResult,
   });
   const pass2Result = await callSonnet(system, user, Pass2OutputSchema);
 
