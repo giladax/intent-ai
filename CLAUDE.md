@@ -331,3 +331,35 @@ const result = await callHaiku(
 **Where this applies:** Exchange analysis (`analyze.ts`), candidate moment type detection (`chr3-synthesis.ts`), topic shift detection (`chunk.ts`). These should all migrate to structured LLM output (Haiku — cheap, ~$0.001 per classification).
 
 **Acceptable regex uses:** ID parsing (`rawEventId.match(/-text-(\d+)$/)`), JSON extraction from LLM responses, file path filtering. Anything purely structural, not semantic.
+
+## Current State & Next Steps
+
+### What's built and working
+
+- Full pipeline: parse → normalize (+ causal threading) → analyze (+ directives) → classify → chunk → moments (2-pass) → transitions → narrative
+- 86+ tests passing across 11 files
+- Real digest produced from a live CC session (this development session)
+- Layer 0 (causal threading + interaction analysis) complete
+- Chromosome evaluation harness: 4 alleles per chromosome, organism assembler, fitness function, LLM-as-judge, Haiku exchange classifier
+- LangSmith integration: tracing, datasets, experiment logging
+- Session digest + dedup pre-filters (just committed, needs testing)
+
+### Gen 0 baseline
+
+Overall fitness: 65%. Narrative quality: 100%. Moment detection: 0% (generic fingerprints). With LLM judge: α (current) scored 4.0-4.8/5, β (pre-computed) 3.8, δ (minimal) 3.5-4.0.
+
+### Known issues
+
+1. **Moment detection misclassifies agency** — "AI proposed" when developer requested (see adversarial review example in this session's digest)
+2. **No cross-chunk context** — chunk 3 doesn't know what happened in chunks 0-2. Session digest (`src/pipeline/session-digest.ts`) just implemented but needs testing + wiring into orchestrator
+3. **Regex used for semantic classification** — `analyze.ts` and `chr3-synthesis.ts` use regex for behavioral classification. Should migrate to Haiku structured output. `src/pipeline/classify-exchanges.ts` built but not yet integrated.
+4. **`collectFiles` bug in transitions.ts** — function body is empty, LLM hallucinates file paths for outcomes
+5. **DB write fails** — timestamp format issue in `storeSessionDigest`
+
+### Immediate next tasks (for a fresh session)
+
+1. **Wire session digest into orchestrator** — `src/pipeline/session-digest.ts` exists but isn't called. Add to `orchestrator.ts`, pass digest to `detectMoments`, inject context headers into chunk prompts.
+2. **Fix the TS type error** in `src/pipeline/moments.ts:89` — `sourceEventId` property access on union type.
+3. **Run the learning strategy** — `npx tsx run-learn.ts` (~$1.00, tests one chromosome at a time with judge scoring). Was interrupted by disk space.
+4. **Replace regex classification with Haiku** — `src/pipeline/classify-exchanges.ts` exists. Create a new Chr 3 allele that uses it instead of regex patterns in `analyze.ts`.
+5. **Fix `collectFiles`** in `src/pipeline/transitions.ts` — thread `chunks[].filesInScope` to outcomes.
