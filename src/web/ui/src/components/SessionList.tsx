@@ -43,9 +43,6 @@ export function SessionList({
     return first.length > 60 ? first.slice(0, 57) + "..." : first;
   };
 
-  // TODO: once topic_sessions is queryable per session, show real topic badges
-  // For now, topics are not linked per-session in the API
-
   return (
     <>
       <div className="sidebar-header">
@@ -69,6 +66,19 @@ export function SessionList({
                   </span>
                   <span>{s.moment_count} moments</span>
                 </div>
+                {s.topics && s.topics.length > 0 && (
+                  <div className="sidebar-item-topics">
+                    {s.topics.map((t) => (
+                      <span
+                        key={t.topicId}
+                        className="topic-badge"
+                        onClick={(e) => { e.stopPropagation(); onTopicClick(t.topicId); }}
+                      >
+                        {t.topicName}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </button>
             ))}
           </div>

@@ -503,6 +503,28 @@ code {
   letter-spacing: 0.3px;
 }
 
+.sidebar-item-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.topic-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.topic-badge:hover {
+  background: var(--accent);
+  color: white;
+}
+
 .shape-narrative { color: var(--narrative); }
 .shape-exploratory { color: var(--exploratory); }
 .shape-debugging { color: var(--debugging); }

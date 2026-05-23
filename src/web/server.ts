@@ -185,7 +185,14 @@ export async function startWebServer(port: number): Promise<void> {
                  (SELECT json_agg(json_build_object('featureId', fs.feature_id, 'role', fs.role))
                   FROM feature_sessions fs WHERE fs.session_id = s.id),
                  '[]'::json
-               ) AS features
+               ) AS features,
+               COALESCE(
+                 (SELECT json_agg(json_build_object('topicId', t.id, 'topicName', t.name))
+                  FROM topic_sessions ts
+                  JOIN topics t ON t.id = ts.topic_id
+                  WHERE ts.session_id = s.id),
+                 '[]'::json
+               ) AS topics
         FROM sessions s
         LEFT JOIN narratives n ON n.session_id = s.id
         ORDER BY s.created_at DESC`;
