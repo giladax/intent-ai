@@ -145,9 +145,9 @@ export async function storeTopics(
         RETURNING id
       `;
 
-      // Store evidence refs
+      // Store evidence refs (skip invalid moment UUIDs)
       for (const ev of insight.evidence) {
-        const momentUuid = ev.momentId ? (momentIdMap.get(ev.momentId) || ev.momentId) : null;
+        const momentUuid = ev.momentId ? (momentIdMap.get(ev.momentId) || null) : null;
         await sql`
           INSERT INTO insight_evidence (insight_id, session_id, moment_id, reasoning)
           VALUES (${ins.id}, ${sessionId}, ${momentUuid}, ${ev.reasoning || null})
