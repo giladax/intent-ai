@@ -1,3 +1,12 @@
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import type { Session, TopicSummary } from "../types";
 
 interface Props {
@@ -43,47 +52,58 @@ export function SessionList({
     return first.length > 60 ? first.slice(0, 57) + "..." : first;
   };
 
+  // Suppress unused warning — kept for future topic-based filtering
+  void topics;
+
   return (
     <>
-      <div className="sidebar-header">
-        <span className="sidebar-title">Sessions</span>
-        <span className="sidebar-count">{sessions.length}</span>
-      </div>
-      <div className="sidebar-list">
-        {groups.map(([date, dateSessions]) => (
-          <div key={date}>
-            <div className="sidebar-date-group">{date}</div>
-            {dateSessions.map((s) => (
-              <button
-                key={s.id}
-                className={`sidebar-item ${selectedSessionId === s.id ? "selected" : ""}`}
-                onClick={() => onSelectSession(s.id)}
-              >
-                <div className="sidebar-item-name">{getTitle(s)}</div>
-                <div className="sidebar-item-meta">
-                  <span className={`shape-label shape-${s.session_shape}`}>
-                    {s.session_shape}
-                  </span>
-                  <span>{s.moment_count} moments</span>
-                </div>
-                {s.topics && s.topics.length > 0 && (
-                  <div className="sidebar-item-topics">
-                    {s.topics.map((t) => (
-                      <span
-                        key={t.topicId}
-                        className="topic-badge"
-                        onClick={(e) => { e.stopPropagation(); onTopicClick(t.topicId); }}
-                      >
-                        {t.topicName}
+      {groups.map(([date, dateSessions]) => (
+        <SidebarGroup key={date}>
+          <SidebarGroupLabel>{date}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {dateSessions.map((s) => (
+                <SidebarMenuItem key={s.id}>
+                  <SidebarMenuButton
+                    isActive={selectedSessionId === s.id}
+                    onClick={() => onSelectSession(s.id)}
+                    className="flex flex-col items-start h-auto py-2 gap-1"
+                  >
+                    <span className="font-medium text-sm truncate w-full">{getTitle(s)}</span>
+                    <div className="flex items-center gap-1.5">
+                      {s.session_shape && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-4">
+                          {s.session_shape}
+                        </Badge>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {s.moment_count} moments
                       </span>
-                    ))}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
+                    </div>
+                    {s.topics && s.topics.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {s.topics.map((t) => (
+                          <Badge
+                            key={t.topicId}
+                            variant="outline"
+                            className="text-[9px] px-1 py-0 cursor-pointer hover:bg-accent"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              onTopicClick(t.topicId);
+                            }}
+                          >
+                            {t.topicName}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
     </>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Header } from "./components/Header";
 import { TopicList } from "./components/TopicList";
 import { TopicDetail } from "./components/TopicDetail";
 import { SessionList } from "./components/SessionList";
@@ -7,6 +6,25 @@ import { SessionPanel } from "./components/SessionPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { fetchProjects, fetchTopics, fetchSessions } from "./api";
 import type { Project, TopicSummary, Session } from "./types";
+import { Brain as BrainIcon, Clock as ClockIcon, ChevronDown } from "lucide-react";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 
 type Tab = "brain" | "sessions";
 
@@ -79,51 +97,92 @@ export function App() {
     ? topics.find((t) => t.id === selectedTopicId)?.name
     : undefined;
 
+  // Suppress unused warning — kept for future use
+  void handleProjectCreated;
+
   return (
-    <div className="app">
-      <Header
-        projects={projects}
-        selectedProject={selectedProject}
-        onProjectChange={handleProjectChange}
-        onProjectCreated={handleProjectCreated}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-      <div className="sidebar">
-        {activeTab === "brain" ? (
-          <TopicList
-            topics={topics}
-            selectedTopicId={selectedTopicId}
-            onSelectTopic={handleTopicSelect}
-          />
-        ) : (
-          <SessionList
-            sessions={sessions}
-            selectedSessionId={selectedSessionId}
-            onSelectSession={handleSessionSelect}
-            topics={topics}
-            onTopicClick={navigateToTopic}
-          />
-        )}
-      </div>
-      <div className="detail">
-        {activeTab === "brain" ? (
-          <TopicDetail
-            topicId={selectedTopicId}
-            onSessionClick={navigateToSession}
-            onTopicClick={navigateToTopic}
-          />
-        ) : (
-          <SessionPanel
-            sessionId={selectedSessionId}
-          />
-        )}
-      </div>
-      <ChatPanel
-        topicId={chatTopicId}
-        sessionId={chatSessionId}
-        scopeLabel={chatLabel}
-      />
-    </div>
+    <SidebarProvider>
+      {/* LEFT SIDEBAR */}
+      <Sidebar side="left" collapsible="icon">
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton className="font-semibold">
+                    <BrainIcon className="size-4" />
+                    <span>{selectedProject?.name ?? "intent"}</span>
+                    <ChevronDown className="ml-auto size-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {projects.map((p) => (
+                    <DropdownMenuItem key={p.id} onClick={() => handleProjectChange(p)}>
+                      {p.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+
+        <SidebarContent>
+          {/* Nav toggle */}
+          <SidebarGroup>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={activeTab === "brain"} onClick={() => setActiveTab("brain")}>
+                  <BrainIcon className="size-4" />
+                  <span>Brain</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={activeTab === "sessions"} onClick={() => setActiveTab("sessions")}>
+                  <ClockIcon className="size-4" />
+                  <span>Sessions</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+
+          <Separator />
+
+          {/* List content */}
+          {activeTab === "brain" ? (
+            <TopicList topics={topics} selectedTopicId={selectedTopicId} onSelectTopic={handleTopicSelect} />
+          ) : (
+            <SessionList sessions={sessions} selectedSessionId={selectedSessionId} onSelectSession={handleSessionSelect} topics={topics} onTopicClick={navigateToTopic} />
+          )}
+        </SidebarContent>
+      </Sidebar>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2 border-b bg-background">
+          <SidebarTrigger />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === "brain" ? (
+            <TopicDetail
+              topicId={selectedTopicId}
+              onSessionClick={navigateToSession}
+              onTopicClick={navigateToTopic}
+            />
+          ) : (
+            <SessionPanel sessionId={selectedSessionId} />
+          )}
+        </div>
+      </main>
+
+      {/* RIGHT SIDEBAR — Chat */}
+      <Sidebar side="right" collapsible="none">
+        <ChatPanel
+          topicId={chatTopicId}
+          sessionId={chatSessionId}
+          scopeLabel={chatLabel}
+        />
+      </Sidebar>
+    </SidebarProvider>
   );
 }
