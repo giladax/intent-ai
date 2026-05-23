@@ -3,9 +3,8 @@ import { streamChat } from "../api";
 import type { ChatMessage } from "../types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { SidebarHeader, SidebarContent } from "@/components/ui/sidebar";
+import { SidebarHeader, SidebarContent, SidebarFooter } from "@/components/ui/sidebar";
 
 interface Props {
   topicId: string | null;
@@ -87,47 +86,52 @@ export function ChatPanel({ topicId, sessionId, scopeLabel }: Props) {
 
   return (
     <>
-      <SidebarHeader className="border-b px-4 py-2">
+      {/* Header — h-14 to align with center header */}
+      <SidebarHeader className="h-16 border-b border-sidebar-border px-4 justify-center">
         <span className="text-xs font-medium text-muted-foreground">{label()}</span>
       </SidebarHeader>
-      <SidebarContent>
-        <ScrollArea className="flex-1 p-3">
-          <div className="space-y-2">
-            {messages.length === 0 && (
-              <div className="text-center text-muted-foreground text-xs py-8">
-                {topicId || sessionId
-                  ? "Ask about this context..."
-                  : "Select a topic or session to start."}
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} className={cn(
-                "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words",
-                m.role === "user"
-                  ? "ml-auto bg-primary text-primary-foreground rounded-br-sm"
-                  : "bg-muted rounded-bl-sm"
-              )}>
-                {m.content || (streaming && i === messages.length - 1 ? "..." : "")}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
+
+      {/* Messages — SidebarContent is flex-1 overflow-auto */}
+      <SidebarContent className="p-3">
+        <div className="space-y-2">
+          {messages.length === 0 && (
+            <div className="text-center text-muted-foreground text-xs py-8">
+              {topicId || sessionId
+                ? "Ask about this context..."
+                : "Select a topic or session to start."}
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} className={cn(
+              "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words",
+              m.role === "user"
+                ? "ml-auto bg-primary text-primary-foreground rounded-br-sm"
+                : "bg-muted rounded-bl-sm"
+            )}>
+              {m.content || (streaming && i === messages.length - 1 ? "..." : "")}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </SidebarContent>
-      <div className="flex gap-2 p-3 border-t mt-auto">
-        <Input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Ask..."
-          disabled={streaming}
-          className="text-sm"
-        />
-        <Button size="sm" onClick={handleSend} disabled={streaming || !input.trim()}>
-          Send
-        </Button>
-      </div>
+
+      {/* Input — SidebarFooter pins to bottom */}
+      <SidebarFooter className="border-t">
+        <div className="flex gap-2">
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Ask..."
+            disabled={streaming}
+            className="text-sm"
+          />
+          <Button size="sm" onClick={handleSend} disabled={streaming || !input.trim()}>
+            Send
+          </Button>
+        </div>
+      </SidebarFooter>
     </>
   );
 }

@@ -6,19 +6,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --bg: #f6f6f4;
-  --panel: #ffffff;
-  --sidebar-bg: #fafaf8;
-  --border: oklch(0.922 0 0);
-  --text: #2a2a28;
-  --text-muted: #8a8a84;
-  --accent: oklch(0.97 0 0);
-  --accent-light: #eef5f0;
-  --narrative: #3A6B52;
-  --debugging: #C08B5C;
-  --exploratory: #8B6BAE;
-  --janitorial: #7B8FA1;
-  --review: #5B7B9E;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   topicId: string | null;
@@ -44,8 +45,17 @@ export function TopicDetail({ topicId, onSessionClick, onTopicClick }: Props) {
 
   if (!detail) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-        Loading...
+      <div className="max-w-2xl p-6 space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
       </div>
     );
   }

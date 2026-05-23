@@ -4,6 +4,7 @@ import type { SessionDetail } from "../types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   sessionId: string | null;
@@ -38,8 +39,21 @@ export function SessionPanel({ sessionId }: Props) {
 
   if (!detail) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-        Loading...
+      <div className="max-w-2xl p-6 space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
       </div>
     );
   }
