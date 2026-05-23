@@ -28,20 +28,14 @@ const ClassificationSchema = z.object({
   intent: z.enum(["acceptance", "rejection", "question", "delegation", "refinement", "challenge"]),
   agency: z.enum(["developer", "ai", "collaborative", "ambiguous"]),
   candidateType: z
-    .enum([
-      "proposal",
-      "discovery",
-      "pivot",
-      "confirmation",
-      "rejection",
-      "commitment",
-      "struggle",
-      "breakthrough",
-      "execution",
-    ])
+    .string()
     .nullable()
     .optional()
-    .default(null),
+    .default(null)
+    .transform((v) => {
+      const valid = ["proposal", "discovery", "pivot", "confirmation", "rejection", "commitment", "struggle", "breakthrough", "execution"];
+      return v && valid.includes(v) ? v : null;
+    }),
 });
 
 const BatchClassificationSchema = z.object({
