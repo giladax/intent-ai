@@ -72,6 +72,15 @@ program
       }
 
       for (const sessionId of sessionIds) {
+        // Check if session already processed
+        const [alreadyProcessed] = await sql`
+          SELECT 1 FROM topic_sessions WHERE session_id = ${sessionId} LIMIT 1
+        `;
+        if (alreadyProcessed && !opts.dryRun) {
+          console.log(`\nSession ${sessionId} already processed. Skipping.`);
+          continue;
+        }
+
         // Load existing brain state from DB
         const existingTopics = repoId ? await loadExistingTopics(repoId) : undefined;
         const topicCount = existingTopics?.length || 0;
