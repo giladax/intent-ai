@@ -120,6 +120,12 @@ The dashboard should match the **Claude Console** aesthetic — the Anthropic de
 
 Reference: screenshot of Claude Console in this session's context. The intent dashboard should feel like it belongs in the same product family.
 
+**Implementation: use shadcn blocks** — https://ui.shadcn.com/blocks
+- The sidebar layout block is the right starting point for our three-panel dashboard
+- Install shadcn properly with `npx shadcn@latest init` + add needed components
+- Use the sidebar block pattern: collapsible sidebar nav, main content area, right panel
+- This replaces our hand-rolled CSS grid with a proper component-based layout
+
 ## Design Decisions (don't undo)
 
 - 6 categories: structure, decision, constraint, behavior, risk, interface
