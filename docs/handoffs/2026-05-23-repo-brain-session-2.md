@@ -1,162 +1,148 @@
 # Handoff: Repo Brain — Session 2
 
 **Date:** 2026-05-23
-**From:** Session that built brain synthesis, classifier, markdown generation, and storage
-**For:** Successor wiring versioning, commit linking, and the full mutation pipeline
+**From:** Session that built the brain vertical slice end-to-end
+**For:** Successor wiring the full two-stage pipeline and dashboard
 
-## What's Built
+## What's Built and Working
 
-### Working pipeline (4 CLI commands)
+### CLI commands
 
 ```
-intent brain <sessionId...>         # synthesize topics from sessions, store to DB
+intent brain <sessionId...>         # synthesize topics, store to DB, create brain version
 intent brain-classify <sessionId>   # Haiku relevance matching — session ↔ topics
 intent brain-export                 # generate .repo/brain.md + .repo/topics/*.md
 intent digest <path>                # session digestion (pre-existing)
 ```
 
-### Files created this session
+### Brain versioning — working
+
+Each `intent brain` run creates a `BrainVersion` with a parent pointer. Tested with 2 sequential sessions:
+- v1 (`28223be8`): 5 topics from session 1, no parent
+- v2 (`e30ae1f3`): 1 new topic from session 2, parent = v1
+
+Version chain is stored in `brain_versions` table with `parent_version_id`.
+
+### Topic synthesis — working, EDD-validated
+
+4 prompt iterations converged on:
+- Evidence linking via moment UUIDs (not positional indices)
+- No meta leakage (codebase knowledge only)
+- Confidence discrimination: 85-99%
+- Multi-session merge via DB upsert by topic name
+
+### Relevance classifier — working, EDD-validated
+
+Haiku classifies session relevance to existing topics using full session signals (narrative, arcs, moments, outcomes, chunk hints). Tested on 3 sessions:
+- Same-project: correct high/low/none scoring
+- Cross-project: caught conceptual analogies
+- Suggests new topics for uncovered concepts
+
+### Markdown generation — working
+
+`.repo/brain.md` (root index with topic list + file map) and `.repo/topics/<name>.md` (per-topic: insights by category, files, evidence sessions, related topics). Relative file paths.
+
+### Current DB state
+
+6 topics, 2 brain versions, 8 digested sessions across 4 projects.
+
+### Files
 
 ```
-src/adapters/types.ts               — Brain types: Topic, Insight, FileRef, BrainVersion, BrainMutation
-src/storage/schema.ts               — 7 new tables: topics, insights, insight_evidence, topic_files,
-                                      topic_relations, topic_sessions, brain_versions
-src/pipeline/brain-synthesis.ts     — Topic synthesis + storage + topic loading from DB
-src/pipeline/brain-relevance.ts     — Haiku relevance classifier (session ↔ topics)
+src/adapters/types.ts               — Brain types (Topic, Insight, BrainVersion, BrainMutation, etc.)
+src/storage/schema.ts               — 7 tables, 2 enums
+src/pipeline/brain-synthesis.ts     — Synthesis + storage + versioning + topic loading
+src/pipeline/brain-relevance.ts     — Haiku relevance classifier
 src/llm/prompts/brain-synthesis.ts  — Synthesis prompt + lenient Zod schema
 src/llm/prompts/brain-relevance.ts  — Classifier prompt + schema
-src/brain/generate-markdown.ts      — Markdown generation from DB (brain.md + topics/*.md)
-tests/pipeline/brain-synthesis.test.ts — 8 tests for schema + prompt builder
-.repo/brain.md                      — Generated root index (4 topics)
-.repo/topics/*.md                   — Generated topic files
+src/brain/generate-markdown.ts      — Markdown generation from DB
+tests/pipeline/brain-synthesis.test.ts — 8 tests
+.repo/brain.md + .repo/topics/*.md  — Generated output
+docs/superpowers/specs/2026-05-23-repo-brain-design.md — Spec
+docs/plans/2026-05-23-repo-brain.md — Plan (24 tasks, 5 phases)
+docs/handoffs/2026-05-23-code-changes-brain-graph.md — Original vision
 ```
 
-### Bug fixes (production impact, already in codebase)
+### Bug fixes in this session
 
-1. `src/storage/connection.ts` — added `closeDb()` (process hang fix)
-2. `src/cli/digest.ts` — calls `closeDb()` after pipeline
-3. `src/llm/prompts/moments.ts` — evidence field optional with default (Zod crash)
-4. `src/llm/client.ts` — switched to `client.messages.stream()` (10-min timeout fix)
-
-### Current brain state in DB
-
-4 topics from 1 intent-ai session:
-
-| Topic | Insights | Categories |
-|-------|----------|------------|
-| tech stack and architecture | 4 | decision, constraint |
-| digestion pipeline | 4 | structure, behavior, interface |
-| moment detection | 5 | structure, decision, behavior, risk |
-| eval-driven development | 2 | decision, behavior |
-
-8 digested sessions across 4 projects: brain (4), telegram (2), telegram-tmp (1), intent-ai (1).
-
-### EDD results
-
-**Synthesis (4 iterations):**
-- Evidence linking works (moment UUIDs, not positional indices)
-- Meta leakage fixed (codebase knowledge only, no session process observations)
-- Confidence discrimination: 85-99% range
-- Multi-session merge works via DB upsert by topic name
-
-**Classifier (3 sessions tested):**
-- Same-project sessions: correct relevance scoring
-- Cross-project sessions: caught conceptual analogies (generous but defensible)
-- New topic suggestions: specific codebase concepts, not generic
+1. `storage/connection.ts` — `closeDb()` for process hang
+2. `cli/digest.ts` — calls `closeDb()` after pipeline
+3. `llm/prompts/moments.ts` — evidence field optional (Zod crash on large sessions)
+4. `llm/client.ts` — `client.messages.stream()` (10-min timeout fix)
 
 ## What's NOT Built
 
-### 1. Brain versioning
+### 1. Two-stage pipeline wired together
 
-`brain_versions` table exists but nothing writes to it. No version chain. No mutation records. The synthesis just overwrites — no audit trail of what changed.
-
-### 2. Commit/PR linking
-
-Sessions contain git commits in their tool call events, but we don't extract them. No mapping from session → commits → brain version.
-
-### 3. Session-to-commit splitting
-
-A session may contain 5 commits. We treat the session as one blob. To get proper versioning: split the session's contribution by commit, each commit anchors a brain version.
-
-### 4. Two-stage pipeline wired together
-
-The classifier and synthesizer work independently. Not connected into a single flow:
+Classifier and synthesizer work independently. Not connected into:
 ```
-classify → filter relevant moments per topic → synthesize per topic → merge → verify → store
+classify → assemble scoped context per topic → synthesize per topic → merge → verify → store
 ```
 
-### 5. Verify-repair loop
+### 2. Scoped context assembly
 
-Designed but not implemented. After parallel per-topic synthesis, a Haiku verifier checks for contradictions + evidence grounding. Sonnet repairs failures.
+Synthesis currently sees ALL moments. Should see only moments relevant to each topic (filtered by the classifier's output). The context per Sonnet call should be:
+- Topic's current insights
+- Only relevant moments/outcomes (filtered by semantic relevance, not file overlap)
+- Recent mutation summaries (last 3) for trend awareness
 
-## Pipeline Design (agreed, not implemented)
+### 3. Verify-repair loop
+
+After parallel per-topic synthesis, Haiku verifier checks coherence + evidence grounding. Sonnet repairs failures. Max 2 repair attempts.
+
+### 4. Mutation tracking
+
+Brain versions exist but don't record WHAT changed. No diff between versions. The `BrainMutation` type exists in `types.ts` but has no DB table or storage logic. Need: which insights were created/updated/deprecated in each version.
+
+### 5. Dashboard (Phase 4)
+
+Brain/Sessions tabs, topic map with session/moment counts, detail panel, chat scoped to topics, bidirectional file filtering.
+
+## Pipeline Design (agreed)
 
 ```
 Stage 0: Pre-compute (deterministic)
-  - Collect session signals: narrative, arcs, moments, outcomes, chunk hints
+  Collect session signals: narrative, arcs, moments, outcomes, chunk hints
 
-Stage 1: Relevance Matching (Haiku, one call per session) ← BUILT
-  - Per topic: high/low/none with reasoning
-  - New topic candidates from orphan signals
+Stage 1: Relevance Matching (Haiku) ← BUILT
+  Per topic: high/low/none with reasoning
+  New topic candidates from orphan signals
 
 Stage 2: Context Assembly (deterministic) ← NOT BUILT
-  Per relevant topic:
-  - Filter moments by relevance to this topic
-  - Current topic insights from DB
-  - Recent mutation summaries (last 3) for trend awareness
+  Per relevant topic: filter moments, load insights, load recent mutations
 
-Stage 3: Synthesis (Sonnet, per topic, parallel) ← BUILT (but not scoped)
-  Input: only the filtered context from Stage 2
+Stage 3: Synthesis (Sonnet, per topic, parallel) ← BUILT (not scoped)
+  Input: scoped context from Stage 2
   Output: create/update/deprecate insights
 
 Stage 4: Merge (deterministic) ← NOT BUILT
   Aggregate per-topic mutations, detect conflicts
 
 Stage 5: Verify (Haiku) ← NOT BUILT
-  Coherence check, evidence grounding
-  Fail → Repair (Sonnet) → re-verify (max 2 attempts)
+  Coherence + evidence grounding check
+  Fail → Repair (Sonnet) → re-verify (max 2)
 
-Stage 6: Commit ← PARTIAL (storage works, no versioning)
+Stage 6: Commit ← BUILT
   Store to DB, create BrainVersion, regenerate markdown
 ```
 
 ## Design Decisions Locked In
 
-### 6 insight categories
-structure, decision, constraint, behavior, risk, interface. Validated by adversarial review. Each category changes what an agent DOES with the insight.
-
-### Topics are concepts, not files
-"digestion pipeline" not "src/pipeline/". Topics emerge from sessions, not directory structure.
-
-### Semantic matching, not file matching
-Relevance is determined by meaning (Haiku classification of session signals against topic insights), not by file overlap. Files are weak signals — a change to `types.ts` doesn't tell you which topic is affected semantically.
-
-### Brain evolves, never regenerates
-Version N → evidence → mutation → version N+1. Only reviewed, evidence-backed insights enter the brain.
-
-### Two evidence sources
-Sessions (primary, rich) and PR diff analysis (fallback for commits without sessions). Build session path first, diff path later.
-
-### Context for synthesis is scoped
-Each Sonnet call sees only its topic's context — not the full brain. The classifier filters; Sonnet reasons within scope.
-
-## Key Specs and Docs
-
-| Document | What |
-|----------|------|
-| `docs/superpowers/specs/2026-05-23-repo-brain-design.md` | Brain spec (data model, pipeline, categories, dashboard) |
-| `docs/plans/2026-05-23-repo-brain.md` | Implementation plan (24 tasks, 5 phases) |
-| `docs/handoffs/2026-05-23-code-changes-brain-graph.md` | Original vision doc (mutation loop, versioned knowledge, insight model) |
+- **6 categories**: structure, decision, constraint, behavior, risk, interface
+- **Topics are concepts**, not files — emerge from sessions
+- **Semantic matching**, not file matching — files are weak signals for topic relevance
+- **Brain evolves**, never regenerates — version N → mutation → version N+1
+- **Sessions are primary evidence** — diff analysis is fallback for commits without sessions
+- **Context is scoped** — each Sonnet call sees only its topic's relevant context
+- **Haiku classifies, Sonnet synthesizes** — cheap routing, expensive reasoning
 
 ## Next Steps
 
-1. **Extract commit SHAs from session events** — tool_input/tool_output events contain `git commit` commands with SHAs. Build a deterministic extractor.
-2. **Split session contributions by commit** — which moments/outcomes relate to which commit? Map moment → events → files → commit.
-3. **Wire brain versioning** — each `intent brain` run creates a BrainVersion row. Mutations are recorded. Version chain is navigable.
-4. **Wire the full pipeline** — `intent brain-sync` command: classify → assemble context → synthesize → merge → verify → store + version.
-5. **Dashboard Phase 4** — Brain/Sessions tabs, topic map with counts, detail panel, chat, bidirectional file filtering.
+1. **Wire the full pipeline** — `intent brain-sync`: classify → context assembly → parallel synthesis → merge → verify → store + version
+2. **Add mutation tracking** — record what changed per version (created/updated/deprecated insights)
+3. **Dashboard** — Brain/Sessions tabs, topic map, detail panel, chat, file graph
+4. **Run all 8 sessions through the brain** — build the full knowledge graph, validate versioning across sessions from different projects
 
 ## Tests
 
-120 tests across 15 files, all passing. Brain-specific:
-- `tests/pipeline/brain-synthesis.test.ts` — 8 tests (Zod schema parsing, prompt builder)
+120 tests across 15 files, all passing.
