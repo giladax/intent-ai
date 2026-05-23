@@ -15,6 +15,20 @@
       "when": 1779491417709,
       "tag": "0001_acoustic_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779563971945,
+      "tag": "0002_curvy_baron_strucker",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779565347639,
+      "tag": "0003_smart_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { normalize } from "../pipeline/normalize.js";
 import { analyzeInteractions } from "../pipeline/analyze.js";
 import { chunkSession } from "../pipeline/chunk.js";
 import { discoverLatestLog, discoverLogs } from "../utils/log-discovery.js";
+import { closeDb } from "../storage/connection.js";
 import type {
   SessionNarrative,
   SessionMoment,
@@ -34,6 +35,7 @@ export function registerDigestCommand(program: Command): void {
             console.log("\n" + "─".repeat(60) + "\n");
           }
         }
+        await closeDb();
       } catch (err) {
         console.error(
           `Error: ${err instanceof Error ? err.message : String(err)}`,

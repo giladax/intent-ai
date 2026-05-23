@@ -185,3 +185,76 @@ export interface SourceAdapter {
   /** Parse a log file and return raw events */
   parse(filePath: string): Promise<RawDevEvent[]>;
 }
+
+// ── Repo Brain ──────────────────────────────────────────────────────
+
+export type InsightCategory =
+  | "structure"
+  | "decision"
+  | "constraint"
+  | "behavior"
+  | "risk"
+  | "interface";
+
+export interface FileRef {
+  path: string;
+  role: string;
+}
+
+export interface EvidenceRef {
+  sessionId: string;
+  momentId?: string;
+}
+
+export interface Insight {
+  id: string;
+  topicId: string;
+  category: InsightCategory;
+  statement: string;
+  evidence: EvidenceRef[];
+  confidence: number;
+  status: "active" | "stale" | "deprecated";
+}
+
+export interface TopicRelation {
+  topicId: string;
+  relationship: string;
+}
+
+export interface Topic {
+  id: string;
+  repoId: string;
+  name: string;
+  summary: string;
+  insights: Insight[];
+  fileRefs: FileRef[];
+  sessionRefs: string[];
+  relatedTopics: TopicRelation[];
+}
+
+export interface BrainVersion {
+  id: string;
+  repoId: string;
+  commitSha: string;
+  parentVersionId?: string;
+  createdAt: string;
+}
+
+/** Evidence source for brain synthesis — sessions or PR analysis */
+export interface BrainEvidence {
+  sessions: string[];
+  commits: string[];
+  filesChanged: string[];
+}
+
+export interface BrainMutation {
+  id: string;
+  baseVersionId: string;
+  targetCommitSha: string;
+  evidence: BrainEvidence;
+  createdInsights: Insight[];
+  updatedInsights: { insightId: string; before: string; after: string }[];
+  deprecatedInsightIds: string[];
+  newTopics: Topic[];
+  report: string;
+}

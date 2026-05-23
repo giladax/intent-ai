@@ -41,7 +41,7 @@ const Pass1MomentSchema = z.object({
   evidence: z.union([
     z.array(FlexibleEvidenceSchema).min(1),
     z.string().transform((s) => [{ quote: s, sourceType: "ai" as const, quoteType: "verbatim" as const }]),
-  ]),
+  ]).optional().default([{ quote: "no evidence provided", sourceType: "ai" as const, quoteType: "paraphrase" as const }]),
 });
 
 export const Pass1OutputSchema = z.object({

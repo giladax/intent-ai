@@ -17,6 +17,21 @@ export const momentRelationTypeEnum = pgEnum("moment_relation_type", [
   "contradicts",
 ]);
 
+export const insightCategoryEnum = pgEnum("insight_category", [
+  "structure",
+  "decision",
+  "constraint",
+  "behavior",
+  "risk",
+  "interface",
+]);
+
+export const insightStatusEnum = pgEnum("insight_status", [
+  "active",
+  "stale",
+  "deprecated",
+]);
+
 // ── Projects ──────────────────────────────────────────────────────────
 
 export const projects = pgTable("projects", {
@@ -233,4 +248,72 @@ export const narrativeArcs = pgTable("narrative_arcs", {
   summary: text("summary"),
   resolution: text("resolution"),
   momentIds: text("moment_ids").array(),
+});
+
+// ── Brain: Topics ─────────────────────────────────────────────────────
+
+export const topics = pgTable("topics", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  repoId: uuid("repo_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  name: text("name").notNull(),
+  summary: text("summary").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Brain: Insights ───────────────────────────────────────────────────
+
+export const insights = pgTable("insights", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  topicId: uuid("topic_id").references(() => topics.id, { onDelete: "cascade" }).notNull(),
+  category: insightCategoryEnum("category").notNull(),
+  statement: text("statement").notNull(),
+  confidence: integer("confidence").default(80).notNull(),
+  status: insightStatusEnum("status").default("active").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Brain: Insight Evidence ───────────────────────────────────────────
+
+export const insightEvidence = pgTable("insight_evidence", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  insightId: uuid("insight_id").references(() => insights.id, { onDelete: "cascade" }).notNull(),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }).notNull(),
+  momentId: uuid("moment_id").references(() => moments.id, { onDelete: "set null" }),
+  reasoning: text("reasoning"),
+});
+
+// ── Brain: Topic Files ────────────────────────────────────────────────
+
+export const topicFiles = pgTable("topic_files", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  topicId: uuid("topic_id").references(() => topics.id, { onDelete: "cascade" }).notNull(),
+  filePath: text("file_path").notNull(),
+  role: text("role").notNull(),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "set null" }),
+});
+
+// ── Brain: Topic Relations ────────────────────────────────────────────
+
+export const topicRelations = pgTable("topic_relations", {
+  topicId: uuid("topic_id").references(() => topics.id, { onDelete: "cascade" }).notNull(),
+  relatedTopicId: uuid("related_topic_id").references(() => topics.id, { onDelete: "cascade" }).notNull(),
+  relationship: text("relationship").notNull(),
+}, (t) => [primaryKey({ columns: [t.topicId, t.relatedTopicId] })]);
+
+// ── Brain: Topic Sessions ─────────────────────────────────────────────
+
+export const topicSessions = pgTable("topic_sessions", {
+  topicId: uuid("topic_id").references(() => topics.id, { onDelete: "cascade" }).notNull(),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.topicId, t.sessionId] })]);
+
+// ── Brain: Versions ───────────────────────────────────────────────────
+
+export const brainVersions = pgTable("brain_versions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  repoId: uuid("repo_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  commitSha: text("commit_sha"),
+  parentVersionId: uuid("parent_version_id").references((): any => brainVersions.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

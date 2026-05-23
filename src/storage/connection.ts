@@ -23,3 +23,11 @@ export function getClient() {
   }
   return _client!;
 }
+
+export async function closeDb() {
+  if (_client) {
+    await _client.end();
+    _client = null;
+    _db = null;
+  }
+}

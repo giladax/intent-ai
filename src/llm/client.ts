@@ -113,7 +113,9 @@ async function rawCallImpl(
   temperature: number,
 ): Promise<string> {
   const client = getClient();
-  const response = await client.messages.create({
+
+  // Use streaming to avoid 10-minute timeout on large inputs
+  const stream = client.messages.stream({
     model,
     max_tokens: maxTokens,
     temperature,
@@ -121,13 +123,15 @@ async function rawCallImpl(
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
+  const finalMessage = await stream.finalMessage();
+
+  const textBlock = finalMessage.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
     throw new Error("No text block in LLM response");
   }
 
   // Check if output was truncated
-  if (response.stop_reason === "max_tokens") {
+  if (finalMessage.stop_reason === "max_tokens") {
     process.stderr.write(`  ⚠ LLM output truncated (${maxTokens} max_tokens). Increasing...\n`);
     // Retry with doubled limit
     if (maxTokens < 65536) {
