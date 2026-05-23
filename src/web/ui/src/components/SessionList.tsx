@@ -15,15 +15,26 @@ export function SessionList({
   topics,
   onTopicClick,
 }: Props) {
-  // Group by date
-  const groups = new Map<string, Session[]>();
-  for (const s of sessions) {
+  // Sort sessions by date descending, then group by date
+  const sorted = [...sessions].sort((a, b) => {
+    const da = a.started_at ? new Date(a.started_at).getTime() : 0;
+    const db = b.started_at ? new Date(b.started_at).getTime() : 0;
+    return db - da;
+  });
+
+  const groups: [string, Session[]][] = [];
+  const groupMap = new Map<string, number>();
+  for (const s of sorted) {
     const date = s.started_at
       ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
       : "Unknown";
-    const list = groups.get(date) || [];
-    list.push(s);
-    groups.set(date, list);
+    const idx = groupMap.get(date);
+    if (idx !== undefined) {
+      groups[idx][1].push(s);
+    } else {
+      groupMap.set(date, groups.length);
+      groups.push([date, [s]]);
+    }
   }
 
   const getTitle = (s: Session) => {
@@ -42,7 +53,7 @@ export function SessionList({
         <span className="sidebar-count">{sessions.length}</span>
       </div>
       <div className="sidebar-list">
-        {[...groups.entries()].map(([date, dateSessions]) => (
+        {groups.map(([date, dateSessions]) => (
           <div key={date}>
             <div className="sidebar-date-group">{date}</div>
             {dateSessions.map((s) => (
