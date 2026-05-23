@@ -132,12 +132,13 @@ async function rawCallImpl(
 
   // Check if output was truncated
   if (finalMessage.stop_reason === "max_tokens") {
-    process.stderr.write(`  ⚠ LLM output truncated (${maxTokens} max_tokens). Increasing...\n`);
-    // Retry with doubled limit
-    if (maxTokens < 65536) {
-      return rawCall(model, systemPrompt, userPrompt, maxTokens * 2, temperature);
+    const maxAllowed = model.includes("haiku") ? 64000 : 65536;
+    const nextTokens = Math.min(maxTokens * 2, maxAllowed);
+    if (nextTokens > maxTokens) {
+      process.stderr.write(`  ⚠ LLM output truncated (${maxTokens} max_tokens). Increasing to ${nextTokens}...\n`);
+      return rawCall(model, systemPrompt, userPrompt, nextTokens, temperature);
     }
-    throw new Error(`LLM output truncated even at ${maxTokens} max_tokens`);
+    throw new Error(`LLM output truncated even at ${maxTokens} max_tokens (model limit: ${maxAllowed})`);
   }
 
   return textBlock.text;
