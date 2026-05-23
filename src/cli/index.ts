@@ -57,20 +57,6 @@ program
     try {
       const sql = getClient();
 
-      // Resolve repo ID
-      let repoId = opts.repo;
-      if (!repoId && !opts.dryRun) {
-        const [first] = await sql`SELECT id, name FROM projects ORDER BY created_at LIMIT 1`;
-        if (first) {
-          repoId = first.id;
-          console.log(`Using project: ${first.name} (${first.id})`);
-        } else {
-          console.error("No projects found. Create one first or use --dry-run.");
-          await closeDb();
-          process.exit(1);
-        }
-      }
-
       for (const sessionId of sessionIds) {
         // Check if session already processed
         const [alreadyProcessed] = await sql`
@@ -81,21 +67,49 @@ program
           continue;
         }
 
-        // Load existing brain state from DB
+        // Resolve repo ID per session — match session source_path to project path
+        let repoId = opts.repo ?? null;
+        if (!repoId && !opts.dryRun) {
+          const [session] = await sql`SELECT source_path FROM sessions WHERE id = ${sessionId}`;
+          if (session?.source_path) {
+            // Match by project path prefix in source_path
+            const projects = await sql`SELECT id, name, path FROM projects ORDER BY length(path) DESC`;
+            for (const p of projects) {
+              if (session.source_path.includes(p.name) || session.source_path.includes(p.path.replace(/\//g, '-'))) {
+                repoId = p.id;
+                console.log(`\nProject: ${p.name}`);
+                break;
+              }
+            }
+          }
+          if (!repoId) {
+            // Fallback to first project
+            const [first] = await sql`SELECT id, name FROM projects ORDER BY created_at LIMIT 1`;
+            if (first) {
+              repoId = first.id;
+              console.log(`\nProject (default): ${first.name}`);
+            } else {
+              console.error("No projects found. Create one first or use --dry-run.");
+              await closeDb();
+              process.exit(1);
+            }
+          }
+        }
+
+        // Load existing brain state for THIS project from DB
         const existingTopics = repoId ? await loadExistingTopics(repoId) : undefined;
         const topicCount = existingTopics?.length || 0;
 
-        console.log(`\nSynthesizing from session ${sessionId}${topicCount > 0 ? ` (${topicCount} existing topics)` : ""}...`);
+        console.log(`Synthesizing from session ${sessionId}${topicCount > 0 ? ` (${topicCount} existing topics)` : ""}...`);
         const topics = await synthesizeFromSession(sessionId, existingTopics);
         printTopics(topics);
 
         // Store to DB unless dry-run
         if (!opts.dryRun && repoId) {
-          // Build moment ID map (LLM receives UUIDs, passes them back)
           const momentRows = await sql`SELECT id FROM moments WHERE session_id = ${sessionId} ORDER BY id`;
           const momentIdMap = new Map<string, string>();
           for (const m of momentRows) {
-            momentIdMap.set(m.id, m.id); // identity map — LLM should return actual UUIDs
+            momentIdMap.set(m.id, m.id);
           }
 
           await storeTopics(repoId, sessionId, topics, momentIdMap);
