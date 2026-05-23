@@ -3,19 +3,18 @@ import { streamChat } from "../api";
 import type { ChatMessage } from "../types";
 
 interface Props {
-  featureId: string | null;
+  topicId: string | null;
   sessionId: string | null;
-  featureName?: string;
+  scopeLabel?: string;
 }
 
-export function ChatPanel({ featureId, sessionId, featureName }: Props) {
+export function ChatPanel({ topicId, sessionId, scopeLabel }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -23,16 +22,12 @@ export function ChatPanel({ featureId, sessionId, featureName }: Props) {
   // Clear chat when scope changes
   useEffect(() => {
     setMessages([]);
-  }, [featureId, sessionId]);
+  }, [topicId, sessionId]);
 
-  const scopeLabel = () => {
-    if (featureId && featureId !== "__untagged__" && featureName) {
-      return `Feature: ${featureName}`;
-    }
-    if (sessionId) {
-      return `Session: ${sessionId.slice(0, 8)}...`;
-    }
-    return "No scope selected";
+  const label = () => {
+    if (topicId && scopeLabel) return `Topic: ${scopeLabel}`;
+    if (sessionId) return `Session: ${sessionId.slice(0, 8)}...`;
+    return "Select a topic or session";
   };
 
   const handleSend = async () => {
@@ -44,24 +39,18 @@ export function ChatPanel({ featureId, sessionId, featureName }: Props) {
     setInput("");
     setStreaming(true);
 
-    // Add placeholder for assistant
     const assistantMsg: ChatMessage = { role: "assistant", content: "" };
     setMessages((prev) => [...prev, assistantMsg]);
 
     try {
-      const effectiveFeatureId = featureId === "__untagged__" ? undefined : featureId ?? undefined;
       const history = messages.slice(-20);
-
-      for await (const event of streamChat(q, history, effectiveFeatureId, sessionId ?? undefined)) {
+      for await (const event of streamChat(q, history, undefined, sessionId ?? undefined, topicId ?? undefined)) {
         if (event.type === "text" && event.content) {
           setMessages((prev) => {
             const updated = [...prev];
             const last = updated[updated.length - 1];
             if (last.role === "assistant") {
-              updated[updated.length - 1] = {
-                ...last,
-                content: last.content + event.content,
-              };
+              updated[updated.length - 1] = { ...last, content: last.content + event.content };
             }
             return updated;
           });
@@ -70,10 +59,7 @@ export function ChatPanel({ featureId, sessionId, featureName }: Props) {
             const updated = [...prev];
             const last = updated[updated.length - 1];
             if (last.role === "assistant") {
-              updated[updated.length - 1] = {
-                ...last,
-                content: `Error: ${event.content}`,
-              };
+              updated[updated.length - 1] = { ...last, content: `Error: ${event.content}` };
             }
             return updated;
           });
@@ -84,10 +70,7 @@ export function ChatPanel({ featureId, sessionId, featureName }: Props) {
         const updated = [...prev];
         const last = updated[updated.length - 1];
         if (last.role === "assistant") {
-          updated[updated.length - 1] = {
-            ...last,
-            content: `Error: ${err instanceof Error ? err.message : String(err)}`,
-          };
+          updated[updated.length - 1] = { ...last, content: `Error: ${err instanceof Error ? err.message : String(err)}` };
         }
         return updated;
       });
@@ -100,19 +83,19 @@ export function ChatPanel({ featureId, sessionId, featureName }: Props) {
   return (
     <aside className="chat">
       <div className="chat-header">
-        <span className="chat-scope">{scopeLabel()}</span>
+        <span className="chat-scope">{label()}</span>
       </div>
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-empty">
-            {featureId || sessionId
-              ? "Ask a question about this context..."
-              : "Select a feature or session, then ask questions here."}
+            {topicId || sessionId
+              ? "Ask about this context..."
+              : "Select a topic or session to start."}
           </div>
         )}
         {messages.map((m, i) => (
           <div key={i} className={`chat-msg chat-msg-${m.role}`}>
-            <div className="chat-msg-content">{m.content || (streaming && i === messages.length - 1 ? "..." : "")}</div>
+            {m.content || (streaming && i === messages.length - 1 ? "..." : "")}
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -124,7 +107,7 @@ export function ChatPanel({ featureId, sessionId, featureName }: Props) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Ask about this session or feature..."
+          placeholder="Ask..."
           disabled={streaming}
         />
         <button className="chat-send" onClick={handleSend} disabled={streaming || !input.trim()}>

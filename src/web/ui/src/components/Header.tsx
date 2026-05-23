@@ -7,10 +7,18 @@ interface Props {
   selectedProject: Project | null;
   onProjectChange: (p: Project) => void;
   onProjectCreated: (p: Project) => void;
-  sessionCount: number;
+  activeTab: "brain" | "sessions";
+  onTabChange: (tab: "brain" | "sessions") => void;
 }
 
-export function Header({ projects, selectedProject, onProjectChange, onProjectCreated, sessionCount }: Props) {
+export function Header({
+  projects,
+  selectedProject,
+  onProjectChange,
+  onProjectCreated,
+  activeTab,
+  onTabChange,
+}: Props) {
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPath, setNewPath] = useState("");
@@ -26,7 +34,8 @@ export function Header({ projects, selectedProject, onProjectChange, onProjectCr
 
   return (
     <header className="header">
-      <div className="header-brand">intent</div>
+      <span className="header-brand">intent</span>
+
       <div className="header-controls">
         <select
           value={selectedProject?.id ?? ""}
@@ -40,15 +49,30 @@ export function Header({ projects, selectedProject, onProjectChange, onProjectCr
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
-        <button className="btn-small" onClick={() => setShowNew(!showNew)}>+ Project</button>
-        <span className="header-stat">{sessionCount} sessions</span>
+        <button className="btn-small" onClick={() => setShowNew(!showNew)}>+</button>
       </div>
+
+      <div className="header-tabs">
+        <button
+          className={`tab-btn ${activeTab === "brain" ? "active" : ""}`}
+          onClick={() => onTabChange("brain")}
+        >
+          Brain
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "sessions" ? "active" : ""}`}
+          onClick={() => onTabChange("sessions")}
+        >
+          Sessions
+        </button>
+      </div>
+
       {showNew && (
         <div className="header-new-project">
-          <input placeholder="Project name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-          <input placeholder="Project path" value={newPath} onChange={(e) => setNewPath(e.target.value)} />
-          <button onClick={handleCreate}>Create</button>
-          <button onClick={() => setShowNew(false)}>Cancel</button>
+          <input placeholder="name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <input placeholder="path" value={newPath} onChange={(e) => setNewPath(e.target.value)} />
+          <button className="btn-small" onClick={handleCreate}>Create</button>
+          <button className="btn-small" onClick={() => setShowNew(false)}>Cancel</button>
         </div>
       )}
     </header>

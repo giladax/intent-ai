@@ -1,16 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "./components/Header";
-import { FeatureList } from "./components/FeatureList";
+import { TopicList } from "./components/TopicList";
+import { TopicDetail } from "./components/TopicDetail";
+import { SessionList } from "./components/SessionList";
 import { SessionPanel } from "./components/SessionPanel";
 import { ChatPanel } from "./components/ChatPanel";
-import { fetchProjects, fetchFeatures, fetchSessions } from "./api";
-import type { Project, Feature, Session } from "./types";
+import { fetchProjects, fetchTopics, fetchSessions } from "./api";
+import type { Project, TopicSummary, Session } from "./types";
+
+type Tab = "brain" | "sessions";
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [features, setFeatures] = useState<Feature[]>([]);
-  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("brain");
+
+  // Brain state
+  const [topics, setTopics] = useState<TopicSummary[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+
+  // Sessions state
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
@@ -23,28 +32,18 @@ export function App() {
     fetchSessions().then(setSessions);
   }, []);
 
-  // Load features when project changes
+  // Load topics when project changes
   useEffect(() => {
     if (!selectedProject) {
-      setFeatures([]);
+      setTopics([]);
       return;
     }
-    fetchFeatures(selectedProject.id).then(setFeatures);
+    fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));
   }, [selectedProject]);
-
-  const refreshFeatures = useCallback(() => {
-    if (selectedProject) {
-      fetchFeatures(selectedProject.id).then(setFeatures);
-    }
-  }, [selectedProject]);
-
-  const refreshSessions = useCallback(() => {
-    fetchSessions().then(setSessions);
-  }, []);
 
   const handleProjectChange = (p: Project) => {
     setSelectedProject(p);
-    setSelectedFeatureId(null);
+    setSelectedTopicId(null);
     setSelectedSessionId(null);
   };
 
@@ -53,6 +52,33 @@ export function App() {
     setSelectedProject(p);
   };
 
+  const handleTopicSelect = (id: string) => {
+    setSelectedTopicId(id);
+    setSelectedSessionId(null);
+  };
+
+  const handleSessionSelect = (id: string) => {
+    setSelectedSessionId(id);
+  };
+
+  // Cross-tab navigation
+  const navigateToSession = useCallback((sessionId: string) => {
+    setActiveTab("sessions");
+    setSelectedSessionId(sessionId);
+  }, []);
+
+  const navigateToTopic = useCallback((topicId: string) => {
+    setActiveTab("brain");
+    setSelectedTopicId(topicId);
+  }, []);
+
+  // Chat scope
+  const chatTopicId = activeTab === "brain" ? selectedTopicId : null;
+  const chatSessionId = activeTab === "sessions" ? selectedSessionId : null;
+  const chatLabel = activeTab === "brain"
+    ? topics.find((t) => t.id === selectedTopicId)?.name
+    : undefined;
+
   return (
     <div className="app">
       <Header
@@ -60,27 +86,43 @@ export function App() {
         selectedProject={selectedProject}
         onProjectChange={handleProjectChange}
         onProjectCreated={handleProjectCreated}
-        sessionCount={sessions.length}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
-      <FeatureList
-        features={features}
-        selectedFeatureId={selectedFeatureId}
-        onSelectFeature={setSelectedFeatureId}
-        projectId={selectedProject?.id ?? null}
-        onFeatureCreated={refreshFeatures}
-        sessions={sessions}
-      />
-      <SessionPanel
-        featureId={selectedFeatureId}
-        sessions={sessions}
-        selectedSessionId={selectedSessionId}
-        onSelectSession={setSelectedSessionId}
-        onTagChanged={() => { refreshFeatures(); refreshSessions(); }}
-      />
+      <div className="sidebar">
+        {activeTab === "brain" ? (
+          <TopicList
+            topics={topics}
+            selectedTopicId={selectedTopicId}
+            onSelectTopic={handleTopicSelect}
+          />
+        ) : (
+          <SessionList
+            sessions={sessions}
+            selectedSessionId={selectedSessionId}
+            onSelectSession={handleSessionSelect}
+            topics={topics}
+            onTopicClick={navigateToTopic}
+          />
+        )}
+      </div>
+      <div className="detail">
+        {activeTab === "brain" ? (
+          <TopicDetail
+            topicId={selectedTopicId}
+            onSessionClick={navigateToSession}
+            onTopicClick={navigateToTopic}
+          />
+        ) : (
+          <SessionPanel
+            sessionId={selectedSessionId}
+          />
+        )}
+      </div>
       <ChatPanel
-        featureId={selectedFeatureId}
-        sessionId={selectedSessionId}
-        featureName={features.find((f) => f.id === selectedFeatureId)?.name}
+        topicId={chatTopicId}
+        sessionId={chatSessionId}
+        scopeLabel={chatLabel}
       />
     </div>
   );

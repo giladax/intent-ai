@@ -232,11 +232,110 @@ export async function startWebServer(port: number): Promise<void> {
     }
   });
 
+  // ── Topics ───────────────────────────────────────────────────────
+
+  app.get("/api/topics", async (req, res) => {
+    try {
+      const repoId = req.query.repoId as string;
+      if (!repoId) {
+        res.status(400).json({ error: "repoId query parameter is required" });
+        return;
+      }
+      const sql = getClient();
+      const rows = await sql`
+        SELECT t.id, t.name, t.summary,
+          (SELECT count(*) FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count,
+          (SELECT count(DISTINCT ts.session_id) FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count,
+          (SELECT count(*) FROM brain_versions bv WHERE bv.repo_id = t.repo_id) as update_count
+        FROM topics t WHERE t.repo_id = ${repoId}
+        ORDER BY session_count DESC, t.name`;
+      res.json(rows);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.get("/api/topics/:id", async (req, res) => {
+    try {
+      const sql = getClient();
+      const topicRows = await sql`SELECT * FROM topics WHERE id = ${req.params.id}`;
+      if (topicRows.length === 0) {
+        res.status(404).json({ error: "topic not found" });
+        return;
+      }
+      const topic = topicRows[0];
+
+      // Active insights with evidence
+      const insights = await sql`
+        SELECT i.*,
+          COALESCE(
+            (SELECT json_agg(json_build_object('id', ie.id, 'reasoning', ie.reasoning))
+             FROM insight_evidence ie WHERE ie.insight_id = i.id),
+            '[]'::json
+          ) AS evidence
+        FROM insights i
+        WHERE i.topic_id = ${req.params.id} AND i.status = 'active'
+        ORDER BY i.created_at DESC`;
+
+      // Files
+      const files = await sql`
+        SELECT * FROM topic_files
+        WHERE topic_id = ${req.params.id}
+        ORDER BY file_path`;
+
+      // Sessions that contributed
+      const sessions = await sql`
+        SELECT s.id, s.source_type, s.source_path, s.session_shape, s.started_at, s.ended_at,
+               n.summary AS narrative_summary,
+               (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count
+        FROM topic_sessions ts
+        JOIN sessions s ON s.id = ts.session_id
+        LEFT JOIN narratives n ON n.session_id = s.id
+        WHERE ts.topic_id = ${req.params.id}
+        ORDER BY s.started_at ASC NULLS LAST`;
+
+      // Related topics
+      const relatedTopics = await sql`
+        SELECT t2.id, t2.name, tr.relationship
+        FROM topic_relations tr
+        JOIN topics t2 ON t2.id = tr.related_topic_id
+        WHERE tr.topic_id = ${req.params.id}
+        ORDER BY t2.name`;
+
+      res.json({
+        topic: { id: topic.id, name: topic.name, summary: topic.summary },
+        insights: insights.map((i: any) => ({
+          id: i.id,
+          category: i.category,
+          statement: i.statement,
+          confidence: Number(i.confidence),
+        })),
+        files: files.map((f: any) => ({
+          file_path: f.file_path,
+          role: f.role,
+        })),
+        sessions: sessions.map((s: any) => ({
+          session_id: s.id,
+          session_shape: s.session_shape,
+          summary: s.narrative_summary,
+          started_at: s.started_at,
+          moment_count: Number(s.moment_count),
+        })),
+        relatedTopics: relatedTopics.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+        })),
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // ── Chat (SSE streaming) ──────────────────────────────────────────
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { question, featureId, sessionId, history } = req.body;
+      const { question, featureId, sessionId, topicId, history } = req.body;
 
       if (!question) {
         res.status(400).json({ error: "question is required" });
@@ -296,6 +395,59 @@ ${sessionContexts}
 - Keep responses concise but thorough. Use evidence to support your points.
 - When referencing events, indicate which session they came from.`;
         }
+      } else if (topicId) {
+        // Topic-scoped: load insights and session digests for this topic
+        const sql = getClient();
+        const topicRows = await sql`SELECT * FROM topics WHERE id = ${topicId}`;
+        const topicName = topicRows[0]?.name ?? "Unknown Topic";
+        const topicSummary = topicRows[0]?.summary ?? "";
+
+        const insightRows = await sql`
+          SELECT i.statement, i.category, i.confidence
+          FROM insights i
+          WHERE i.topic_id = ${topicId} AND i.status = 'active'
+          ORDER BY i.created_at DESC`;
+
+        const sessionRows = await sql`
+          SELECT s.id FROM topic_sessions ts
+          JOIN sessions s ON s.id = ts.session_id
+          WHERE ts.topic_id = ${topicId}
+          ORDER BY s.started_at ASC NULLS LAST`;
+
+        const digests = [];
+        for (const row of sessionRows) {
+          try {
+            const digest = await loadDigest(row.id);
+            digests.push(digest);
+          } catch {
+            // Skip sessions without complete digests
+          }
+        }
+
+        const insightsText = insightRows.length > 0
+          ? insightRows.map((i: any, idx: number) => `${idx + 1}. [${i.category}] (confidence: ${i.confidence}) ${i.statement}`).join("\n")
+          : "No insights recorded yet.";
+
+        const sessionContexts = digests.map((d, i) => {
+          const prompt = buildSystemPrompt(d);
+          const digestStart = prompt.indexOf("## Session Digest");
+          return `### Session ${i + 1}\n${digestStart >= 0 ? prompt.slice(digestStart) : prompt}`;
+        }).join("\n\n---\n\n");
+
+        systemPrompt = `You are a brain assistant for the topic "${topicName}".${topicSummary ? ` Topic summary: ${topicSummary}` : ""}
+
+## Known Insights
+${insightsText}
+
+${digests.length > 0 ? `## Session Digests (${digests.length} sessions contributed)\n${sessionContexts}` : "No session digests available yet."}
+
+## Rules
+- Answer based on the evidence in the insights and digests. Don't speculate beyond what the data shows.
+- When attributing decisions, use the agency field (developer vs ai vs collaborative).
+- Quote the developer's actual words when available (from evidence).
+- If asked about something not covered by the data, say so.
+- Keep responses concise but thorough. Use evidence to support your points.
+- When referencing events, indicate which session they came from.`;
       } else if (sessionId) {
         // Session-scoped
         try {

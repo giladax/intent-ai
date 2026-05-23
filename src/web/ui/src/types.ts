@@ -109,3 +109,48 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+// ── Brain Types ──────────────────────────────────────────────────────
+
+export interface TopicSummary {
+  id: string;
+  name: string;
+  summary: string;
+  insight_count: number;
+  session_count: number;
+  update_count: number;
+}
+
+export interface TopicInsight {
+  id: string;
+  category: string;
+  statement: string;
+  confidence: number;
+  reasoning?: string;
+}
+
+export interface TopicFile {
+  file_path: string;
+  role: string;
+}
+
+export interface TopicSession {
+  session_id: string;
+  session_shape: string | null;
+  summary: string | null;
+  started_at: string | null;
+  moment_count: number;
+}
+
+export interface TopicRelated {
+  id: string;
+  name: string;
+}
+
+export interface TopicDetail {
+  topic: { id: string; name: string; summary: string };
+  insights: TopicInsight[];
+  files: TopicFile[];
+  sessions: TopicSession[];
+  relatedTopics: TopicRelated[];
+}

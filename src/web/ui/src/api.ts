@@ -5,6 +5,8 @@ import type {
   FeatureDetail,
   SessionDetail,
   ChatMessage,
+  TopicSummary,
+  TopicDetail,
 } from "./types";
 
 const BASE = "";
@@ -53,6 +55,12 @@ export const untagSession = (featureId: string, sessionId: string) =>
     method: "DELETE",
   });
 
+// Topics (Brain)
+export const fetchTopics = (repoId: string) =>
+  json<TopicSummary[]>(`/api/topics?repoId=${repoId}`);
+export const fetchTopicDetail = (topicId: string) =>
+  json<TopicDetail>(`/api/topics/${topicId}`);
+
 // Sessions
 export const fetchSessions = () => json<Session[]>("/api/sessions");
 export const fetchSessionDetail = (id: string) =>
@@ -64,11 +72,12 @@ export async function* streamChat(
   history: ChatMessage[],
   featureId?: string,
   sessionId?: string,
+  topicId?: string,
 ): AsyncGenerator<{ type: string; content?: string }> {
   const res = await fetch(`${BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, history, featureId, sessionId }),
+    body: JSON.stringify({ question, history, featureId, sessionId, topicId }),
   });
 
   if (!res.ok) {
