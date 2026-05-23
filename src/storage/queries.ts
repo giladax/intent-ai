@@ -32,6 +32,7 @@ export async function storeSessionDigest(data: {
   sessionId: string;
   sourceType: string;
   sourcePath: string;
+  sourceHash?: string;
   sessionShape: SessionShape;
   startedAt: Date | null;
   endedAt: Date | null;
@@ -46,8 +47,8 @@ export async function storeSessionDigest(data: {
   const sql = getClient();
 
   // 1. session
-  await sql`INSERT INTO sessions (id, source_type, source_path, session_shape, started_at, ended_at, created_at)
-    VALUES (${data.sessionId}, ${data.sourceType}, ${data.sourcePath}, ${data.sessionShape},
+  await sql`INSERT INTO sessions (id, source_type, source_path, source_hash, session_shape, started_at, ended_at, created_at)
+    VALUES (${data.sessionId}, ${data.sourceType}, ${data.sourcePath}, ${data.sourceHash ?? null}, ${data.sessionShape},
             ${data.startedAt?.toISOString() ?? null}, ${data.endedAt?.toISOString() ?? null}, NOW())`;
 
   // 2. normalized_events (batched, skip raw_events — source JSONL is the truth)

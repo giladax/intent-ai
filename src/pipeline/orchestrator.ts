@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
+import { basename } from "node:path";
 import { parseClaudeCodeLog } from "../adapters/claude-code.js";
+import { getClient } from "../storage/connection.js";
 import { normalize } from "./normalize.js";
 import { analyzeInteractions } from "./analyze.js";
 import { classifySession } from "./classify.js";
@@ -26,6 +28,15 @@ export async function runPipeline(logPath: string): Promise<{
   transitions: IntentTransition[];
   outcomes: AcceptedOutcome[];
 }> {
+  // 0. Check for duplicate — extract CC session UUID from filename
+  const ccSessionId = basename(logPath, ".jsonl");
+  const sql = getClient();
+  const [existing] = await sql`SELECT id FROM sessions WHERE source_hash = ${ccSessionId}`;
+  if (existing) {
+    log(`  ⚠ Session already digested (${existing.id}). Skipping.`);
+    throw new Error(`Session already digested: ${ccSessionId} → ${existing.id}`);
+  }
+
   // 1. Parse
   log("[1/10] Parsing CC log...");
   const rawEvents = await parseClaudeCodeLog(logPath);
@@ -94,6 +105,7 @@ export async function runPipeline(logPath: string): Promise<{
       sessionId,
       sourceType: "claude-code",
       sourcePath: logPath,
+      sourceHash: ccSessionId,
       sessionShape,
       startedAt,
       endedAt,
