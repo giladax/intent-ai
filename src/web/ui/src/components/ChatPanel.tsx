@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { streamChat } from "../api";
 import type { ChatMessage } from "../types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { SidebarHeader, SidebarContent } from "@/components/ui/sidebar";
 
 interface Props {
   topicId: string | null;
@@ -81,39 +86,48 @@ export function ChatPanel({ topicId, sessionId, scopeLabel }: Props) {
   };
 
   return (
-    <aside className="chat">
-      <div className="chat-header">
-        <span className="chat-scope">{label()}</span>
-      </div>
-      <div className="chat-messages">
-        {messages.length === 0 && (
-          <div className="chat-empty">
-            {topicId || sessionId
-              ? "Ask about this context..."
-              : "Select a topic or session to start."}
+    <>
+      <SidebarHeader className="border-b px-4 py-2">
+        <span className="text-xs font-medium text-muted-foreground">{label()}</span>
+      </SidebarHeader>
+      <SidebarContent>
+        <ScrollArea className="flex-1 p-3">
+          <div className="space-y-2">
+            {messages.length === 0 && (
+              <div className="text-center text-muted-foreground text-xs py-8">
+                {topicId || sessionId
+                  ? "Ask about this context..."
+                  : "Select a topic or session to start."}
+              </div>
+            )}
+            {messages.map((m, i) => (
+              <div key={i} className={cn(
+                "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words",
+                m.role === "user"
+                  ? "ml-auto bg-primary text-primary-foreground rounded-br-sm"
+                  : "bg-muted rounded-bl-sm"
+              )}>
+                {m.content || (streaming && i === messages.length - 1 ? "..." : "")}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
           </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`chat-msg chat-msg-${m.role}`}>
-            {m.content || (streaming && i === messages.length - 1 ? "..." : "")}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="chat-input-row">
-        <input
+        </ScrollArea>
+      </SidebarContent>
+      <div className="flex gap-2 p-3 border-t mt-auto">
+        <Input
           ref={inputRef}
-          className="chat-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Ask..."
           disabled={streaming}
+          className="text-sm"
         />
-        <button className="chat-send" onClick={handleSend} disabled={streaming || !input.trim()}>
+        <Button size="sm" onClick={handleSend} disabled={streaming || !input.trim()}>
           Send
-        </button>
+        </Button>
       </div>
-    </aside>
+    </>
   );
 }
