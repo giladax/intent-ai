@@ -1,18 +1,18 @@
 # eval-driven development
 
-Evals are a first-class architectural component in intent-ai from v1, not a testing afterthought. The developer explicitly committed to eval-driven development with fixtures, adversarial inputs, and measurable quality gates baked into the initial build. This shapes how moment detection quality is validated and how the pipeline is iterated.
+Evals are a first-class architectural component in intent-ai v1, not a testing afterthought. The developer committed to eval-driven development from day one, with fixtures, adversarial inputs, and measurable quality gates built into the initial release.
+
+## constraint
+
+- Moment detection quality must be measurable — evals with adversarial inputs are required to validate that the system 'actually understood what the developer was doing'.
 
 ## decision
 
-- Eval-driven development is a v1 architectural requirement — fixtures, adversarial inputs, and measurable quality gates must be present from the start, not added later.
-
-## behavior
-
-- Adversarial review of designs (structured critique runs) is an established practice in this project — it produced 7 concrete schema improvements before a single line of code was written.
+- Eval-driven development is a v1 requirement — quality gates with fixtures and adversarial inputs must be present from the initial build, not added later.
 
 ## Files
 
-- `/Users/giladkoch/dev/intent-ai/docs/superpowers/specs/2026-05-21-execution-memory-design.md` — Spec that should reflect eval infrastructure as a v1 component.
+- `docs/superpowers/specs/2026-05-21-execution-memory-design.md` — Design spec that should include eval architecture as a first-class component.
 
 ## Evidence
 
@@ -21,4 +21,4 @@ Evals are a first-class architectural component in intent-ai from v1, not a test
 ## Related
 
 - [digestion pipeline](digestion-pipeline.md)
-- [moment detection](moment-detection.md)
+- [moment detection data model](moment-detection-data-model.md)
