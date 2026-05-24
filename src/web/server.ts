@@ -825,6 +825,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
       const proposalResult = {
         status: "changes_proposed",
+        sessionIds,
         changes: [...uniqueChanges, ...merges],
         plan,
         specs: specs.map((s: any) => ({
@@ -857,7 +858,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
       // Fall back to session IDs stored during propose phase
       if (!sessionIds?.length) {
         const job = getActiveJob(repoId);
-        sessionIds = job?.selectedSessionIds;
+        sessionIds = job?.selectedSessionIds ?? job?.proposal?.sessionIds;
       }
       if (!repoId || !sessionIds?.length) {
         res.status(400).json({ error: "repoId and sessionIds required" });

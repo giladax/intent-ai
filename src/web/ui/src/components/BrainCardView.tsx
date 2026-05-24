@@ -79,7 +79,7 @@ export function BrainCardView({ card, onNavigate }: Props) {
         )}
       </div>
 
-      {/* Top insights */}
+      {/* Top insights — truncated for scanability */}
       {topInsights.length > 0 && (
         <ul className="space-y-1.5">
           {topInsights.map((ins, i) => (
@@ -87,7 +87,9 @@ export function BrainCardView({ card, onNavigate }: Props) {
               <Badge className={`text-[10px] shrink-0 mt-0.5 ${categoryColor(ins.category ?? "")}`}>
                 {ins.category ?? "insight"}
               </Badge>
-              <span className="leading-snug text-foreground/90">{ins.statement ?? ""}</span>
+              <span className="leading-snug text-foreground/90">
+                {truncate(ins.statement ?? "", 120)}
+              </span>
             </li>
           ))}
         </ul>

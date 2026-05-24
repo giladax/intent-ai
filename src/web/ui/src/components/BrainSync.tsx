@@ -183,19 +183,21 @@ export function BrainSync({ repoId, onSynced }: Props) {
   };
 
   const handleApply = async () => {
-    // Use the session IDs that were selected during propose (survives state changes)
-    const ids = selectedSessionIds.length > 0
-      ? selectedSessionIds
-      : sessions.filter(s => s.selected).map(s => s.id);
-    if (ids.length === 0) return;
     setPhase("applying");
     setProgressMessage("Applying changes...");
 
     try {
+      // Resolve session IDs: state → proposal → sessions list → let server handle it
+      const ids = selectedSessionIds.length > 0
+        ? selectedSessionIds
+        : (proposal as any)?.sessionIds?.length > 0
+          ? (proposal as any).sessionIds
+          : sessions.filter(s => s.selected).map(s => s.id);
+
       const response = await fetch("/api/brain/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoId, sessionIds: ids }),
+        body: JSON.stringify({ repoId, sessionIds: ids.length > 0 ? ids : undefined }),
       });
 
       if (!response.ok) {
@@ -425,6 +427,9 @@ export function BrainSync({ repoId, onSynced }: Props) {
             );
           })}
         </div>
+        {error && (
+          <p className="text-[11px] text-destructive text-center animate-in fade-in duration-300">{error}</p>
+        )}
         <div className="flex gap-2 pt-1">
           <Button size="sm" className="flex-1 gap-1.5" onClick={handleApply}>
             <Check className="size-3" />
