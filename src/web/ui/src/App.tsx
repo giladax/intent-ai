@@ -88,7 +88,7 @@ export function App() {
         </SidebarContent>
       </Sidebar>
 
-      <SidebarInset>
+      <SidebarInset className="h-svh overflow-hidden">
         <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background z-10">
           <div className="flex flex-1 items-center gap-2 px-3">
             <SidebarTrigger />
@@ -136,7 +136,7 @@ export function App() {
               onTopicClick={handleTopicSelect}
             />
           ) : (
-            <ResizablePanelGroup direction="horizontal">
+            <ResizablePanelGroup direction="horizontal" className="h-full">
               <ResizablePanel defaultSize={60} minSize={35}>
                 <div className="h-full overflow-y-auto">
                   <TopicDetail
