@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 
 interface Props {
-  topicId: string;
+  topicId: string | null;
   topicName: string;
 }
 
