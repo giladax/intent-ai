@@ -250,29 +250,20 @@ export function createBrainServer(): McpServer {
 
   server.tool(
     "brain_overview",
-    "Get the top-level knowledge areas — start here to orient, then use brain_get or brain_traverse to drill in",
+    "Get top-level knowledge areas as cards — start here, then drill into any area",
     {},
     async () => {
       const { topics } = getGraph();
-
-      // Only roots (specs without a parent) — these are the first-order areas
       const roots = [...topics.values()].filter((t) => !t.parent);
 
-      let text = "# Brain — Top-Level Areas\n\n";
-      for (const root of roots) {
-        const childCount = root.children.length;
-        const insightCount = root.insights.length;
-        const meta = [
-          childCount && `${childCount} sub-specs`,
-          insightCount && `${insightCount} insights`,
-        ].filter(Boolean).join(", ");
+      // Sort by insight count descending (most knowledge-rich first)
+      roots.sort((a, b) => b.insights.length - a.insights.length);
 
-        text += `- **${root.name}**`;
-        if (meta) text += ` _(${meta})_`;
-        text += `\n  ${root.summary.slice(0, 150)}\n`;
-      }
+      const cards = roots.map((r) => formatCard(r));
 
-      text += `\n_${roots.length} areas, ${topics.size} total specs. Use brain_get(topic) to expand, brain_traverse(topic) for neighbors._`;
+      let text = `# Brain — ${roots.length} Top-Level Areas\n\n`;
+      text += cards.join("\n\n---\n\n");
+      text += `\n\n---\n_${topics.size} specs total. Use brain_get(name) to expand, brain_traverse(name) for neighbors._`;
 
       return { content: [{ type: "text" as const, text }] };
     },
@@ -366,10 +357,10 @@ export function createBrainServer(): McpServer {
 
   server.tool(
     "brain_get",
-    "Get the full knowledge spec for a topic — all insights, files, sessions, related topics",
+    "Get the full knowledge spec for a topic — 'navigate' for card + children cards, 'full' for complete spec",
     {
       topic: z.string().describe("Topic name or slug"),
-      section: z.enum(["full", "insights", "files", "sessions", "structure"]).default("full")
+      section: z.enum(["full", "navigate", "insights", "files", "sessions", "structure"]).default("full")
         .describe("Return only a specific section to save context"),
     },
     async ({ topic, section }) => {
@@ -398,7 +389,35 @@ export function createBrainServer(): McpServer {
       }
 
       if (section === "full") {
-        return { content: [{ type: "text" as const, text: node.fullMarkdown }] };
+        let text = node.fullMarkdown;
+        if (node.children.length > 0) {
+          text += "\n\n---\n## Sub-specs\n\n";
+          for (const childName of node.children) {
+            const childNode = topics.get(childName);
+            if (childNode) text += formatCard(childNode) + "\n\n---\n\n";
+          }
+        }
+        return { content: [{ type: "text" as const, text }] };
+      }
+
+      if (section === "navigate") {
+        let text = formatCard(node);
+        if (node.children.length > 0) {
+          text += "\n\n## Sub-specs\n\n";
+          for (const childName of node.children) {
+            const childNode = topics.get(childName);
+            if (childNode) text += formatCard(childNode) + "\n\n---\n\n";
+          }
+        }
+        if (node.related.length > 0) {
+          text += "\n## Related\n\n";
+          for (const relName of node.related) {
+            const relNode = topics.get(relName);
+            if (relNode) text += formatCard(relNode) + "\n\n---\n\n";
+          }
+        }
+        text += `\n_Use brain_get(name, section: "full") to expand any spec completely._`;
+        return { content: [{ type: "text" as const, text }] };
       }
 
       // Section-specific extraction
@@ -445,10 +464,10 @@ export function createBrainServer(): McpServer {
 
   server.tool(
     "brain_traverse",
-    "Navigate the knowledge graph from a topic — follow edges to parent, children, related, or co-file topics",
+    "Follow graph edges from a topic — especially useful for co-file discovery (specs sharing source files)",
     {
       from: z.string().describe("Starting topic name or slug"),
-      direction: z.enum(["parent", "children", "related", "co-file", "all"]).default("all")
+      direction: z.enum(["parent", "children", "related", "co-file"]).default("co-file")
         .describe("Which edges to follow"),
     },
     async ({ from, direction }) => {
@@ -467,19 +486,19 @@ export function createBrainServer(): McpServer {
 
       const neighbors: { name: string; via: string }[] = [];
 
-      if ((direction === "all" || direction === "parent") && node.parent) {
+      if (direction === "parent" && node.parent) {
         neighbors.push({ name: node.parent, via: "parent" });
       }
 
-      if (direction === "all" || direction === "children") {
+      if (direction === "children") {
         for (const c of node.children) neighbors.push({ name: c, via: "child" });
       }
 
-      if (direction === "all" || direction === "related") {
+      if (direction === "related") {
         for (const r of node.related) neighbors.push({ name: r, via: "related" });
       }
 
-      if (direction === "all" || direction === "co-file") {
+      if (direction === "co-file") {
         // Find topics that share files with this topic
         const coTopics = new Set<string>();
         for (const f of node.files) {
@@ -522,27 +541,21 @@ export function createBrainServer(): McpServer {
 
   server.tool(
     "brain_file_context",
-    "Get all brain knowledge relevant to a source file — covering specs, constraints, decisions, related areas",
+    "Get brain knowledge for a source file — constraints, decisions, and related areas. Use before editing unfamiliar code.",
     {
       file: z.string().describe("File path (relative or absolute)"),
-      depth: z.enum(["card", "full"]).default("card")
-        .describe("'card' for compact overview, 'full' for complete specs"),
     },
-    async ({ file, depth }) => {
+    async ({ file }) => {
       const { topics, fileIndex } = getGraph();
-
-      // Normalize path
       const normalized = file.replace(/^\.\//, "");
 
-      // Find matching topics via file index
+      // Find matching topics
       const matchingTopics = new Set<string>();
       for (const [indexedFile, topicNames] of fileIndex) {
         if (indexedFile === normalized || indexedFile.endsWith(normalized) || normalized.endsWith(indexedFile)) {
           for (const name of topicNames) matchingTopics.add(name);
         }
       }
-
-      // Also check topic files arrays directly for partial matches
       for (const node of topics.values()) {
         for (const f of node.files) {
           if (f.endsWith(normalized) || normalized.endsWith(f)) {
@@ -552,32 +565,40 @@ export function createBrainServer(): McpServer {
       }
 
       if (matchingTopics.size === 0) {
-        return { content: [{ type: "text" as const, text: `No specs cover "${file}". File may not be indexed — run brain sync.` }] };
+        return { content: [{ type: "text" as const, text: `No specs cover "${file}".` }] };
       }
 
-      const parts: string[] = [`# Context for \`${file}\`\n`];
+      const parts: string[] = [`# Context for \`${normalized}\`\n`];
 
       for (const name of matchingTopics) {
         const node = topics.get(name);
         if (!node) continue;
 
-        if (depth === "full") {
-          parts.push(node.fullMarkdown);
-        } else {
-          parts.push(formatCard(node));
+        // Card for the covering spec
+        parts.push(formatCard(node));
+
+        // Pull out constraints + decisions specifically (actionable when editing)
+        const actionable = node.insights.filter(
+          (i) => i.category === "constraint" || i.category === "decision"
+        );
+        if (actionable.length > 0) {
+          parts.push("\n**Constraints & Decisions:**");
+          for (const a of actionable) {
+            parts.push(`- [${a.category}] ${a.statement}`);
+          }
         }
 
-        // Add parent context (one level up) — constraints flow down
+        // Inherited from parent
         if (node.parent) {
           const parentNode = topics.get(node.parent);
           if (parentNode) {
-            const parentConstraints = parentNode.insights
-              .filter((i) => i.category === "constraint" || i.category === "decision")
-              .slice(0, 3);
-            if (parentConstraints.length > 0) {
-              parts.push(`\n_Inherited from ${parentNode.name}:_`);
-              for (const c of parentConstraints) {
-                parts.push(`- [${c.category}] ${c.statement.slice(0, 200)}`);
+            const inherited = parentNode.insights.filter(
+              (i) => i.category === "constraint" || i.category === "decision"
+            ).slice(0, 5);
+            if (inherited.length > 0) {
+              parts.push(`\n**Inherited from ${parentNode.name}:**`);
+              for (const c of inherited) {
+                parts.push(`- [${c.category}] ${c.statement}`);
               }
             }
           }
