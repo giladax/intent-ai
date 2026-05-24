@@ -1,55 +1,122 @@
-# Dashboard Redesign — Spec
+# Dashboard Redesign: Split View
 
-## What
-
-Replace the flat session list with a two-tab dashboard: Brain (shared knowledge) and Sessions (private execution memory). shadcn/ui, minimalist.
+**Goal:** Replace the dual-sidebar layout with a single sidebar + center split view (topic detail + chat). Eliminate the right sidebar and the Sessions tab.
 
 ## Layout
 
 ```
-[intent]  [repo selector ▾]     [Brain] [Sessions]
-┌──────────────┬─────────────────────────┬───────────────────┐
-│  Sidebar     │  Detail                 │  Chat             │
-│  240px       │  1fr                    │  360px            │
-│  scrollable  │  scrollable             │  fixed input      │
-└──────────────┴─────────────────────────┴───────────────────┘
+Sidebar (left, collapsible)    │  SidebarInset
+                               │  ┌─────────────────────────────────────┐
+Project dropdown               │  │ Header: SidebarTrigger │ Breadcrumb │
+───────────────                │  ├──────────────────┬──────────────────┤
+🔍 Search topics...            │  │ ResizablePanel   │ ResizablePanel   │
+                               │  │ (detail, 60%)    │ (chat, 40%)      │
+• Topic A                      │  │                  │                  │
+• Topic B  ← selected          │  │ Topic detail     │ Chat: Topic B    │
+• Topic C                      │  │ (scrollable)     │                  │
+                               │  │                  │ [May21✓][May18✓] │
+                               │  │ Insights         │ Messages...      │
+                               │  │ Files            │                  │
+                               │  │ Sessions         │ [Ask about ...]  │
+                               │  │ Related          │ [Send]           │
+                               │  └──────────────────┴──────────────────┘
 ```
 
-No borders between panels — background shade differences only. Muted text for metadata. Monospace for file paths.
+- Left sidebar: shadcn `Sidebar` with `collapsible="icon"`, project `DropdownMenu`, topic list with search
+- Center: `SidebarInset` → header + `ResizablePanelGroup direction="horizontal"`
+- Detail panel: `ResizablePanel defaultSize={60} minSize={35}`
+- Chat panel: `ResizablePanel defaultSize={40} minSize={20} collapsible collapsedSize={4}`
+- Collapsed chat shows expand icon. Header has a "Chat" toggle button (right-aligned) to expand/collapse.
 
-## Brain Tab
+## State
 
-**Sidebar:** Topic list with counts (insights · sessions · updates). Search + filter by category.
+One piece of state: `selectedTopicId: string | null`
 
-**Detail:** Topic summary, insights grouped by category (structure/decision/constraint/behavior/risk/interface as section headers), files with roles, user's contributing sessions (click → jumps to Sessions tab), related topics.
+- `null` → Overview landing page (full width, no split)
+- set → Split view (detail + chat)
 
-**Chat:** Scoped to selected topic. System prompt includes topic insights + user's session evidence.
+No tabs. No active modes.
 
-## Sessions Tab
+## Screens
 
-**Sidebar:** Sessions grouped by date. Each shows: truncated narrative, shape badge, moment count, topic badges (click badge → jumps to Brain tab).
+### Overview (no topic selected)
 
-**Detail:** Existing session view — narrative, arcs, moments, transitions, outcomes, drill-down to events.
+Full-width center panel (no split). Shows:
+- Topic count, session count
+- 5 most recently updated topics (clickable)
+- 5 most recent sessions (date + title, clickable → selects parent topic)
 
-**Chat:** Scoped to selected session. Private.
+Zero-data state: "No execution memory yet. Run `intent digest` then `intent brain`."
 
-## API (new endpoints)
+### Topic Detail (left panel of split)
 
-```
-GET /api/topics?repoId=     → { id, name, summary, insightCount, sessionCount, updateCount }[]
-GET /api/topics/:id         → { topic, insights[], files[], sessions[], relatedTopics[] }
-```
+Order matters — navigational first, reference second:
+1. **Header**: topic name (h2) + summary
+2. **Sessions**: list of contributing sessions (date, title, moment count)
+3. **Related topics**: badge pills (clickable → switch topic)
+4. **Insights**: grouped by category (structure, decision, constraint, behavior, risk, interface) with colored dots + Card per insight
+5. **Files**: file paths with role badges
 
-Existing session endpoints unchanged.
+### Chat (right panel of split)
 
-## Tech
+**Header**: "Chat: {topic name}" + clear button (icon)
 
-- shadcn/ui: Tabs, Card, Badge, Input, ScrollArea, DropdownMenu
-- React state for tab/selection/repo — no router
-- SSE chat reused from existing implementation
-- Express API extended, not replaced
+**Session context chips**: between header and messages
+- Render as `<button aria-pressed={on}>` with `Badge` styling
+- ON = `variant="default"` (filled), OFF = `variant="outline"` (hollow)
+- Default: 3 most recent sessions ON, rest OFF
+- Max 5 visible. If more, last chip is "+N more" opening a popover with all sessions as toggles
+- Toggling changes what the chat API receives
 
-## Cross-tab navigation
+**Messages area**: scrollable, same bubble styling as current
 
-- Topic badge on session → Brain tab, selects that topic
-- Session in topic detail → Sessions tab, selects that session
+**Empty state**: "Ask about {topic name}..."
+
+**Input**: `Input` + `Button`, `aria-label="Chat message"`, Enter to send
+
+**Behavior**: messages clear on topic change. Chat API receives topic insights + toggled-on session digests.
+
+## Responsive (<1024px)
+
+Below `lg` breakpoint: no split. Single center panel with two tabs at top: "Detail" | "Chat". Same content, stacked instead of side-by-side.
+
+## Breadcrumb
+
+Header shows: `Overview` (always clickable → deselects topic) or `Overview > Topic Name`
+
+## Components
+
+| Component | Purpose |
+|-----------|---------|
+| `App.tsx` | Layout: Sidebar + SidebarInset with ResizablePanelGroup |
+| `OverviewPanel.tsx` | NEW — landing page when no topic selected |
+| `TopicDetail.tsx` | MODIFY — reorder sections (sessions before insights), remove ScrollArea (parent scrolls) |
+| `ChatPanel.tsx` | MODIFY — add context chips, remove sidebar wrappers, add clear button, aria-label |
+| `TopicList.tsx` | KEEP — already correct |
+| `SessionList.tsx` | REMOVE — sessions accessed through topics only |
+| `SessionPanel.tsx` | REMOVE — session detail not needed as standalone view |
+
+## Files Touched
+
+- `App.tsx` — new layout, remove right sidebar, add ResizablePanelGroup, breadcrumb, overview/split routing
+- `ChatPanel.tsx` — context chips, clear button, plain div wrappers, aria
+- `TopicDetail.tsx` — reorder sections
+- NEW `OverviewPanel.tsx` — landing page
+- DELETE `SessionPanel.tsx`, `SessionList.tsx`
+
+## API
+
+No API changes. Existing endpoints:
+- `GET /api/topics?repoId=X` — topic list
+- `GET /api/topics/:id` — topic detail with sessions
+- `POST /api/chat` — SSE streaming, receives `{ topicId, sessionId, question, history }`
+
+Chat API already supports topic-scoped context. Session chips control which session IDs are sent.
+
+## Not in Scope
+
+- Topic hierarchy/grouping
+- Session detail standalone view
+- Keyboard shortcuts (Cmd+/)
+- Fade transitions on scope change
+- File path copy-on-click
