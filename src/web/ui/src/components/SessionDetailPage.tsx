@@ -13,11 +13,16 @@ interface Props {
 const MOMENT_COLORS: Record<string, string> = {
   discovery: "bg-emerald-500",
   decision: "bg-blue-500",
+  commitment: "bg-indigo-500",
   implementation: "bg-purple-500",
   struggle: "bg-amber-500",
   realization: "bg-cyan-500",
   refactor: "bg-orange-500",
   pivot: "bg-red-500",
+  proposal: "bg-teal-500",
+  confirmation: "bg-green-500",
+  rejection: "bg-rose-500",
+  transition: "bg-violet-500",
 };
 
 export function SessionDetailPage({ sessionId, onTopicClick }: Props) {
@@ -91,18 +96,24 @@ export function SessionDetailPage({ sessionId, onTopicClick }: Props) {
               <div key={m.id || i} className="flex gap-3 group">
                 {/* Timeline dot */}
                 <div className="flex flex-col items-center pt-1.5">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${MOMENT_COLORS[m.moment_type] || "bg-muted-foreground"}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${MOMENT_COLORS[m.type] || "bg-muted-foreground"}`} />
                   {i < moments.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
                 </div>
                 {/* Content */}
                 <div className="flex-1 pb-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{m.moment_type || "moment"}</Badge>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{m.type || "moment"}</Badge>
+                    {m.agency && (
+                      <span className="text-[10px] text-muted-foreground">{m.agency}</span>
+                    )}
                     {m.confidence && (
-                      <span className="text-[10px] text-muted-foreground">{Math.round(m.confidence * 100)}%</span>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{m.confidence}</Badge>
                     )}
                   </div>
-                  <p className="text-sm leading-relaxed">{m.summary || m.description || "No description"}</p>
+                  <p className="text-sm leading-relaxed">{m.statement}</p>
+                  {m.significance && (
+                    <p className="text-xs text-muted-foreground mt-1">{m.significance}</p>
+                  )}
                 </div>
               </div>
             ))}
