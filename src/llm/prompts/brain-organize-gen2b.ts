@@ -30,7 +30,7 @@ const MergeSchema = z.object({
   specs: z.array(z.string()),
   intoName: z.string(),
   level: z.enum(["root", "child"]),
-  parentSpec: z.string().optional(),
+  parentSpec: z.string().nullable().optional(),
 }).passthrough();
 
 const SplitIntoSchema = z.object({

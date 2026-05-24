@@ -13,7 +13,7 @@ const AssignmentSchema = z.object({
   targetSpec: z.string(),
   action: z.enum(["update", "create"]),
   level: z.enum(["root", "child"]),
-  parentSpec: z.string().optional(),
+  parentSpec: z.string().nullable().optional(),
 }).passthrough();
 
 const MergeSchema = z.object({
