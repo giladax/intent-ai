@@ -187,24 +187,26 @@ export function App() {
         {/* Sync button at bottom */}
         {selectedProject && (
           <SidebarFooter className="p-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className={`w-full gap-2 ${undigestedCount > 0 ? "relative overflow-hidden" : ""}`}
-              disabled={undigestedCount === 0}
-              onClick={() => { setView("sync"); setSelectedTopicId(null); }}
-            >
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                className={`w-full gap-2 justify-center ${undigestedCount > 0 ? "overflow-hidden" : ""}`}
+                disabled={undigestedCount === 0}
+                onClick={() => { setView("sync"); setSelectedTopicId(null); }}
+              >
+                {undigestedCount > 0 && (
+                  <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 animate-shimmer" />
+                )}
+                <RefreshCw className={`size-3.5 ${undigestedCount > 0 ? "animate-spin-slow" : ""}`} />
+                <span>{undigestedCount > 0 ? "Sync Brain" : "Brain up to date"}</span>
+              </Button>
               {undigestedCount > 0 && (
-                <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 animate-shimmer" />
-              )}
-              <RefreshCw className={`size-3.5 ${undigestedCount > 0 ? "animate-spin-slow" : ""}`} />
-              <span>{undigestedCount > 0 ? "Sync Brain" : "Brain up to date"}</span>
-              {undigestedCount > 0 && (
-                <span className="ml-auto flex items-center justify-center size-5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
+                <span className="absolute -top-2 -right-2 flex items-center justify-center size-5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
                   {undigestedCount}
                 </span>
               )}
-            </Button>
+            </div>
           </SidebarFooter>
         )}
       </Sidebar>
