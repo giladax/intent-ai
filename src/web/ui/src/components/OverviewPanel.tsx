@@ -1,14 +1,16 @@
 import type { TopicSummary, Session } from "../types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BranchTimeline } from "./BranchTimeline";
 
 interface Props {
   topics: TopicSummary[];
   sessions: Session[];
+  repoId: string | null;
   onTopicClick: (id: string) => void;
 }
 
-export function OverviewPanel({ topics, sessions, onTopicClick }: Props) {
+export function OverviewPanel({ topics, sessions, repoId, onTopicClick }: Props) {
   if (topics.length === 0 && sessions.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
@@ -51,6 +53,14 @@ export function OverviewPanel({ topics, sessions, onTopicClick }: Props) {
             <div className="text-xs text-muted-foreground">Sessions</div>
           </Card>
         </div>
+
+        {/* Branch timeline */}
+        {repoId && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Branch Timeline</h3>
+            <BranchTimeline repoId={repoId} />
+          </div>
+        )}
 
         {/* Recent topics */}
         {recentTopics.length > 0 && (

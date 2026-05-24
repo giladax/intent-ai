@@ -132,6 +132,7 @@ export function App() {
             <OverviewPanel
               topics={topics}
               sessions={sessions}
+              repoId={selectedProject?.id ?? null}
               onTopicClick={handleTopicSelect}
             />
           ) : (

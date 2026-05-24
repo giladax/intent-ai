@@ -7,6 +7,7 @@ import type {
   ChatMessage,
   TopicSummary,
   TopicDetail,
+  TimelineData,
 } from "./types";
 
 const BASE = "";
@@ -60,6 +61,10 @@ export const fetchTopics = (repoId: string) =>
   json<TopicSummary[]>(`/api/topics?repoId=${repoId}`);
 export const fetchTopicDetail = (topicId: string) =>
   json<TopicDetail>(`/api/topics/${topicId}`);
+
+// Timeline
+export const fetchTimeline = (repoId: string) =>
+  json<TimelineData>(`/api/timeline?repoId=${repoId}`);
 
 // Sessions
 export const fetchSessions = () => json<Session[]>("/api/sessions");

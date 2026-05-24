@@ -513,6 +513,49 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
+  // ── Timeline ─────────────────────────────────────────────────────
+
+  app.get("/api/timeline", async (req, res) => {
+    try {
+      const repoId = req.query.repoId as string;
+      if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
+
+      const sql = getClient();
+
+      // Get brain versions for this repo
+      const versions = await sql`
+        SELECT bv.id, bv.commit_sha, bv.created_at,
+          (SELECT count(*)::int FROM topics t WHERE t.repo_id = bv.repo_id) as topic_count,
+          (SELECT count(*)::int FROM insights i JOIN topics t ON i.topic_id = t.id WHERE t.repo_id = bv.repo_id) as insight_count
+        FROM brain_versions bv
+        WHERE bv.repo_id = ${repoId}
+        ORDER BY bv.created_at DESC
+      `;
+
+      // Get project source_path to run git log
+      const [project] = await sql`SELECT path FROM projects WHERE id = ${repoId}`;
+      let commits: Array<{ sha: string; message: string; date: string }> = [];
+
+      if (project?.path) {
+        try {
+          const { execSync } = await import("node:child_process");
+          const log = execSync(
+            'git log --pretty=format:"%H|%s|%aI" -20',
+            { cwd: project.path, encoding: "utf-8" }
+          );
+          commits = log.trim().split("\n").filter(Boolean).map((line) => {
+            const [sha, message, date] = line.split("|");
+            return { sha, message, date };
+          });
+        } catch { /* not a git repo or no commits */ }
+      }
+
+      res.json({ commits, brainVersions: versions });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // SPA fallback — serve index.html for non-API routes
   app.get("/{*path}", (_req, res) => {
     res.sendFile(join(__dirname, "public", "index.html"));

@@ -155,3 +155,23 @@ export interface TopicDetail {
   sessions: TopicSession[];
   relatedTopics: TopicRelated[];
 }
+
+// ── Timeline Types ──────────────────────────────────────────────────
+export interface TimelineCommit {
+  sha: string;
+  message: string;
+  date: string;
+}
+
+export interface BrainVersion {
+  id: string;
+  commit_sha: string | null;
+  created_at: string;
+  topic_count: number;
+  insight_count: number;
+}
+
+export interface TimelineData {
+  commits: TimelineCommit[];
+  brainVersions: BrainVersion[];
+}

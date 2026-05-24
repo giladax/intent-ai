@@ -113,7 +113,12 @@ program
           }
 
           await storeTopics(repoId, sessionId, topics, momentIdMap);
-          const versionId = await createBrainVersion(repoId);
+          let commitSha: string | undefined;
+          try {
+            const { execSync } = await import("node:child_process");
+            commitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+          } catch { /* not a git repo */ }
+          const versionId = await createBrainVersion(repoId, commitSha);
           console.log(`  Stored ${topics.length} topics. Brain version: ${versionId}`);
         }
 
