@@ -91,6 +91,14 @@ export function BrainSync({ repoId, onSynced }: Props) {
         setProposal(job.proposal);
         setDigestedCount(job.digestedCount ?? 0);
         setPhase("reviewing");
+      } else if (job.phase === "digesting") {
+        // Digest in progress — show progress
+        setPhase("digesting");
+        if (job.digestedCount) setDigestedCount(job.digestedCount);
+        const total = (job as any).digestTotal;
+        setProgressMessage(total
+          ? `Digesting... (${job.digestedCount ?? 0}/${total})`
+          : "Digesting...");
       } else if (job.phase === "discovering" || job.phase === "proposing" || job.phase === "applying") {
         // Server is still processing — show the spinner
         setPhase(job.phase);

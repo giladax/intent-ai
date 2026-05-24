@@ -23,10 +23,11 @@ const SONNET_MODEL = "claude-sonnet-4-6";
 interface SyncJob {
   id: string;
   repoId: string;
-  phase: "discovering" | "selecting" | "proposing" | "reviewing" | "applying" | "done" | "error";
+  phase: "discovering" | "digesting" | "selecting" | "proposing" | "reviewing" | "applying" | "done" | "error";
   sessions?: any[];
   proposal?: any;
   digestedCount?: number;
+  digestTotal?: number;
   error?: string;
   startedAt: number;
 }
@@ -927,25 +928,34 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
       const digestedHashes = new Set(allSourceHashes.map((r: any) => r.source_hash));
       const undigestedPaths = logPaths.filter(p => !digestedHashes.has(basename(p, ".jsonl")));
 
+      // Track job state so page refresh can recover
+      upsertJob(repoId, { phase: "digesting", digestedCount: 0, digestTotal: undigestedPaths.length, startedAt: Date.now() });
+
       sendSSE(res, { phase: "digesting", message: `Digesting ${undigestedPaths.length} session(s)...`, total: undigestedPaths.length });
 
       let digestedCount = 0;
       let errorCount = 0;
       for (const logPath of undigestedPaths) {
         const logName = basename(logPath, ".jsonl").slice(0, 8);
-        sendSSE(res, { phase: "digesting", message: `Digesting session ${logName}... (${digestedCount + 1}/${undigestedPaths.length})`, progress: digestedCount });
+        sendSSE(res, { phase: "digesting", message: `Digesting session ${logName}... (${digestedCount + 1}/${undigestedPaths.length})`, progress: digestedCount, total: undigestedPaths.length });
         try {
           const { runPipeline } = await import("../pipeline/orchestrator.js");
           await runPipeline(logPath);
           digestedCount++;
+          upsertJob(repoId, { phase: "digesting", digestedCount });
+          sendSSE(res, { phase: "digesting", message: `Digested ${logName} ✓ (${digestedCount}/${undigestedPaths.length})`, progress: digestedCount, total: undigestedPaths.length });
         } catch (err: any) {
           if (!err.message?.includes("already digested")) {
             errorCount++;
             sendSSE(res, { phase: "digesting", message: `Error on ${logName}: ${err.message?.slice(0, 80)}` });
+          } else {
+            digestedCount++;
+            upsertJob(repoId, { phase: "digesting", digestedCount });
           }
         }
       }
 
+      upsertJob(repoId, { phase: "done", digestedCount });
       sendSSE(res, { phase: "done", digestedCount, errorCount });
       res.end();
     } catch (err) {
