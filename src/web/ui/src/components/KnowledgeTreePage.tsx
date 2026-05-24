@@ -1,8 +1,11 @@
 import { useState } from "react";
 import type { TopicSummary } from "../types";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronRight, RefreshCw, Folder, FolderOpen, FileText } from "lucide-react";
 
 interface Props {
   topics: TopicSummary[];
@@ -38,26 +41,28 @@ export function KnowledgeTreePage({ topics, sessions, onTopicClick, onSync, undi
   const roots = (childrenOf.get(null) || []).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Knowledge Tree</h2>
-          <p className="text-xs text-muted-foreground">{topics.length} specs · {sessions.length} sessions</p>
+    <TooltipProvider delayDuration={400}>
+      <div className="max-w-2xl mx-auto p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Knowledge Tree</h2>
+            <p className="text-xs text-muted-foreground">{topics.length} specs · {sessions.length} sessions</p>
+          </div>
+          {undigestedCount > 0 && (
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={onSync}>
+              <RefreshCw className="size-3" /> Sync
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">+{undigestedCount}</Badge>
+            </Button>
+          )}
         </div>
-        {undigestedCount > 0 && (
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={onSync}>
-            <RefreshCw className="size-3" /> Sync
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">+{undigestedCount}</Badge>
-          </Button>
-        )}
-      </div>
 
-      <div>
-        {roots.map((t) => (
-          <TreeNode key={t.id} topic={t} childrenOf={childrenOf} depth={0} onTopicClick={onTopicClick} />
-        ))}
+        <Card className="p-2">
+          {roots.map((t) => (
+            <TreeNode key={t.id} topic={t} childrenOf={childrenOf} depth={0} onTopicClick={onTopicClick} />
+          ))}
+        </Card>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -68,38 +73,75 @@ function TreeNode({ topic, childrenOf, depth, onTopicClick }: {
   onTopicClick: (id: string) => void;
 }) {
   const children = (childrenOf.get(topic.id) || []).sort((a, b) => a.name.localeCompare(b.name));
-  const [expanded, setExpanded] = useState(true);
+  const [open, setOpen] = useState(true);
   const hasChildren = children.length > 0;
   const isRoot = depth === 0;
 
-  return (
-    <div>
-      <div
-        className={`flex items-center gap-1 cursor-pointer group rounded transition-colors hover:bg-accent/50 ${isRoot ? "h-9" : "h-8"}`}
-        style={{ paddingLeft: depth * 20 + 8 }}
-        onClick={() => onTopicClick(topic.id)}
-      >
-        {hasChildren ? (
+  if (!hasChildren) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
           <button
-            className="shrink-0 w-5 h-5 flex items-center justify-center -ml-1"
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left"
+            style={{ paddingLeft: depth * 20 + 8 }}
+            onClick={() => onTopicClick(topic.id)}
           >
-            <ChevronRight className={`size-3.5 text-muted-foreground transition-transform duration-100 ${expanded ? "rotate-90" : ""}`} />
+            <FileText className="size-4 text-muted-foreground shrink-0" />
+            <span className="truncate">{topic.name}</span>
+            <span className="ml-auto text-[10px] text-muted-foreground tabular-nums shrink-0">{topic.insight_count}</span>
           </button>
-        ) : (
-          <span className="w-5 shrink-0 -ml-1" />
-        )}
-        <span className={`truncate ${isRoot ? "font-medium text-sm" : "text-sm text-foreground/80"}`}>
-          {topic.name}
-        </span>
-        <span className="ml-auto pr-2 text-[10px] text-muted-foreground tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">
-          {topic.insight_count}
-        </span>
-      </div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <p className="text-xs">{topic.summary.slice(0, 200)}{topic.summary.length > 200 ? "..." : ""}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
 
-      {expanded && hasChildren && children.map((child) => (
-        <TreeNode key={child.id} topic={child} childrenOf={childrenOf} depth={depth + 1} onTopicClick={onTopicClick} />
-      ))}
-    </div>
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <CollapsibleTrigger asChild>
+            <button
+              className={`flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left ${isRoot ? "font-medium" : ""}`}
+              style={{ paddingLeft: depth * 20 + 8 }}
+              onClick={(e) => {
+                // Click name → navigate, click chevron → toggle
+                if ((e.target as HTMLElement).closest("[data-chevron]")) {
+                  e.preventDefault();
+                  setOpen(!open);
+                } else {
+                  onTopicClick(topic.id);
+                }
+              }}
+            >
+              <div data-chevron className="shrink-0">
+                {open
+                  ? <FolderOpen className="size-4 text-muted-foreground" />
+                  : <Folder className="size-4 text-muted-foreground" />
+                }
+              </div>
+              <span className="truncate">{topic.name}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground tabular-nums shrink-0">{topic.insight_count}</span>
+              <ChevronRight
+                data-chevron
+                className={`size-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? "rotate-90" : ""}`}
+              />
+            </button>
+          </CollapsibleTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <p className="text-xs">{topic.summary.slice(0, 200)}{topic.summary.length > 200 ? "..." : ""}</p>
+        </TooltipContent>
+      </Tooltip>
+      <CollapsibleContent>
+        <div className="border-l border-border ml-[22px]" style={{ marginLeft: depth * 20 + 22 }}>
+          {children.map((child) => (
+            <TreeNode key={child.id} topic={child} childrenOf={childrenOf} depth={depth + 1} onTopicClick={onTopicClick} />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

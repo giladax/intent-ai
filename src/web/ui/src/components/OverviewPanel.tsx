@@ -3,9 +3,9 @@ import type { TopicSummary, Session } from "../types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BranchTimeline } from "./BranchTimeline";
-import { ChevronRight, CircleDot, RefreshCw } from "lucide-react";
-// Note: hover cards removed — clicking a topic opens the detail page instead
+import { ChevronRight, CircleDot, RefreshCw, Folder, FolderOpen, FileText } from "lucide-react";
 
 interface Props {
   topics: TopicSummary[];
@@ -134,7 +134,7 @@ export function OverviewPanel({ topics, sessions, repoId, onTopicClick, onSyncBr
   );
 }
 
-// ── Knowledge Tree (no hover card — click opens detail) ──────────
+// ── Knowledge Tree (using Collapsible) ───────────────────────────
 
 function KnowledgeTree({ topics, onTopicClick }: { topics: TopicSummary[]; onTopicClick: (id: string) => void }) {
   const topicIds = new Set(topics.map((t) => t.id));
@@ -148,52 +148,65 @@ function KnowledgeTree({ topics, onTopicClick }: { topics: TopicSummary[]; onTop
   const roots = (childrenOf.get(null) || []).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div>
+    <Card className="p-2">
       {roots.map((t) => (
-        <OverviewTreeNode key={t.id} topic={t} childrenOf={childrenOf} depth={0} onTopicClick={onTopicClick} />
+        <MiniTreeNode key={t.id} topic={t} childrenOf={childrenOf} depth={0} onTopicClick={onTopicClick} />
       ))}
-    </div>
+    </Card>
   );
 }
 
-function OverviewTreeNode({ topic, childrenOf, depth, onTopicClick }: {
+function MiniTreeNode({ topic, childrenOf, depth, onTopicClick }: {
   topic: TopicSummary;
   childrenOf: Map<string | null, TopicSummary[]>;
   depth: number;
   onTopicClick: (id: string) => void;
 }) {
   const children = (childrenOf.get(topic.id) || []).sort((a, b) => a.name.localeCompare(b.name));
-  const [expanded, setExpanded] = useState(true);
+  const [open, setOpen] = useState(true);
   const hasChildren = children.length > 0;
-  const isRoot = depth === 0;
 
-  return (
-    <div>
-      <div
-        className={`flex items-center gap-1 cursor-pointer group rounded transition-colors hover:bg-accent/50 ${isRoot ? "h-9" : "h-8"}`}
+  if (!hasChildren) {
+    return (
+      <button
+        className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left"
         style={{ paddingLeft: depth * 20 + 8 }}
         onClick={() => onTopicClick(topic.id)}
       >
-        {hasChildren ? (
-          <button
-            className="shrink-0 w-5 h-5 flex items-center justify-center -ml-1"
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-          >
-            <ChevronRight className={`size-3.5 text-muted-foreground transition-transform duration-100 ${expanded ? "rotate-90" : ""}`} />
-          </button>
-        ) : (
-          <span className="w-5 shrink-0 -ml-1" />
-        )}
-        <span className={`truncate ${isRoot ? "font-medium text-sm" : "text-sm text-foreground/80"}`}>
-          {topic.name}
-        </span>
-        <span className="ml-auto pr-2 text-[10px] text-muted-foreground tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">
-          {topic.insight_count}
-        </span>
-      </div>
-      {expanded && hasChildren && children.map((child) => (
-        <OverviewTreeNode key={child.id} topic={child} childrenOf={childrenOf} depth={depth + 1} onTopicClick={onTopicClick} />
-      ))}
-    </div>
+        <FileText className="size-4 text-muted-foreground shrink-0" />
+        <span className="truncate">{topic.name}</span>
+        <span className="ml-auto text-[10px] text-muted-foreground tabular-nums shrink-0">{topic.insight_count}</span>
+      </button>
+    );
+  }
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <button
+          className={`flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left ${depth === 0 ? "font-medium" : ""}`}
+          style={{ paddingLeft: depth * 20 + 8 }}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("[data-chevron]")) {
+              setOpen(!open);
+            } else {
+              onTopicClick(topic.id);
+            }
+          }}
+        >
+          {open ? <FolderOpen className="size-4 text-muted-foreground shrink-0" /> : <Folder className="size-4 text-muted-foreground shrink-0" />}
+          <span className="truncate">{topic.name}</span>
+          <span className="ml-auto text-[10px] text-muted-foreground tabular-nums shrink-0">{topic.insight_count}</span>
+          <ChevronRight data-chevron className={`size-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? "rotate-90" : ""}`} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="border-l border-border" style={{ marginLeft: depth * 20 + 22 }}>
+          {children.map((child) => (
+            <MiniTreeNode key={child.id} topic={child} childrenOf={childrenOf} depth={depth + 1} onTopicClick={onTopicClick} />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
