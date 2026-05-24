@@ -8,7 +8,7 @@ import { KnowledgeTreePage } from "./components/KnowledgeTreePage";
 import { SessionsPage } from "./components/SessionsPage";
 import { fetchProjects, fetchTopics, fetchSessions } from "./api";
 import type { Project, TopicSummary, Session, BrainSyncProposal } from "./types";
-import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText } from "lucide-react";
+import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton,
@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-type View = "knowledge" | "sessions" | "topic" | "sync";
+type View = "overview" | "knowledge" | "sessions" | "topic" | "sync";
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -38,7 +38,7 @@ export function App() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [chatCollapsed, setChatCollapsed] = useState(false);
-  const [view, setView] = useState<View>("knowledge");
+  const [view, setView] = useState<View>("overview");
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
 
@@ -80,7 +80,7 @@ export function App() {
       fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));
     }
     setUndigestedCount(0);
-    setView("knowledge");
+    setView("overview");
   }, [selectedProject]);
 
   const selectedTopicName = topics.find((t) => t.id === selectedTopicId)?.name;
@@ -89,7 +89,8 @@ export function App() {
     view === "sync" ? "Sync Brain" :
     view === "sessions" ? "Sessions" :
     view === "topic" && selectedTopicName ? selectedTopicName :
-    "Knowledge Tree";
+    view === "knowledge" ? "Knowledge Tree" :
+    "Overview";
 
   // Chat context based on current view
   const chatContext = view === "topic" && selectedTopicId
@@ -126,6 +127,18 @@ export function App() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
+                {/* Overview */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={view === "overview"}
+                    onClick={() => { setView("overview"); setSelectedTopicId(null); }}
+                    className="text-sm"
+                  >
+                    <LayoutDashboard className="size-4" />
+                    <span>Overview</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 {/* Knowledge Tree nav */}
                 <SidebarMenuItem>
                   <SidebarMenuButton
@@ -190,15 +203,19 @@ export function App() {
                     <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("knowledge"); setSelectedTopicId(null); }}>
                       Knowledge Tree
                     </BreadcrumbLink>
+                  ) : view !== "overview" ? (
+                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("overview"); setSelectedTopicId(null); }}>
+                      Overview
+                    </BreadcrumbLink>
                   ) : (
-                    <BreadcrumbPage>{breadcrumbLabel}</BreadcrumbPage>
+                    <BreadcrumbPage>Overview</BreadcrumbPage>
                   )}
                 </BreadcrumbItem>
-                {view === "topic" && selectedTopicName && (
+                {view !== "overview" && (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>{selectedTopicName}</BreadcrumbPage>
+                      <BreadcrumbPage>{view === "topic" ? selectedTopicName : breadcrumbLabel}</BreadcrumbPage>
                     </BreadcrumbItem>
                   </>
                 )}
@@ -246,6 +263,14 @@ export function App() {
                     sessions={sessions}
                     undigestedCount={undigestedCount}
                     onSync={() => setView("sync")}
+                  />
+                ) : view === "overview" ? (
+                  <OverviewPanel
+                    topics={topics}
+                    sessions={sessions}
+                    repoId={selectedProject?.id ?? null}
+                    onTopicClick={handleTopicSelect}
+                    onSyncBrain={() => setView("sync")}
                   />
                 ) : view === "topic" && selectedTopicId ? (
                   <TopicDetail
