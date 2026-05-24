@@ -41,12 +41,35 @@ No tabs. No active modes.
 
 ### Overview (no topic selected)
 
-Full-width center panel (no split). Shows:
-- Topic count, session count
-- 5 most recently updated topics (clickable)
-- 5 most recent sessions (date + title, clickable → selects parent topic)
+Full-width center panel (no split). Two sections:
 
-Zero-data state: "No execution memory yet. Run `intent digest` then `intent brain`."
+**Stats bar**: Topic count, session count, brain version count
+
+**Branch Timeline**: Git-log-style vertical timeline showing commits on the current branch. Brain versions appear as tags (🧠 badges) on the commits they were created for. Each brain-tagged commit shows a one-line diff summary: "+N topics, M insights updated".
+
+```
+feat/repo-brain
+  │
+  ├── 4c57ca9  docs: dashboard redesign spec
+  ├── 932eb04  feat(web): shadcn redesign
+  ├── 5a1d857  feat(web): rewrite panels          🧠 v3
+  │             └ +2 topics, 6 insights updated
+  ├── c562d9b  feat(web): dual-sidebar
+  ├── 1ef1a19  feat(web): bootstrap tailwind       🧠 v2
+  │             └ +3 topics, 9 insights
+  └── a03659f  docs: brain pipeline                🧠 v1
+                └ initial: 10 topics, 42 insights
+```
+
+- Commits from `git log` for the project's source path
+- Brain versions matched to commits via `brain_versions.commit_sha`
+- Clicking a 🧠 tag filters the topic list sidebar to show topics added/changed in that version
+- Non-brain commits shown muted — they're context, not the focus
+- Timeline is scrollable, shows last 20 commits by default
+
+**Data source**: New API endpoint `GET /api/timeline?repoId=X` returns commits + brain versions joined on `commit_sha`.
+
+**Zero-data state**: "No execution memory yet. Run `intent digest` then `intent brain`."
 
 ### Topic Detail (left panel of split)
 
@@ -93,6 +116,7 @@ Header shows: `Overview` (always clickable → deselects topic) or `Overview > T
 | `TopicDetail.tsx` | MODIFY — reorder sections (sessions before insights), remove ScrollArea (parent scrolls) |
 | `ChatPanel.tsx` | MODIFY — add context chips, remove sidebar wrappers, add clear button, aria-label |
 | `TopicList.tsx` | KEEP — already correct |
+| `BranchTimeline.tsx` | NEW — git-log timeline with brain version tags |
 | `SessionList.tsx` | REMOVE — sessions accessed through topics only |
 | `SessionPanel.tsx` | REMOVE — session detail not needed as standalone view |
 
@@ -101,17 +125,24 @@ Header shows: `Overview` (always clickable → deselects topic) or `Overview > T
 - `App.tsx` — new layout, remove right sidebar, add ResizablePanelGroup, breadcrumb, overview/split routing
 - `ChatPanel.tsx` — context chips, clear button, plain div wrappers, aria
 - `TopicDetail.tsx` — reorder sections
-- NEW `OverviewPanel.tsx` — landing page
+- NEW `OverviewPanel.tsx` — landing page with timeline
+- NEW `BranchTimeline.tsx` — git-log timeline component
+- Modify: `src/web/server.ts` — add `GET /api/timeline` endpoint
+- Modify: `src/pipeline/brain-synthesis.ts` — set `commit_sha` on brain version creation
 - DELETE `SessionPanel.tsx`, `SessionList.tsx`
 
 ## API
 
-No API changes. Existing endpoints:
+Existing endpoints (unchanged):
 - `GET /api/topics?repoId=X` — topic list
 - `GET /api/topics/:id` — topic detail with sessions
 - `POST /api/chat` — SSE streaming, receives `{ topicId, sessionId, question, history }`
 
-Chat API already supports topic-scoped context. Session chips control which session IDs are sent.
+New endpoint:
+- `GET /api/timeline?repoId=X` — returns `{ commits: Array<{ sha, message, date }>, brainVersions: Array<{ id, commitSha, createdAt, topicCount, insightCount }> }`. Server runs `git log` on the project's `source_path` and joins with `brain_versions` table on `commit_sha`.
+
+Backend change:
+- `intent brain` and `intent digest` must populate `brain_versions.commit_sha` with the current HEAD when creating a version. Currently this field exists but is not set.
 
 ## Not in Scope
 
