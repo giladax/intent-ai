@@ -13,6 +13,7 @@ import {
 interface Props {
   repoId: string;
   onSynced: () => void;
+  onReviewChange?: (proposal: BrainSyncProposal | null) => void;
 }
 
 const CHANGE_ICONS: Record<string, typeof Plus> = { add: Plus, update: Pencil, merge: Merge };
@@ -139,7 +140,7 @@ function ChangeItem({
   );
 }
 
-export function BrainSync({ repoId, onSynced }: Props) {
+export function BrainSync({ repoId, onSynced, onReviewChange }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [sessions, setSessions] = useState<BrainSyncSession[]>([]);
   const [proposal, setProposal] = useState<BrainSyncProposal | null>(null);
@@ -148,6 +149,11 @@ export function BrainSync({ repoId, onSynced }: Props) {
   const [undigestedCount, setUndigestedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
+
+  // Notify parent when entering/leaving review so main panel can show diff tree
+  useEffect(() => {
+    onReviewChange?.(phase === "reviewing" ? proposal : null);
+  }, [phase, proposal, onReviewChange]);
 
   // Recover server-side job state on mount (survives page refresh)
   useEffect(() => {

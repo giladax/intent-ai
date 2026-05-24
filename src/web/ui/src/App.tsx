@@ -4,8 +4,9 @@ import { TopicDetail } from "./components/TopicDetail";
 import { ChatPanel } from "./components/ChatPanel";
 import { OverviewPanel } from "./components/OverviewPanel";
 import { BrainSync } from "./components/BrainSync";
+import { SyncDiffTree } from "./components/SyncDiffTree";
 import { fetchProjects, fetchTopics, fetchSessions } from "./api";
-import type { Project, TopicSummary, Session } from "./types";
+import type { Project, TopicSummary, Session, BrainSyncProposal } from "./types";
 import { Brain as BrainIcon, ChevronDown, MessageSquare, X } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
@@ -32,6 +33,7 @@ export function App() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
 
   useEffect(() => {
     fetchProjects().then((ps) => {
@@ -93,8 +95,10 @@ export function App() {
               key={selectedProject.id}
               repoId={selectedProject.id}
               onSynced={() => {
+                setReviewProposal(null);
                 fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));
               }}
+              onReviewChange={setReviewProposal}
             />
           </SidebarFooter>
         )}
@@ -140,7 +144,11 @@ export function App() {
         </header>
 
         <div className="flex-1 overflow-hidden">
-          {!selectedTopicId ? (
+          {reviewProposal ? (
+            <div className="h-full overflow-y-auto">
+              <SyncDiffTree topics={topics} proposal={reviewProposal} />
+            </div>
+          ) : !selectedTopicId ? (
             <OverviewPanel
               topics={topics}
               sessions={sessions}
