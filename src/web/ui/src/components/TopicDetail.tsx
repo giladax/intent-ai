@@ -3,13 +3,10 @@ import { fetchTopicDetail } from "../api";
 import type { TopicDetail as TopicDetailType } from "../types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   topicId: string | null;
-  onSessionClick: (sessionId: string) => void;
   onTopicClick: (topicId: string) => void;
 }
 
@@ -24,7 +21,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   interface: "bg-slate-500",
 };
 
-export function TopicDetail({ topicId, onSessionClick, onTopicClick }: Props) {
+export function TopicDetail({ topicId, onTopicClick }: Props) {
   const [detail, setDetail] = useState<TopicDetailType | null>(null);
 
   useEffect(() => {
@@ -77,93 +74,78 @@ export function TopicDetail({ topicId, onSessionClick, onTopicClick }: Props) {
     s.length > max ? s.slice(0, max - 3) + "..." : s;
 
   return (
-    <ScrollArea className="h-full">
-      <div className="max-w-2xl p-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">{detail.topic.name}</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mt-1">{detail.topic.summary}</p>
-        </div>
+    <div className="max-w-2xl p-6 space-y-6">
+      {/* 1. Header */}
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight">{detail.topic.name}</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-1">{detail.topic.summary}</p>
+      </div>
 
-        {/* Insights by category */}
-        {CATEGORY_ORDER.filter((c) => byCategory.has(c)).map((cat) => (
-          <div key={cat} className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[cat]}`} />
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{cat}</span>
-              <span className="text-xs text-muted-foreground">({byCategory.get(cat)!.length})</span>
-            </div>
-            {byCategory.get(cat)!.map((insight, i) => (
-              <Card key={i} className="p-3">
-                <p className="text-sm leading-relaxed">{insight.statement}</p>
-              </Card>
+      {/* 2. Sessions */}
+      {detail.sessions.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sessions</h3>
+          <div className="space-y-1">
+            {detail.sessions.map((s) => (
+              <div key={s.session_id} className="flex items-center gap-3 py-2 px-3 rounded hover:bg-accent/50">
+                <span className="text-xs text-muted-foreground shrink-0 w-12">{formatDate(s.started_at)}</span>
+                <span className="text-sm truncate flex-1">{truncate(s.summary || s.session_shape || "Session", 80)}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{s.moment_count} moments</span>
+              </div>
             ))}
           </div>
-        ))}
+        </div>
+      )}
 
-        {/* Files */}
-        {detail.files.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Files</h3>
-            <div className="space-y-1">
-              {detail.files.map((f, i) => (
-                <div key={i} className="flex items-baseline gap-2">
-                  <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{f.file_path}</code>
-                  {f.role && <Badge variant="secondary" className="text-[10px]">{f.role}</Badge>}
-                </div>
-              ))}
-            </div>
+      {/* 3. Related topics */}
+      {detail.relatedTopics.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Related</h3>
+          <div className="flex flex-wrap gap-2">
+            {detail.relatedTopics.map((r) => (
+              <Badge
+                key={r.id}
+                variant="outline"
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => onTopicClick(r.id)}
+              >
+                {r.name}
+              </Badge>
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Sessions */}
-        {detail.sessions.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your Sessions</h3>
-            <div className="space-y-1">
-              {detail.sessions.map((s) => (
-                <Button
-                  key={s.session_id}
-                  variant="ghost"
-                  className="w-full justify-start h-auto py-2 px-3 text-left"
-                  onClick={() => onSessionClick(s.session_id)}
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <span className="text-xs text-muted-foreground shrink-0 w-12">
-                      {formatDate(s.started_at)}
-                    </span>
-                    <span className="text-sm truncate flex-1">
-                      {truncate(s.summary || s.session_shape || "Session", 80)}
-                    </span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {s.moment_count} moments
-                    </span>
-                  </div>
-                </Button>
-              ))}
-            </div>
+      {/* 4. Insights by category */}
+      {CATEGORY_ORDER.filter((c) => byCategory.has(c)).map((cat) => (
+        <div key={cat} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[cat]}`} />
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{cat}</span>
+            <span className="text-xs text-muted-foreground">({byCategory.get(cat)!.length})</span>
           </div>
-        )}
+          {byCategory.get(cat)!.map((insight, i) => (
+            <Card key={i} className="p-3">
+              <p className="text-sm leading-relaxed">{insight.statement}</p>
+            </Card>
+          ))}
+        </div>
+      ))}
 
-        {/* Related topics */}
-        {detail.relatedTopics.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Related</h3>
-            <div className="flex flex-wrap gap-2">
-              {detail.relatedTopics.map((r) => (
-                <Badge
-                  key={r.id}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => onTopicClick(r.id)}
-                >
-                  {r.name}
-                </Badge>
-              ))}
-            </div>
+      {/* 5. Files */}
+      {detail.files.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Files</h3>
+          <div className="space-y-1">
+            {detail.files.map((f, i) => (
+              <div key={i} className="flex items-baseline gap-2">
+                <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{f.file_path}</code>
+                {f.role && <Badge variant="secondary" className="text-[10px]">{f.role}</Badge>}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-    </ScrollArea>
+        </div>
+      )}
+    </div>
   );
 }

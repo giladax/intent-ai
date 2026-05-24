@@ -1,37 +1,63 @@
 import { useState, useRef, useEffect } from "react";
 import { streamChat } from "../api";
-import type { ChatMessage } from "../types";
+import { fetchTopicDetail } from "../api";
+import type { ChatMessage, TopicSession } from "../types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { SidebarHeader, SidebarContent, SidebarFooter } from "@/components/ui/sidebar";
+import { Trash2 } from "lucide-react";
 
 interface Props {
-  topicId: string | null;
-  sessionId: string | null;
-  scopeLabel?: string;
+  topicId: string;
+  topicName: string;
 }
 
-export function ChatPanel({ topicId, sessionId, scopeLabel }: Props) {
+const MAX_VISIBLE_CHIPS = 5;
+
+export function ChatPanel({ topicId, topicName }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [sessions, setSessions] = useState<TopicSession[]>([]);
+  const [enabledSessionIds, setEnabledSessionIds] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load sessions when topic changes
+  useEffect(() => {
+    setMessages([]);
+    setSessions([]);
+    setEnabledSessionIds(new Set());
+    fetchTopicDetail(topicId).then((detail) => {
+      const sorted = [...detail.sessions].sort((a, b) => {
+        const da = a.started_at ? new Date(a.started_at).getTime() : 0;
+        const db = b.started_at ? new Date(b.started_at).getTime() : 0;
+        return db - da;
+      });
+      setSessions(sorted);
+      // Default: 3 most recent ON
+      setEnabledSessionIds(new Set(sorted.slice(0, 3).map((s) => s.session_id)));
+    });
+  }, [topicId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Clear chat when scope changes
-  useEffect(() => {
-    setMessages([]);
-  }, [topicId, sessionId]);
+  const toggleSession = (id: string) => {
+    setEnabledSessionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
-  const label = () => {
-    if (topicId && scopeLabel) return `Topic: ${scopeLabel}`;
-    if (sessionId) return `Session: ${sessionId.slice(0, 8)}...`;
-    return "Select a topic or session";
+  const formatDate = (d: string | null) => {
+    if (!d) return "?";
+    return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const handleSend = async () => {
@@ -48,7 +74,13 @@ export function ChatPanel({ topicId, sessionId, scopeLabel }: Props) {
 
     try {
       const history = messages.slice(-20);
-      for await (const event of streamChat(q, history, undefined, sessionId ?? undefined, topicId ?? undefined)) {
+      // Send first enabled session ID for context (API currently takes one sessionId)
+      const firstEnabledSession = sessions.find((s) => enabledSessionIds.has(s.session_id));
+      for await (const event of streamChat(
+        q, history, undefined,
+        firstEnabledSession?.session_id,
+        topicId,
+      )) {
         if (event.type === "text" && event.content) {
           setMessages((prev) => {
             const updated = [...prev];
@@ -84,21 +116,79 @@ export function ChatPanel({ topicId, sessionId, scopeLabel }: Props) {
     }
   };
 
-  return (
-    <>
-      {/* Header — h-14 to align with center header */}
-      <SidebarHeader className="h-16 border-b border-sidebar-border px-4 justify-center">
-        <span className="text-xs font-medium text-muted-foreground">{label()}</span>
-      </SidebarHeader>
+  const visibleChips = sessions.slice(0, MAX_VISIBLE_CHIPS);
+  const overflowChips = sessions.slice(MAX_VISIBLE_CHIPS);
 
-      {/* Messages — SidebarContent is flex-1 overflow-auto */}
-      <SidebarContent className="p-3">
+  return (
+    <div className="flex flex-col h-full border-l">
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b">
+        <span className="text-sm font-medium">Chat: {topicName}</span>
+        {messages.length > 0 && (
+          <Button variant="ghost" size="icon" className="size-6" onClick={() => setMessages([])}>
+            <Trash2 className="size-3" />
+          </Button>
+        )}
+      </div>
+
+      {/* Session context chips */}
+      {sessions.length > 0 && (
+        <div className="shrink-0 flex flex-wrap gap-1.5 px-3 py-2 border-b">
+          {visibleChips.map((s) => (
+            <button
+              key={s.session_id}
+              aria-pressed={enabledSessionIds.has(s.session_id)}
+              onClick={() => toggleSession(s.session_id)}
+              className="focus:outline-none"
+            >
+              <Badge
+                variant={enabledSessionIds.has(s.session_id) ? "default" : "outline"}
+                className="text-[10px] cursor-pointer transition-colors"
+              >
+                {formatDate(s.started_at)}
+              </Badge>
+            </button>
+          ))}
+          {overflowChips.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="focus:outline-none">
+                  <Badge variant="outline" className="text-[10px] cursor-pointer">
+                    +{overflowChips.length} more
+                  </Badge>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2">
+                <div className="space-y-1">
+                  {overflowChips.map((s) => (
+                    <button
+                      key={s.session_id}
+                      aria-pressed={enabledSessionIds.has(s.session_id)}
+                      onClick={() => toggleSession(s.session_id)}
+                      className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-accent text-xs focus:outline-none"
+                    >
+                      <Badge
+                        variant={enabledSessionIds.has(s.session_id) ? "default" : "outline"}
+                        className="text-[9px]"
+                      >
+                        {enabledSessionIds.has(s.session_id) ? "\u2713" : ""}
+                      </Badge>
+                      <span className="truncate">{formatDate(s.started_at)}</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3">
         <div className="space-y-2">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground text-xs py-8">
-              {topicId || sessionId
-                ? "Ask about this context..."
-                : "Select a topic or session to start."}
+              Ask about {topicName}...
             </div>
           )}
           {messages.map((m, i) => (
@@ -113,25 +203,24 @@ export function ChatPanel({ topicId, sessionId, scopeLabel }: Props) {
           ))}
           <div ref={messagesEndRef} />
         </div>
-      </SidebarContent>
+      </div>
 
-      {/* Input — SidebarFooter pins to bottom */}
-      <SidebarFooter className="border-t">
-        <div className="flex gap-2">
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask..."
-            disabled={streaming}
-            className="text-sm"
-          />
-          <Button size="sm" onClick={handleSend} disabled={streaming || !input.trim()}>
-            Send
-          </Button>
-        </div>
-      </SidebarFooter>
-    </>
+      {/* Input */}
+      <div className="shrink-0 flex gap-2 p-3 border-t">
+        <Input
+          ref={inputRef}
+          aria-label="Chat message"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          placeholder={`Ask about ${topicName}...`}
+          disabled={streaming}
+          className="text-sm"
+        />
+        <Button size="sm" onClick={handleSend} disabled={streaming || !input.trim()}>
+          Send
+        </Button>
+      </div>
+    </div>
   );
 }
