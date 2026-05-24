@@ -10,6 +10,7 @@ import type {
   TimelineData,
   BrainDiscoverResult,
   BrainSyncProposal,
+  SyncJobStatus,
 } from "./types";
 
 const BASE = "";
@@ -74,6 +75,8 @@ export const fetchSessionDetail = (id: string) =>
   json<SessionDetail>(`/api/sessions/${id}`);
 
 // Brain Sync
+export const getSyncStatus = (repoId: string) =>
+  json<SyncJobStatus | null>(`/api/brain/sync-status?repoId=${repoId}`);
 export const discoverBrainSessions = (repoId: string) =>
   json<BrainDiscoverResult>("/api/brain/discover", {
     method: "POST",

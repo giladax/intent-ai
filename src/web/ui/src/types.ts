@@ -212,3 +212,14 @@ export interface BrainSyncProposal {
   plan: any;
   specs: { name: string; summary: string; insightCount: number }[];
 }
+
+export interface SyncJobStatus {
+  id: string;
+  repoId: string;
+  phase: "discovering" | "selecting" | "proposing" | "reviewing" | "applying" | "done" | "error";
+  sessions?: BrainSyncSession[];
+  proposal?: BrainSyncProposal;
+  digestedCount?: number;
+  error?: string;
+  startedAt: number;
+}

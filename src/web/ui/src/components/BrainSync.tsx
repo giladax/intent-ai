@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { discoverBrainSessions, proposeBrainSync, applyBrainSync } from "../api";
+import { useState, useEffect } from "react";
+import { discoverBrainSessions, proposeBrainSync, applyBrainSync, getSyncStatus } from "../api";
 import type { BrainSyncSession, BrainSyncChange, BrainSyncProposal } from "../types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,6 +39,31 @@ export function BrainSync({ repoId, onSynced }: Props) {
   const [proposal, setProposal] = useState<BrainSyncProposal | null>(null);
   const [digestedCount, setDigestedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Recover server-side job state on mount (survives page refresh)
+  useEffect(() => {
+    getSyncStatus(repoId).then((job) => {
+      if (!job || job.phase === "done" || job.phase === "error") return;
+      // Restore phase and associated data
+      if (job.phase === "selecting" && job.sessions) {
+        setSessions(job.sessions);
+        setDigestedCount(job.digestedCount ?? 0);
+        setPhase("selecting");
+      } else if (job.phase === "reviewing" && job.proposal) {
+        if (job.sessions) setSessions(job.sessions);
+        setProposal(job.proposal);
+        setDigestedCount(job.digestedCount ?? 0);
+        setPhase("reviewing");
+      } else if (job.phase === "discovering" || job.phase === "proposing" || job.phase === "applying") {
+        // Server is still processing — show the spinner
+        setPhase(job.phase);
+        if (job.sessions) setSessions(job.sessions);
+        if (job.digestedCount) setDigestedCount(job.digestedCount);
+      }
+    }).catch(() => {
+      // Ignore — sync status is best-effort
+    });
+  }, [repoId]);
 
   const handleDiscover = async () => {
     setError(null);

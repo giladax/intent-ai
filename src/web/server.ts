@@ -1,4 +1,5 @@
 import "dotenv/config";
+import crypto from "node:crypto";
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -17,6 +18,44 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SONNET_MODEL = "claude-sonnet-4-6";
+
+// ── In-memory sync job tracking (survives page refresh, not server restart) ──
+interface SyncJob {
+  id: string;
+  repoId: string;
+  phase: "discovering" | "selecting" | "proposing" | "reviewing" | "applying" | "done" | "error";
+  sessions?: any[];
+  proposal?: any;
+  digestedCount?: number;
+  error?: string;
+  startedAt: number;
+}
+const syncJobs = new Map<string, SyncJob>();
+const JOB_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function getActiveJob(repoId: string): SyncJob | null {
+  const job = syncJobs.get(repoId);
+  if (!job) return null;
+  if (Date.now() - job.startedAt > JOB_TTL_MS) {
+    syncJobs.delete(repoId);
+    return null;
+  }
+  return job;
+}
+
+function upsertJob(repoId: string, update: Partial<SyncJob>): SyncJob {
+  const existing = syncJobs.get(repoId);
+  const job: SyncJob = {
+    id: existing?.id ?? crypto.randomUUID(),
+    repoId,
+    phase: "discovering",
+    startedAt: existing?.startedAt ?? Date.now(),
+    ...existing,
+    ...update,
+  };
+  syncJobs.set(repoId, job);
+  return job;
+}
 
 export async function startWebServer(port: number): Promise<void> {
   const app = express();
@@ -558,22 +597,36 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
   // ── Brain Sync ─────────────────────────────────────────────────────
 
+  // Sync status — lets the UI recover state after page refresh
+  app.get("/api/brain/sync-status", (req, res) => {
+    const repoId = req.query.repoId as string;
+    if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
+    const job = getActiveJob(repoId);
+    res.json(job);
+  });
+
   // Step 1: Discover — find new CC logs, digest them, score branch relevance
   app.post("/api/brain/discover", async (req, res) => {
     try {
       const { repoId } = req.body;
       if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
 
+      upsertJob(repoId, { phase: "discovering", startedAt: Date.now() });
+
       const sql = getClient();
       const [project] = await sql`SELECT name, path FROM projects WHERE id = ${repoId}`;
-      if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+      if (!project) {
+        upsertJob(repoId, { phase: "error", error: "Project not found" });
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
 
       const projectName = project.name;
       const projectPathSlug = project.path.replace(/\//g, "-");
 
       // 1. Discover & digest new CC logs
       const { discoverLogs } = await import("../utils/log-discovery.js");
-      const logPaths = await discoverLogs(10, `-${projectPathSlug}`);
+      const logPaths = await discoverLogs(10, projectPathSlug);
 
       let digestedCount = 0;
       for (const logPath of logPaths) {
@@ -608,6 +661,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
       `;
 
       if (sessions.length === 0) {
+        syncJobs.delete(repoId);
         res.json({ status: "up_to_date", digestedCount, sessions: [] });
         return;
       }
@@ -675,12 +729,15 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         });
       }
 
+      upsertJob(repoId, { phase: "selecting", sessions: scoredSessions, digestedCount });
+
       res.json({
         status: "sessions_found",
         digestedCount,
         sessions: scoredSessions,
       });
     } catch (err) {
+      upsertJob(repoId, { phase: "error", error: String(err) });
       res.status(500).json({ error: String(err) });
     }
   });
@@ -693,6 +750,8 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         res.status(400).json({ error: "repoId and sessionIds required" });
         return;
       }
+
+      upsertJob(repoId, { phase: "proposing" });
 
       const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
       const { plan, specs } = await synthesizeV2(sessionIds, repoId, { dryRun: true });
@@ -720,7 +779,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         parent: m.parentSpec || null,
       }));
 
-      res.json({
+      const proposalResult = {
         status: "changes_proposed",
         changes: [...uniqueChanges, ...merges],
         plan,
@@ -729,8 +788,13 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
           summary: (s.summary || "").slice(0, 200),
           insightCount: s.insights?.length || 0,
         })),
-      });
+      };
+
+      upsertJob(repoId, { phase: "reviewing", proposal: proposalResult });
+
+      res.json(proposalResult);
     } catch (err) {
+      upsertJob(repoId, { phase: "error", error: String(err) });
       res.status(500).json({ error: String(err) });
     }
   });
@@ -743,6 +807,8 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         res.status(400).json({ error: "repoId and sessionIds required" });
         return;
       }
+
+      upsertJob(repoId, { phase: "applying" });
 
       const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
       const { plan, specs } = await synthesizeV2(sessionIds, repoId);
@@ -760,12 +826,15 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         writeFileSync(resolve(outDir, "topics", `${t.slug}.md`), t.content);
       }
 
+      upsertJob(repoId, { phase: "done" });
+
       res.json({
         status: "applied",
         specsWritten: specs.length,
         merges: plan.merges.length,
       });
     } catch (err) {
+      upsertJob(repoId, { phase: "error", error: String(err) });
       res.status(500).json({ error: String(err) });
     }
   });
