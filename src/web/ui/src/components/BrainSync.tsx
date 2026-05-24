@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   RefreshCw, Check, Plus, Pencil, Merge, Loader2,
   Brain, Sparkles, CircleDot, CircleMinus, Download,
+  ChevronRight,
 } from "lucide-react";
 
 interface Props {
@@ -66,6 +67,78 @@ async function readSSE(
       }
     }
   }
+}
+
+// ── Expandable change item with hierarchy ──
+
+function ChangeItem({
+  change,
+  specMap,
+  childrenOf,
+  depth,
+}: {
+  change: BrainSyncChange;
+  specMap: Map<string, { summary: string; insightCount: number }>;
+  childrenOf: Map<string, BrainSyncChange[]>;
+  depth: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const Icon = CHANGE_ICONS[change.type] || Plus;
+  const color = CHANGE_COLORS[change.type] || "";
+  const name = change.type === "merge" ? change.into : change.spec;
+  const label = change.type === "merge"
+    ? `${change.from?.join(" + ")} → ${change.into}`
+    : change.spec ?? "";
+  const spec = name ? specMap.get(name) : null;
+  const children = name ? (childrenOf.get(name) || []) : [];
+  const hasDetail = !!(spec?.summary || children.length > 0);
+
+  return (
+    <div style={{ paddingLeft: depth * 12 }}>
+      <button
+        className={`flex items-center gap-1.5 py-1.5 w-full text-left text-xs rounded-md px-1.5 transition-colors ${
+          expanded ? "bg-muted/50" : "hover:bg-muted/30"
+        }`}
+        onClick={() => hasDetail && setExpanded(!expanded)}
+      >
+        {hasDetail ? (
+          <ChevronRight className={`size-3 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
+        ) : (
+          <span className="w-3 shrink-0" />
+        )}
+        <Icon className={`size-3 shrink-0 ${color}`} />
+        <span className="truncate flex-1 font-medium">{label}</span>
+        <Badge variant="outline" className="text-[9px] shrink-0 ml-1">{change.type}</Badge>
+        {change.parent && !depth && (
+          <span className="text-[9px] text-muted-foreground shrink-0">in {change.parent}</span>
+        )}
+      </button>
+
+      {expanded && (
+        <div className="ml-[18px] pl-3 border-l border-muted-foreground/15 space-y-1 pb-1 animate-in slide-in-from-top-1 duration-150">
+          {spec?.summary && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed py-1">
+              {spec.summary}
+            </p>
+          )}
+          {spec && spec.insightCount > 0 && (
+            <span className="text-[10px] text-muted-foreground">
+              {spec.insightCount} insight{spec.insightCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          {children.map((child, j) => (
+            <ChangeItem
+              key={j}
+              change={child}
+              specMap={specMap}
+              childrenOf={childrenOf}
+              depth={0}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function BrainSync({ repoId, onSynced }: Props) {
@@ -405,27 +478,44 @@ export function BrainSync({ repoId, onSynced }: Props) {
 
   // ── Reviewing proposed changes ──
   if (phase === "reviewing" && proposal) {
+    // Build spec lookup for summaries
+    const specMap = new Map<string, { summary: string; insightCount: number }>();
+    for (const s of proposal.specs) specMap.set(s.name, s);
+
+    // Group changes by parent for hierarchy
+    const roots: BrainSyncChange[] = [];
+    const childrenOf = new Map<string, BrainSyncChange[]>();
+    for (const change of proposal.changes) {
+      const parentName = change.parent;
+      // Check if parent is also a change in this proposal
+      const parentIsChange = parentName && proposal.changes.some(
+        (c: BrainSyncChange) => c.spec === parentName || c.into === parentName
+      );
+      if (parentIsChange) {
+        const key = parentName!;
+        const list = childrenOf.get(key) || [];
+        list.push(change);
+        childrenOf.set(key, list);
+      } else {
+        roots.push(change);
+      }
+    }
+
     return (
       <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-300">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
           {proposal.changes.length} changes
         </p>
-        <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1">
-          {proposal.changes.map((change: BrainSyncChange, i: number) => {
-            const Icon = CHANGE_ICONS[change.type] || Plus;
-            const color = CHANGE_COLORS[change.type] || "";
-            const label = change.type === "merge"
-              ? `${change.from?.join(" + ")} → ${change.into}`
-              : change.spec;
-
-            return (
-              <div key={i} className="flex items-center gap-1.5 py-1 text-xs">
-                <Icon className={`size-3 shrink-0 ${color}`} />
-                <span className="truncate flex-1">{label}</span>
-                <span className="text-[9px] text-muted-foreground shrink-0">{change.type}</span>
-              </div>
-            );
-          })}
+        <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+          {roots.map((change, i) => (
+            <ChangeItem
+              key={i}
+              change={change}
+              specMap={specMap}
+              childrenOf={childrenOf}
+              depth={0}
+            />
+          ))}
         </div>
         {error && (
           <p className="text-[11px] text-destructive text-center animate-in fade-in duration-300">{error}</p>
