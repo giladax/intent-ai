@@ -186,31 +186,24 @@ export function App() {
         {/* Sync button at bottom */}
         {selectedProject && (
           <SidebarFooter className="p-3">
-            {undigestedCount > 0 ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 relative overflow-hidden group"
-                onClick={() => { setView("sync"); setSelectedTopicId(null); }}
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-shimmer" />
-                <RefreshCw className="size-3.5 animate-spin-slow relative z-10" />
-                <span className="relative z-10">Sync Brain</span>
-                <span className="relative z-10 ml-auto flex items-center justify-center size-5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
+            <Button
+              variant="outline"
+              size="sm"
+              className={`w-full gap-2 ${undigestedCount > 0 ? "relative overflow-hidden" : ""}`}
+              disabled={undigestedCount === 0}
+              onClick={() => { setView("sync"); setSelectedTopicId(null); }}
+            >
+              {undigestedCount > 0 && (
+                <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 animate-shimmer" />
+              )}
+              <RefreshCw className={`size-3.5 ${undigestedCount > 0 ? "animate-spin-slow" : ""}`} />
+              <span>{undigestedCount > 0 ? "Sync Brain" : "Brain up to date"}</span>
+              {undigestedCount > 0 && (
+                <span className="ml-auto flex items-center justify-center size-5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
                   {undigestedCount}
                 </span>
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full gap-2 text-muted-foreground"
-                disabled
-              >
-                <RefreshCw className="size-3.5" />
-                Brain up to date
-              </Button>
-            )}
+              )}
+            </Button>
           </SidebarFooter>
         )}
       </Sidebar>

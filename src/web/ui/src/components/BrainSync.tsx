@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import confetti from "canvas-confetti";
 import { discoverBrainSessions, getSyncStatus } from "../api";
 import type { BrainSyncSession, BrainSyncChange, BrainSyncProposal } from "../types";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   RefreshCw, Check, Plus, Pencil, Merge, Loader2,
   Brain, Sparkles, CircleDot, CircleMinus, Download,
-  ChevronRight,
+  ChevronRight, Zap, PartyPopper,
 } from "lucide-react";
 
 interface Props {
@@ -347,13 +348,23 @@ export function BrainSync({ repoId, onSynced, onReviewChange, autoStart }: Props
     setUndigestedCount(0);
   };
 
-  // ── Idle ──
+  // ── Idle (splash entry) ──
   if (phase === "idle") {
     return (
-      <div className="space-y-2">
-        <Button data-sync-brain variant="outline" size="sm" className="w-full gap-2" onClick={handleDiscover}>
-          <RefreshCw className="size-3.5" />
-          Sync Brain
+      <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-in fade-in duration-500">
+        <div className="relative">
+          <Brain className="size-16 text-primary/20" />
+          <Sparkles className="size-6 text-primary absolute -top-1 -right-1 animate-pulse" />
+        </div>
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold">Brain Sync</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Discover new sessions, digest them, and update your knowledge tree.
+          </p>
+        </div>
+        <Button data-sync-brain size="lg" className="gap-2" onClick={handleDiscover}>
+          <Zap className="size-4" />
+          Start Sync
         </Button>
         {error && <p className="text-[11px] text-muted-foreground text-center animate-in fade-in duration-300">{error}</p>}
       </div>
@@ -381,11 +392,15 @@ export function BrainSync({ repoId, onSynced, onReviewChange, autoStart }: Props
   // ── Digesting ──
   if (phase === "digesting") {
     return (
-      <div className="py-3 space-y-2 animate-in fade-in duration-200">
-        <div className="flex items-center justify-center">
-          <Loader2 className="size-4 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-in fade-in duration-300">
+        <div className="relative">
+          <Brain className="size-12 text-primary animate-pulse" />
+          <Loader2 className="size-5 text-primary animate-spin absolute -bottom-1 -right-1" />
         </div>
-        <p className="text-xs text-center text-muted-foreground">{progressMessage || "Digesting..."}</p>
+        <div className="text-center space-y-2">
+          <h3 className="text-base font-medium">Digesting sessions...</h3>
+          <p className="text-sm text-muted-foreground">{progressMessage || "Processing..."}</p>
+        </div>
       </div>
     );
   }
@@ -426,13 +441,26 @@ export function BrainSync({ repoId, onSynced, onReviewChange, autoStart }: Props
 
   // ── Done ──
   if (phase === "done") {
+    // Fire confetti on mount
+    useEffect(() => {
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      const timer = setTimeout(() => {
+        confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } });
+        confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } });
+      }, 300);
+      return () => clearTimeout(timer);
+    }, []);
+
     return (
-      <div className="py-3 animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex flex-col items-center gap-1.5">
-          <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-            <Check className="size-4 text-emerald-500" />
+      <div className="flex flex-col items-center justify-center py-16 space-y-4 animate-in fade-in zoom-in-95 duration-500">
+        <div className="relative">
+          <div className="size-20 rounded-full bg-emerald-500/10 flex items-center justify-center animate-in zoom-in duration-300">
+            <PartyPopper className="size-10 text-emerald-500" />
           </div>
-          <p className="text-sm font-medium text-emerald-600">Brain updated</p>
+        </div>
+        <div className="text-center space-y-1">
+          <h3 className="text-lg font-semibold text-emerald-600">Brain Updated!</h3>
+          <p className="text-sm text-muted-foreground">Knowledge tree is up to date</p>
         </div>
       </div>
     );
