@@ -145,7 +145,7 @@ Haiku judge scores 5 dimensions with qualitative verdicts + reasoning:
 | Scope precision | Does each spec cover exactly one concept? | `focused` · `broad` · `tangled` |
 | Actionability | Can an agent use this to write correct code? | `actionable` · `vague` · `useless` |
 
-Each dimension returns `{ verdict: string, reasoning: string, examples: string[] }`. The reasoning explains *why* — citing specific specs. Examples point to the best and worst specs for that dimension.
+Each dimension returns `{ verdict: VerdictEnum, reasoning: string, examples: string[] }`. Verdicts are Zod enums — not free-text strings. The reasoning explains *why*, citing specific specs. Examples point to the best and worst specs for that dimension.
 
 **Cycle:** Baseline current output → change Node 1 prompt → add Node 2 → change Node 3 prompt → compare scores at each step.
 
