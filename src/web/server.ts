@@ -630,7 +630,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         try {
           const { execSync } = await import("node:child_process");
           const log = execSync(
-            'git log --pretty=format:"%H|%s|%aI" -20',
+            'git log --pretty=format:"%H|%s|%aI" -50',
             { cwd: project.path, encoding: "utf-8" }
           );
           commits = log.trim().split("\n").filter(Boolean).map((line) => {

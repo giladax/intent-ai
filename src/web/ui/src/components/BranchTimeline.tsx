@@ -22,6 +22,11 @@ export function BranchTimeline({ repoId }: Props) {
     if (v.commit_sha) versionBySha.set(v.commit_sha, v);
   }
 
+  // Show last 15 commits + any older commits that have brain versions
+  const recentCommits = data.commits.slice(0, 15);
+  const olderWithVersions = data.commits.slice(15).filter((c) => versionBySha.has(c.sha));
+  const visibleCommits = [...recentCommits, ...olderWithVersions];
+
   const versionNumbers = new Map<string, number>();
   const sorted = [...data.brainVersions].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -33,10 +38,10 @@ export function BranchTimeline({ repoId }: Props) {
 
   return (
     <div className="space-y-0">
-      {data.commits.map((commit, idx) => {
+      {visibleCommits.map((commit, idx) => {
         const version = versionBySha.get(commit.sha);
         const vNum = version ? versionNumbers.get(version.id) : null;
-        const isLast = idx === data.commits.length - 1;
+        const isLast = idx === visibleCommits.length - 1;
 
         return (
           <div key={commit.sha} className="flex gap-3">
