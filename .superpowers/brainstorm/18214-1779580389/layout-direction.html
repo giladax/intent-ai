@@ -1,0 +1,40 @@
+<h2>Dashboard UX Direction</h2>
+<p class="subtitle">How should the center content area work when a user drills into a topic?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Narrative-First → Chat Continues</h3>
+      <p>Center shows the narrative as a readable document. A "Chat" tab or toggle switches to a conversation view where the narrative is the first assistant message, and the user continues asking questions. Sessions appear as context chips above the chat input.</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Flow:</div>
+        <div>Topics list → Click topic → See narrative text → Toggle to "Chat" → Narrative becomes first message → Ask follow-up questions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Chat-First with Narrative as Context</h3>
+      <p>Center IS a chat from the start. When you select a topic, the narrative appears as the first assistant message automatically. No tab switching — you're already in the conversation. Session details are expandable cards within the chat flow.</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Flow:</div>
+        <div>Topics list → Click topic → Chat opens with narrative as first message → Start asking questions immediately</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Split View — Narrative + Chat Side by Side</h3>
+      <p>Center splits into two panels: left shows the narrative/insights as a document, right is a chat panel scoped to that context. No switching, both always visible. Clicking a session in the narrative scrolls the document.</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Flow:</div>
+        <div>Topics list → Click topic → See narrative (left) + chat (right) simultaneously → Reference narrative while chatting</div>
+      </div>
+    </div>
+  </div>
+</div>

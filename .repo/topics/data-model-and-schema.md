@@ -25,5 +25,5 @@ The intent-ai data model centers on the `SessionNarrative` interface stored in P
 ## Related
 
 - [tech stack and architecture decisions](tech-stack-and-architecture-decisions.md)
-- [moment detection system](moment-detection-system.md)
 - [digestion pipeline](digestion-pipeline.md)
+- [moment detection system](moment-detection-system.md)

@@ -1,0 +1,45 @@
+<h2>What goes in the left sidebar?</h2>
+<p class="subtitle">The center is now split (narrative + chat). What does the sidebar do?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Topics List Only</h3>
+      <p>Sidebar is just a topic list with search. Click a topic → center shows its detail + chat. No "Sessions" tab at all — sessions are accessed through topics (as context chips). Simple, one concern.</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <div style="font-weight: 600;">Sidebar</div>
+        <div>🔍 Search topics...</div>
+        <div style="margin-top:4px">• Cursor Mechanism</div>
+        <div>• Pipeline Architecture</div>
+        <div>• Data Model</div>
+        <div>• Dashboard Redesign</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Topics + Recent Sessions</h3>
+      <p>Sidebar has two sections: "Topics" (main list) and "Recent Sessions" (last 5-10, quick access). Clicking a recent session shows it directly in the center without going through a topic first. Good for "what did I just do?"</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <div style="font-weight: 600;">Sidebar</div>
+        <div>Topics (10)</div>
+        <div style="margin-left:8px">• Cursor Mechanism</div>
+        <div style="margin-left:8px">• Pipeline Architecture</div>
+        <div style="margin-top:8px">Recent Sessions</div>
+        <div style="margin-left:8px; color:#888">May 24 — dashboard redesign</div>
+        <div style="margin-left:8px; color:#888">May 23 — brain pipeline</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Keep Brain/Sessions Tabs</h3>
+      <p>Same dual-tab structure as now. Brain tab shows topics, Sessions tab shows all sessions grouped by date. Center adapts: topic selected → split view with topic detail + chat. Session selected → split view with session detail + chat.</p>
+    </div>
+  </div>
+</div>

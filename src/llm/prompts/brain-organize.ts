@@ -42,7 +42,14 @@ const SplitSchema = z.object({
   parentSpec: z.string().optional(),
 }).passthrough();
 
+const ConceptGroupSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  children: z.array(z.string()).optional().default([]),
+}).passthrough();
+
 export const GraphPlanSchema = z.object({
+  conceptualMap: z.array(ConceptGroupSchema).optional().default([]),
   assignments: z.array(AssignmentSchema),
   merges: z.array(MergeSchema).optional().default([]),
   splits: z.array(SplitSchema).optional().default([]),
@@ -59,28 +66,44 @@ export function buildBrainOrganizePrompt(
 ): { system: string; user: string } {
   const isColdStart = existingSpecs.length === 0;
 
-  const system = `You organize a knowledge graph for a coding agent.
+  const system = `You organize a codebase knowledge graph. A coding agent will navigate this tree to find context before writing code.
 
-PURPOSE: Given existing specs (topics) and new knowledge fragments, output a GraphPlan that describes how to restructure the knowledge tree.
+YOUR APPROACH — think like this:
 
-RULES:
-- Max tree depth: 3 levels (root → child → grandchild)
-- Prefer 3-7 root specs
-- Every fragment MUST be assigned — no orphans
-- Prefer updating existing specs over creating new ones when the knowledge fits
-- Merge specs when they share >70% of their files AND have similar insights
-- When creating new specs, always specify parentSpec if it fits under an existing root
-${isColdStart ? "- COLD START: No existing specs. Build an initial tree from fragments alone." : ""}
+1. UNDERSTAND THE PROJECT. Read all the specs and fragments. What is this project? What does it do? What are its major subsystems?
 
-OUTPUT FORMAT:
-Return a single JSON object with this exact structure:
+2. FIND THE NATURAL GROUPS. Which concepts are semantically close? What belongs together? Think about it like a developer explaining the project to a new teammate — you wouldn't list 7 disconnected topics, you'd say "there are two main systems: X which does A, and Y which does B, and they connect through Z."
+
+3. BUILD A TREE THAT TELLS THE STORY. The tree should read like a table of contents. A root node is an AREA of the project. Its children are the CONCEPTS within that area. An agent reading just the root names should understand the project's architecture.
+
+WHAT MAKES A GOOD TREE:
+- Root nodes are major project areas (not individual features or files)
+- Child nodes are specific concepts that live inside a parent area
+- If concept B only makes sense in the context of concept A, then B is a child of A
+- If two specs describe the same subsystem from different angles, merge them
+- The tree should have 2-5 roots, each with 1-4 children — not 7 flat siblings
+
+WHAT MAKES A BAD TREE:
+- Everything at root level (flat list, no grouping)
+- Topics named after what happened ("dashboard redesign") rather than what exists ("developer dashboard")
+- A concept that is clearly part of a larger system sitting as a sibling instead of a child
+- Redundant or overlapping specs that should be merged
+
+${isColdStart ? "COLD START: No existing specs. Build the initial tree from fragments alone.\n" : ""}OUTPUT FORMAT:
 {
+  "conceptualMap": [
+    {
+      "name": "area name — the root concept",
+      "description": "one sentence: what this area of the project is about",
+      "children": ["child concept 1", "child concept 2"]
+    }
+  ],
   "assignments": [
     {
       "fragmentIndex": 0,
-      "targetSpec": "spec name (existing or new)",
+      "targetSpec": "spec name",
       "action": "update" | "create",
-      "parentSpec": "parent spec name (optional, for new specs)"
+      "parentSpec": "parent spec name (required for non-root specs)"
     }
   ],
   "merges": [
@@ -90,20 +113,15 @@ Return a single JSON object with this exact structure:
       "parentSpec": "parent spec name (optional)"
     }
   ],
-  "splits": [
-    {
-      "spec": "spec to split",
-      "into": [
-        { "name": "new sub-spec", "insightIds": ["id1", "id2"] }
-      ],
-      "parentSpec": "parent spec name (optional)"
-    }
-  ]
+  "splits": []
 }
 
-- assignments: REQUIRED. One entry per fragment.
-- merges: optional. Only when specs are highly overlapping.
-- splits: optional. Only when a spec has grown too broad.
+PROCESS:
+1. First, fill conceptualMap — your understanding of the project's structure
+2. Then, assign every fragment to a spec that lives in that structure
+3. Merge existing specs that describe the same concept
+4. Every fragment MUST be assigned — no orphans
+5. parentSpec is REQUIRED for any spec that is not a root
 
 Respond with valid JSON only.`;
 

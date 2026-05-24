@@ -1,0 +1,40 @@
+<h2>How should sessions feed into the chat?</h2>
+<p class="subtitle">When you drill into a topic, its sessions are listed in the left panel. How should they connect to the chat on the right?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Sessions as Context Chips</h3>
+      <p>All sessions for the topic are automatically included as chat context. Small chips above the chat input show which sessions are loaded. You can toggle individual sessions on/off to narrow the scope. Chat API always has access to whatever sessions are toggled on.</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <code>[Session May 21 ✓] [Session May 18 ✓] [Session May 15 ✗]</code><br/>
+        <div style="margin-top:6px">Chat knows about May 21 + May 18 context. Click a chip to toggle.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Click Session → Swaps Left Panel Content</h3>
+      <p>Clicking a session in the left panel replaces the topic view with that session's detail (narrative, moments, outcomes). Chat scope narrows to that session. A breadcrumb at top lets you go back: <code>Topics > Cursor Mechanism > Session May 21</code>. Chat context follows whatever you're viewing.</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <div>Left panel: topic detail → click session → session detail</div>
+        <div>Chat scope: topic → session (follows the left panel)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Both — Drill Down + Context Chips</h3>
+      <p>Clicking a session drills into it in the left panel (option B). But the chat also shows context chips so you can reference multiple sessions. Drilling in auto-selects that session's chip, but you can toggle others on too.</p>
+      <div style="margin-top: 12px; padding: 12px; background: #f5f5f3; border-radius: 8px; font-size: 13px;">
+        <div>Click "Session May 21" → left panel shows session detail, chat focuses on it</div>
+        <div>Toggle on "Session May 18" chip → chat now has both sessions as context</div>
+      </div>
+    </div>
+  </div>
+</div>
