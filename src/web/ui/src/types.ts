@@ -177,3 +177,29 @@ export interface TimelineData {
   commits: TimelineCommit[];
   brainVersions: BrainVersion[];
 }
+
+// ── Brain Sync Types ──────────────────────────────────────────────
+export interface BrainSyncChange {
+  type: "add" | "update" | "merge";
+  spec?: string;
+  from?: string[];
+  into?: string;
+  level?: string;
+  parent?: string | null;
+  fragmentCount?: number;
+}
+
+export interface BrainSyncSession {
+  id: string;
+  shape: string;
+  summary: string;
+  date: string;
+}
+
+export interface BrainSyncProposal {
+  status: "up_to_date" | "changes_proposed";
+  sessions: BrainSyncSession[];
+  changes: BrainSyncChange[];
+  plan: any;
+  specs: { name: string; summary: string; insightCount: number }[];
+}

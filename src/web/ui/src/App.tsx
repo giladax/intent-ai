@@ -3,11 +3,12 @@ import { TopicList } from "./components/TopicList";
 import { TopicDetail } from "./components/TopicDetail";
 import { ChatPanel } from "./components/ChatPanel";
 import { OverviewPanel } from "./components/OverviewPanel";
+import { BrainSync } from "./components/BrainSync";
 import { fetchProjects, fetchTopics, fetchSessions } from "./api";
 import type { Project, TopicSummary, Session } from "./types";
 import { Brain as BrainIcon, ChevronDown, MessageSquare, X } from "lucide-react";
 import {
-  SidebarProvider, Sidebar, SidebarHeader, SidebarContent,
+  SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton,
   SidebarTrigger, SidebarInset,
 } from "@/components/ui/sidebar";
@@ -86,6 +87,16 @@ export function App() {
         <SidebarContent>
           <TopicList topics={topics} selectedTopicId={selectedTopicId} onSelectTopic={handleTopicSelect} />
         </SidebarContent>
+        {selectedProject && (
+          <SidebarFooter className="p-3">
+            <BrainSync
+              repoId={selectedProject.id}
+              onSynced={() => {
+                fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));
+              }}
+            />
+          </SidebarFooter>
+        )}
       </Sidebar>
 
       <SidebarInset className="h-svh overflow-hidden">

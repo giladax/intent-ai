@@ -556,6 +556,122 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
+  // ── Brain Sync ─────────────────────────────────────────────────────
+
+  // Step 1: Propose — dry run, return diff
+  app.post("/api/brain/propose", async (req, res) => {
+    try {
+      const { repoId } = req.body;
+      if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
+
+      const sql = getClient();
+
+      // Find unprocessed sessions for this repo
+      const sessions = await sql`
+        SELECT s.id, s.session_shape, LEFT(n.summary, 100) as summary, s.started_at
+        FROM sessions s
+        LEFT JOIN narratives n ON n.session_id = s.id
+        WHERE n.id IS NOT NULL
+          AND s.source_path LIKE '%' || (SELECT name FROM projects WHERE id = ${repoId}) || '%'
+          AND NOT EXISTS (
+            SELECT 1 FROM topic_sessions ts WHERE ts.session_id = s.id
+          )
+        ORDER BY s.started_at DESC
+        LIMIT 10
+      `;
+
+      if (sessions.length === 0) {
+        // No new sessions — just return current state
+        res.json({ status: "up_to_date", sessions: [], plan: null, specs: [] });
+        return;
+      }
+
+      const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
+      const sessionIds = sessions.map((s: any) => s.id);
+
+      const { plan, specs } = await synthesizeV2(sessionIds, repoId, { dryRun: true });
+
+      // Build human-readable diff
+      const changes = plan.assignments.map((a: any) => ({
+        type: a.action === "create" ? "add" : "update",
+        spec: a.targetSpec,
+        level: a.level,
+        parent: a.parentSpec || null,
+        fragmentCount: plan.assignments.filter((x: any) => x.targetSpec === a.targetSpec).length,
+      }));
+
+      // Deduplicate by spec name
+      const seen = new Set<string>();
+      const uniqueChanges = changes.filter((c: any) => {
+        if (seen.has(c.spec)) return false;
+        seen.add(c.spec);
+        return true;
+      });
+
+      const merges = plan.merges.map((m: any) => ({
+        type: "merge" as const,
+        from: m.specs,
+        into: m.intoName,
+        level: m.level,
+        parent: m.parentSpec || null,
+      }));
+
+      res.json({
+        status: "changes_proposed",
+        sessions: sessions.map((s: any) => ({
+          id: s.id,
+          shape: s.session_shape,
+          summary: s.summary,
+          date: s.started_at,
+        })),
+        changes: [...uniqueChanges, ...merges],
+        plan,
+        specs: specs.map((s: any) => ({
+          name: s.name,
+          summary: (s.summary || "").slice(0, 200),
+          insightCount: s.insights?.length || 0,
+        })),
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Step 2: Apply — commit approved changes
+  app.post("/api/brain/apply", async (req, res) => {
+    try {
+      const { repoId, sessionIds } = req.body;
+      if (!repoId || !sessionIds?.length) {
+        res.status(400).json({ error: "repoId and sessionIds required" });
+        return;
+      }
+
+      const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
+      const { plan, specs } = await synthesizeV2(sessionIds, repoId);
+
+      // Export markdown
+      const { generateAllMarkdown } = await import("../brain/generate-markdown.js");
+      const { writeFileSync, mkdirSync } = await import("node:fs");
+      const { resolve } = await import("node:path");
+
+      const { brainMd, topics } = await generateAllMarkdown(repoId);
+      const outDir = resolve(process.cwd(), ".repo");
+      mkdirSync(resolve(outDir, "topics"), { recursive: true });
+      writeFileSync(resolve(outDir, "brain.md"), brainMd);
+      for (const t of topics) {
+        writeFileSync(resolve(outDir, "topics", `${t.slug}.md`), t.content);
+      }
+
+      res.json({
+        status: "applied",
+        specsWritten: specs.length,
+        merges: plan.merges.length,
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // SPA fallback — serve index.html for non-API routes
   app.get("/{*path}", (_req, res) => {
     res.sendFile(join(__dirname, "public", "index.html"));
