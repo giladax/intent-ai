@@ -105,17 +105,35 @@ export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
   }
   sortNodes(roots);
 
+  // Semantic summary
+  const adds = proposal.changes.filter((c) => c.type === "add");
+  const updates = proposal.changes.filter((c) => c.type === "update");
+  const merges = proposal.changes.filter((c) => c.type === "merge");
+  const totalInsights = proposal.specs.reduce((sum, s) => sum + s.insightCount, 0);
+
+  const summaryParts: string[] = [];
+  if (adds.length > 0) summaryParts.push(`Adding ${adds.length} new spec${adds.length !== 1 ? "s" : ""}: ${adds.map((a) => a.spec).join(", ")}`);
+  if (updates.length > 0) summaryParts.push(`Updating ${updates.length}: ${updates.map((u) => u.spec).join(", ")}`);
+  if (merges.length > 0) summaryParts.push(`Merging ${merges.flatMap((m) => m.from || []).join(", ")} → ${merges.map((m) => m.into).join(", ")}`);
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-4">
+      {/* Semantic summary */}
+      <div className="mb-6 space-y-2">
         <h2 className="text-lg font-semibold">Brain Sync Preview</h2>
-        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+        <div className="text-sm text-muted-foreground leading-relaxed space-y-1">
+          {summaryParts.map((s, i) => <p key={i}>{s}</p>)}
+          <p className="text-xs">{totalInsights} total insights across {proposal.specs.length} specs</p>
+        </div>
+        <div className="flex gap-4 text-[11px] text-muted-foreground pt-1">
           <span className="flex items-center gap-1"><Plus className="size-3 text-emerald-600" /> new</span>
           <span className="flex items-center gap-1"><Pencil className="size-3 text-blue-600" /> updated</span>
           <span className="flex items-center gap-1"><Merge className="size-3 text-amber-600" /> merged</span>
           <span className="text-muted-foreground/50">unchanged</span>
         </div>
       </div>
+
+      {/* Tree */}
       <div className="font-mono text-[13px]">
         {roots.map((node) => (
           <DiffTreeNode key={node.name} node={node} depth={0} onTopicClick={onTopicClick} specSummary={specSummary} />

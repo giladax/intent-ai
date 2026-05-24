@@ -3,16 +3,9 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronRight, Clock } from "lucide-react";
 import type { TopicSummary } from "../types";
 
@@ -29,23 +22,19 @@ export function TopicList({ topics, selectedTopicId, onSelectTopic }: Props) {
     t.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Recent: 5 latest by updated_at (specs only — children, not roots)
-  const recent = [...topics]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 5);
+  const isSearching = search.length > 0;
 
-  // Build tree: roots (no parent) and children grouped by parent
-  const roots = filtered.filter((t) => !t.parent_topic_id);
-  const childrenByParent = new Map<string, TopicSummary[]>();
+  // Build tree
+  const topicIds = new Set(topics.map((t) => t.id));
+  const childrenOf = new Map<string | null, TopicSummary[]>();
   for (const t of filtered) {
-    if (t.parent_topic_id) {
-      const list = childrenByParent.get(t.parent_topic_id) || [];
-      list.push(t);
-      childrenByParent.set(t.parent_topic_id, list);
-    }
+    const parentId = t.parent_topic_id && topicIds.has(t.parent_topic_id) ? t.parent_topic_id : null;
+    const list = childrenOf.get(parentId) || [];
+    list.push(t);
+    childrenOf.set(parentId, list);
   }
 
-  const isSearching = search.length > 0;
+  const roots = (childrenOf.get(null) || []).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <>
@@ -61,132 +50,142 @@ export function TopicList({ topics, selectedTopicId, onSelectTopic }: Props) {
         </div>
       </SidebarGroup>
 
-      {/* Recent specs */}
-      {!isSearching && recent.length > 0 && (
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            <Clock className="size-3 mr-1" />
-            Recent
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {recent.map((t) => (
-                <SidebarMenuItem key={`recent-${t.id}`}>
-                  <SidebarMenuButton
-                    isActive={selectedTopicId === t.id}
-                    onClick={() => onSelectTopic(t.id)}
-                    className="h-auto py-1.5"
-                  >
-                    <span className="text-sm truncate">{t.name}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      )}
-
-      {!isSearching && recent.length > 0 && <SidebarSeparator />}
-
-      {/* Knowledge tree */}
+      {/* File-explorer tree */}
       <SidebarGroup>
         <SidebarGroupLabel className="flex justify-between">
           <span>Knowledge Tree</span>
           <span className="text-xs text-muted-foreground font-normal">{topics.length}</span>
         </SidebarGroupLabel>
         <SidebarGroupContent>
-          <SidebarMenu>
-            {filtered.length === 0 && (
-              <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-                {topics.length === 0 ? (
-                  <>
-                    No topics yet. Run{" "}
-                    <code className="bg-muted px-1 rounded text-[11px]">intent brain</code> to
-                    synthesize.
-                  </>
-                ) : (
-                  "No matching topics."
-                )}
-              </div>
-            )}
+          {filtered.length === 0 && (
+            <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+              {topics.length === 0 ? (
+                <>No topics yet. Run <code className="bg-muted px-1 rounded text-[11px]">intent brain</code> to synthesize.</>
+              ) : (
+                "No matching topics."
+              )}
+            </div>
+          )}
 
+          <div className="font-mono text-[12px]">
             {isSearching
               ? filtered.map((t) => (
-                  <SidebarMenuItem key={t.id}>
-                    <SidebarMenuButton
-                      isActive={selectedTopicId === t.id}
-                      onClick={() => onSelectTopic(t.id)}
-                      className="flex flex-col items-start h-auto py-2"
-                    >
-                      <span className="font-medium text-sm truncate w-full">{t.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {t.insight_count} insights · {t.session_count} sessions
-                      </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <SidebarTreeItem
+                    key={t.id}
+                    topic={t}
+                    depth={0}
+                    hasChildren={false}
+                    expanded={false}
+                    onToggle={() => {}}
+                    isActive={selectedTopicId === t.id}
+                    onClick={() => onSelectTopic(t.id)}
+                  />
                 ))
-              : roots.map((root) => {
-                  const children = childrenByParent.get(root.id) || [];
-                  if (children.length === 0) {
-                    return (
-                      <SidebarMenuItem key={root.id}>
-                        <SidebarMenuButton
-                          isActive={selectedTopicId === root.id}
-                          onClick={() => onSelectTopic(root.id)}
-                          className="flex flex-col items-start h-auto py-2"
-                        >
-                          <span className="font-medium text-sm truncate w-full">{root.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {root.insight_count} insights
-                          </span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  }
-
-                  return (
-                    <Collapsible key={root.id} defaultOpen className="group/collapsible">
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            isActive={selectedTopicId === root.id}
-                            onClick={() => onSelectTopic(root.id)}
-                            className="flex items-center h-auto py-2"
-                          >
-                            <ChevronRight className="mr-1 h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                            <div className="flex flex-col items-start min-w-0">
-                              <span className="font-medium text-sm truncate w-full">{root.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {root.insight_count} insights
-                              </span>
-                            </div>
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <SidebarMenuSub>
-                            {children.map((child) => (
-                              <SidebarMenuSubItem key={child.id}>
-                                <SidebarMenuSubButton
-                                  isActive={selectedTopicId === child.id}
-                                  onClick={() => onSelectTopic(child.id)}
-                                  className="flex flex-col items-start h-auto py-1.5"
-                                >
-                                  <span className="text-sm truncate w-full">{child.name}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {child.insight_count} insights
-                                  </span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
-                  );
-                })}
-          </SidebarMenu>
+              : roots.map((t) => (
+                  <SidebarTreeNode
+                    key={t.id}
+                    topic={t}
+                    childrenOf={childrenOf}
+                    depth={0}
+                    selectedTopicId={selectedTopicId}
+                    onSelectTopic={onSelectTopic}
+                  />
+                ))
+            }
+          </div>
         </SidebarGroupContent>
       </SidebarGroup>
     </>
+  );
+}
+
+// ── Sidebar tree node (recursive) ────────────────────────────────
+
+function SidebarTreeNode({
+  topic,
+  childrenOf,
+  depth,
+  selectedTopicId,
+  onSelectTopic,
+}: {
+  topic: TopicSummary;
+  childrenOf: Map<string | null, TopicSummary[]>;
+  depth: number;
+  selectedTopicId: string | null;
+  onSelectTopic: (id: string) => void;
+}) {
+  const children = (childrenOf.get(topic.id) || []).sort((a, b) => a.name.localeCompare(b.name));
+  const [expanded, setExpanded] = useState(true);
+  const hasChildren = children.length > 0;
+
+  return (
+    <div>
+      <SidebarTreeItem
+        topic={topic}
+        depth={depth}
+        hasChildren={hasChildren}
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+        isActive={selectedTopicId === topic.id}
+        onClick={() => onSelectTopic(topic.id)}
+      />
+      {expanded && hasChildren && (
+        <div>
+          {children.map((child) => (
+            <SidebarTreeNode
+              key={child.id}
+              topic={child}
+              childrenOf={childrenOf}
+              depth={depth + 1}
+              selectedTopicId={selectedTopicId}
+              onSelectTopic={onSelectTopic}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarTreeItem({
+  topic,
+  depth,
+  hasChildren,
+  expanded,
+  onToggle,
+  isActive,
+  onClick,
+}: {
+  topic: TopicSummary;
+  depth: number;
+  hasChildren: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center h-7 cursor-pointer group transition-colors ${
+        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
+      }`}
+      style={{ paddingLeft: depth * 12 + 8 }}
+      onClick={onClick}
+    >
+      {hasChildren ? (
+        <button
+          className="shrink-0 w-4 h-4 flex items-center justify-center"
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        >
+          <ChevronRight className={`size-3 text-muted-foreground transition-transform duration-100 ${expanded ? "rotate-90" : ""}`} />
+        </button>
+      ) : (
+        <span className="w-4 shrink-0" />
+      )}
+      <span className="ml-1 truncate text-[12px]">{topic.name}</span>
+      <span className="ml-auto pr-2 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
+        {topic.insight_count}
+      </span>
+    </div>
   );
 }
