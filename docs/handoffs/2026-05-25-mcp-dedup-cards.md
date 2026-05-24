@@ -91,6 +91,17 @@ Next steps:
 ### 5. Before/after diff with scroll sync
 The sync preview should show the current brain tree (left/before) and the proposed tree (right/after) side by side, or as a single annotated tree that you can scroll through. The current implementation shows a single annotated tree. A future iteration could add a "before" snapshot for comparison.
 
+### 6. Sidebar navigation redesign
+Current sidebar shows the full knowledge tree + sync button in footer — awkward. Redesign:
+
+**Left sidebar should have two sections:**
+- **Sessions** — list of sessions (latest first), undigested count badge, Sync button
+  - Clicking Sync opens a full-page process view: live progress at top (aesthetic, satisfying), session list below, knowledge tree with sync that also triggers digest
+  - The sync page should feel like watching a build — progress steps, live updates, satisfying completion
+- **Knowledge Tree** — file-explorer style, clickable to open card/detail
+
+**The sync flow becomes a first-class page, not a sidebar widget.** It handles the full pipeline: discover → digest → synthesize → review diff → approve → apply. The diff tree (before/after with color annotations) is the centerpiece.
+
 ## Design decisions (don't undo)
 - MCP reads from `.repo/` filesystem, not DB — works on any branch without infra
 - Card is the universal navigation atom (same format in MCP, UI, and export)
