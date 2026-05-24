@@ -1,7 +1,4 @@
 # Design Principles
-> **area**
-> The v2 system is built on two foundational design principles that define its identity and set hard boundaries on implementation. First, the atomic unit of knowledge is the 'moment' — a cognitive event such as a proposal, discovery, transition, confirmation, rejection, or commitment — rather than the discrete 'fact' used in v1. This shift reorients the entire pipeline from fact extraction toward cognitive compression: the system captures meaningful transitions in understanding rather than cataloguing isolated data points. A moment encodes not just what was learned, but the cognitive significance of when and how understanding changed. Second, v2 is a complete greenfield rewrite; v1 exists solely as a conceptual reference and must not be reused, migrated from, or extended in any form. These two principles together define what v2 is trying to be and set hard constraints on how it must be built — any design decision that treats facts as...
-> [constraint] v2 is a clean-slate implementation. v1 code must not be r... · [decision] The atomic unit of knowledge in v2 is the 'moment' — a ty... · [decision] The v2 pipeline is oriented around cognitive compression,... · [risk] The most likely architectural drift risk is reverting to ...
 
 The v2 system is built on two foundational design principles that define its identity and set hard boundaries on implementation. First, the atomic unit of knowledge is the 'moment' — a cognitive event such as a proposal, discovery, transition, confirmation, rejection, or commitment — rather than the discrete 'fact' used in v1. This shift reorients the entire pipeline from fact extraction toward cognitive compression: the system captures meaningful transitions in understanding rather than cataloguing isolated data points. A moment encodes not just what was learned, but the cognitive significance of when and how understanding changed. Second, v2 is a complete greenfield rewrite; v1 exists solely as a conceptual reference and must not be reused, migrated from, or extended in any form. These two principles together define what v2 is trying to be and set hard constraints on how it must be built — any design decision that treats facts as the primary data structure, or that imports v1 logic, violates the foundational architecture.
 
@@ -25,7 +22,7 @@ The v2 system is built on two foundational design principles that define its ide
 - The most likely architectural drift risk is reverting to fact-centric thinking — e.g., designing storage schemas, retrieval queries, or summarization logic around discrete facts rather than typed cognitive events. Any abstraction that flattens moment type or strips cognitive context is a regression toward v1 semantics.
 - The most likely architectural drift risk is reverting to fact-based thinking when designing new pipeline components. Any data structure, schema, or processing step that treats isolated facts as the primary output should be treated as a design violation and reconsidered against the moment model.
 
-## Evidence
+## Sessions
 
 - May 21: The developer set out to build v2 of the project from scratch, explicitly leaving v1 behind as re... (3 moments)
 - May 21: The developer set out to design the intent-ai project from scratch, starting with no existing cod... (13 moments)

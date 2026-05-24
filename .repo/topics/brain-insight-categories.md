@@ -1,7 +1,6 @@
 # Brain Insight Categories
-> **spec** · child of Brain Versioning
-> Brain Insight Categories are the typed classification system applied to every insight stored in the brain graph. Each insight is tagged with one of a small, deliberate set of categories — currently: structure, decision, constraint, behavior, risk, and interface — and the defining criterion for any category's existence is whether knowing it changes what an agent *does* with the insight. This is not a cosmetic taxonomy; categories drive downstream agent behavior during code generation and navigation. The schema was hardened through adversarial review that eliminated `flow` (redundant with `architecture`/`structure`), merged `risk` and `gap` (inseparable in practice), and narrowed `architecture` to prevent it becoming a catch-all. The categories are enforced structurally in Zod output validation inside the synthesis pipeline, meaning the LLM cannot emit an uncategorized or miscategorized insight without failing schema validation. Relevance classification — deciding which topics an insight belongs to — uses semantic moment-meaning ↔ topic-meaning matching rather...
-> [decision] The category set was deliberately minimized through adver... · [decision] Relevance classification — assigning insights to topics —... · [constraint] Categories are enforced at the schema level via Zod valid... · [risk] `architecture`/`structure` categories carry a known risk ... · [behavior] At runtime, the synthesis pipeline pre-computes a moment ...
+
+> Parent: [Brain Versioning](brain-versioning.md)
 
 Brain Insight Categories are the typed classification system applied to every insight stored in the brain graph. Each insight is tagged with one of a small, deliberate set of categories — currently: structure, decision, constraint, behavior, risk, and interface — and the defining criterion for any category's existence is whether knowing it changes what an agent *does* with the insight. This is not a cosmetic taxonomy; categories drive downstream agent behavior during code generation and navigation. The schema was hardened through adversarial review that eliminated `flow` (redundant with `architecture`/`structure`), merged `risk` and `gap` (inseparable in practice), and narrowed `architecture` to prevent it becoming a catch-all. The categories are enforced structurally in Zod output validation inside the synthesis pipeline, meaning the LLM cannot emit an uncategorized or miscategorized insight without failing schema validation. Relevance classification — deciding which topics an insight belongs to — uses semantic moment-meaning ↔ topic-meaning matching rather than file-overlap or import-graph signals, because file diffs are weak proxies for semantic meaning and miss transitive import impact.
 
@@ -24,9 +23,9 @@ Brain Insight Categories are the typed classification system applied to every in
 
 ## Files
 
-- `src/pipeline/brain-synthesis.ts` — Implements the insight category schema as Zod output validation, enforcing the category set structurally during synthesis and ensuring LLM output conforms to the approved categories with UUID-cited evidence.
+- `src/pipeline/brain-synthesis.ts`
 
-## Evidence
+## Sessions
 
 - May 21: The developer set out to build v2 of the project from scratch, explicitly leaving v1 behind as re... (3 moments)
 - May 21: The developer set out to design the intent-ai project from scratch, starting with no existing cod... (13 moments)

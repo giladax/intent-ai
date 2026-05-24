@@ -1,7 +1,4 @@
 # Dashboard Architecture
-> **area**
-> The dashboard is a single-page React application built with shadcn/ui that exposes two top-level tabs: Brain and Sessions. Brain is the shared, curated knowledge layer — it shows a topic map with activity heatmap badges (session count, moment count, update count), a topic detail panel with insights and evidence, and navigation back to related sessions. Sessions is the private execution memory layer — it shows a date-ordered session list with topic badges, a session detail panel, and a chat interface. These two layers are intentionally kept separate: sessions are never auto-published to the brain, and the bridge between them (promoting session content into brain topics) is surfaced only through the topic detail panel. The architecture is a complete replacement of a prior feature/tagging paradigm — not an incremental patch — and all frontend types, API endpoints, and UI components were rewritten to reflect the Brain/Sessions model. The API server joins...
-> [structure] The dashboard has exactly two top-level tabs — Brain (sha... · [decision] The Brain/Sessions tab architecture is a full replacement... · [risk] API endpoints in server.ts are prone to schema column nam... · [behavior] The Brain tab surfaces activity heatmap data per topic (s... · [interface] The chat panel accepts an optional topicId context parame...
 
 The dashboard is a single-page React application built with shadcn/ui that exposes two top-level tabs: Brain and Sessions. Brain is the shared, curated knowledge layer — it shows a topic map with activity heatmap badges (session count, moment count, update count), a topic detail panel with insights and evidence, and navigation back to related sessions. Sessions is the private execution memory layer — it shows a date-ordered session list with topic badges, a session detail panel, and a chat interface. These two layers are intentionally kept separate: sessions are never auto-published to the brain, and the bridge between them (promoting session content into brain topics) is surfaced only through the topic detail panel. The architecture is a complete replacement of a prior feature/tagging paradigm — not an incremental patch — and all frontend types, API endpoints, and UI components were rewritten to reflect the Brain/Sessions model. The API server joins topic data onto session records and exposes dedicated endpoints for brain topics, insights, related sessions, and streaming chat with an optional topicId context parameter. Topics are weighted by development energy rather than static documentation, making the Brain tab a living map of where work has actually concentrated.
 
@@ -50,41 +47,19 @@ The dashboard is a single-page React application built with shadcn/ui that expos
 
 ## Files
 
-- `src/web/server.ts` — API endpoints for brain topics, insights, related sessions, and streaming chat — column names must exactly match schema (topic_id/related_topic_id, statement/category)
-- `src/web/server.ts` — API server — exposes brain topics, insights, related sessions endpoints, and sessions endpoint with topic join; known risk of AI-generated column name errors
-- `src/web/server.ts` — API server — exposes brain topics, insights, related sessions, session list with topic joins, and streaming chat endpoints; column names must match schema exactly
-- `src/web/server.ts` — Primary API server — implements all REST endpoints for Brain (topics, insights, related sessions) and Sessions (session list with topic join, stream chat with optional topicId)
-- `src/web/ui/src/api.ts` — Frontend API client — all server endpoint calls go through here
-- `src/web/ui/src/api.ts` — Frontend API client — consumes all server.ts endpoints; must stay in sync with endpoint signatures and response shapes
-- `src/web/ui/src/api.ts` — Frontend API client — wraps all calls to server.ts endpoints including streamChat with topicId
-- `src/web/ui/src/api.ts` — Frontend API client — wraps all server endpoint calls for Brain and Sessions data
-- `src/web/ui/src/App.tsx` — Full rewrite implementing Brain/Sessions two-tab layout — replaces the old feature/tagging paradigm entirely
-- `src/web/ui/src/App.tsx` — Root component — Brain/Sessions tab routing, full rewrite from prior feature/tagging paradigm
-- `src/web/ui/src/App.tsx` — Root component — owns the Brain/Sessions tab switcher; full rewrite replacing the old feature paradigm
-- `src/web/ui/src/components/ChatPanel.tsx` — Chat interface — accepts optional topicId parameter to scope conversation context
-- `src/web/ui/src/components/ChatPanel.tsx` — Chat panel — accepts optional topicId for Brain tab context injection
-- `src/web/ui/src/components/ChatPanel.tsx` — Chat panel — accepts optional topicId parameter to scope chat context to a brain topic
-- `src/web/ui/src/components/Header.tsx` — Dashboard header component
-- `src/web/ui/src/components/Header.tsx` — Dashboard header with Brain/Sessions tab navigation
-- `src/web/ui/src/components/SessionList.tsx` — Sessions tab — date-ordered session list with topic badges
-- `src/web/ui/src/components/SessionList.tsx` — Sessions tab: date-ordered session list with topic badges
-- `src/web/ui/src/components/SessionPanel.tsx` — Session detail panel for the Sessions tab
-- `src/web/ui/src/components/SessionPanel.tsx` — Sessions tab — session detail panel shown when a session is selected
-- `src/web/ui/src/components/TopicDetail.tsx` — Brain tab — topic detail panel showing insights, evidence, and related sessions navigation; hosts the session→brain bridge action
-- `src/web/ui/src/components/TopicDetail.tsx` — Brain tab: topic detail panel with insights, evidence, and related sessions navigation
-- `src/web/ui/src/components/TopicDetail.tsx` — Topic detail panel — shows insights, evidence, activity heatmap, related session navigation, and the brain promotion bridge
-- `src/web/ui/src/components/TopicList.tsx` — Brain tab topic map component — renders the list of brain topics with activity heatmap badges
-- `src/web/ui/src/components/TopicList.tsx` — Brain tab — topic map with activity heatmap badges for each topic
-- `src/web/ui/src/components/TopicList.tsx` — Brain tab: topic map with activity heatmap badges (session count, moment count, update count)
-- `src/web/ui/src/index.css` — Dashboard styles — minimalist shadcn/ui aesthetic baseline
-- `src/web/ui/src/index.css` — Dashboard styles — shadcn/ui minimalist aesthetic baseline
-- `src/web/ui/src/index.css` — Minimalist shadcn/ui styles for the dashboard
-- `src/web/ui/src/types.ts` — Frontend type definitions — includes Session type with topics field, Topic, Insight, and related types
-- `src/web/ui/src/types.ts` — Frontend type definitions — Session type includes topics field; Brain topic and insight types must match API response shapes
-- `src/web/ui/src/types.ts` — Frontend types including Session with topics field and BrainTopic — source of truth for API contract on the client side
-- `src/web/ui/src/types.ts` — Frontend types — Session type includes topics field; Brain topic and insight types defined here
+- `src/web/server.ts`
+- `src/web/ui/src/App.tsx`
+- `src/web/ui/src/api.ts`
+- `src/web/ui/src/components/ChatPanel.tsx`
+- `src/web/ui/src/components/Header.tsx`
+- `src/web/ui/src/components/SessionList.tsx`
+- `src/web/ui/src/components/SessionPanel.tsx`
+- `src/web/ui/src/components/TopicDetail.tsx`
+- `src/web/ui/src/components/TopicList.tsx`
+- `src/web/ui/src/index.css`
+- `src/web/ui/src/types.ts`
 
-## Evidence
+## Sessions
 
 - May 21: The developer set out to build v2 of the project from scratch, explicitly leaving v1 behind as re... (3 moments)
 - May 21: The developer set out to design the intent-ai project from scratch, starting with no existing cod... (13 moments)

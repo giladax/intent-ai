@@ -40,8 +40,93 @@ interface BrainCardRow {
   files: { file_path?: string; role?: string }[] | null;
 }
 
+// ── Shared: build topic tree + accumulated files ──────────────────
+
+interface TopicNode {
+  id: string;
+  name: string;
+  summary: string;
+  parentId: string | null;
+  children: TopicNode[];
+  ownFiles: string[];          // files directly on this topic
+  accumulatedFiles: string[];  // own + all descendants' files
+  insightCount: number;
+  sessionCount: number;
+  card?: BrainCardRow;
+}
+
+async function buildTopicTree(repoId: string): Promise<{
+  roots: TopicNode[];
+  nodeByName: Map<string, TopicNode>;
+  nodeById: Map<string, TopicNode>;
+}> {
+  const sql = getClient();
+
+  const topics = await sql`
+    SELECT t.id, t.name, t.summary, t.parent_topic_id,
+      (SELECT count(*)::int FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count,
+      (SELECT count(DISTINCT ts.session_id)::int FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count
+    FROM topics t WHERE t.repo_id = ${repoId} ORDER BY t.name
+  ` as any[];
+
+  const cards = await sql`
+    SELECT node_name, level, summary, parent_node, children, insights, files
+    FROM brain_cards WHERE repo_id = ${repoId}
+  ` as BrainCardRow[];
+  const cardByName = new Map<string, BrainCardRow>();
+  for (const c of cards) cardByName.set(c.node_name, c);
+
+  // Build nodes
+  const nodeById = new Map<string, TopicNode>();
+  const nodeByName = new Map<string, TopicNode>();
+  for (const t of topics) {
+    const fileRows = await sql`
+      SELECT DISTINCT file_path FROM topic_files WHERE topic_id = ${t.id} ORDER BY file_path
+    `;
+    const node: TopicNode = {
+      id: t.id,
+      name: t.name,
+      summary: t.summary,
+      parentId: t.parent_topic_id || null,
+      children: [],
+      ownFiles: fileRows.map((f: any) => f.file_path),
+      accumulatedFiles: [],
+      insightCount: Number(t.insight_count),
+      sessionCount: Number(t.session_count),
+      card: cardByName.get(t.name),
+    };
+    nodeById.set(t.id, node);
+    nodeByName.set(t.name, node);
+  }
+
+  // Link children
+  const roots: TopicNode[] = [];
+  for (const node of nodeById.values()) {
+    if (node.parentId && nodeById.has(node.parentId)) {
+      nodeById.get(node.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  // Accumulate files bottom-up (DFS post-order)
+  function accumulateFiles(node: TopicNode): string[] {
+    const fileSet = new Set(node.ownFiles);
+    for (const child of node.children) {
+      for (const f of accumulateFiles(child)) {
+        fileSet.add(f);
+      }
+    }
+    node.accumulatedFiles = [...fileSet].sort();
+    return node.accumulatedFiles;
+  }
+  for (const root of roots) accumulateFiles(root);
+
+  return { roots, nodeByName, nodeById };
+}
+
 /**
- * Generate .repo/brain.md root index.
+ * Generate .repo/brain.md — LLM-friendly project knowledge index.
  */
 export async function generateBrainMarkdown(repoId: string): Promise<string> {
   const sql = getClient();
@@ -49,146 +134,53 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
   const [project] = await sql`SELECT name FROM projects WHERE id = ${repoId}`;
   if (!project) throw new Error(`Project ${repoId} not found`);
 
-  const topics = await sql`
-    SELECT t.id, t.name, t.summary, t.parent_topic_id,
-      (SELECT count(*) FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count,
-      (SELECT count(*) FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count
-    FROM topics t WHERE t.repo_id = ${repoId} ORDER BY session_count DESC, t.name
-  ` as any[];
+  const { roots } = await buildTopicTree(repoId);
 
-  // Query brain_cards for richer summaries
-  const cards = await sql`
-    SELECT bc.node_name, bc.level, bc.summary, bc.parent_node, bc.children,
-           bc.insights, bc.files
-    FROM brain_cards bc
-    WHERE bc.repo_id = ${repoId}
-    ORDER BY bc.level, bc.node_name
-  ` as BrainCardRow[];
+  let md = `# ${project.name} — Brain\n\n`;
+  md += `> This file is the entry point to the project's knowledge graph.\n`;
+  md += `> Each spec below is a concept in the codebase with accumulated insights from development sessions.\n`;
+  md += `> Use the file index at the bottom to find which spec covers any source file.\n\n`;
 
-  const cardByName = new Map<string, BrainCardRow>();
-  for (const c of cards) cardByName.set(c.node_name, c);
-
-  // Build file map: file → topics
-  const fileMap = new Map<string, string[]>();
-  for (const t of topics) {
-    const files = await sql`SELECT file_path FROM topic_files WHERE topic_id = ${t.id}`;
-    for (const f of files) {
-      const list = fileMap.get(f.file_path) || [];
-      if (!list.includes(t.name)) list.push(t.name);
-      fileMap.set(f.file_path, list);
+  // Render tree
+  function renderNode(node: TopicNode, depth: number): string {
+    const indent = "  ".repeat(depth);
+    const link = `[${node.name}](topics/${slugify(node.name)}.md)`;
+    const fileSummary = node.accumulatedFiles.length > 0
+      ? ` (${node.accumulatedFiles.length} files)`
+      : "";
+    let out = `${indent}- ${link} — ${truncate(node.summary, 100)}${fileSummary}\n`;
+    for (const child of node.children) {
+      out += renderNode(child, depth + 1);
     }
+    return out;
   }
 
-  let md = `# ${project.name} Brain\n\n`;
-
-  if (cards.length > 0) {
-    // Render tree from cards (already have parent/children structure)
-    const cardRoots = cards.filter((c) => !c.parent_node);
-    const cardChildrenOf = new Map<string, BrainCardRow[]>();
-    for (const c of cards) {
-      if (c.parent_node) {
-        const siblings = cardChildrenOf.get(c.parent_node) || [];
-        siblings.push(c);
-        cardChildrenOf.set(c.parent_node, siblings);
-      }
-    }
-
-    function renderCardLine(c: BrainCardRow, depth: number): string {
-      const indent = "  ".repeat(depth);
-      const link = `[${c.node_name}](topics/${slugify(c.node_name)}.md)`;
-      const desc = truncate(c.summary, 80);
-      return `${indent}- ${link} — ${desc}\n`;
-    }
-
-    function renderCardSubtree(c: BrainCardRow, depth: number): string {
-      let out = renderCardLine(c, depth);
-      const children = cardChildrenOf.get(c.node_name) || [];
-      for (const child of children) {
-        if (depth < 2) {
-          out += renderCardSubtree(child, depth + 1);
-        } else {
-          out += renderCardLine(child, depth + 1);
-        }
-      }
-      return out;
-    }
-
-    for (const root of cardRoots) {
-      md += `## ${root.node_name}\n\n`;
-      md += renderCardLine(root, 0);
-      const children = cardChildrenOf.get(root.node_name) || [];
-      for (const child of children) {
-        md += renderCardSubtree(child, 1);
-      }
-      md += "\n";
-    }
-  } else {
-    // Fall back to topic-based rendering
-    const topicById = new Map<string, any>();
-    for (const t of topics) topicById.set(t.id, t);
-
-    const roots: any[] = [];
-    const childrenOf = new Map<string, any[]>();
-    const orphans: any[] = [];
-
-    for (const t of topics) {
-      if (!t.parent_topic_id) {
-        roots.push(t);
-      } else if (topicById.has(t.parent_topic_id)) {
-        const siblings = childrenOf.get(t.parent_topic_id) || [];
-        siblings.push(t);
-        childrenOf.set(t.parent_topic_id, siblings);
-      } else {
-        orphans.push(t);
-      }
-    }
-
-    function renderTopicLine(t: any, depth: number): string {
-      const indent = "  ".repeat(depth);
-      const link = `[${t.name}](topics/${slugify(t.name)}.md)`;
-      const desc = `${truncate(t.summary, 80)} (${t.session_count} sessions, ${t.insight_count} insights)`;
-      return `${indent}- ${link} — ${desc}\n`;
-    }
-
-    function renderSubtree(t: any, depth: number): string {
-      let out = renderTopicLine(t, depth);
-      const children = childrenOf.get(t.id) || [];
-      for (const child of children) {
-        if (depth < 2) {
-          out += renderSubtree(child, depth + 1);
-        } else {
-          out += renderTopicLine(child, depth + 1);
-        }
-      }
-      return out;
-    }
-
-    for (const root of roots) {
-      md += `## ${root.name}\n\n`;
-      md += renderTopicLine(root, 0);
-      const children = childrenOf.get(root.id) || [];
-      for (const child of children) {
-        md += renderSubtree(child, 1);
-      }
-      md += "\n";
-    }
-
-    if (orphans.length > 0) {
-      md += `## Uncategorized\n\n`;
-      for (const t of orphans) {
-        md += renderTopicLine(t, 0);
-      }
-      md += "\n";
-    }
+  for (const root of roots) {
+    md += `## ${root.name}\n\n`;
+    md += renderNode(root, 0);
+    md += "\n";
   }
 
-  // File map
-  if (fileMap.size > 0) {
-    md += `## File Map\n\n`;
-    md += `| File | Topics |\n|------|--------|\n`;
-    const sorted = [...fileMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    for (const [file, topicNames] of sorted) {
-      md += `| ${toRelativePath(file)} | ${topicNames.join(", ")} |\n`;
+  // File index: file → spec path (most specific spec that owns it)
+  const fileToSpec = new Map<string, string>();
+  function indexFiles(node: TopicNode, path: string) {
+    // Children are more specific — they override parent for shared files
+    for (const f of node.ownFiles) {
+      fileToSpec.set(f, path);
+    }
+    for (const child of node.children) {
+      indexFiles(child, `${path} > ${child.name}`);
+    }
+  }
+  for (const root of roots) indexFiles(root, root.name);
+
+  if (fileToSpec.size > 0) {
+    md += `## File Index\n\n`;
+    md += `> Find which spec covers a source file. Path shows the spec hierarchy.\n\n`;
+    md += `| File | Spec |\n|------|------|\n`;
+    const sorted = [...fileToSpec.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    for (const [file, specPath] of sorted) {
+      md += `| \`${toRelativePath(file)}\` | ${specPath} |\n`;
     }
   }
 
@@ -196,13 +188,16 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
 }
 
 /**
- * Generate .repo/topics/<name>.md for a single topic.
+ * Generate .repo/topics/<name>.md — LLM-friendly spec document.
  */
 export async function generateTopicMarkdown(topicId: string): Promise<{ slug: string; content: string }> {
   const sql = getClient();
 
-  const [topic] = await sql`SELECT id, name, summary, parent_topic_id FROM topics WHERE id = ${topicId}` as TopicRow[];
+  const [topic] = await sql`SELECT id, name, summary, parent_topic_id, repo_id FROM topics WHERE id = ${topicId}` as any[];
   if (!topic) throw new Error(`Topic ${topicId} not found`);
+
+  const { nodeByName } = await buildTopicTree(topic.repo_id);
+  const node = nodeByName.get(topic.name);
 
   // Query parent
   const parentRows = topic.parent_topic_id
@@ -210,20 +205,11 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
     : [];
   const parent = parentRows[0] ?? null;
 
-  // Query children
-  const children = await sql`
-    SELECT name FROM topics WHERE parent_topic_id = ${topicId} ORDER BY name
-  ` as { name: string }[];
-
   const insights = await sql`
     SELECT category, statement, confidence FROM insights
     WHERE topic_id = ${topicId} AND status = 'active'
     ORDER BY category, confidence DESC
   ` as InsightRow[];
-
-  const files = await sql`
-    SELECT DISTINCT file_path, role FROM topic_files WHERE topic_id = ${topicId} ORDER BY file_path
-  ` as FileRow[];
 
   const sessionRows = await sql`
     SELECT DISTINCT ON (ts.session_id) ts.session_id, s.session_shape, n.summary,
@@ -242,45 +228,21 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
     WHERE tr.topic_id = ${topicId}
   ` as RelatedRow[];
 
-  // Query brain_card for this topic if one exists
-  const [card] = await sql`
-    SELECT * FROM brain_cards
-    WHERE repo_id = (SELECT repo_id FROM topics WHERE id = ${topicId})
-      AND node_name = (SELECT name FROM topics WHERE id = ${topicId})
-  ` as BrainCardRow[];
+  // ── Build LLM-friendly markdown ──
 
-  let md = `# ${topic.name}\n`;
+  let md = `# ${topic.name}\n\n`;
 
-  if (card) {
-    // Card block as blockquote
-    const levelPart = card.level ? `**${card.level}**` : null;
-    const parentPart = card.parent_node ? `child of ${card.parent_node}` : null;
-    const metaParts = [levelPart, parentPart].filter(Boolean).join(" · ");
-    md += `> ${metaParts}\n`;
-    md += `> ${card.summary}\n`;
-
-    const tagParts: string[] = [];
-    const cardInsights = Array.isArray(card.insights) ? card.insights : [];
-    for (const ins of cardInsights) {
-      if (ins.category && ins.statement) {
-        tagParts.push(`[${ins.category}] ${truncate(ins.statement, 60)}`);
-      }
-    }
-    if (tagParts.length > 0) {
-      md += `> ${tagParts.join(" · ")}\n`;
-    }
-    md += "\n";
-  } else {
-    if (parent) {
-      md += `> Parent: [${parent.name}](${slugify(parent.name)}.md)\n`;
-    }
-    if (children.length > 0) {
-      const childLinks = children.map((c) => `[${c.name}](${slugify(c.name)}.md)`).join(", ");
-      md += `> Children: ${childLinks}\n`;
-    }
-    md += "\n";
+  // Navigation breadcrumb
+  if (parent) {
+    md += `> Parent: [${parent.name}](${slugify(parent.name)}.md)\n`;
   }
+  if (node && node.children.length > 0) {
+    const childLinks = node.children.map(c => `[${c.name}](${slugify(c.name)}.md)`).join(", ");
+    md += `> Children: ${childLinks}\n`;
+  }
+  if (parent || (node && node.children.length > 0)) md += "\n";
 
+  // Summary
   md += `${topic.summary}\n`;
 
   // Insights by category
@@ -301,17 +263,34 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
     }
   }
 
-  // Files
-  if (files.length > 0) {
+  // Accumulated files (own + children's)
+  if (node && node.accumulatedFiles.length > 0) {
+    const ownSet = new Set(node.ownFiles);
     md += `\n## Files\n\n`;
-    for (const f of files) {
-      md += `- \`${toRelativePath(f.file_path)}\`${f.role ? ` — ${f.role}` : ""}\n`;
+
+    // Own files first
+    const ownFiles = node.accumulatedFiles.filter(f => ownSet.has(f));
+    if (ownFiles.length > 0) {
+      for (const f of ownFiles) {
+        md += `- \`${toRelativePath(f)}\`\n`;
+      }
+    }
+
+    // Inherited files (from children), grouped by child
+    for (const child of node.children) {
+      const childFiles = child.accumulatedFiles.filter(f => !ownSet.has(f));
+      if (childFiles.length > 0) {
+        md += `- _from [${child.name}](${slugify(child.name)}.md):_\n`;
+        for (const f of childFiles) {
+          md += `  - \`${toRelativePath(f)}\`\n`;
+        }
+      }
     }
   }
 
   // Evidence sessions
   if (sessionRows.length > 0) {
-    md += `\n## Evidence\n\n`;
+    md += `\n## Sessions\n\n`;
     for (const s of sessionRows) {
       const date = s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "unknown";
       md += `- ${date}: ${truncate(s.summary || s.session_shape, 100)} (${s.moment_count} moments)\n`;
@@ -356,10 +335,6 @@ function truncate(s: string, max: number): string {
   return s.slice(0, max - 3) + "...";
 }
 
-/**
- * Strip the repo root prefix from an absolute file path to make it relative.
- * Uses process.cwd() as the repo root. If the path doesn't start with cwd, returns it unchanged.
- */
 function toRelativePath(filePath: string): string {
   const root = process.cwd();
   if (filePath.startsWith(root + "/")) {

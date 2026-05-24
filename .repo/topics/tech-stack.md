@@ -1,7 +1,4 @@
 # Tech Stack
-> **area**
-> intent-ai is a TypeScript monolith CLI that runs as a single process containing all subsystems: adapters, pipeline, LLM integration, storage, and CLI interface. The stack was chosen deliberately after explicit evaluation of alternatives — TypeScript over Python (despite LLM tooling conventions favoring Python/LangChain/LangGraph), PostgreSQL with pgvector over SQLite (for semantic search, cross-project queries, and eventual multi-user access), and a monolith CLI over microservices or library patterns (for simplicity and direct developer invocation). These are not defaults or starting points — they are locked architectural decisions. PostgreSQL's pgvector extension makes semantic similarity search a first-class capability rather than a bolt-on, and the choice of Postgres over SQLite signals that intent-ai is designed from v1 to operate across projects and users, not as a local single-project tool. The storage layer uses Drizzle ORM to interface with PostgreSQL, with a schema defined around the SessionNarrative interface. The monolith structure means all components share...
-> [constraint] intent-ai is TypeScript only — never Python. This was an ... · [decision] PostgreSQL with pgvector was chosen over SQLite to suppor... · [decision] The architecture is a monolith CLI — a single TypeScript ... · [risk] AI coding assistants working on this codebase will repeat... · [structure] The storage layer uses Drizzle ORM over PostgreSQL. The s...
 
 intent-ai is a TypeScript monolith CLI that runs as a single process containing all subsystems: adapters, pipeline, LLM integration, storage, and CLI interface. The stack was chosen deliberately after explicit evaluation of alternatives — TypeScript over Python (despite LLM tooling conventions favoring Python/LangChain/LangGraph), PostgreSQL with pgvector over SQLite (for semantic search, cross-project queries, and eventual multi-user access), and a monolith CLI over microservices or library patterns (for simplicity and direct developer invocation). These are not defaults or starting points — they are locked architectural decisions. PostgreSQL's pgvector extension makes semantic similarity search a first-class capability rather than a bolt-on, and the choice of Postgres over SQLite signals that intent-ai is designed from v1 to operate across projects and users, not as a local single-project tool. The storage layer uses Drizzle ORM to interface with PostgreSQL, with a schema defined around the SessionNarrative interface. The monolith structure means all components share a single process, single deployment, and single dependency graph — database infrastructure details are covered in the child spec.
 
@@ -39,14 +36,12 @@ intent-ai is a TypeScript monolith CLI that runs as a single process containing 
 
 ## Files
 
-- `docs/superpowers/specs/2026-05-21-execution-memory-design.md` — Full system design spec covering architecture, schema, CLI, and pipeline — the authoritative reference for all stack and structural decisions.
-- `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/MEMORY.md` — Top-level memory index updated to reflect TypeScript preference — serves as the authoritative reference for cross-session architectural constraints.
-- `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/user_prefers_typescript.md` — Persisted memory artifact encoding the TypeScript language preference — exists specifically to prevent AI sessions from re-inferring Python based on ecosystem context.
-- `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/user_prefers_typescript.md` — Persisted TypeScript language preference to prevent AI sessions from re-introducing Python assumptions.
-- `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/user_prefers_typescript.md` — Persisted TypeScript preference file — exists to prevent future AI sessions from defaulting back to Python assumptions
-- `docs/superpowers/specs/2026-05-21-execution-memory-design.md` — Full system design spec capturing all architectural decisions including tech stack choices and their rationale
+- `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/MEMORY.md`
+- `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/user_prefers_typescript.md`
+- `docs/superpowers/specs/2026-05-21-execution-memory-design.md`
+- `docs/superpowers/specs/2026-05-21-execution-memory-design.md`
 
-## Evidence
+## Sessions
 
 - May 21: The developer set out to build v2 of the project from scratch, explicitly leaving v1 behind as re... (3 moments)
 - May 21: The developer set out to design the intent-ai project from scratch, starting with no existing cod... (13 moments)
