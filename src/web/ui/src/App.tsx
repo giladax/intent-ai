@@ -88,12 +88,15 @@ export function App() {
 
   const selectedTopicName = topics.find((t) => t.id === selectedTopicId)?.name;
 
-  const selectedSessionSummary = sessions.find((s) => s.id === selectedSessionId)?.narrative_summary?.split(/[.!?\n]/)[0] ?? "Session";
+  const selectedSession = sessions.find((s) => s.id === selectedSessionId);
+  const selectedSessionLabel = selectedSession
+    ? `${selectedSession.started_at ? new Date(selectedSession.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}${selectedSession.session_shape ? " · " + selectedSession.session_shape : ""}`
+    : "Session";
 
   const breadcrumbLabel =
     view === "sync" ? "Sync Brain" :
     view === "sessions" ? "Sessions" :
-    view === "session-detail" ? selectedSessionSummary :
+    view === "session-detail" ? selectedSessionLabel :
     view === "topic" && selectedTopicName ? selectedTopicName :
     view === "knowledge" ? "Knowledge Tree" :
     "Overview";
@@ -225,7 +228,7 @@ export function App() {
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>{view === "topic" ? selectedTopicName : breadcrumbLabel}</BreadcrumbPage>
+                      <BreadcrumbPage className="max-w-[300px] truncate">{view === "topic" ? selectedTopicName : breadcrumbLabel}</BreadcrumbPage>
                     </BreadcrumbItem>
                   </>
                 )}

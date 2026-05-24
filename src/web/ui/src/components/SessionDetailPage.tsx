@@ -68,13 +68,12 @@ export function SessionDetailPage({ sessionId, onTopicClick }: Props) {
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-lg font-semibold">Session</h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          {formatDate(narrative?.started_at ?? null)}
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">{formatDate(narrative?.started_at ?? null) || "Session"}</h2>
           {narrative?.session_shape && (
-            <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">{narrative.session_shape}</Badge>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{narrative.session_shape}</Badge>
           )}
-        </p>
+        </div>
       </div>
 
       {/* Narrative */}
