@@ -53,11 +53,29 @@ Implementation direction: CC sessions are JSONL files on disk. A watcher (fsnoti
 ```
 c2d4245 feat: brain MCP server with graph navigation tools
 e877afe feat(mcp): richer card format with category-diverse insights and nav hints
-6dc87eb feat(mcp): card-driven navigation — overview cards, navigate section, co-file traverse, file constraints
 e966d9c feat(mcp): card-driven navigation + unit tests
 e8e62c9 feat(web): brain cards display in topic detail
 27e9682 feat: string-similarity insight deduplication (EDD)
+f88df3c fix(web): digest state persistence + progress on refresh
+0941f72 fix(web): Apply reliably finds session IDs + shows errors
+6f6a149 feat(web): hierarchical expandable changes review
+0483aa9 feat(web): sync diff tree in main panel during review
+2c2292a feat: cached proposal — Apply commits exactly what was reviewed
+d82a88f feat(web): clickable topics in diff tree → navigate to card detail
+bd1f50b feat: organize prompt with standard taxonomy framework
 ```
+
+### 3. Static analysis: git changes → affected topics
+Later phase. When a commit lands, statically analyze which files changed, map those files to brain topics via the file index, and flag affected specs as potentially stale. This closes the loop: code changes automatically surface which knowledge might need updating.
+
+Requires more file-level granularity in the brain — currently files map to specs, but a single file (e.g., `src/adapters/types.ts`) can belong to many specs. The file index needs to track which *parts* of a file (exports, functions, type definitions) are relevant to which spec, not just the file path. This is the bridge to file-level cards and per-symbol tracking.
+
+Implementation direction:
+- Parse git diff to get changed files + changed line ranges
+- Map changed files to covering topics via `topic_files`
+- For each affected topic, compute a staleness signal (how much of its file surface changed)
+- Surface in dashboard: "3 specs may be stale after commit abc123"
+- Eventually: auto-trigger targeted re-synthesis on affected specs only (not full brain re-run)
 
 ## Design decisions (don't undo)
 - MCP reads from `.repo/` filesystem, not DB — works on any branch without infra
