@@ -135,15 +135,17 @@ Validate: reject circular parent references before applying. Normalize topic nam
 
 ## EDD Strategy
 
-Score with Haiku judge on 5 dimensions (1-5 each):
+Haiku judge scores 5 dimensions with qualitative verdicts + reasoning:
 
-| Dimension | Measures |
-|-----------|----------|
-| Spec quality | Reads like a design doc, not a changelog |
-| Hierarchy coherence | Tree makes sense for retrieval, 2-3 levels |
-| Deduplication | No redundant specs |
-| Scope precision | Each spec is ONE concept |
-| Actionability | Agent can use this to write code |
+| Dimension | Question | Verdicts |
+|-----------|----------|----------|
+| Spec quality | Does it read like a design doc or a changelog? | `design_doc` · `mixed` · `changelog` |
+| Hierarchy coherence | Does the tree help an agent find the right spec fast? | `navigable` · `shallow` · `flat` |
+| Deduplication | Are there specs that say the same thing? | `clean` · `some_overlap` · `redundant` |
+| Scope precision | Does each spec cover exactly one concept? | `focused` · `broad` · `tangled` |
+| Actionability | Can an agent use this to write correct code? | `actionable` · `vague` · `useless` |
+
+Each dimension returns `{ verdict: string, reasoning: string, examples: string[] }`. The reasoning explains *why* — citing specific specs. Examples point to the best and worst specs for that dimension.
 
 **Cycle:** Baseline current output → change Node 1 prompt → add Node 2 → change Node 3 prompt → compare scores at each step.
 
