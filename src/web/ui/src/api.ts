@@ -8,6 +8,7 @@ import type {
   TopicSummary,
   TopicDetail,
   TimelineData,
+  BrainDiscoverResult,
   BrainSyncProposal,
 } from "./types";
 
@@ -73,11 +74,17 @@ export const fetchSessionDetail = (id: string) =>
   json<SessionDetail>(`/api/sessions/${id}`);
 
 // Brain Sync
-export const proposeBrainSync = (repoId: string) =>
-  json<BrainSyncProposal>("/api/brain/propose", {
+export const discoverBrainSessions = (repoId: string) =>
+  json<BrainDiscoverResult>("/api/brain/discover", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repoId }),
+  });
+export const proposeBrainSync = (repoId: string, sessionIds: string[]) =>
+  json<BrainSyncProposal>("/api/brain/propose", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repoId, sessionIds }),
   });
 export const applyBrainSync = (repoId: string, sessionIds: string[]) =>
   json<{ status: string; specsWritten: number; merges: number }>("/api/brain/apply", {

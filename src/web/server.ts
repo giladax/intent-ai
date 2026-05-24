@@ -558,24 +558,41 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
   // ── Brain Sync ─────────────────────────────────────────────────────
 
-  // Step 1: Propose — dry run, return diff
-  app.post("/api/brain/propose", async (req, res) => {
+  // Step 1: Discover — find new CC logs, digest them, score branch relevance
+  app.post("/api/brain/discover", async (req, res) => {
     try {
       const { repoId } = req.body;
       if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
 
       const sql = getClient();
-
-      // Find unprocessed sessions for this repo
-      // Match by project name OR path appearing in source_path (same logic as CLI)
       const [project] = await sql`SELECT name, path FROM projects WHERE id = ${repoId}`;
       if (!project) { res.status(404).json({ error: "Project not found" }); return; }
 
       const projectName = project.name;
       const projectPathSlug = project.path.replace(/\//g, "-");
 
+      // 1. Discover & digest new CC logs
+      const { discoverLogs } = await import("../utils/log-discovery.js");
+      const logPaths = await discoverLogs(10, `-${projectPathSlug}`);
+
+      let digestedCount = 0;
+      for (const logPath of logPaths) {
+        try {
+          const { runPipeline } = await import("../pipeline/orchestrator.js");
+          await runPipeline(logPath);
+          digestedCount++;
+        } catch (err: any) {
+          // "already digested" is expected — skip silently
+          if (!err.message?.includes("already digested")) {
+            console.error(`  Digest error: ${err.message}`);
+          }
+        }
+      }
+
+      // 2. Find unprocessed sessions for this repo
       const sessions = await sql`
-        SELECT s.id, s.session_shape, LEFT(n.summary, 100) as summary, s.started_at
+        SELECT s.id, s.session_shape, LEFT(n.summary, 120) as summary,
+               s.started_at, s.ended_at
         FROM sessions s
         LEFT JOIN narratives n ON n.session_id = s.id
         WHERE n.id IS NOT NULL
@@ -591,14 +608,93 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
       `;
 
       if (sessions.length === 0) {
-        // No new sessions — just return current state
-        res.json({ status: "up_to_date", sessions: [], plan: null, specs: [] });
+        res.json({ status: "up_to_date", digestedCount, sessions: [] });
+        return;
+      }
+
+      // 3. Compute branch relevance for each session
+      let branchFiles: Set<string> = new Set();
+      let commitTimestamps: Date[] = [];
+      try {
+        const { execSync } = await import("node:child_process");
+        // Files changed on this branch vs main
+        const mainBranch = execSync("git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || echo refs/heads/main",
+          { cwd: project.path, encoding: "utf-8" }).trim().replace("refs/remotes/origin/", "").replace("refs/heads/", "");
+        const diffFiles = execSync(`git diff ${mainBranch}...HEAD --name-only 2>/dev/null || true`,
+          { cwd: project.path, encoding: "utf-8" }).trim();
+        if (diffFiles) branchFiles = new Set(diffFiles.split("\n").filter(Boolean));
+
+        // Commit timestamps on this branch
+        const logOutput = execSync(`git log ${mainBranch}..HEAD --format="%aI" 2>/dev/null || true`,
+          { cwd: project.path, encoding: "utf-8" }).trim();
+        if (logOutput) commitTimestamps = logOutput.split("\n").filter(Boolean).map(d => new Date(d));
+      } catch { /* not a git repo or no main branch */ }
+
+      // Score each session
+      const scoredSessions = [];
+      for (const s of sessions) {
+        // File overlap: session files ∩ branch files
+        const sessionFiles = await sql`
+          SELECT DISTINCT unnest(files_affected) as file_path
+          FROM normalized_events
+          WHERE session_id = ${s.id} AND files_affected IS NOT NULL
+        `;
+        const sessionFileSet = new Set(sessionFiles.map((f: any) => f.file_path));
+        const fileOverlap = [...sessionFileSet].filter(f => {
+          // Normalize: session files may be absolute, branch files relative
+          const rel = f.replace(project.path + "/", "");
+          return branchFiles.has(f) || branchFiles.has(rel);
+        });
+        const fileScore = sessionFileSet.size > 0 ? fileOverlap.length / sessionFileSet.size : 0;
+
+        // Time overlap: session timerange ∩ commit timestamps
+        const sessionStart = s.started_at ? new Date(s.started_at) : null;
+        const sessionEnd = s.ended_at ? new Date(s.ended_at) : null;
+        let timeScore = 0;
+        if (sessionStart && sessionEnd && commitTimestamps.length > 0) {
+          const overlapping = commitTimestamps.filter(ct =>
+            ct >= sessionStart && ct <= new Date(sessionEnd.getTime() + 30 * 60 * 1000) // +30min buffer
+          );
+          timeScore = overlapping.length > 0 ? 1 : 0;
+        }
+
+        let confidence: "high" | "medium" | "low";
+        if (fileScore > 0 && timeScore > 0) confidence = "high";
+        else if (fileScore > 0 || timeScore > 0) confidence = "medium";
+        else confidence = "low";
+
+        scoredSessions.push({
+          id: s.id,
+          shape: s.session_shape,
+          summary: s.summary,
+          date: s.started_at,
+          confidence,
+          fileScore: Math.round(fileScore * 100),
+          timeScore: Math.round(timeScore * 100),
+          selected: confidence !== "low", // auto-select high + medium
+        });
+      }
+
+      res.json({
+        status: "sessions_found",
+        digestedCount,
+        sessions: scoredSessions,
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Step 2: Propose — dry run on selected sessions, return diff
+  app.post("/api/brain/propose", async (req, res) => {
+    try {
+      const { repoId, sessionIds } = req.body;
+      if (!repoId || !sessionIds?.length) {
+        res.status(400).json({ error: "repoId and sessionIds required" });
         return;
       }
 
       const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
-      const sessionIds = sessions.map((s: any) => s.id);
-
       const { plan, specs } = await synthesizeV2(sessionIds, repoId, { dryRun: true });
 
       // Build human-readable diff
@@ -607,10 +703,8 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         spec: a.targetSpec,
         level: a.level,
         parent: a.parentSpec || null,
-        fragmentCount: plan.assignments.filter((x: any) => x.targetSpec === a.targetSpec).length,
       }));
 
-      // Deduplicate by spec name
       const seen = new Set<string>();
       const uniqueChanges = changes.filter((c: any) => {
         if (seen.has(c.spec)) return false;
@@ -628,12 +722,6 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
       res.json({
         status: "changes_proposed",
-        sessions: sessions.map((s: any) => ({
-          id: s.id,
-          shape: s.session_shape,
-          summary: s.summary,
-          date: s.started_at,
-        })),
         changes: [...uniqueChanges, ...merges],
         plan,
         specs: specs.map((s: any) => ({

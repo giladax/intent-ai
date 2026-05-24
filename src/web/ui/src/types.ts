@@ -194,11 +194,20 @@ export interface BrainSyncSession {
   shape: string;
   summary: string;
   date: string;
+  confidence: "high" | "medium" | "low";
+  fileScore: number;
+  timeScore: number;
+  selected: boolean;
+}
+
+export interface BrainDiscoverResult {
+  status: "up_to_date" | "sessions_found";
+  digestedCount: number;
+  sessions: BrainSyncSession[];
 }
 
 export interface BrainSyncProposal {
-  status: "up_to_date" | "changes_proposed";
-  sessions: BrainSyncSession[];
+  status: "changes_proposed";
   changes: BrainSyncChange[];
   plan: any;
   specs: { name: string; summary: string; insightCount: number }[];
