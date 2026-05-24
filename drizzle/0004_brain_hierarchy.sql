@@ -1,0 +1,1 @@
+ALTER TABLE topics ADD COLUMN parent_topic_id UUID REFERENCES topics(id) ON DELETE SET NULL;
