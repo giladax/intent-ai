@@ -9,6 +9,7 @@ import { buildBrainExtractPrompt, SpecFragmentOutputSchema, type SpecFragment } 
 import { buildBrainOrganizePrompt, GraphPlanSchema, type ExistingSpec, type OrganizeSignals, type GraphPlan } from "../llm/prompts/brain-organize.js";
 import { buildBrainWritePrompt, WrittenSpecSchema, type WrittenSpec, type SpecWriteInput } from "../llm/prompts/brain-write.js";
 import { applyGraphPlan, normalizeName } from "./brain-apply.js";
+import { generateCard } from "../brain/cards.js";
 import { getClient } from "../storage/connection.js";
 
 /**
@@ -513,7 +514,79 @@ export async function synthesizeV2(
       const { execSync } = await import("node:child_process");
       commitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
     } catch { /* not a git repo */ }
-    await createBrainVersion(repoId, commitSha);
+    const versionId = await createBrainVersion(repoId, commitSha);
+
+    // ── Build parent/children maps from plan assignments ─────────────
+    const parentBySpec = new Map<string, string>(); // normalized spec name → parent spec name
+    const childrenBySpec = new Map<string, string[]>(); // normalized spec name → child spec names
+    for (const a of plan.assignments) {
+      const norm = normalizeName(a.targetSpec);
+      if (a.parentSpec) {
+        parentBySpec.set(norm, a.parentSpec);
+        const parentNorm = normalizeName(a.parentSpec);
+        const siblings = childrenBySpec.get(parentNorm) ?? [];
+        if (!siblings.includes(a.targetSpec)) siblings.push(a.targetSpec);
+        childrenBySpec.set(parentNorm, siblings);
+      }
+    }
+
+    // ── Generate and upsert brain cards ──────────────────────────────
+    for (const spec of writtenSpecs) {
+      const norm = normalizeName(spec.name);
+      const parent = parentBySpec.get(norm) ?? null;
+      const children = childrenBySpec.get(norm) ?? [];
+      const level = parent ? "spec" : "area";
+
+      const card = generateCard({
+        name: spec.name,
+        level,
+        summary: spec.summary,
+        insights: spec.insights.map((ins) => ({
+          category: ins.category,
+          statement: ins.statement,
+          confidence: ins.confidence,
+        })),
+        fileRefs: spec.fileRefs,
+        parent,
+        children: children.length > 0 ? children : undefined,
+        sessions: sessionIds,
+        versionId,
+      });
+
+      await sql`
+        INSERT INTO brain_cards (
+          node_name, level, path, parent_node, summary,
+          insights, files, exports, related, children,
+          sessions, version_id, repo_id
+        ) VALUES (
+          ${card.name},
+          ${card.level},
+          ${card.path ?? null},
+          ${card.parent ?? null},
+          ${card.summary},
+          ${JSON.stringify(card.insights)},
+          ${JSON.stringify(card.files ?? [])},
+          ${JSON.stringify(card.exports ?? [])},
+          ${JSON.stringify(card.related ?? [])},
+          ${JSON.stringify(card.children ?? [])},
+          ${JSON.stringify(card.sessions)},
+          ${versionId},
+          ${repoId}
+        )
+        ON CONFLICT (repo_id, node_name) DO UPDATE SET
+          level = EXCLUDED.level,
+          path = EXCLUDED.path,
+          parent_node = EXCLUDED.parent_node,
+          summary = EXCLUDED.summary,
+          insights = EXCLUDED.insights,
+          files = EXCLUDED.files,
+          exports = EXCLUDED.exports,
+          related = EXCLUDED.related,
+          children = EXCLUDED.children,
+          sessions = EXCLUDED.sessions,
+          version_id = EXCLUDED.version_id
+      `;
+    }
   }
 
   return { plan, specs: writtenSpecs };

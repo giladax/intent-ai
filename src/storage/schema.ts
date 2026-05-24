@@ -319,3 +319,23 @@ export const brainVersions = pgTable("brain_versions", {
   parentVersionId: uuid("parent_version_id").references((): any => brainVersions.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ── Brain: Cards ──────────────────────────────────────────────────────
+
+export const brainCards = pgTable("brain_cards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nodeName: text("node_name").notNull(),
+  level: text("level").notNull(),
+  path: text("path"),
+  parentNode: text("parent_node"),
+  summary: text("summary").notNull(),
+  insights: jsonb("insights").notNull().default([]),
+  files: jsonb("files").default([]),
+  exports: jsonb("exports").default([]),
+  related: jsonb("related").default([]),
+  children: jsonb("children").default([]),
+  sessions: jsonb("sessions").default([]),
+  versionId: uuid("version_id").references(() => brainVersions.id),
+  repoId: uuid("repo_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
