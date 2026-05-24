@@ -37,7 +37,7 @@ export function App() {
   const [topics, setTopics] = useState<TopicSummary[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [chatCollapsed, setChatCollapsed] = useState(true);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
   const [view, setView] = useState<View>("knowledge");
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
@@ -165,18 +165,14 @@ export function App() {
         {selectedProject && (
           <SidebarFooter className="p-3">
             <Button
-              variant={undigestedCount > 0 ? "default" : "outline"}
+              variant="outline"
               size="sm"
-              className="w-full gap-2"
+              className={`w-full gap-2 ${undigestedCount > 0 ? "border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30" : ""}`}
+              disabled={undigestedCount === 0}
               onClick={() => { setView("sync"); setSelectedTopicId(null); }}
             >
-              <RefreshCw className="size-3.5" />
-              Sync Brain
-              {undigestedCount > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto">
-                  {undigestedCount}
-                </Badge>
-              )}
+              <RefreshCw className={`size-3.5 ${undigestedCount > 0 ? "animate-spin-slow" : ""}`} />
+              {undigestedCount > 0 ? `Sync Brain · ${undigestedCount} new` : "Brain up to date"}
             </Button>
           </SidebarFooter>
         )}
