@@ -20,7 +20,7 @@ import { join, resolve } from "path";
 
 // ── Types ─────────────────────────────────────────────────────────
 
-interface TopicNode {
+export interface TopicNode {
   name: string;
   slug: string;
   summary: string;
@@ -50,7 +50,7 @@ function findRepoDir(): string {
   throw new Error("No .repo/ directory found. Run `intent brain-export` first.");
 }
 
-function parseTopic(slug: string, content: string): TopicNode {
+export function parseTopic(slug: string, content: string): TopicNode {
   const lines = content.split("\n");
 
   // Name from first heading
@@ -165,7 +165,7 @@ function tokenize(text: string): string[] {
   return text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 }
 
-function fuzzyScore(query: string, text: string): number {
+export function fuzzyScore(query: string, text: string): number {
   const qTokens = tokenize(query);
   const tTokens = new Set(tokenize(text));
   if (qTokens.length === 0) return 0;
@@ -187,28 +187,47 @@ function fuzzyScore(query: string, text: string): number {
 
 // ── Card format (compact overview for LLM navigation) ─────────
 
-function formatCard(node: TopicNode): string {
-  const parts: string[] = [`## ${node.name}`];
-  if (node.parent) parts.push(`Parent: ${node.parent}`);
-  if (node.children.length > 0) parts.push(`Children: ${node.children.join(", ")}`);
-  if (node.related.length > 0) parts.push(`Related: ${node.related.join(", ")}`);
-  parts.push(""); // blank line
-  parts.push(node.summary.slice(0, 300));
+export function formatCard(node: TopicNode): string {
+  const lines: string[] = [];
 
-  // Top insights (max 3)
-  const topInsights = node.insights.slice(0, 3);
+  // Header with hierarchy indicator
+  if (node.parent) {
+    lines.push(`### ${node.name}  ↑ ${node.parent}`);
+  } else {
+    lines.push(`### ${node.name}`);
+  }
+
+  // Summary (first 200 chars)
+  lines.push(node.summary.slice(0, 200));
+
+  // Top insights: one per distinct category, max 3
+  const seenCats = new Set<string>();
+  const topInsights = node.insights.filter((i) => {
+    if (seenCats.has(i.category)) return false;
+    seenCats.add(i.category);
+    return true;
+  }).slice(0, 3);
+
   if (topInsights.length > 0) {
-    parts.push("");
+    lines.push("");
     for (const i of topInsights) {
-      parts.push(`- [${i.category}] ${i.statement.slice(0, 150)}`);
+      lines.push(`- [${i.category}] ${i.statement.slice(0, 150)}`);
     }
   }
 
-  // File count
-  if (node.files.length > 0) parts.push(`\n${node.files.length} files`);
-  if (node.sessions.length > 0) parts.push(`${node.sessions.length} sessions`);
+  // Navigation hints
+  const nav: string[] = [];
+  if (node.children.length > 0) nav.push(`${node.children.length} sub-specs: ${node.children.join(", ")}`);
+  if (node.related.length > 0) nav.push(`related: ${node.related.join(", ")}`);
+  if (node.files.length > 0) nav.push(`${node.files.length} files`);
+  if (node.sessions.length > 0) nav.push(`${node.sessions.length} sessions`);
 
-  return parts.join("\n");
+  if (nav.length > 0) {
+    lines.push("");
+    lines.push(`_${nav.join(" · ")}_`);
+  }
+
+  return lines.join("\n");
 }
 
 // ── MCP Server ────────────────────────────────────────────────────
