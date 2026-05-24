@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { TopicSummary, BrainSyncProposal, BrainSyncChange } from "../types";
-import { ChevronRight, Plus, Pencil, Merge } from "lucide-react";
+import { ChevronRight, Plus, Pencil, Merge, Trash2 } from "lucide-react";
 
 interface Props {
   topics: TopicSummary[];
@@ -8,36 +8,24 @@ interface Props {
   onTopicClick?: (topicId: string) => void;
 }
 
-// Colors for change types
-const CHANGE_BG: Record<string, string> = {
-  add: "bg-emerald-50 dark:bg-emerald-950/30",
-  update: "bg-blue-50 dark:bg-blue-950/30",
-  merge: "bg-amber-50 dark:bg-amber-950/30",
-};
-const CHANGE_BORDER: Record<string, string> = {
-  add: "border-emerald-300 dark:border-emerald-700",
-  update: "border-blue-300 dark:border-blue-700",
-  merge: "border-amber-300 dark:border-amber-700",
-};
-const CHANGE_TEXT: Record<string, string> = {
-  add: "text-emerald-700 dark:text-emerald-400",
-  update: "text-blue-700 dark:text-blue-400",
-  merge: "text-amber-700 dark:text-amber-400",
-};
-const CHANGE_ICON: Record<string, typeof Plus> = {
-  add: Plus,
-  update: Pencil,
-  merge: Merge,
-};
+// Change annotations
+const CHANGE_COLORS = {
+  add: { text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+  update: { text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/20" },
+  merge: { text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/20" },
+  delete: { text: "text-red-500 dark:text-red-400 line-through", bg: "bg-red-50 dark:bg-red-950/20" },
+} as const;
+
+const CHANGE_ICONS = { add: Plus, update: Pencil, merge: Merge, delete: Trash2 };
 
 interface TreeNode {
-  id: string | null; // topic ID for existing topics (null for new)
+  id: string | null;
   name: string;
   summary: string;
   parentName: string | null;
   children: TreeNode[];
   insightCount: number;
-  change: BrainSyncChange | null; // null = existing unchanged
+  change: (BrainSyncChange & { mergedInto?: string }) | null;
 }
 
 export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
@@ -48,15 +36,25 @@ export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
     if (name) changeByName.set(name, c);
   }
 
-  // Build spec summary lookup from proposal
+  // Track specs being merged away (they show as deleted with "→ merged into X")
+  const mergedAway = new Map<string, string>(); // old name → merged-into name
+  for (const c of proposal.changes) {
+    if (c.type === "merge" && c.from) {
+      for (const src of c.from) {
+        mergedAway.set(src, c.into ?? "");
+      }
+    }
+  }
+
+  // Spec summaries from proposal
   const specSummary = new Map<string, { summary: string; insightCount: number }>();
   for (const s of proposal.specs) specSummary.set(s.name, s);
 
-  // Build unified tree: existing topics + new additions
+  // Build unified tree
   const nodeMap = new Map<string, TreeNode>();
 
-  // Add existing topics
   for (const t of topics) {
+    const mergeTarget = mergedAway.get(t.name);
     nodeMap.set(t.name, {
       id: t.id,
       name: t.name,
@@ -64,17 +62,19 @@ export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
       parentName: topics.find((p) => p.id === t.parent_topic_id)?.name ?? null,
       children: [],
       insightCount: t.insight_count,
-      change: changeByName.get(t.name) ?? null,
+      change: mergeTarget
+        ? { type: "merge" as const, from: [t.name], into: mergeTarget, mergedInto: mergeTarget }
+        : changeByName.get(t.name) ?? null,
     });
   }
 
-  // Add new specs from proposal that don't exist yet
+  // Add new specs
   for (const c of proposal.changes) {
     const name = c.type === "merge" ? c.into : c.spec;
     if (!name || nodeMap.has(name)) continue;
     const spec = specSummary.get(name);
     nodeMap.set(name, {
-      id: null, // new topic, no DB id yet
+      id: null,
       name,
       summary: spec?.summary ?? "",
       parentName: c.parent ?? null,
@@ -84,7 +84,7 @@ export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
     });
   }
 
-  // Link children to parents
+  // Link children
   const roots: TreeNode[] = [];
   for (const node of nodeMap.values()) {
     if (node.parentName && nodeMap.has(node.parentName)) {
@@ -94,142 +94,149 @@ export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
     }
   }
 
-  // Sort: changed items first, then alphabetical
+  // Sort: changed first, then alphabetical
   function sortNodes(nodes: TreeNode[]) {
     nodes.sort((a, b) => {
-      const aChanged = a.change ? 1 : 0;
-      const bChanged = b.change ? 1 : 0;
-      if (aChanged !== bChanged) return bChanged - aChanged; // changed first
+      if (a.change && !b.change) return -1;
+      if (!a.change && b.change) return 1;
       return a.name.localeCompare(b.name);
     });
     for (const n of nodes) sortNodes(n.children);
   }
   sortNodes(roots);
 
-  // Count changes in subtree
-  function countChanges(node: TreeNode): number {
-    let count = node.change ? 1 : 0;
-    for (const c of node.children) count += countChanges(c);
-    return count;
-  }
-
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-4">
         <h2 className="text-lg font-semibold">Brain Sync Preview</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Review changes before applying.
-          <span className={`inline-flex items-center gap-1 mx-1.5 ${CHANGE_TEXT.add}`}><Plus className="size-3" /> new</span>
-          <span className={`inline-flex items-center gap-1 mx-1.5 ${CHANGE_TEXT.update}`}><Pencil className="size-3" /> updated</span>
-          <span className={`inline-flex items-center gap-1 mx-1.5 ${CHANGE_TEXT.merge}`}><Merge className="size-3" /> merged</span>
-        </p>
+        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Plus className="size-3 text-emerald-600" /> new</span>
+          <span className="flex items-center gap-1"><Pencil className="size-3 text-blue-600" /> updated</span>
+          <span className="flex items-center gap-1"><Merge className="size-3 text-amber-600" /> merged</span>
+          <span className="text-muted-foreground/50">unchanged</span>
+        </div>
       </div>
-      <div className="space-y-0.5">
+      <div className="font-mono text-[13px]">
         {roots.map((node) => (
-          <DiffNode key={node.name} node={node} depth={0} countChanges={countChanges} onTopicClick={onTopicClick} />
+          <DiffTreeNode key={node.name} node={node} depth={0} onTopicClick={onTopicClick} specSummary={specSummary} />
         ))}
       </div>
     </div>
   );
 }
 
-function DiffNode({
+function DiffTreeNode({
   node,
   depth,
-  countChanges,
   onTopicClick,
+  specSummary,
 }: {
   node: TreeNode;
   depth: number;
-  countChanges: (n: TreeNode) => number;
   onTopicClick?: (topicId: string) => void;
+  specSummary: Map<string, { summary: string; insightCount: number }>;
 }) {
   const hasChildren = node.children.length > 0;
-  const childChangeCount = hasChildren ? countChanges(node) - (node.change ? 1 : 0) : 0;
-  const [expanded, setExpanded] = useState(
-    // Auto-expand if this node or children have changes
-    !!(node.change || childChangeCount > 0)
-  );
+  const [expanded, setExpanded] = useState(true);
+  const [hovered, setHovered] = useState(false);
 
   const change = node.change;
-  const changeType = change?.type;
-  const Icon = changeType ? CHANGE_ICON[changeType] : null;
+  const changeType = change?.mergedInto ? "delete" : change?.type;
+  const colors = changeType ? CHANGE_COLORS[changeType as keyof typeof CHANGE_COLORS] : null;
+  const Icon = changeType ? CHANGE_ICONS[changeType as keyof typeof CHANGE_ICONS] : null;
+  const isClickable = !!(node.id && onTopicClick && !change?.mergedInto);
 
   return (
-    <div style={{ marginLeft: depth * 20 }}>
-      <button
-        className={`flex items-start gap-2 py-2 px-3 w-full text-left text-sm rounded-lg transition-all ${
-          change
-            ? `${CHANGE_BG[changeType!]} border ${CHANGE_BORDER[changeType!]}`
-            : "hover:bg-muted/40"
-        }`}
-        onClick={() => hasChildren && setExpanded(!expanded)}
+    <div>
+      <div
+        className={`flex items-center h-7 relative group ${
+          colors ? colors.bg : "hover:bg-accent/50"
+        } ${isClickable ? "cursor-pointer" : ""}`}
+        style={{ paddingLeft: depth * 16 + 4 }}
+        onClick={() => isClickable && onTopicClick!(node.id!)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
-        {/* Expand chevron */}
         {hasChildren ? (
-          <ChevronRight
-            className={`size-4 shrink-0 mt-0.5 text-muted-foreground transition-transform ${
-              expanded ? "rotate-90" : ""
-            }`}
-          />
+          <button
+            className="shrink-0 w-4 h-4 flex items-center justify-center"
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+          >
+            <ChevronRight className={`size-3 text-muted-foreground transition-transform duration-100 ${expanded ? "rotate-90" : ""}`} />
+          </button>
         ) : (
           <span className="w-4 shrink-0" />
         )}
 
-        {/* Change icon */}
-        {Icon && <Icon className={`size-4 shrink-0 mt-0.5 ${CHANGE_TEXT[changeType!]}`} />}
+        {Icon && <Icon className={`size-3 shrink-0 ml-0.5 mr-1.5 ${colors!.text}`} />}
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {node.id && onTopicClick ? (
-              <span
-                className={`font-medium underline underline-offset-2 cursor-pointer ${change ? CHANGE_TEXT[changeType!] : "text-muted-foreground hover:text-foreground"}`}
-                onClick={(e) => { e.stopPropagation(); onTopicClick(node.id!); }}
-              >
-                {node.name}
-              </span>
-            ) : (
-              <span className={`font-medium ${change ? CHANGE_TEXT[changeType!] : "text-muted-foreground"}`}>
-                {node.name}
-              </span>
-            )}
-            {changeType && (
-              <span className={`text-[10px] font-medium uppercase ${CHANGE_TEXT[changeType]}`}>
-                {changeType}
-              </span>
-            )}
-            {!change && childChangeCount > 0 && (
-              <span className="text-[10px] text-muted-foreground">
-                {childChangeCount} change{childChangeCount !== 1 ? "s" : ""} below
-              </span>
-            )}
-          </div>
-          {change && node.summary && (
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              {node.summary.slice(0, 180)}
-              {node.summary.length > 180 ? "..." : ""}
-            </p>
-          )}
-          {change?.type === "merge" && change.from && (
-            <p className="text-[11px] mt-1 opacity-70">
-              merging: {change.from.join(", ")}
-            </p>
-          )}
-        </div>
+        <span className={`truncate ${colors ? colors.text : "text-muted-foreground"}`}>
+          {node.name}
+        </span>
 
-        {/* Insight count */}
-        {node.insightCount > 0 && (
-          <span className="text-[10px] text-muted-foreground shrink-0 mt-1">
-            {node.insightCount} insights
+        {/* Merge annotation */}
+        {change?.mergedInto && (
+          <span className="ml-2 text-[10px] text-amber-600 dark:text-amber-400 font-sans">
+            → {change.mergedInto}
           </span>
         )}
-      </button>
+
+        {/* Change type label */}
+        {changeType && !change?.mergedInto && (
+          <span className={`ml-2 text-[10px] ${colors!.text} font-sans`}>
+            {changeType}
+          </span>
+        )}
+
+        {/* Hover card */}
+        {hovered && (node.summary || change) && (
+          <div
+            className="absolute left-full top-0 ml-2 z-50 w-80 p-3 rounded-lg border bg-popover text-popover-foreground shadow-lg text-xs font-sans animate-in fade-in duration-100"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          >
+            <div className="font-semibold text-sm mb-1 flex items-center gap-2">
+              {node.name}
+              {changeType && (
+                <span className={`text-[10px] font-normal ${colors!.text}`}>{changeType}</span>
+              )}
+            </div>
+
+            {/* Summary */}
+            {node.summary && (
+              <p className="text-muted-foreground leading-relaxed">
+                {node.summary.slice(0, 250)}{node.summary.length > 250 ? "..." : ""}
+              </p>
+            )}
+
+            {/* For new/updated: show insight count from proposal */}
+            {changeType && changeType !== "delete" && (
+              <div className="mt-2 text-[10px] text-muted-foreground">
+                {specSummary.get(node.name)?.insightCount ?? node.insightCount} insights
+              </div>
+            )}
+
+            {/* For merge sources: show what they're merging into */}
+            {change?.mergedInto && (
+              <p className="mt-2 text-amber-600 dark:text-amber-400">
+                Being merged into <strong>{change.mergedInto}</strong>
+              </p>
+            )}
+
+            {/* For merge targets: show what's being merged in */}
+            {change?.type === "merge" && change.from && !change.mergedInto && (
+              <p className="mt-2 text-amber-600 dark:text-amber-400">
+                Merging: {change.from.join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {expanded && hasChildren && (
-        <div className="space-y-0.5 mt-0.5">
+        <div>
           {node.children.map((child) => (
-            <DiffNode key={child.name} node={child} depth={depth + 1} countChanges={countChanges} onTopicClick={onTopicClick} />
+            <DiffTreeNode key={child.name} node={child} depth={depth + 1} onTopicClick={onTopicClick} specSummary={specSummary} />
           ))}
         </div>
       )}

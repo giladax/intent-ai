@@ -1,26 +1,27 @@
-# brain — Brain
+# intent-ai — Brain
 
 > This file is the entry point to the project's knowledge graph.
 > Each spec below is a concept in the codebase with accumulated insights from development sessions.
 > Use the file index at the bottom to find which spec covers any source file.
 
-## Dashboard & CLI
+## APIs & Interfaces
 
-- [Dashboard & CLI](topics/dashboard-cli.md) — The Dashboard & CLI layer provides the primary human-facing interfaces for interacting with the s... (7 files)
+- [APIs & Interfaces](topics/apis-interfaces.md) — The APIs & Interfaces layer defines the external and internal contracts through which the system ... (5 files)
+  - [MCP Server & Graph Navigation](topics/mcp-server-graph-navigation.md) — The MCP server is a filesystem-based, graph-aware navigation system that exposes the .repo/ knowl... (5 files)
 
-## Data Collection & Ingestion
+## Architecture & Design
 
-- [Data Collection & Ingestion](topics/data-collection-ingestion.md) — Data Collection & Ingestion is the entry point of the data pipeline — responsible for acquiring r... (6 files)
+- [Architecture & Design](topics/architecture-design.md) — This document describes the high-level architecture and design principles of the codebase. It ser... (7 files)
+  - [Database Infrastructure](topics/database-infrastructure.md) — The database infrastructure layer provides persistent storage for the pipeline orchestrator using... (3 files)
 
-## Intent Pipeline V2
+## Core Pipeline & Brain
 
-- [Intent Pipeline V2](topics/intent-pipeline-v2.md) — Intent Pipeline V2 is a ground-up replacement of the legacy Signal→Fact→Thread processing chain w... (17 files)
-  - [Legacy Code Purge](topics/legacy-code-purge.md) — The Legacy Code Purge is a completed, irreversible architectural migration that eliminated all si... (6 files)
-  - [V2 Plan Grounding and Documentation](topics/v2-plan-grounding-and-documentation.md) — Before writing any V2 pipeline plan, the process requires grounding in the actual codebase — read... (3 files)
+- [Core Pipeline & Brain](topics/core-pipeline-brain.md) — The Core Pipeline & Brain is the central processing system responsible for transforming raw codeb... (19 files)
+  - [Static Repo Index](topics/static-repo-index.md) — The Static Repo Index is the committed, agent-readable layer of the Repo Brain — a set of markdow... (4 files)
 
-## Org Registry & Drift Detection
+## Dashboard & UI
 
-- [Org Registry & Drift Detection](topics/org-registry-drift-detection.md) — The Org Registry & Drift Detection system is a foundational concept for tracking organizational s... (1 files)
+- [Dashboard & UI](topics/dashboard-ui.md) — The Dashboard & UI layer is the primary visual interface through which users interact with the sy... (11 files)
 
 ## File Index
 
@@ -28,34 +29,40 @@
 
 | File | Spec |
 |------|------|
-| `/Users/giladkoch/.brain/product.md` | Dashboard & CLI |
-| `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/docs/plans/2026-05-15-org-registry-drift-detection.md` | Dashboard & CLI |
-| `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/docs/plans/2026-05-21-intent-pipeline-v2.md` | Intent Pipeline V2 > V2 Plan Grounding and Documentation |
-| `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/docs/superpowers/specs/2026-05-15-org-registry-drift-detection-design.md` | Org Registry & Drift Detection |
-| `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/src/brain/models.py` | Intent Pipeline V2 |
-| `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/src/brain/pipeline.py` | Intent Pipeline V2 |
-| `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/tests/eval/dataset.py` | Intent Pipeline V2 > V2 Plan Grounding and Documentation |
-| `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/tests/eval/ground_truth_2026_04_11.json` | Intent Pipeline V2 > V2 Plan Grounding and Documentation |
-| `docs/plans/2026-04-24-pipeline-visibility.md` | Dashboard & CLI |
-| `docs/plans/2026-05-16-product-view-markdown.md` | Dashboard & CLI |
-| `docs/superpowers/specs/2026-04-24-pipeline-visibility-design.md` | Dashboard & CLI |
-| `frontend/src/lib/api.ts` | Intent Pipeline V2 > Legacy Code Purge |
-| `frontend/src/pages/SessionFeed.tsx` | Dashboard & CLI |
-| `src/brain/api.py` | Intent Pipeline V2 > Legacy Code Purge |
-| `src/brain/cli.py` | Dashboard & CLI |
-| `src/brain/collectors/claude_collector.py` | Data Collection & Ingestion |
-| `src/brain/collectors/entireio_collector.py` | Data Collection & Ingestion |
-| `src/brain/constants.py` | Intent Pipeline V2 |
-| `src/brain/db.py` | Intent Pipeline V2 |
-| `src/brain/extractors/session_extractor.py` | Intent Pipeline V2 > Legacy Code Purge |
-| `src/brain/loop_detection.py` | Intent Pipeline V2 |
-| `src/brain/models.py` | Intent Pipeline V2 > Legacy Code Purge |
-| `src/brain/pipeline.py` | Intent Pipeline V2 |
-| `tests/fixtures/claude_session_sample.jsonl` | Data Collection & Ingestion |
-| `tests/test_api.py` | Intent Pipeline V2 > Legacy Code Purge |
-| `tests/test_claude_collector_cursor.py` | Data Collection & Ingestion |
-| `tests/test_claude_collector.py` | Data Collection & Ingestion |
-| `tests/test_db.py` | Intent Pipeline V2 |
-| `tests/test_entireio_collector.py` | Data Collection & Ingestion |
-| `tests/test_loop_detection.py` | Intent Pipeline V2 |
-| `tests/test_models.py` | Intent Pipeline V2 > Legacy Code Purge |
+| `.repo/` | Core Pipeline & Brain > Static Repo Index |
+| `.repo/brain.md` | Core Pipeline & Brain > Static Repo Index |
+| `.repo/topics/moment-detection.md` | Core Pipeline & Brain > Static Repo Index |
+| `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/MEMORY.md` | Architecture & Design |
+| `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/user_prefers_typescript.md` | Architecture & Design |
+| `docs/superpowers/specs/2026-05-21-execution-memory-design.md` | Core Pipeline & Brain |
+| `docs/superpowers/specs/2026-05-21-execution-memory-design.md` | Core Pipeline & Brain |
+| `drizzle.config.ts` | Architecture & Design > Database Infrastructure |
+| `src/adapters/types.ts` | Core Pipeline & Brain |
+| `src/brain/cards.ts` | APIs & Interfaces > MCP Server & Graph Navigation |
+| `src/brain/generate-markdown.ts` | Core Pipeline & Brain > Static Repo Index |
+| `src/cli/digest.ts` | Core Pipeline & Brain |
+| `src/cli/index.ts` | Core Pipeline & Brain |
+| `src/cli/infra.ts` | Architecture & Design > Database Infrastructure |
+| `src/db/schema.ts` | Core Pipeline & Brain |
+| `src/llm/client.ts` | Core Pipeline & Brain |
+| `src/llm/prompts/brain-synthesis.ts` | Core Pipeline & Brain |
+| `src/mcp/server.ts` | APIs & Interfaces > MCP Server & Graph Navigation |
+| `src/pipeline/brain-synthesis.ts` | Core Pipeline & Brain |
+| `src/pipeline/classify-exchanges.ts` | Core Pipeline & Brain |
+| `src/pipeline/index.ts` | Core Pipeline & Brain |
+| `src/pipeline/moments.ts` | Core Pipeline & Brain |
+| `src/pipeline/orchestrator.ts` | Core Pipeline & Brain |
+| `src/storage/connection.ts` | Core Pipeline & Brain |
+| `src/storage/schema.ts` | Core Pipeline & Brain |
+| `src/web/server.ts` | Dashboard & UI |
+| `src/web/ui/src/api.ts` | Dashboard & UI |
+| `src/web/ui/src/App.tsx` | Dashboard & UI |
+| `src/web/ui/src/components/ChatPanel.tsx` | Dashboard & UI |
+| `src/web/ui/src/components/Header.tsx` | Dashboard & UI |
+| `src/web/ui/src/components/SessionList.tsx` | Dashboard & UI |
+| `src/web/ui/src/components/SessionPanel.tsx` | Dashboard & UI |
+| `src/web/ui/src/components/TopicDetail.tsx` | Dashboard & UI |
+| `src/web/ui/src/components/TopicList.tsx` | Dashboard & UI |
+| `src/web/ui/src/index.css` | Dashboard & UI |
+| `src/web/ui/src/types.ts` | Dashboard & UI |
+| `tests/mcp/server.test.ts` | APIs & Interfaces > MCP Server & Graph Navigation |
