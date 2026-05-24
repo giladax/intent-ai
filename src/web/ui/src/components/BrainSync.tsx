@@ -56,9 +56,12 @@ async function readSSE(
     for (const line of lines) {
       if (line.startsWith("data: ")) {
         try {
-          onEvent(JSON.parse(line.slice(6)));
-        } catch {
-          // skip malformed lines
+          const parsed = JSON.parse(line.slice(6));
+          onEvent(parsed);
+        } catch (e) {
+          // Only skip JSON parse errors, not callback errors
+          if (e instanceof SyntaxError) continue;
+          throw e;
         }
       }
     }
