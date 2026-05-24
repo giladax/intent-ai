@@ -9,8 +9,13 @@ interface LogFile {
   mtime: Date;
 }
 
-/** Recursively collect all .jsonl files under a directory */
-async function collectJsonl(dir: string): Promise<LogFile[]> {
+/**
+ * Collect .jsonl session files from a directory.
+ * When scoped=true, only collects top-level .jsonl files (no recursion).
+ * Subagent logs live in subdirectories (e.g., <sessionId>/subagents/)
+ * and must not be collected — they're not user sessions.
+ */
+async function collectJsonl(dir: string, scoped = false): Promise<LogFile[]> {
   const results: LogFile[] = [];
 
   let entries;
@@ -22,8 +27,9 @@ async function collectJsonl(dir: string): Promise<LogFile[]> {
 
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...(await collectJsonl(fullPath)));
+    if (entry.isDirectory() && !scoped) {
+      // When unscoped (top-level search), recurse into project dirs only
+      results.push(...(await collectJsonl(fullPath, true)));
     } else if (entry.isFile() && entry.name.endsWith(".jsonl")) {
       const info = await stat(fullPath);
       results.push({ path: fullPath, mtime: info.mtime });
@@ -56,7 +62,8 @@ export async function discoverLogs(
     ? join(CLAUDE_PROJECTS_DIR, projectDir)
     : CLAUDE_PROJECTS_DIR;
 
-  const files = await collectJsonl(searchDir);
+  // When scoped to a project, don't recurse into subdirectories (subagents, tasks)
+  const files = await collectJsonl(searchDir, !!projectDir);
 
   files.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 
