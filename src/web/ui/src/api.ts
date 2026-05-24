@@ -9,7 +9,6 @@ import type {
   TopicDetail,
   TimelineData,
   BrainDiscoverResult,
-  BrainSyncProposal,
   SyncJobStatus,
 } from "./types";
 
@@ -83,18 +82,7 @@ export const discoverBrainSessions = (repoId: string) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repoId }),
   });
-export const proposeBrainSync = (repoId: string, sessionIds: string[]) =>
-  json<BrainSyncProposal>("/api/brain/propose", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ repoId, sessionIds }),
-  });
-export const applyBrainSync = (repoId: string, sessionIds: string[]) =>
-  json<{ status: string; specsWritten: number; merges: number }>("/api/brain/apply", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ repoId, sessionIds }),
-  });
+// proposeBrainSync and applyBrainSync now use SSE streaming directly in BrainSync.tsx
 
 // Chat (streaming)
 export async function* streamChat(

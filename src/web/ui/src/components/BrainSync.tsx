@@ -33,12 +33,43 @@ const PROGRESS_STEPS = [
   { key: "applying", label: "Updating brain..." },
 ];
 
+/** Read an SSE stream and call onEvent for each parsed data line. */
+async function readSSE(
+  response: Response,
+  onEvent: (data: any) => void,
+): Promise<void> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          onEvent(JSON.parse(line.slice(6)));
+        } catch {
+          // skip malformed lines
+        }
+      }
+    }
+  }
+}
+
 export function BrainSync({ repoId, onSynced }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [sessions, setSessions] = useState<BrainSyncSession[]>([]);
   const [proposal, setProposal] = useState<BrainSyncProposal | null>(null);
   const [digestedCount, setDigestedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
 
   // Recover server-side job state on mount (survives page refresh)
   useEffect(() => {
@@ -96,13 +127,35 @@ export function BrainSync({ repoId, onSynced }: Props) {
     const selected = sessions.filter(s => s.selected);
     if (selected.length === 0) return;
     setPhase("proposing");
+    setProgressMessage("Extracting knowledge...");
+
     try {
-      const result = await proposeBrainSync(repoId, selected.map(s => s.id));
-      setProposal(result);
-      setPhase("reviewing");
+      const response = await fetch("/api/brain/propose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoId, sessionIds: selected.map(s => s.id) }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`${response.status}: ${body}`);
+      }
+
+      await readSSE(response, (data) => {
+        if (data.phase === "error") {
+          throw new Error(data.message || "Synthesis failed");
+        } else if (data.phase === "done") {
+          setProposal(data.proposal);
+          setPhase("reviewing");
+          setProgressMessage(null);
+        } else {
+          setProgressMessage(data.message || "Processing...");
+        }
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setPhase("selecting");
+      setProgressMessage(null);
     }
   };
 
@@ -110,18 +163,40 @@ export function BrainSync({ repoId, onSynced }: Props) {
     const selected = sessions.filter(s => s.selected);
     if (selected.length === 0) return;
     setPhase("applying");
+    setProgressMessage("Applying changes...");
+
     try {
-      await applyBrainSync(repoId, selected.map(s => s.id));
-      setPhase("done");
-      setTimeout(() => {
-        onSynced();
-        setPhase("idle");
-        setProposal(null);
-        setSessions([]);
-      }, 2000);
+      const response = await fetch("/api/brain/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoId, sessionIds: selected.map(s => s.id) }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`${response.status}: ${body}`);
+      }
+
+      await readSSE(response, (data) => {
+        if (data.phase === "error") {
+          throw new Error(data.message || "Apply failed");
+        } else if (data.phase === "done") {
+          setPhase("done");
+          setProgressMessage(null);
+          setTimeout(() => {
+            onSynced();
+            setPhase("idle");
+            setProposal(null);
+            setSessions([]);
+          }, 2000);
+        } else {
+          setProgressMessage(data.message || "Processing...");
+        }
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setPhase("reviewing");
+      setProgressMessage(null);
     }
   };
 
@@ -170,7 +245,7 @@ export function BrainSync({ repoId, onSynced }: Props) {
                 {isDone ? <Check className="size-3 text-emerald-500" /> :
                  isCurrent ? <Loader2 className="size-3 animate-spin" /> :
                  <div className="size-3" />}
-                {step.label}
+                {isCurrent && progressMessage ? progressMessage : step.label}
               </div>
             );
           })}
