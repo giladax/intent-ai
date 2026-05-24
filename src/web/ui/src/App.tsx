@@ -161,6 +161,12 @@ export function App() {
               sessions={sessions}
               repoId={selectedProject?.id ?? null}
               onTopicClick={handleTopicSelect}
+              onSyncBrain={() => {
+                // Scroll sidebar footer into view where Sync Brain button lives
+                const el = document.querySelector("[data-sync-brain]");
+                el?.scrollIntoView({ behavior: "smooth" });
+                (el as HTMLElement)?.click();
+              }}
             />
           ) : (
             <ResizablePanelGroup direction="horizontal" className="h-full">

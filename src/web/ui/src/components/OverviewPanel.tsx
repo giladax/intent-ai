@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { TopicSummary, Session } from "../types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BranchTimeline } from "./BranchTimeline";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, CircleDot, RefreshCw } from "lucide-react";
 
 interface Props {
   topics: TopicSummary[];
   sessions: Session[];
   repoId: string | null;
   onTopicClick: (id: string) => void;
+  onSyncBrain?: () => void;
 }
 
-export function OverviewPanel({ topics, sessions, repoId, onTopicClick }: Props) {
+export function OverviewPanel({ topics, sessions, repoId, onTopicClick, onSyncBrain }: Props) {
   if (topics.length === 0 && sessions.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
@@ -41,23 +43,56 @@ export function OverviewPanel({ topics, sessions, repoId, onTopicClick }: Props)
     return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  // Build topic ID → name lookup
-  const topicById = new Map(topics.map((t) => [t.id, t]));
+  // Fetch undigested count
+  const [undigestedCount, setUndigestedCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!repoId) return;
+    fetch("/api/brain/discover", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repoId }),
+    })
+      .then((r) => r.json())
+      .then((data) => setUndigestedCount(data.undigestedCount ?? 0))
+      .catch(() => {});
+  }, [repoId]);
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto p-6 space-y-8">
         {/* Stats */}
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <Card className="flex-1 p-4 text-center">
             <div className="text-2xl font-semibold">{topics.length}</div>
             <div className="text-xs text-muted-foreground">Topics</div>
           </Card>
           <Card className="flex-1 p-4 text-center">
             <div className="text-2xl font-semibold">{sessions.length}</div>
-            <div className="text-xs text-muted-foreground">Sessions</div>
+            <div className="text-xs text-muted-foreground">Digested</div>
+          </Card>
+          <Card className={`flex-1 p-4 text-center ${undigestedCount ? "border-amber-300 dark:border-amber-700" : ""}`}>
+            <div className={`text-2xl font-semibold ${undigestedCount ? "text-amber-600 dark:text-amber-400" : ""}`}>
+              {undigestedCount ?? "—"}
+            </div>
+            <div className="text-xs text-muted-foreground">Undigested</div>
           </Card>
         </div>
+
+        {/* Sync CTA when undigested sessions exist */}
+        {undigestedCount != null && undigestedCount > 0 && onSyncBrain && (
+          <Card className="p-4 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm">
+                <span className="font-medium">{undigestedCount} new session{undigestedCount !== 1 ? "s" : ""}</span>
+                <span className="text-muted-foreground"> waiting to be digested</span>
+              </div>
+              <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={onSyncBrain}>
+                <RefreshCw className="size-3" />
+                Sync Brain
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Branch timeline */}
         {repoId && (
@@ -78,18 +113,19 @@ export function OverviewPanel({ topics, sessions, repoId, onTopicClick }: Props)
         {/* Recent sessions */}
         {recentSessions.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recent Sessions</h3>
-            {recentSessions.map((s) => (
-              <Card key={s.id} className="p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground shrink-0">{formatDate(s.started_at)}</span>
-                  <span className="text-sm truncate">{s.narrative_summary?.split(/[.!?\n]/)[0] || "No narrative"}</span>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Latest Sessions</h3>
+            <div className="space-y-1">
+              {recentSessions.map((s) => (
+                <div key={s.id} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/40 text-sm">
+                  <CircleDot className="size-3 shrink-0 text-emerald-500" />
+                  <span className="text-xs text-muted-foreground shrink-0 w-14">{formatDate(s.started_at)}</span>
+                  <span className="truncate flex-1">{s.narrative_summary?.split(/[.!?\n]/)[0] || "No narrative"}</span>
                   {s.session_shape && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">{s.session_shape}</Badge>
                   )}
                 </div>
-              </Card>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

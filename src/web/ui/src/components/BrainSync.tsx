@@ -345,7 +345,7 @@ export function BrainSync({ repoId, onSynced, onReviewChange }: Props) {
   if (phase === "idle") {
     return (
       <div className="space-y-2">
-        <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleDiscover}>
+        <Button data-sync-brain variant="outline" size="sm" className="w-full gap-2" onClick={handleDiscover}>
           <RefreshCw className="size-3.5" />
           Sync Brain
         </Button>
