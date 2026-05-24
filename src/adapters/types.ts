@@ -259,3 +259,24 @@ export interface BrainMutation {
   newTopics: Topic[];
   report: string;
 }
+
+// ── Brain Card ──────────────────────────────────────────────────────
+// Deterministic compression of a full spec — used for dashboard display.
+
+export interface BrainCard {
+  name: string;
+  level: "area" | "spec" | "file";
+  path?: string | null;              // file level only
+  parent?: string | null;
+  children?: string[];
+  summary: string;                   // ~100-150 words, the arc
+  insights: {
+    category: string;
+    statement: string;
+  }[];
+  files?: string[];                  // key files (spec/area level)
+  exports?: string[];                // file level
+  related?: string[];
+  sessions: string[];
+  versionId?: string;
+}
