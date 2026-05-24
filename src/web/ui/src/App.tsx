@@ -186,18 +186,31 @@ export function App() {
         {/* Sync button at bottom */}
         {selectedProject && (
           <SidebarFooter className="p-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              disabled={undigestedCount === 0}
-              onClick={() => { setView("sync"); setSelectedTopicId(null); }}
-            >
-              <RefreshCw className="size-3.5" />
-              {undigestedCount > 0 ? (
-                <>Sync Brain <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto">{undigestedCount}</Badge></>
-              ) : "Brain up to date"}
-            </Button>
+            {undigestedCount > 0 ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 relative overflow-hidden group"
+                onClick={() => { setView("sync"); setSelectedTopicId(null); }}
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-shimmer" />
+                <RefreshCw className="size-3.5 animate-spin-slow relative z-10" />
+                <span className="relative z-10">Sync Brain</span>
+                <span className="relative z-10 ml-auto flex items-center justify-center size-5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
+                  {undigestedCount}
+                </span>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full gap-2 text-muted-foreground"
+                disabled
+              >
+                <RefreshCw className="size-3.5" />
+                Brain up to date
+              </Button>
+            )}
           </SidebarFooter>
         )}
       </Sidebar>
