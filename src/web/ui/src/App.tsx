@@ -189,12 +189,14 @@ export function App() {
             <Button
               variant="outline"
               size="sm"
-              className={`w-full gap-2 ${undigestedCount > 0 ? "border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30" : ""}`}
+              className="w-full gap-2"
               disabled={undigestedCount === 0}
               onClick={() => { setView("sync"); setSelectedTopicId(null); }}
             >
-              <RefreshCw className={`size-3.5 ${undigestedCount > 0 ? "animate-spin-slow" : ""}`} />
-              {undigestedCount > 0 ? `Sync Brain · ${undigestedCount} new` : "Brain up to date"}
+              <RefreshCw className="size-3.5" />
+              {undigestedCount > 0 ? (
+                <>Sync Brain <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto">{undigestedCount}</Badge></>
+              ) : "Brain up to date"}
             </Button>
           </SidebarFooter>
         )}
