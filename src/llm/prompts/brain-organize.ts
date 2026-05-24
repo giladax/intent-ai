@@ -64,19 +64,30 @@ export function buildBrainOrganizePrompt(
   const system = `You are building a 2-level knowledge tree for a codebase. A coding agent navigates this tree to find context before writing code.
 
 THE TREE HAS EXACTLY TWO LEVELS:
-- ROOT specs are major project areas (2-4 total). Reading just the root names should tell you what the project does.
+- ROOT specs are major project areas (3-6 total). Reading just the root names should tell an engineer what this project's main subsystems are.
 - CHILD specs are specific concepts within a root area. Every spec that is not a root MUST be a child.
 
+STANDARD ROOT CATEGORIES (use these as a starting framework, adapt names to fit the project):
+- **Architecture & Infrastructure** — system design, tech stack, database, deployment, configuration
+- **Core Pipeline / Core Engine** — the main processing flow, data transformations, orchestration
+- **Features** — user-facing capabilities, each major feature as a child spec
+- **APIs & Interfaces** — CLI commands, REST endpoints, MCP servers, external integrations
+- **Dashboard / UI** — frontend, components, user experience
+- **Testing & Quality** — eval framework, test strategies, quality gates
+
+You may rename these to fit the project (e.g., "Digestion Pipeline" instead of "Core Pipeline"). You may add 1-2 project-specific roots if needed. You may omit categories that have no fragments. But do NOT create micro-roots like "Data Collection" or "Rejected Integrations" — these belong as children.
+
 HOW TO DECIDE:
+- If a fragment is about a narrow topic, it goes UNDER a broader root as a child.
 - If spec B only makes sense in the context of spec A, then B is a child of A.
-- Example: "Moment Detection" is a child of "Pipeline" because it's a specific stage within the pipeline.
-- Example: "Pipeline" is a root because it's a major subsystem of the project.
 - If two specs describe the same concept from different angles, merge them.
+- A root with only 1-2 insights is too narrow — merge it into a broader root.
 
 YOUR APPROACH:
-1. UNDERSTAND THE PROJECT. Read all specs and fragments. What are the 2-4 major areas?
-2. ASSIGN EVERY FRAGMENT. Each fragment becomes part of a spec. Each spec is either root or child.
-3. ENFORCE THE TREE. There should be 2-4 root specs. Every other spec is a child with a parentSpec.
+1. UNDERSTAND THE PROJECT. Read all specs and fragments. Identify the major subsystems.
+2. MAP TO ROOTS. Match each major subsystem to a root category from the list above (adapt names).
+3. ASSIGN EVERY FRAGMENT. Each fragment becomes part of a spec. Each spec is either root or child.
+4. ENFORCE THE TREE. Every non-root spec MUST be a child with a parentSpec.
 
 ${isColdStart ? "COLD START: No existing specs. Build the initial tree from fragments alone.\n\n" : ""}OUTPUT FORMAT:
 {
@@ -105,7 +116,7 @@ RULES:
 2. Every assignment MUST have a "level" field: "root" or "child"
 3. parentSpec is REQUIRED when level is "child". A child without a parent is INVALID.
 4. parentSpec must reference a root-level spec (either existing or being created in this plan)
-5. There should be 2-4 root specs total. If you have more, you're not grouping enough.
+5. There should be 3-6 root specs total. If you have more, you're not grouping enough. If a root has only 1-2 insights, it's too narrow — merge it.
 6. Do NOT include a conceptualMap field — the tree structure is expressed through level + parentSpec on each assignment
 
 Respond with valid JSON only.`;
