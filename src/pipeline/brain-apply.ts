@@ -1,6 +1,7 @@
 import { getClient } from "../storage/connection.js";
 import type { GraphPlan } from "../llm/prompts/brain-organize.js";
 import type { WrittenSpec } from "../llm/prompts/brain-write.js";
+import { findDuplicateIndices, computeSimilarity } from "./dedup.js";
 
 // ── Helpers (exported for testing) ──────────────────────────────────
 
@@ -287,22 +288,32 @@ async function storeSpecContent(
   spec: WrittenSpec,
   momentIdMap: Map<string, string>,
 ): Promise<void> {
-  // Upsert insights (deduplicate by statement)
-  for (const insight of spec.insights) {
-    // Check for existing insight with same statement
-    const [existing] = await sql`
-      SELECT id FROM insights
-      WHERE topic_id = ${topicId} AND LOWER(statement) = ${insight.statement.toLowerCase()}
+  // Filter near-duplicate insights within the incoming batch before storing
+  const batchDupes = findDuplicateIndices(
+    spec.insights.map((i) => ({ statement: i.statement, confidence: i.confidence })),
+  );
+  const filteredInsights = spec.insights.filter((_, idx) => !batchDupes.has(idx));
+
+  // Upsert insights (deduplicate by statement against existing DB rows)
+  for (const insight of filteredInsights) {
+    // Fetch all existing insights for this topic to check near-duplicates
+    const existingRows = await sql<{ id: string; statement: string; confidence: number }[]>`
+      SELECT id, statement, confidence FROM insights WHERE topic_id = ${topicId}
     `;
 
+    // Find an existing insight that is a near-duplicate of the incoming one
+    const nearDupe = existingRows.find(
+      (row) => computeSimilarity(row.statement, insight.statement) >= 0.7,
+    );
+
     let insightId: string;
-    if (existing) {
+    if (nearDupe) {
       // Update confidence if new is higher
       await sql`
         UPDATE insights SET confidence = GREATEST(confidence, ${insight.confidence})
-        WHERE id = ${existing.id}
+        WHERE id = ${nearDupe.id}
       `;
-      insightId = existing.id;
+      insightId = nearDupe.id;
     } else {
       const [ins] = await sql`
         INSERT INTO insights (topic_id, category, statement, confidence, status)
@@ -332,29 +343,53 @@ async function storeSpecContent(
   }
 }
 
-/** Deduplicate insights on a topic: identical statements → keep highest confidence, merge evidence. */
+/** Deduplicate insights on a topic: near-duplicate statements → keep highest confidence, merge evidence. */
 async function deduplicateInsights(
   sql: ReturnType<typeof getClient>,
   topicId: string,
 ): Promise<void> {
-  // Find duplicate statement groups
-  const dupes = await sql`
-    SELECT LOWER(statement) as norm_statement, array_agg(id ORDER BY confidence DESC) as ids
-    FROM insights
-    WHERE topic_id = ${topicId}
-    GROUP BY LOWER(statement)
-    HAVING COUNT(*) > 1
+  // Fetch all insights for the topic
+  const rows = await sql<{ id: string; statement: string; confidence: number }[]>`
+    SELECT id, statement, confidence FROM insights WHERE topic_id = ${topicId}
   `;
 
-  for (const dupe of dupes) {
-    const [keepId, ...removeIds] = dupe.ids as string[];
+  if (rows.length === 0) return;
 
-    // Move evidence from duplicates to the keeper
-    for (const removeId of removeIds) {
-      await sql`
-        UPDATE insight_evidence SET insight_id = ${keepId} WHERE insight_id = ${removeId}
-      `;
-      await sql`DELETE FROM insights WHERE id = ${removeId}`;
+  // Find near-duplicate indices using similarity scoring
+  const dupeIndices = findDuplicateIndices(
+    rows.map((r) => ({ statement: r.statement, confidence: r.confidence })),
+  );
+
+  if (dupeIndices.size === 0) return;
+
+  // For each duplicate, find the keeper (the one with highest confidence that it was merged into)
+  // We need to map: removeId → keepId
+  // Re-run pairwise to find which keeper each duplicate corresponds to
+  const removeToKeep = new Map<string, string>();
+  for (const removeIdx of dupeIndices) {
+    const removeRow = rows[removeIdx];
+    // Find the non-removed row most similar to this one
+    for (let i = 0; i < rows.length; i++) {
+      if (dupeIndices.has(i)) continue; // keeper must not be removed
+      if (computeSimilarity(rows[i].statement, removeRow.statement) >= 0.7) {
+        // Keep the one with higher confidence
+        const keeper = rows[i].confidence >= removeRow.confidence ? rows[i] : removeRow;
+        const removed = keeper.id === rows[i].id ? removeRow : rows[i];
+        removeToKeep.set(removed.id, keeper.id);
+        break;
+      }
     }
+    // Fallback: if no keeper found (edge case), skip this duplicate
+    if (!removeToKeep.has(removeRow.id)) {
+      removeToKeep.set(removeRow.id, rows[removeIdx === 0 ? 1 : 0].id);
+    }
+  }
+
+  // Merge evidence and delete duplicate rows
+  for (const [removeId, keepId] of removeToKeep) {
+    await sql`
+      UPDATE insight_evidence SET insight_id = ${keepId} WHERE insight_id = ${removeId}
+    `;
+    await sql`DELETE FROM insights WHERE id = ${removeId}`;
   }
 }
