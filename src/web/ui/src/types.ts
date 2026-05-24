@@ -203,6 +203,7 @@ export interface BrainSyncSession {
 export interface BrainDiscoverResult {
   status: "up_to_date" | "sessions_found";
   digestedCount: number;
+  undigestedCount?: number;
   sessions: BrainSyncSession[];
 }
 

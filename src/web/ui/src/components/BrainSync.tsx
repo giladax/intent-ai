@@ -104,9 +104,11 @@ export function BrainSync({ repoId, onSynced }: Props) {
       setDigestedCount(result.digestedCount);
       if (result.status === "up_to_date") {
         setPhase("idle");
-        setError(result.digestedCount > 0
-          ? `Digested ${result.digestedCount} new session(s) but all already in brain.`
-          : "Brain is up to date — no new sessions.");
+        if ((result as any).undigestedCount > 0) {
+          setError(`${(result as any).undigestedCount} session log(s) need digesting first. Run: intent digest --last ${(result as any).undigestedCount}`);
+        } else {
+          setError("Brain is up to date — no new sessions.");
+        }
         return;
       }
       setSessions(result.sessions);

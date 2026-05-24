@@ -624,23 +624,15 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
       const projectName = project.name;
       const projectPathSlug = project.path.replace(/\//g, "-");
 
-      // 1. Discover & digest new CC logs
+      // 1. Count undigested CC logs (don't digest them here — too slow)
       const { discoverLogs } = await import("../utils/log-discovery.js");
-      const logPaths = await discoverLogs(10, projectPathSlug);
-
-      let digestedCount = 0;
-      for (const logPath of logPaths) {
-        try {
-          const { runPipeline } = await import("../pipeline/orchestrator.js");
-          await runPipeline(logPath);
-          digestedCount++;
-        } catch (err: any) {
-          // "already digested" is expected — skip silently
-          if (!err.message?.includes("already digested")) {
-            console.error(`  Digest error: ${err.message}`);
-          }
-        }
-      }
+      const logPaths = await discoverLogs(20, projectPathSlug);
+      // Check which are already digested by matching filename UUIDs
+      const { basename } = await import("node:path");
+      const allSourceHashes = await sql`SELECT source_hash FROM sessions WHERE source_hash IS NOT NULL`;
+      const digestedHashes = new Set(allSourceHashes.map((r: any) => r.source_hash));
+      const undigestedPaths = logPaths.filter(p => !digestedHashes.has(basename(p, ".jsonl")));
+      const digestedCount = 0;
 
       // 2. Find unprocessed sessions for this repo
       const sessions = await sql`
@@ -662,7 +654,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
       if (sessions.length === 0) {
         syncJobs.delete(repoId);
-        res.json({ status: "up_to_date", digestedCount, sessions: [] });
+        res.json({ status: "up_to_date", digestedCount, undigestedCount: undigestedPaths.length, sessions: [] });
         return;
       }
 
@@ -734,6 +726,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
       res.json({
         status: "sessions_found",
         digestedCount,
+        undigestedCount: undigestedPaths.length,
         sessions: scoredSessions,
       });
     } catch (err) {
