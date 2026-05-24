@@ -742,7 +742,12 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
-  // Step 2: Propose — dry run on selected sessions, return diff
+  // ── SSE helper ──────────────────────────────────────────────────────
+  function sendSSE(res: express.Response, data: any) {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  }
+
+  // Step 2: Propose — dry run on selected sessions, return diff (SSE streaming)
   app.post("/api/brain/propose", async (req, res) => {
     try {
       const { repoId, sessionIds } = req.body;
@@ -751,10 +756,24 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         return;
       }
 
+      // Set up SSE
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      });
+
       upsertJob(repoId, { phase: "proposing" });
 
+      sendSSE(res, { phase: "extracting", message: `Extracting fragments from ${sessionIds.length} session${sessionIds.length !== 1 ? "s" : ""}...` });
+
       const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
+
+      sendSSE(res, { phase: "organizing", message: "Building knowledge tree..." });
+
       const { plan, specs } = await synthesizeV2(sessionIds, repoId, { dryRun: true });
+
+      sendSSE(res, { phase: "organizing", message: `Plan: ${plan.assignments.length} assignments, ${plan.merges.length} merge${plan.merges.length !== 1 ? "s" : ""}` });
 
       // Build human-readable diff
       const changes = plan.assignments.map((a: any) => ({
@@ -792,14 +811,20 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
       upsertJob(repoId, { phase: "reviewing", proposal: proposalResult });
 
-      res.json(proposalResult);
+      sendSSE(res, { phase: "done", proposal: proposalResult });
+      res.end();
     } catch (err) {
       upsertJob(repoId, { phase: "error", error: String(err) });
-      res.status(500).json({ error: String(err) });
+      if (!res.headersSent) {
+        res.status(500).json({ error: String(err) });
+      } else {
+        sendSSE(res, { phase: "error", message: String(err) });
+        res.end();
+      }
     }
   });
 
-  // Step 2: Apply — commit approved changes
+  // Step 3: Apply — commit approved changes (SSE streaming)
   app.post("/api/brain/apply", async (req, res) => {
     try {
       const { repoId, sessionIds } = req.body;
@@ -808,10 +833,21 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         return;
       }
 
+      // Set up SSE
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      });
+
       upsertJob(repoId, { phase: "applying" });
+
+      sendSSE(res, { phase: "synthesizing", message: "Synthesizing knowledge..." });
 
       const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
       const { plan, specs } = await synthesizeV2(sessionIds, repoId);
+
+      sendSSE(res, { phase: "exporting", message: `Writing ${specs.length} spec${specs.length !== 1 ? "s" : ""} to .repo/...` });
 
       // Export markdown
       const { generateAllMarkdown } = await import("../brain/generate-markdown.js");
@@ -828,14 +864,16 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
       upsertJob(repoId, { phase: "done" });
 
-      res.json({
-        status: "applied",
-        specsWritten: specs.length,
-        merges: plan.merges.length,
-      });
+      sendSSE(res, { phase: "done", result: { status: "applied", specsWritten: specs.length, merges: plan.merges.length } });
+      res.end();
     } catch (err) {
       upsertJob(repoId, { phase: "error", error: String(err) });
-      res.status(500).json({ error: String(err) });
+      if (!res.headersSent) {
+        res.status(500).json({ error: String(err) });
+      } else {
+        sendSSE(res, { phase: "error", message: String(err) });
+        res.end();
+      }
     }
   });
 

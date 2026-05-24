@@ -90,6 +90,7 @@ export function App() {
         {selectedProject && (
           <SidebarFooter className="p-3">
             <BrainSync
+              key={selectedProject.id}
               repoId={selectedProject.id}
               onSynced={() => {
                 fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));

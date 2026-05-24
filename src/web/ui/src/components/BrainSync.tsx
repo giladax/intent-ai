@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { discoverBrainSessions, proposeBrainSync, applyBrainSync, getSyncStatus } from "../api";
+import { discoverBrainSessions, getSyncStatus } from "../api";
 import type { BrainSyncSession, BrainSyncChange, BrainSyncProposal } from "../types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
