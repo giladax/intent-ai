@@ -30,6 +30,16 @@ interface RelatedRow {
   name: string;
 }
 
+interface BrainCardRow {
+  node_name: string;
+  level: string;
+  summary: string;
+  parent_node: string | null;
+  children: string[] | null;
+  insights: { category?: string; statement?: string }[] | null;
+  files: { file_path?: string; role?: string }[] | null;
+}
+
 /**
  * Generate .repo/brain.md root index.
  */
@@ -46,6 +56,18 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
     FROM topics t WHERE t.repo_id = ${repoId} ORDER BY session_count DESC, t.name
   ` as any[];
 
+  // Query brain_cards for richer summaries
+  const cards = await sql`
+    SELECT bc.node_name, bc.level, bc.summary, bc.parent_node, bc.children,
+           bc.insights, bc.files
+    FROM brain_cards bc
+    WHERE bc.repo_id = ${repoId}
+    ORDER BY bc.level, bc.node_name
+  ` as BrainCardRow[];
+
+  const cardByName = new Map<string, BrainCardRow>();
+  for (const c of cards) cardByName.set(c.node_name, c);
+
   // Build file map: file → topics
   const fileMap = new Map<string, string[]>();
   for (const t of topics) {
@@ -57,66 +79,107 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
     }
   }
 
-  // Build topic hierarchy
-  const topicById = new Map<string, any>();
-  for (const t of topics) topicById.set(t.id, t);
-
-  const roots: any[] = [];
-  const childrenOf = new Map<string, any[]>();
-  const orphans: any[] = [];
-
-  for (const t of topics) {
-    if (!t.parent_topic_id) {
-      roots.push(t);
-    } else if (topicById.has(t.parent_topic_id)) {
-      const siblings = childrenOf.get(t.parent_topic_id) || [];
-      siblings.push(t);
-      childrenOf.set(t.parent_topic_id, siblings);
-    } else {
-      orphans.push(t);
-    }
-  }
-
-  function renderTopicLine(t: any, depth: number): string {
-    const indent = "  ".repeat(depth);
-    const link = `[${t.name}](topics/${slugify(t.name)}.md)`;
-    const desc = `${truncate(t.summary, 80)} (${t.session_count} sessions, ${t.insight_count} insights)`;
-    return `${indent}- ${link} — ${desc}\n`;
-  }
-
-  function renderSubtree(t: any, depth: number): string {
-    let out = renderTopicLine(t, depth);
-    const children = childrenOf.get(t.id) || [];
-    for (const child of children) {
-      if (depth < 2) {
-        out += renderSubtree(child, depth + 1);
-      } else {
-        out += renderTopicLine(child, depth + 1);
-      }
-    }
-    return out;
-  }
-
   let md = `# ${project.name} Brain\n\n`;
 
-  // Hierarchical topics
-  for (const root of roots) {
-    md += `## ${root.name}\n\n`;
-    md += renderTopicLine(root, 0);
-    const children = childrenOf.get(root.id) || [];
-    for (const child of children) {
-      md += renderSubtree(child, 1);
+  if (cards.length > 0) {
+    // Render tree from cards (already have parent/children structure)
+    const cardRoots = cards.filter((c) => !c.parent_node);
+    const cardChildrenOf = new Map<string, BrainCardRow[]>();
+    for (const c of cards) {
+      if (c.parent_node) {
+        const siblings = cardChildrenOf.get(c.parent_node) || [];
+        siblings.push(c);
+        cardChildrenOf.set(c.parent_node, siblings);
+      }
     }
-    md += "\n";
-  }
 
-  // Orphan topics with missing parents
-  if (orphans.length > 0) {
-    md += `## Uncategorized\n\n`;
-    for (const t of orphans) {
-      md += renderTopicLine(t, 0);
+    function renderCardLine(c: BrainCardRow, depth: number): string {
+      const indent = "  ".repeat(depth);
+      const link = `[${c.node_name}](topics/${slugify(c.node_name)}.md)`;
+      const desc = truncate(c.summary, 80);
+      return `${indent}- ${link} — ${desc}\n`;
     }
-    md += "\n";
+
+    function renderCardSubtree(c: BrainCardRow, depth: number): string {
+      let out = renderCardLine(c, depth);
+      const children = cardChildrenOf.get(c.node_name) || [];
+      for (const child of children) {
+        if (depth < 2) {
+          out += renderCardSubtree(child, depth + 1);
+        } else {
+          out += renderCardLine(child, depth + 1);
+        }
+      }
+      return out;
+    }
+
+    for (const root of cardRoots) {
+      md += `## ${root.node_name}\n\n`;
+      md += renderCardLine(root, 0);
+      const children = cardChildrenOf.get(root.node_name) || [];
+      for (const child of children) {
+        md += renderCardSubtree(child, 1);
+      }
+      md += "\n";
+    }
+  } else {
+    // Fall back to topic-based rendering
+    const topicById = new Map<string, any>();
+    for (const t of topics) topicById.set(t.id, t);
+
+    const roots: any[] = [];
+    const childrenOf = new Map<string, any[]>();
+    const orphans: any[] = [];
+
+    for (const t of topics) {
+      if (!t.parent_topic_id) {
+        roots.push(t);
+      } else if (topicById.has(t.parent_topic_id)) {
+        const siblings = childrenOf.get(t.parent_topic_id) || [];
+        siblings.push(t);
+        childrenOf.set(t.parent_topic_id, siblings);
+      } else {
+        orphans.push(t);
+      }
+    }
+
+    function renderTopicLine(t: any, depth: number): string {
+      const indent = "  ".repeat(depth);
+      const link = `[${t.name}](topics/${slugify(t.name)}.md)`;
+      const desc = `${truncate(t.summary, 80)} (${t.session_count} sessions, ${t.insight_count} insights)`;
+      return `${indent}- ${link} — ${desc}\n`;
+    }
+
+    function renderSubtree(t: any, depth: number): string {
+      let out = renderTopicLine(t, depth);
+      const children = childrenOf.get(t.id) || [];
+      for (const child of children) {
+        if (depth < 2) {
+          out += renderSubtree(child, depth + 1);
+        } else {
+          out += renderTopicLine(child, depth + 1);
+        }
+      }
+      return out;
+    }
+
+    for (const root of roots) {
+      md += `## ${root.name}\n\n`;
+      md += renderTopicLine(root, 0);
+      const children = childrenOf.get(root.id) || [];
+      for (const child of children) {
+        md += renderSubtree(child, 1);
+      }
+      md += "\n";
+    }
+
+    if (orphans.length > 0) {
+      md += `## Uncategorized\n\n`;
+      for (const t of orphans) {
+        md += renderTopicLine(t, 0);
+      }
+      md += "\n";
+    }
   }
 
   // File map
@@ -179,15 +242,46 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
     WHERE tr.topic_id = ${topicId}
   ` as RelatedRow[];
 
+  // Query brain_card for this topic if one exists
+  const [card] = await sql`
+    SELECT * FROM brain_cards
+    WHERE repo_id = (SELECT repo_id FROM topics WHERE id = ${topicId})
+      AND node_name = (SELECT name FROM topics WHERE id = ${topicId})
+  ` as BrainCardRow[];
+
   let md = `# ${topic.name}\n`;
-  if (parent) {
-    md += `> Parent: [${parent.name}](${slugify(parent.name)}.md)\n`;
+
+  if (card) {
+    // Card block as blockquote
+    const levelPart = card.level ? `**${card.level}**` : null;
+    const parentPart = card.parent_node ? `child of ${card.parent_node}` : null;
+    const metaParts = [levelPart, parentPart].filter(Boolean).join(" · ");
+    md += `> ${metaParts}\n`;
+    md += `> ${card.summary}\n`;
+
+    const tagParts: string[] = [];
+    const cardInsights = Array.isArray(card.insights) ? card.insights : [];
+    for (const ins of cardInsights) {
+      if (ins.category && ins.statement) {
+        tagParts.push(`[${ins.category}] ${truncate(ins.statement, 60)}`);
+      }
+    }
+    if (tagParts.length > 0) {
+      md += `> ${tagParts.join(" · ")}\n`;
+    }
+    md += "\n";
+  } else {
+    if (parent) {
+      md += `> Parent: [${parent.name}](${slugify(parent.name)}.md)\n`;
+    }
+    if (children.length > 0) {
+      const childLinks = children.map((c) => `[${c.name}](${slugify(c.name)}.md)`).join(", ");
+      md += `> Children: ${childLinks}\n`;
+    }
+    md += "\n";
   }
-  if (children.length > 0) {
-    const childLinks = children.map((c) => `[${c.name}](${slugify(c.name)}.md)`).join(", ");
-    md += `> Children: ${childLinks}\n`;
-  }
-  md += `\n${topic.summary}\n`;
+
+  md += `${topic.summary}\n`;
 
   // Insights by category
   const byCategory = new Map<string, InsightRow[]>();
