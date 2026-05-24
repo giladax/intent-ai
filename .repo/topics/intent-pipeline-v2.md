@@ -2,11 +2,13 @@
 
 > Children: [Legacy Code Purge](legacy-code-purge.md), [V2 Plan Grounding and Documentation](v2-plan-grounding-and-documentation.md)
 
-Intent Pipeline V2 is a ground-up replacement of the legacy Signal→Fact→Thread processing chain with a two-layer architecture: Observed Events (raw captured session data) feeding into derived models (LLM-interpreted IntentSpans and product memory). The core insight driving this redesign is that product value comes almost entirely from derived models — the system's ability to reason about what a developer was trying to accomplish — not from raw event capture. The pipeline is implemented as 9 sequentially validated tasks, built bottom-up with a unit-test-first strategy anchored to real past session data (ground_truth_2026_04_11.json and real session fixtures). No task is considered complete without empirical validation against that ground truth. Child specs cover V2 Plan Grounding and Documentation (the detailed 9-task plan and its rationale) and Legacy Code Purge (removal of the old Signal/Fact/Thread models and pipeline).
+Intent Pipeline V2 is a ground-up replacement of the legacy Signal→Fact→Thread processing chain with a two-layer architecture: Observed Events (raw captured session data) feeding into derived models (LLM-interpreted IntentSpans and product memory). The core insight driving this redesign is that product value comes almost entirely from derived models — the system's ability to reason about what a developer was trying to accomplish — not from raw event capture. The pipeline is implemented as 9 sequentially validated tasks, built bottom-up with a unit-test-first strategy anchored to real past session data. The canonical fact model is `ExtractedFact` (not `Signal` or legacy names), which carries a `reasoning` field explaining why something is a decision, rejection, question, or blocker. The pipeline includes loop detection via cosine similarity to prevent re-processing semantically identical rejected facts, and enforces database foreign key constraints requiring thread rows to exist before facts can be inserted. Child specs cover V2 Plan Grounding and Documentation (the detailed 9-task plan and its rationale) and Legacy Code Purge (removal of the old Signal/Fact/Thread models and pipeline).
 
 ## constraint
 
+- The database enforces a foreign key constraint between facts and threads: a thread row must exist before any fact with that `thread_id` can be inserted. Violating this raises 'FOREIGN KEY constraint failed'. Any test or migration script that inserts facts (including rejected/residual facts) must create the parent thread row first.
 - Every implementation step must be validated against real past session data — ground_truth_2026_04_11.json and real session fixtures — before it is considered done. Theoretical correctness or passing synthetic tests is insufficient. This is a hard project rule, not a preference.
+- `LOOP_SIMILARITY_THRESHOLD` is 0.85. Test fixtures for loop detection must use semantically near-identical phrases — phrases with only ~0.71 cosine similarity will NOT trigger loop detection and will cause test failures. Generic paraphrases are insufficient; use near-verbatim repetitions.
 
 ## decision
 
@@ -21,11 +23,17 @@ Intent Pipeline V2 is a ground-up replacement of the legacy Signal→Fact→Thre
 - `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/docs/plans/2026-05-21-intent-pipeline-v2.md`
 - `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/src/brain/models.py`
 - `/Users/giladkoch/dev/brain/.worktrees/faithful-memory/src/brain/pipeline.py`
+- `src/brain/constants.py`
+- `src/brain/db.py`
+- `src/brain/loop_detection.py`
+- `src/brain/models.py`
+- `src/brain/pipeline.py`
+- `tests/test_db.py`
+- `tests/test_loop_detection.py`
 - _from [Legacy Code Purge](legacy-code-purge.md):_
   - `frontend/src/lib/api.ts`
   - `src/brain/api.py`
   - `src/brain/extractors/session_extractor.py`
-  - `src/brain/models.py`
   - `tests/test_api.py`
   - `tests/test_models.py`
 - _from [V2 Plan Grounding and Documentation](v2-plan-grounding-and-documentation.md):_
@@ -35,5 +43,7 @@ Intent Pipeline V2 is a ground-up replacement of the legacy Signal→Fact→Thre
 ## Sessions
 
 - May 15: The developer set out to make PRDs version-controlled and repo-native, enabling Brain to detect a... (18 moments)
+- Apr 5: The developer assigned the AI to implement Task 9 of the Faithful Memory Foundation plan: display... (6 moments)
 - May 21: The developer proposed a two-layer model architecture distinguishing observed facts from derived ... (5 moments)
+- Apr 5: The developer assigned the AI to implement Task 10 of the Faithful Memory Foundation plan — loop ... (10 moments)
 - Apr 23: The developer set out to do a competitive evaluation of Brain against the entireio/cli repo, whic... (24 moments)

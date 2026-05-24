@@ -1,7 +1,9 @@
+import { useState } from "react";
 import type { TopicSummary, Session } from "../types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BranchTimeline } from "./BranchTimeline";
+import { ChevronRight } from "lucide-react";
 
 interface Props {
   topics: TopicSummary[];
@@ -39,6 +41,9 @@ export function OverviewPanel({ topics, sessions, repoId, onTopicClick }: Props)
     return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  // Build topic ID → name lookup
+  const topicById = new Map(topics.map((t) => [t.id, t]));
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto p-6 space-y-8">
@@ -62,22 +67,11 @@ export function OverviewPanel({ topics, sessions, repoId, onTopicClick }: Props)
           </div>
         )}
 
-        {/* Recent topics */}
-        {recentTopics.length > 0 && (
+        {/* Knowledge Tree */}
+        {topics.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recent Topics</h3>
-            {recentTopics.map((t) => (
-              <Card
-                key={t.id}
-                className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => onTopicClick(t.id)}
-              >
-                <div className="font-medium text-sm">{t.name}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {t.insight_count} insights · {t.session_count} sessions
-                </div>
-              </Card>
-            ))}
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Knowledge Tree</h3>
+            <KnowledgeTree topics={topics} onTopicClick={onTopicClick} />
           </div>
         )}
 
@@ -99,6 +93,94 @@ export function OverviewPanel({ topics, sessions, repoId, onTopicClick }: Props)
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Knowledge Tree ────────────────────────────────────────────────
+
+function KnowledgeTree({ topics, onTopicClick }: { topics: TopicSummary[]; onTopicClick: (id: string) => void }) {
+  // Build parent→children map
+  const childrenOf = new Map<string | null, TopicSummary[]>();
+  for (const t of topics) {
+    const parentId = t.parent_topic_id || null;
+    const list = childrenOf.get(parentId) || [];
+    list.push(t);
+    childrenOf.set(parentId, list);
+  }
+
+  // Roots are topics with no parent (or parent not in our set)
+  const topicIds = new Set(topics.map((t) => t.id));
+  const roots = topics.filter((t) => !t.parent_topic_id || !topicIds.has(t.parent_topic_id));
+
+  // Sort by insight count descending
+  roots.sort((a, b) => b.insight_count - a.insight_count);
+
+  return (
+    <div className="space-y-0.5">
+      {roots.map((t) => (
+        <TreeNode key={t.id} topic={t} childrenOf={childrenOf} depth={0} onTopicClick={onTopicClick} />
+      ))}
+    </div>
+  );
+}
+
+function TreeNode({
+  topic,
+  childrenOf,
+  depth,
+  onTopicClick,
+}: {
+  topic: TopicSummary;
+  childrenOf: Map<string | null, TopicSummary[]>;
+  depth: number;
+  onTopicClick: (id: string) => void;
+}) {
+  const children = childrenOf.get(topic.id) || [];
+  const [expanded, setExpanded] = useState(depth === 0); // roots start expanded
+  const hasChildren = children.length > 0;
+
+  return (
+    <div style={{ marginLeft: depth * 16 }}>
+      <div
+        className="flex items-start gap-1.5 py-2 px-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group"
+        onClick={() => onTopicClick(topic.id)}
+      >
+        {hasChildren ? (
+          <button
+            className="mt-0.5 shrink-0"
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+          >
+            <ChevronRight className={`size-4 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
+          </button>
+        ) : (
+          <span className="w-4 shrink-0" />
+        )}
+
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-medium group-hover:text-primary transition-colors">
+            {topic.name}
+          </span>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+            {topic.summary.slice(0, 150)}
+          </p>
+        </div>
+
+        <div className="text-[10px] text-muted-foreground shrink-0 mt-0.5 text-right">
+          <div>{topic.insight_count} insights</div>
+          {topic.session_count > 0 && <div>{topic.session_count} sessions</div>}
+        </div>
+      </div>
+
+      {expanded && hasChildren && (
+        <div className="space-y-0.5">
+          {children
+            .sort((a, b) => b.insight_count - a.insight_count)
+            .map((child) => (
+              <TreeNode key={child.id} topic={child} childrenOf={childrenOf} depth={depth + 1} onTopicClick={onTopicClick} />
+            ))}
+        </div>
+      )}
     </div>
   );
 }
