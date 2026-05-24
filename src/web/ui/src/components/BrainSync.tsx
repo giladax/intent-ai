@@ -74,13 +74,11 @@ async function readSSE(
 function ChangeItem({
   change,
   specMap,
-  childrenOf,
-  depth,
+  children: childChanges,
 }: {
   change: BrainSyncChange;
   specMap: Map<string, { summary: string; insightCount: number }>;
-  childrenOf: Map<string, BrainSyncChange[]>;
-  depth: number;
+  children: BrainSyncChange[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const Icon = CHANGE_ICONS[change.type] || Plus;
@@ -90,49 +88,49 @@ function ChangeItem({
     ? `${change.from?.join(" + ")} → ${change.into}`
     : change.spec ?? "";
   const spec = name ? specMap.get(name) : null;
-  const children = name ? (childrenOf.get(name) || []) : [];
-  const hasDetail = !!(spec?.summary || children.length > 0);
+  const hasDetail = !!(spec?.summary || childChanges.length > 0);
 
   return (
-    <div style={{ paddingLeft: depth * 12 }}>
+    <div>
       <button
-        className={`flex items-center gap-1.5 py-1.5 w-full text-left text-xs rounded-md px-1.5 transition-colors ${
+        className={`flex items-start gap-1.5 py-1.5 w-full text-left text-xs rounded-md px-1.5 transition-colors ${
           expanded ? "bg-muted/50" : "hover:bg-muted/30"
         }`}
         onClick={() => hasDetail && setExpanded(!expanded)}
       >
         {hasDetail ? (
-          <ChevronRight className={`size-3 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
+          <ChevronRight className={`size-3 shrink-0 mt-0.5 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
         ) : (
           <span className="w-3 shrink-0" />
         )}
-        <Icon className={`size-3 shrink-0 ${color}`} />
-        <span className="truncate flex-1 font-medium">{label}</span>
-        <Badge variant="outline" className="text-[9px] shrink-0 ml-1">{change.type}</Badge>
-        {change.parent && !depth && (
-          <span className="text-[9px] text-muted-foreground shrink-0">in {change.parent}</span>
-        )}
+        <Icon className={`size-3 shrink-0 mt-0.5 ${color}`} />
+        <div className="flex-1 min-w-0">
+          <span className="font-medium">{label}</span>
+          {change.parent && (
+            <span className="text-muted-foreground ml-1.5">in {change.parent}</span>
+          )}
+        </div>
+        <span className={`text-[9px] shrink-0 mt-0.5 ${color}`}>{change.type}</span>
       </button>
 
       {expanded && (
-        <div className="ml-[18px] pl-3 border-l border-muted-foreground/15 space-y-1 pb-1 animate-in slide-in-from-top-1 duration-150">
+        <div className="ml-4 pl-3 border-l border-muted-foreground/15 space-y-1 pb-1 animate-in slide-in-from-top-1 duration-150">
           {spec?.summary && (
             <p className="text-[11px] text-muted-foreground leading-relaxed py-1">
               {spec.summary}
             </p>
           )}
           {spec && spec.insightCount > 0 && (
-            <span className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground">
               {spec.insightCount} insight{spec.insightCount !== 1 ? "s" : ""}
-            </span>
+            </p>
           )}
-          {children.map((child, j) => (
+          {childChanges.map((child, j) => (
             <ChangeItem
               key={j}
               change={child}
               specMap={specMap}
-              childrenOf={childrenOf}
-              depth={0}
+              children={[]}
             />
           ))}
         </div>
@@ -482,20 +480,15 @@ export function BrainSync({ repoId, onSynced }: Props) {
     const specMap = new Map<string, { summary: string; insightCount: number }>();
     for (const s of proposal.specs) specMap.set(s.name, s);
 
-    // Group changes by parent for hierarchy
+    // Group changes: children nest under their parent if parent is also in this proposal
+    const changeNames = new Set(proposal.changes.map((c: BrainSyncChange) => c.spec ?? c.into));
     const roots: BrainSyncChange[] = [];
     const childrenOf = new Map<string, BrainSyncChange[]>();
     for (const change of proposal.changes) {
-      const parentName = change.parent;
-      // Check if parent is also a change in this proposal
-      const parentIsChange = parentName && proposal.changes.some(
-        (c: BrainSyncChange) => c.spec === parentName || c.into === parentName
-      );
-      if (parentIsChange) {
-        const key = parentName!;
-        const list = childrenOf.get(key) || [];
+      if (change.parent && changeNames.has(change.parent)) {
+        const list = childrenOf.get(change.parent) || [];
         list.push(change);
-        childrenOf.set(key, list);
+        childrenOf.set(change.parent, list);
       } else {
         roots.push(change);
       }
@@ -506,16 +499,18 @@ export function BrainSync({ repoId, onSynced }: Props) {
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
           {proposal.changes.length} changes
         </p>
-        <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
-          {roots.map((change, i) => (
-            <ChangeItem
-              key={i}
-              change={change}
-              specMap={specMap}
-              childrenOf={childrenOf}
-              depth={0}
-            />
-          ))}
+        <div className="max-h-64 overflow-y-auto space-y-0.5 pr-1">
+          {roots.map((change, i) => {
+            const name = change.spec ?? change.into ?? "";
+            return (
+              <ChangeItem
+                key={i}
+                change={change}
+                specMap={specMap}
+                children={childrenOf.get(name) || []}
+              />
+            );
+          })}
         </div>
         {error && (
           <p className="text-[11px] text-destructive text-center animate-in fade-in duration-300">{error}</p>
