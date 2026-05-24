@@ -158,6 +158,18 @@ export interface TopicDetail {
   relatedTopics: TopicRelated[];
 }
 
+export interface BrainCard {
+  node_name: string;
+  level: string;
+  summary: string;
+  parent_node: string | null;
+  children: string[] | null;
+  insights: { category?: string; statement?: string }[] | null;
+  files: string[] | null;
+  related: string[] | null;
+  sessions: string[] | null;
+}
+
 // ── Timeline Types ──────────────────────────────────────────────────
 export interface TimelineCommit {
   sha: string;

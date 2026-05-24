@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
-import { fetchTopicDetail } from "../api";
-import type { TopicDetail as TopicDetailType } from "../types";
+import { fetchTopicDetail, fetchBrainCards } from "../api";
+import type { TopicDetail as TopicDetailType, BrainCard } from "../types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BrainCardView } from "./BrainCardView";
 
 interface Props {
   topicId: string | null;
+  repoId: string | null;
+  /** Map of topic name -> topic id, for brain card navigation */
+  topicsNameMap?: Map<string, string>;
   onTopicClick: (topicId: string) => void;
 }
 
@@ -21,16 +25,50 @@ const CATEGORY_COLORS: Record<string, string> = {
   interface: "bg-slate-500",
 };
 
-export function TopicDetail({ topicId, onTopicClick }: Props) {
+export function TopicDetail({ topicId, repoId, topicsNameMap, onTopicClick }: Props) {
   const [detail, setDetail] = useState<TopicDetailType | null>(null);
+  const [brainCard, setBrainCard] = useState<BrainCard | null>(null);
+  const [childCards, setChildCards] = useState<BrainCard[]>([]);
 
   useEffect(() => {
     if (!topicId) {
       setDetail(null);
+      setBrainCard(null);
+      setChildCards([]);
       return;
     }
     fetchTopicDetail(topicId).then(setDetail).catch(() => setDetail(null));
   }, [topicId]);
+
+  // When detail loads (gives us topic name) and repoId is available, fetch brain cards
+  useEffect(() => {
+    if (!detail || !repoId) {
+      setBrainCard(null);
+      setChildCards([]);
+      return;
+    }
+    fetchBrainCards(repoId).then((cards) => {
+      const topicName = detail.topic.name;
+      const card = cards.find((c) => c.node_name === topicName) ?? null;
+      setBrainCard(card);
+      if (card?.children?.length) {
+        const kids = cards.filter((c) => card.children!.includes(c.node_name));
+        setChildCards(kids);
+      } else {
+        setChildCards([]);
+      }
+    }).catch(() => {
+      setBrainCard(null);
+      setChildCards([]);
+    });
+  }, [detail, repoId]);
+
+  // Navigate to a topic by its name (used for brain card child/parent navigation)
+  const navigateByName = (nodeName: string) => {
+    if (!topicsNameMap) return;
+    const id = topicsNameMap.get(nodeName);
+    if (id) onTopicClick(id);
+  };
 
   if (!topicId) {
     return (
@@ -80,6 +118,28 @@ export function TopicDetail({ topicId, onTopicClick }: Props) {
         <h2 className="text-xl font-semibold tracking-tight">{detail.topic.name}</h2>
         <p className="text-sm text-muted-foreground leading-relaxed mt-1">{detail.topic.summary}</p>
       </div>
+
+      {/* 1b. Brain Card (if available) */}
+      {brainCard && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Brain Card</h3>
+          <BrainCardView card={brainCard} onNavigate={navigateByName} />
+        </div>
+      )}
+
+      {/* 1c. Child Brain Cards (if any) */}
+      {childCards.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Sub-specs ({childCards.length})
+          </h3>
+          <div className="space-y-2">
+            {childCards.map((c) => (
+              <BrainCardView key={c.node_name} card={c} onNavigate={navigateByName} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 2. Sessions */}
       {detail.sessions.length > 0 && (

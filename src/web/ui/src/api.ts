@@ -10,6 +10,7 @@ import type {
   TimelineData,
   BrainDiscoverResult,
   SyncJobStatus,
+  BrainCard,
 } from "./types";
 
 const BASE = "";
@@ -72,6 +73,12 @@ export const fetchTimeline = (repoId: string) =>
 export const fetchSessions = () => json<Session[]>("/api/sessions");
 export const fetchSessionDetail = (id: string) =>
   json<SessionDetail>(`/api/sessions/${id}`);
+
+// Brain Cards
+export const fetchBrainCards = (repoId: string) =>
+  json<BrainCard[]>(`/api/brain/cards/${repoId}`);
+export const fetchBrainCard = (repoId: string, nodeName: string) =>
+  json<BrainCard>(`/api/brain/cards/${repoId}/${encodeURIComponent(nodeName)}`);
 
 // Brain Sync
 export const getSyncStatus = (repoId: string) =>

@@ -153,6 +153,8 @@ export function App() {
                 <div className="h-full overflow-y-auto">
                   <TopicDetail
                     topicId={selectedTopicId}
+                    repoId={selectedProject?.id ?? null}
+                    topicsNameMap={new Map(topics.map((t) => [t.name, t.id]))}
                     onTopicClick={navigateToTopic}
                   />
                 </div>

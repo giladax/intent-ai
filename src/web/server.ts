@@ -377,6 +377,36 @@ export async function startWebServer(port: number): Promise<void> {
     }
   });
 
+  // ── Brain Cards ───────────────────────────────────────────────────
+
+  app.get("/api/brain/cards/:repoId", async (req, res) => {
+    try {
+      const sql = getClient();
+      const cards = await sql`
+        SELECT node_name, level, summary, parent_node, children, insights, files, sessions
+        FROM brain_cards WHERE repo_id = ${req.params.repoId}
+        ORDER BY level, node_name
+      `;
+      res.json(cards);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.get("/api/brain/cards/:repoId/:nodeName", async (req, res) => {
+    try {
+      const sql = getClient();
+      const [card] = await sql`
+        SELECT node_name, level, summary, parent_node, children, insights, files, related, sessions
+        FROM brain_cards WHERE repo_id = ${req.params.repoId} AND node_name = ${req.params.nodeName}
+      `;
+      if (!card) { res.status(404).json({ error: "Card not found" }); return; }
+      res.json(card);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // ── Chat (SSE streaming) ──────────────────────────────────────────
 
   app.post("/api/chat", async (req, res) => {
