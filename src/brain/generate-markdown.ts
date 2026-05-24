@@ -4,6 +4,7 @@ interface TopicRow {
   id: string;
   name: string;
   summary: string;
+  parent_topic_id?: string | null;
 }
 
 interface InsightRow {
@@ -39,7 +40,7 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
   if (!project) throw new Error(`Project ${repoId} not found`);
 
   const topics = await sql`
-    SELECT t.id, t.name, t.summary,
+    SELECT t.id, t.name, t.summary, t.parent_topic_id,
       (SELECT count(*) FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count,
       (SELECT count(*) FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count
     FROM topics t WHERE t.repo_id = ${repoId} ORDER BY session_count DESC, t.name
@@ -56,17 +57,71 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
     }
   }
 
+  // Build topic hierarchy
+  const topicById = new Map<string, any>();
+  for (const t of topics) topicById.set(t.id, t);
+
+  const roots: any[] = [];
+  const childrenOf = new Map<string, any[]>();
+  const orphans: any[] = [];
+
+  for (const t of topics) {
+    if (!t.parent_topic_id) {
+      roots.push(t);
+    } else if (topicById.has(t.parent_topic_id)) {
+      const siblings = childrenOf.get(t.parent_topic_id) || [];
+      siblings.push(t);
+      childrenOf.set(t.parent_topic_id, siblings);
+    } else {
+      orphans.push(t);
+    }
+  }
+
+  function renderTopicLine(t: any, depth: number): string {
+    const indent = "  ".repeat(depth);
+    const link = `[${t.name}](topics/${slugify(t.name)}.md)`;
+    const desc = `${truncate(t.summary, 80)} (${t.session_count} sessions, ${t.insight_count} insights)`;
+    return `${indent}- ${link} — ${desc}\n`;
+  }
+
+  function renderSubtree(t: any, depth: number): string {
+    let out = renderTopicLine(t, depth);
+    const children = childrenOf.get(t.id) || [];
+    for (const child of children) {
+      if (depth < 2) {
+        out += renderSubtree(child, depth + 1);
+      } else {
+        out += renderTopicLine(child, depth + 1);
+      }
+    }
+    return out;
+  }
+
   let md = `# ${project.name} Brain\n\n`;
 
-  // Topics list
-  md += `## Topics\n\n`;
-  for (const t of topics) {
-    md += `- [${t.name}](topics/${slugify(t.name)}.md) — ${truncate(t.summary, 80)} (${t.session_count} sessions, ${t.insight_count} insights)\n`;
+  // Hierarchical topics
+  for (const root of roots) {
+    md += `## ${root.name}\n\n`;
+    md += renderTopicLine(root, 0);
+    const children = childrenOf.get(root.id) || [];
+    for (const child of children) {
+      md += renderSubtree(child, 1);
+    }
+    md += "\n";
+  }
+
+  // Orphan topics with missing parents
+  if (orphans.length > 0) {
+    md += `## Uncategorized\n\n`;
+    for (const t of orphans) {
+      md += renderTopicLine(t, 0);
+    }
+    md += "\n";
   }
 
   // File map
   if (fileMap.size > 0) {
-    md += `\n## File Map\n\n`;
+    md += `## File Map\n\n`;
     md += `| File | Topics |\n|------|--------|\n`;
     const sorted = [...fileMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
     for (const [file, topicNames] of sorted) {
@@ -83,8 +138,19 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
 export async function generateTopicMarkdown(topicId: string): Promise<{ slug: string; content: string }> {
   const sql = getClient();
 
-  const [topic] = await sql`SELECT id, name, summary FROM topics WHERE id = ${topicId}` as TopicRow[];
+  const [topic] = await sql`SELECT id, name, summary, parent_topic_id FROM topics WHERE id = ${topicId}` as TopicRow[];
   if (!topic) throw new Error(`Topic ${topicId} not found`);
+
+  // Query parent
+  const parentRows = topic.parent_topic_id
+    ? await sql`SELECT name FROM topics WHERE id = ${topic.parent_topic_id}` as { name: string }[]
+    : [];
+  const parent = parentRows[0] ?? null;
+
+  // Query children
+  const children = await sql`
+    SELECT name FROM topics WHERE parent_topic_id = ${topicId} ORDER BY name
+  ` as { name: string }[];
 
   const insights = await sql`
     SELECT category, statement, confidence FROM insights
@@ -113,7 +179,15 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
     WHERE tr.topic_id = ${topicId}
   ` as RelatedRow[];
 
-  let md = `# ${topic.name}\n\n${topic.summary}\n`;
+  let md = `# ${topic.name}\n`;
+  if (parent) {
+    md += `> Parent: [${parent.name}](${slugify(parent.name)}.md)\n`;
+  }
+  if (children.length > 0) {
+    const childLinks = children.map((c) => `[${c.name}](${slugify(c.name)}.md)`).join(", ");
+    md += `> Children: ${childLinks}\n`;
+  }
+  md += `\n${topic.summary}\n`;
 
   // Insights by category
   const byCategory = new Map<string, InsightRow[]>();
