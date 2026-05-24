@@ -9,10 +9,11 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Clock } from "lucide-react";
 import type { TopicSummary } from "../types";
 
 interface Props {
@@ -28,6 +29,11 @@ export function TopicList({ topics, selectedTopicId, onSelectTopic }: Props) {
     t.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Recent: 5 latest by updated_at (specs only — children, not roots)
+  const recent = [...topics]
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 5);
+
   // Build tree: roots (no parent) and children grouped by parent
   const roots = filtered.filter((t) => !t.parent_topic_id);
   const childrenByParent = new Map<string, TopicSummary[]>();
@@ -39,115 +45,148 @@ export function TopicList({ topics, selectedTopicId, onSelectTopic }: Props) {
     }
   }
 
-  // If searching, show flat results (search breaks tree context)
   const isSearching = search.length > 0;
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel className="flex justify-between">
-        <span>Brain</span>
-        <span className="text-xs text-muted-foreground font-normal">{topics.length}</span>
-      </SidebarGroupLabel>
-      <div className="px-2 pb-2">
-        <Input
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-7 text-xs"
-        />
-      </div>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {filtered.length === 0 && (
-            <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-              {topics.length === 0 ? (
-                <>
-                  No topics yet. Run{" "}
-                  <code className="bg-muted px-1 rounded text-[11px]">intent brain</code> to
-                  synthesize.
-                </>
-              ) : (
-                "No matching topics."
-              )}
-            </div>
-          )}
+    <>
+      {/* Search */}
+      <SidebarGroup>
+        <div className="px-2 pb-1">
+          <Input
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-7 text-xs"
+          />
+        </div>
+      </SidebarGroup>
 
-          {isSearching
-            ? filtered.map((t) => (
-                <SidebarMenuItem key={t.id}>
+      {/* Recent specs */}
+      {!isSearching && recent.length > 0 && (
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <Clock className="size-3 mr-1" />
+            Recent
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {recent.map((t) => (
+                <SidebarMenuItem key={`recent-${t.id}`}>
                   <SidebarMenuButton
                     isActive={selectedTopicId === t.id}
                     onClick={() => onSelectTopic(t.id)}
-                    className="flex flex-col items-start h-auto py-2"
+                    className="h-auto py-1.5"
                   >
-                    <span className="font-medium text-sm truncate w-full">{t.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {t.insight_count} insights · {t.session_count} sessions
-                    </span>
+                    <span className="text-sm truncate">{t.name}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))
-            : roots.map((root) => {
-                const children = childrenByParent.get(root.id) || [];
-                if (children.length === 0) {
-                  return (
-                    <SidebarMenuItem key={root.id}>
-                      <SidebarMenuButton
-                        isActive={selectedTopicId === root.id}
-                        onClick={() => onSelectTopic(root.id)}
-                        className="flex flex-col items-start h-auto py-2"
-                      >
-                        <span className="font-medium text-sm truncate w-full">{root.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {root.insight_count} insights
-                        </span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                }
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
 
-                return (
-                  <Collapsible key={root.id} defaultOpen className="group/collapsible">
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
+      {!isSearching && recent.length > 0 && <SidebarSeparator />}
+
+      {/* Knowledge tree */}
+      <SidebarGroup>
+        <SidebarGroupLabel className="flex justify-between">
+          <span>Knowledge Tree</span>
+          <span className="text-xs text-muted-foreground font-normal">{topics.length}</span>
+        </SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {filtered.length === 0 && (
+              <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+                {topics.length === 0 ? (
+                  <>
+                    No topics yet. Run{" "}
+                    <code className="bg-muted px-1 rounded text-[11px]">intent brain</code> to
+                    synthesize.
+                  </>
+                ) : (
+                  "No matching topics."
+                )}
+              </div>
+            )}
+
+            {isSearching
+              ? filtered.map((t) => (
+                  <SidebarMenuItem key={t.id}>
+                    <SidebarMenuButton
+                      isActive={selectedTopicId === t.id}
+                      onClick={() => onSelectTopic(t.id)}
+                      className="flex flex-col items-start h-auto py-2"
+                    >
+                      <span className="font-medium text-sm truncate w-full">{t.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {t.insight_count} insights · {t.session_count} sessions
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              : roots.map((root) => {
+                  const children = childrenByParent.get(root.id) || [];
+                  if (children.length === 0) {
+                    return (
+                      <SidebarMenuItem key={root.id}>
                         <SidebarMenuButton
                           isActive={selectedTopicId === root.id}
                           onClick={() => onSelectTopic(root.id)}
-                          className="flex items-center h-auto py-2"
+                          className="flex flex-col items-start h-auto py-2"
                         >
-                          <ChevronRight className="mr-1 h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                          <div className="flex flex-col items-start min-w-0">
-                            <span className="font-medium text-sm truncate w-full">{root.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {root.insight_count} insights
-                            </span>
-                          </div>
+                          <span className="font-medium text-sm truncate w-full">{root.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {root.insight_count} insights
+                          </span>
                         </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {children.map((child) => (
-                            <SidebarMenuSubItem key={child.id}>
-                              <SidebarMenuSubButton
-                                isActive={selectedTopicId === child.id}
-                                onClick={() => onSelectTopic(child.id)}
-                                className="flex flex-col items-start h-auto py-1.5"
-                              >
-                                <span className="text-sm truncate w-full">{child.name}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {child.insight_count} insights
-                                </span>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
-                );
-              })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+                      </SidebarMenuItem>
+                    );
+                  }
+
+                  return (
+                    <Collapsible key={root.id} defaultOpen className="group/collapsible">
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            isActive={selectedTopicId === root.id}
+                            onClick={() => onSelectTopic(root.id)}
+                            className="flex items-center h-auto py-2"
+                          >
+                            <ChevronRight className="mr-1 h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                            <div className="flex flex-col items-start min-w-0">
+                              <span className="font-medium text-sm truncate w-full">{root.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {root.insight_count} insights
+                              </span>
+                            </div>
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {children.map((child) => (
+                              <SidebarMenuSubItem key={child.id}>
+                                <SidebarMenuSubButton
+                                  isActive={selectedTopicId === child.id}
+                                  onClick={() => onSelectTopic(child.id)}
+                                  className="flex flex-col items-start h-auto py-1.5"
+                                >
+                                  <span className="text-sm truncate w-full">{child.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {child.insight_count} insights
+                                  </span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </>
   );
 }
