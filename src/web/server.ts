@@ -567,12 +567,22 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
       const sql = getClient();
 
       // Find unprocessed sessions for this repo
+      // Match by project name OR path appearing in source_path (same logic as CLI)
+      const [project] = await sql`SELECT name, path FROM projects WHERE id = ${repoId}`;
+      if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+      const projectName = project.name;
+      const projectPathSlug = project.path.replace(/\//g, "-");
+
       const sessions = await sql`
         SELECT s.id, s.session_shape, LEFT(n.summary, 100) as summary, s.started_at
         FROM sessions s
         LEFT JOIN narratives n ON n.session_id = s.id
         WHERE n.id IS NOT NULL
-          AND s.source_path LIKE '%' || (SELECT name FROM projects WHERE id = ${repoId}) || '%'
+          AND (
+            s.source_path LIKE ${"%" + projectName + "%"}
+            OR s.source_path LIKE ${"%" + projectPathSlug + "%"}
+          )
           AND NOT EXISTS (
             SELECT 1 FROM topic_sessions ts WHERE ts.session_id = s.id
           )
