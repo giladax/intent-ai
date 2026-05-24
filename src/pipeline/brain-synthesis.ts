@@ -9,6 +9,7 @@ import { buildBrainExtractPrompt, SpecFragmentOutputSchema, type SpecFragment } 
 import { buildBrainOrganizePrompt, GraphPlanSchema, type ExistingSpec, type OrganizeSignals, type GraphPlan } from "../llm/prompts/brain-organize.js";
 import { buildBrainWritePrompt, WrittenSpecSchema, type WrittenSpec, type SpecWriteInput } from "../llm/prompts/brain-write.js";
 import { applyGraphPlan, normalizeName } from "./brain-apply.js";
+export { applyGraphPlan, normalizeName };
 import { generateCard } from "../brain/cards.js";
 import { getClient } from "../storage/connection.js";
 

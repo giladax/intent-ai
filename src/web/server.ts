@@ -27,13 +27,16 @@ interface SyncJob {
   sessions?: any[];
   selectedSessionIds?: string[];
   proposal?: any;
+  // Cached synthesis result — what was reviewed is exactly what gets applied
+  cachedPlan?: any;
+  cachedSpecs?: any[];
   digestedCount?: number;
   digestTotal?: number;
   error?: string;
   startedAt: number;
 }
 const syncJobs = new Map<string, SyncJob>();
-const JOB_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const JOB_TTL_MS = 30 * 60 * 1000; // 30 minutes (synthesis is slow)
 
 function getActiveJob(repoId: string): SyncJob | null {
   const job = syncJobs.get(repoId);
@@ -835,7 +838,13 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         })),
       };
 
-      upsertJob(repoId, { phase: "reviewing", proposal: proposalResult, selectedSessionIds: sessionIds });
+      upsertJob(repoId, {
+        phase: "reviewing",
+        proposal: proposalResult,
+        selectedSessionIds: sessionIds,
+        cachedPlan: plan,
+        cachedSpecs: specs,
+      });
 
       sendSSE(res, { phase: "done", proposal: proposalResult });
       res.end();
@@ -850,18 +859,24 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
-  // Step 3: Apply — commit approved changes (SSE streaming)
+  // Step 3: Apply — commit the cached proposal (no re-synthesis)
   app.post("/api/brain/apply", async (req, res) => {
     try {
       const { repoId } = req.body;
-      let { sessionIds } = req.body;
-      // Fall back to session IDs stored during propose phase
-      if (!sessionIds?.length) {
-        const job = getActiveJob(repoId);
-        sessionIds = job?.selectedSessionIds ?? job?.proposal?.sessionIds;
+      const job = getActiveJob(repoId);
+
+      if (!repoId) {
+        res.status(400).json({ error: "repoId required" });
+        return;
       }
-      if (!repoId || !sessionIds?.length) {
-        res.status(400).json({ error: "repoId and sessionIds required" });
+
+      // Get cached synthesis from propose phase — what was reviewed is what gets applied
+      const plan = job?.cachedPlan;
+      const specs = job?.cachedSpecs;
+      const sessionIds = job?.selectedSessionIds ?? job?.proposal?.sessionIds ?? req.body.sessionIds;
+
+      if (!plan || !specs || !sessionIds?.length) {
+        res.status(400).json({ error: "No cached proposal found. Run Synthesize first." });
         return;
       }
 
@@ -874,12 +889,45 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
 
       upsertJob(repoId, { phase: "applying" });
 
-      sendSSE(res, { phase: "synthesizing", message: "Synthesizing knowledge..." });
+      sendSSE(res, { phase: "applying", message: `Applying ${specs.length} spec${specs.length !== 1 ? "s" : ""} to database...` });
 
-      const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
-      const { plan, specs } = await synthesizeV2(sessionIds, repoId);
+      // Apply the cached plan+specs to DB (same code synthesizeV2 uses internally)
+      const { applyGraphPlan, createBrainVersion, normalizeName } = await import("../pipeline/brain-synthesis.js");
+      const sql = getClient();
 
-      sendSSE(res, { phase: "exporting", message: `Writing ${specs.length} spec${specs.length !== 1 ? "s" : ""} to .repo/...` });
+      // Build moment ID map
+      const momentIdMap = new Map<string, string>();
+      for (const sessionId of sessionIds) {
+        const momentRows = await sql`SELECT id FROM moments WHERE session_id = ${sessionId} ORDER BY id`;
+        for (const m of momentRows) momentIdMap.set(m.id, m.id);
+      }
+
+      await applyGraphPlan(repoId, sessionIds[0], plan, specs, momentIdMap);
+
+      // Link all sessions to their assigned topics
+      for (const sessionId of sessionIds.slice(1)) {
+        for (const a of plan.assignments) {
+          const [topic] = await sql`
+            SELECT id FROM topics WHERE repo_id = ${repoId} AND LOWER(TRIM(name)) = ${normalizeName(a.targetSpec)}
+          `;
+          if (topic) {
+            await sql`
+              INSERT INTO topic_sessions (topic_id, session_id) VALUES (${topic.id}, ${sessionId})
+              ON CONFLICT DO NOTHING
+            `;
+          }
+        }
+      }
+
+      // Create brain version
+      let commitSha: string | undefined;
+      try {
+        const { execSync } = await import("node:child_process");
+        commitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+      } catch { /* not a git repo */ }
+      await createBrainVersion(repoId, commitSha);
+
+      sendSSE(res, { phase: "exporting", message: "Exporting to .repo/ markdown..." });
 
       // Export markdown
       const { generateAllMarkdown } = await import("../brain/generate-markdown.js");
