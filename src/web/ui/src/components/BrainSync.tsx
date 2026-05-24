@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   RefreshCw, Check, Plus, Pencil, Merge, Loader2,
-  Brain, Sparkles, CircleDot, CircleMinus,
+  Brain, Sparkles, CircleDot, CircleMinus, Download,
 } from "lucide-react";
 
 interface Props {
@@ -20,11 +20,13 @@ const CONFIDENCE_COLORS: Record<string, string> = { high: "bg-emerald-500", medi
 
 type Phase =
   | "idle"
-  | "discovering"      // finding + digesting CC logs
-  | "selecting"         // user picks sessions
-  | "proposing"         // dry-run synthesis
-  | "reviewing"         // user reviews proposed changes
-  | "applying"          // committing changes
+  | "discovering"
+  | "needs_digest"     // undigested logs found
+  | "digesting"        // running digest pipeline
+  | "selecting"
+  | "proposing"
+  | "reviewing"
+  | "applying"
   | "done";
 
 const PROGRESS_STEPS = [
@@ -68,6 +70,7 @@ export function BrainSync({ repoId, onSynced }: Props) {
   const [sessions, setSessions] = useState<BrainSyncSession[]>([]);
   const [proposal, setProposal] = useState<BrainSyncProposal | null>(null);
   const [digestedCount, setDigestedCount] = useState(0);
+  const [undigestedCount, setUndigestedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
 
@@ -103,10 +106,11 @@ export function BrainSync({ repoId, onSynced }: Props) {
       const result = await discoverBrainSessions(repoId);
       setDigestedCount(result.digestedCount);
       if (result.status === "up_to_date") {
-        setPhase("idle");
         if ((result as any).undigestedCount > 0) {
-          setError(`${(result as any).undigestedCount} session log(s) need digesting first. Run: intent digest --last ${(result as any).undigestedCount}`);
+          setUndigestedCount((result as any).undigestedCount);
+          setPhase("needs_digest");
         } else {
+          setPhase("idle");
           setError("Brain is up to date — no new sessions.");
         }
         return;
@@ -202,11 +206,40 @@ export function BrainSync({ repoId, onSynced }: Props) {
     }
   };
 
+  const handleDigest = async () => {
+    setPhase("digesting");
+    setProgressMessage(`Digesting ${undigestedCount} session(s)...`);
+    try {
+      const response = await fetch("/api/brain/digest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoId }),
+      });
+      if (!response.ok) throw new Error(`${response.status}`);
+      await readSSE(response, (data) => {
+        if (data.phase === "done") {
+          setDigestedCount(data.digestedCount || 0);
+          // Auto-continue to discover
+          handleDiscover();
+        } else if (data.phase === "error") {
+          setError(data.message);
+          setPhase("idle");
+        } else {
+          setProgressMessage(data.message || "Digesting...");
+        }
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setPhase("idle");
+    }
+  };
+
   const handleDismiss = () => {
     setPhase("idle");
     setProposal(null);
     setSessions([]);
     setError(null);
+    setUndigestedCount(0);
   };
 
   // ── Idle ──
@@ -218,6 +251,36 @@ export function BrainSync({ repoId, onSynced }: Props) {
           Sync Brain
         </Button>
         {error && <p className="text-[11px] text-muted-foreground text-center animate-in fade-in duration-300">{error}</p>}
+      </div>
+    );
+  }
+
+  // ── Needs digest ──
+  if (phase === "needs_digest") {
+    return (
+      <div className="space-y-2 animate-in fade-in duration-200">
+        <p className="text-[11px] text-muted-foreground">
+          {undigestedCount} session log{undigestedCount !== 1 ? "s" : ""} found
+        </p>
+        <Button size="sm" className="w-full gap-2" onClick={handleDigest}>
+          <Download className="size-3.5" />
+          Digest Sessions
+        </Button>
+        <Button variant="ghost" size="sm" className="w-full" onClick={handleDismiss}>
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Digesting ──
+  if (phase === "digesting") {
+    return (
+      <div className="py-3 space-y-2 animate-in fade-in duration-200">
+        <div className="flex items-center justify-center">
+          <Loader2 className="size-4 animate-spin text-primary" />
+        </div>
+        <p className="text-xs text-center text-muted-foreground">{progressMessage || "Digesting..."}</p>
       </div>
     );
   }
@@ -321,11 +384,11 @@ export function BrainSync({ repoId, onSynced }: Props) {
   // ── Reviewing proposed changes ──
   if (phase === "reviewing" && proposal) {
     return (
-      <div className="space-y-3 animate-in slide-in-from-bottom-2 duration-300">
+      <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-300">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-          {proposal.changes.length} change{proposal.changes.length !== 1 ? "s" : ""}
+          {proposal.changes.length} changes
         </p>
-        <div className="space-y-1">
+        <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1">
           {proposal.changes.map((change: BrainSyncChange, i: number) => {
             const Icon = CHANGE_ICONS[change.type] || Plus;
             const color = CHANGE_COLORS[change.type] || "";
@@ -334,19 +397,18 @@ export function BrainSync({ repoId, onSynced }: Props) {
               : change.spec;
 
             return (
-              <Card key={i} className="p-2 flex items-center gap-2 animate-in fade-in slide-in-from-left-1 duration-200"
-                style={{ animationDelay: `${i * 50}ms` }}>
+              <div key={i} className="flex items-center gap-1.5 py-1 text-xs">
                 <Icon className={`size-3 shrink-0 ${color}`} />
-                <span className="text-xs truncate flex-1">{label}</span>
-                <Badge variant="outline" className="text-[9px] shrink-0 px-1 py-0">{change.type}</Badge>
-              </Card>
+                <span className="truncate flex-1">{label}</span>
+                <span className="text-[9px] text-muted-foreground shrink-0">{change.type}</span>
+              </div>
             );
           })}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-1">
           <Button size="sm" className="flex-1 gap-1.5" onClick={handleApply}>
             <Check className="size-3" />
-            Apply
+            Apply ({proposal.changes.length})
           </Button>
           <Button variant="ghost" size="sm" onClick={handleDismiss}>Cancel</Button>
         </div>

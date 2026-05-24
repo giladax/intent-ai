@@ -870,6 +870,64 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
+  // Step 0: Digest — run digest pipeline on undigested CC logs (SSE streaming)
+  app.post("/api/brain/digest", async (req, res) => {
+    try {
+      const { repoId } = req.body;
+      if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
+
+      const sql = getClient();
+      const [project] = await sql`SELECT name, path FROM projects WHERE id = ${repoId}`;
+      if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+      const projectPathSlug = project.path.replace(/\//g, "-");
+
+      // Set up SSE
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      });
+
+      // Find undigested logs
+      const { discoverLogs } = await import("../utils/log-discovery.js");
+      const { basename } = await import("node:path");
+      const logPaths = await discoverLogs(20, projectPathSlug);
+      const allSourceHashes = await sql`SELECT source_hash FROM sessions WHERE source_hash IS NOT NULL`;
+      const digestedHashes = new Set(allSourceHashes.map((r: any) => r.source_hash));
+      const undigestedPaths = logPaths.filter(p => !digestedHashes.has(basename(p, ".jsonl")));
+
+      sendSSE(res, { phase: "digesting", message: `Digesting ${undigestedPaths.length} session(s)...`, total: undigestedPaths.length });
+
+      let digestedCount = 0;
+      let errorCount = 0;
+      for (const logPath of undigestedPaths) {
+        const logName = basename(logPath, ".jsonl").slice(0, 8);
+        sendSSE(res, { phase: "digesting", message: `Digesting session ${logName}... (${digestedCount + 1}/${undigestedPaths.length})`, progress: digestedCount });
+        try {
+          const { runPipeline } = await import("../pipeline/orchestrator.js");
+          await runPipeline(logPath);
+          digestedCount++;
+        } catch (err: any) {
+          if (!err.message?.includes("already digested")) {
+            errorCount++;
+            sendSSE(res, { phase: "digesting", message: `Error on ${logName}: ${err.message?.slice(0, 80)}` });
+          }
+        }
+      }
+
+      sendSSE(res, { phase: "done", digestedCount, errorCount });
+      res.end();
+    } catch (err) {
+      if (!res.headersSent) {
+        res.status(500).json({ error: String(err) });
+      } else {
+        sendSSE(res, { phase: "error", message: String(err) });
+        res.end();
+      }
+    }
+  });
+
   // SPA fallback — serve index.html for non-API routes
   app.get("/{*path}", (_req, res) => {
     res.sendFile(join(__dirname, "public", "index.html"));
