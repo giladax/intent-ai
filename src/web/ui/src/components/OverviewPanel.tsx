@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BranchTimeline } from "./BranchTimeline";
 import { ChevronRight, CircleDot, RefreshCw } from "lucide-react";
+// Note: hover cards removed — clicking a topic opens the detail page instead
 
 interface Props {
   topics: TopicSummary[];
@@ -133,36 +134,29 @@ export function OverviewPanel({ topics, sessions, repoId, onTopicClick, onSyncBr
   );
 }
 
-// ── File-explorer style Knowledge Tree ────────────────────────────
+// ── Knowledge Tree (no hover card — click opens detail) ──────────
 
 function KnowledgeTree({ topics, onTopicClick }: { topics: TopicSummary[]; onTopicClick: (id: string) => void }) {
+  const topicIds = new Set(topics.map((t) => t.id));
   const childrenOf = new Map<string | null, TopicSummary[]>();
   for (const t of topics) {
-    const list = childrenOf.get(t.parent_topic_id || null) || [];
+    const pid = t.parent_topic_id && topicIds.has(t.parent_topic_id) ? t.parent_topic_id : null;
+    const list = childrenOf.get(pid) || [];
     list.push(t);
-    childrenOf.set(t.parent_topic_id || null, list);
+    childrenOf.set(pid, list);
   }
-
-  const topicIds = new Set(topics.map((t) => t.id));
-  const roots = topics
-    .filter((t) => !t.parent_topic_id || !topicIds.has(t.parent_topic_id))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const roots = (childrenOf.get(null) || []).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div className="font-mono text-[13px]">
+    <div>
       {roots.map((t) => (
-        <FileTreeNode key={t.id} topic={t} childrenOf={childrenOf} depth={0} onTopicClick={onTopicClick} />
+        <OverviewTreeNode key={t.id} topic={t} childrenOf={childrenOf} depth={0} onTopicClick={onTopicClick} />
       ))}
     </div>
   );
 }
 
-function FileTreeNode({
-  topic,
-  childrenOf,
-  depth,
-  onTopicClick,
-}: {
+function OverviewTreeNode({ topic, childrenOf, depth, onTopicClick }: {
   topic: TopicSummary;
   childrenOf: Map<string | null, TopicSummary[]>;
   depth: number;
@@ -171,55 +165,35 @@ function FileTreeNode({
   const children = (childrenOf.get(topic.id) || []).sort((a, b) => a.name.localeCompare(b.name));
   const [expanded, setExpanded] = useState(true);
   const hasChildren = children.length > 0;
-  const [hovered, setHovered] = useState(false);
+  const isRoot = depth === 0;
 
   return (
     <div>
       <div
-        className="flex items-center h-7 hover:bg-accent/50 cursor-pointer group relative"
-        style={{ paddingLeft: depth * 16 + 4 }}
+        className={`flex items-center gap-1 cursor-pointer group rounded transition-colors hover:bg-accent/50 ${isRoot ? "h-9" : "h-8"}`}
+        style={{ paddingLeft: depth * 20 + 8 }}
         onClick={() => onTopicClick(topic.id)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
       >
         {hasChildren ? (
           <button
-            className="shrink-0 w-4 h-4 flex items-center justify-center"
+            className="shrink-0 w-5 h-5 flex items-center justify-center -ml-1"
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
           >
-            <ChevronRight className={`size-3 text-muted-foreground transition-transform duration-100 ${expanded ? "rotate-90" : ""}`} />
+            <ChevronRight className={`size-3.5 text-muted-foreground transition-transform duration-100 ${expanded ? "rotate-90" : ""}`} />
           </button>
         ) : (
-          <span className="w-4 shrink-0" />
+          <span className="w-5 shrink-0 -ml-1" />
         )}
-        <span className="ml-1 truncate">{topic.name}</span>
-        <span className="ml-auto pr-3 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className={`truncate ${isRoot ? "font-medium text-sm" : "text-sm text-foreground/80"}`}>
+          {topic.name}
+        </span>
+        <span className="ml-auto pr-2 text-[10px] text-muted-foreground tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">
           {topic.insight_count}
         </span>
-
-        {/* Hover card */}
-        {hovered && (
-          <div className="absolute left-full top-0 ml-2 z-50 w-72 p-3 rounded-lg border bg-popover text-popover-foreground shadow-lg text-xs font-sans animate-in fade-in duration-100"
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-          >
-            <div className="font-semibold text-sm mb-1">{topic.name}</div>
-            <p className="text-muted-foreground leading-relaxed">{topic.summary.slice(0, 200)}{topic.summary.length > 200 ? "..." : ""}</p>
-            <div className="mt-2 flex gap-3 text-[10px] text-muted-foreground">
-              <span>{topic.insight_count} insights</span>
-              <span>{topic.session_count} sessions</span>
-            </div>
-          </div>
-        )}
       </div>
-
-      {expanded && hasChildren && (
-        <div>
-          {children.map((child) => (
-            <FileTreeNode key={child.id} topic={child} childrenOf={childrenOf} depth={depth + 1} onTopicClick={onTopicClick} />
-          ))}
-        </div>
-      )}
+      {expanded && hasChildren && children.map((child) => (
+        <OverviewTreeNode key={child.id} topic={child} childrenOf={childrenOf} depth={depth + 1} onTopicClick={onTopicClick} />
+      ))}
     </div>
   );
 }
