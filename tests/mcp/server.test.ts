@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatCard, parseTopic, fuzzyScore, TopicNode } from "../../src/mcp/server.js";
+import { formatCard, parseTopic, fuzzyScore, type TopicNode } from "../../src/mcp/server.js";
 
 describe("formatCard", () => {
   it("produces structured card with all sections", () => {
@@ -50,5 +50,46 @@ describe("formatCard", () => {
     const card = formatCard(node);
     expect(card).toContain("↑ Pipeline Orchestration");
     expect(card).not.toContain("sub-specs");
+  });
+});
+
+describe("fuzzyScore", () => {
+  it("returns 1.0 for exact substring match", () => {
+    expect(fuzzyScore("pipeline", "The pipeline orchestrator")).toBe(1.0);
+  });
+
+  it("returns partial score for word overlap", () => {
+    const score = fuzzyScore("moment detection", "detecting moments in sessions");
+    expect(score).toBeGreaterThan(0); // partial match via token containment
+    // Exact substring match
+    expect(fuzzyScore("pipeline", "The pipeline orchestrator")).toBe(1.0);
+  });
+
+  it("returns 0 for no match", () => {
+    expect(fuzzyScore("banana", "pipeline orchestrator")).toBe(0);
+  });
+});
+
+describe("parseTopic", () => {
+  it("extracts parent from breadcrumb", () => {
+    const md = `# Child Topic\n\n> Parent: [Pipeline Orchestration](pipeline-orchestration.md)\n\nSome summary here.`;
+    const node = parseTopic("child-topic", md);
+    expect(node.parent).toBe("Pipeline Orchestration");
+    expect(node.name).toBe("Child Topic");
+    expect(node.summary).toBe("Some summary here.");
+  });
+
+  it("extracts insights by category", () => {
+    const md = `# Test\n\nSummary text.\n\n## constraint\n\n- Must use streaming.\n- No SQLite.\n\n## decision\n\n- Chose Postgres.`;
+    const node = parseTopic("test", md);
+    expect(node.insights).toHaveLength(3);
+    expect(node.insights[0]).toEqual({ category: "constraint", statement: "Must use streaming." });
+    expect(node.insights[2]).toEqual({ category: "decision", statement: "Chose Postgres." });
+  });
+
+  it("extracts children from breadcrumb", () => {
+    const md = `# Root\n\n> Children: [Child A](child-a.md), [Child B](child-b.md)\n\nRoot summary.`;
+    const node = parseTopic("root", md);
+    expect(node.children).toEqual(["Child A", "Child B"]);
   });
 });
