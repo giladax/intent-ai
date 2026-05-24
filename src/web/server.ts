@@ -25,6 +25,7 @@ interface SyncJob {
   repoId: string;
   phase: "discovering" | "digesting" | "selecting" | "proposing" | "reviewing" | "applying" | "done" | "error";
   sessions?: any[];
+  selectedSessionIds?: string[];
   proposal?: any;
   digestedCount?: number;
   digestTotal?: number;
@@ -833,7 +834,7 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
         })),
       };
 
-      upsertJob(repoId, { phase: "reviewing", proposal: proposalResult });
+      upsertJob(repoId, { phase: "reviewing", proposal: proposalResult, selectedSessionIds: sessionIds });
 
       sendSSE(res, { phase: "done", proposal: proposalResult });
       res.end();
@@ -851,7 +852,13 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
   // Step 3: Apply — commit approved changes (SSE streaming)
   app.post("/api/brain/apply", async (req, res) => {
     try {
-      const { repoId, sessionIds } = req.body;
+      const { repoId } = req.body;
+      let { sessionIds } = req.body;
+      // Fall back to session IDs stored during propose phase
+      if (!sessionIds?.length) {
+        const job = getActiveJob(repoId);
+        sessionIds = job?.selectedSessionIds;
+      }
       if (!repoId || !sessionIds?.length) {
         res.status(400).json({ error: "repoId and sessionIds required" });
         return;

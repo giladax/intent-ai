@@ -72,6 +72,7 @@ export function BrainSync({ repoId, onSynced }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [sessions, setSessions] = useState<BrainSyncSession[]>([]);
   const [proposal, setProposal] = useState<BrainSyncProposal | null>(null);
+  const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [digestedCount, setDigestedCount] = useState(0);
   const [undigestedCount, setUndigestedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +88,10 @@ export function BrainSync({ repoId, onSynced }: Props) {
         setDigestedCount(job.digestedCount ?? 0);
         setPhase("selecting");
       } else if (job.phase === "reviewing" && job.proposal) {
-        if (job.sessions) setSessions(job.sessions);
+        if (job.sessions) {
+          setSessions(job.sessions);
+          setSelectedSessionIds(job.sessions.filter((s: any) => s.selected).map((s: any) => s.id));
+        }
         setProposal(job.proposal);
         setDigestedCount(job.digestedCount ?? 0);
         setPhase("reviewing");
@@ -143,6 +147,8 @@ export function BrainSync({ repoId, onSynced }: Props) {
   const handlePropose = async () => {
     const selected = sessions.filter(s => s.selected);
     if (selected.length === 0) return;
+    const ids = selected.map(s => s.id);
+    setSelectedSessionIds(ids);
     setPhase("proposing");
     setProgressMessage("Extracting knowledge...");
 
@@ -150,7 +156,7 @@ export function BrainSync({ repoId, onSynced }: Props) {
       const response = await fetch("/api/brain/propose", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoId, sessionIds: selected.map(s => s.id) }),
+        body: JSON.stringify({ repoId, sessionIds: ids }),
       });
 
       if (!response.ok) {
@@ -177,8 +183,11 @@ export function BrainSync({ repoId, onSynced }: Props) {
   };
 
   const handleApply = async () => {
-    const selected = sessions.filter(s => s.selected);
-    if (selected.length === 0) return;
+    // Use the session IDs that were selected during propose (survives state changes)
+    const ids = selectedSessionIds.length > 0
+      ? selectedSessionIds
+      : sessions.filter(s => s.selected).map(s => s.id);
+    if (ids.length === 0) return;
     setPhase("applying");
     setProgressMessage("Applying changes...");
 
@@ -186,7 +195,7 @@ export function BrainSync({ repoId, onSynced }: Props) {
       const response = await fetch("/api/brain/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoId, sessionIds: selected.map(s => s.id) }),
+        body: JSON.stringify({ repoId, sessionIds: ids }),
       });
 
       if (!response.ok) {
