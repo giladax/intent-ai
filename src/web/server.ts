@@ -250,12 +250,12 @@ export async function startWebServer(port: number): Promise<void> {
       }
       const sql = getClient();
       const rows = await sql`
-        SELECT t.id, t.name, t.summary,
+        SELECT t.id, t.name, t.summary, t.parent_topic_id,
           (SELECT count(*) FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count,
           (SELECT count(DISTINCT ts.session_id) FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count,
           (SELECT count(*) FROM brain_versions bv WHERE bv.repo_id = t.repo_id) as update_count
         FROM topics t WHERE t.repo_id = ${repoId}
-        ORDER BY session_count DESC, t.name`;
+        ORDER BY t.name`;
       res.json(rows);
     } catch (err) {
       res.status(500).json({ error: String(err) });
