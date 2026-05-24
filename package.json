@@ -5,12 +5,14 @@
   "main": "dist/cli/index.js",
   "scripts": {
     "intent": "tsx src/cli/index.ts",
+    "brain-mcp": "tsx src/mcp/server.ts",
     "test": "vitest"
   },
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
     "@constellos/claude-code-kit": "^0.4.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "commander": "^14.0.3",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
