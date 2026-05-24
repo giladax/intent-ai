@@ -7,9 +7,10 @@ interface Props {
   sessions: Session[];
   undigestedCount: number;
   onSync: () => void;
+  onSessionClick: (id: string) => void;
 }
 
-export function SessionsPage({ sessions, undigestedCount, onSync }: Props) {
+export function SessionsPage({ sessions, undigestedCount, onSync, onSessionClick }: Props) {
   const sorted = [...sessions].sort((a, b) => {
     const da = a.started_at ? new Date(a.started_at).getTime() : 0;
     const db = b.started_at ? new Date(b.started_at).getTime() : 0;
@@ -70,7 +71,8 @@ export function SessionsPage({ sessions, undigestedCount, onSync }: Props) {
           {sorted.map((s) => (
             <div
               key={s.id}
-              className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/40 transition-colors cursor-default group"
+              className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group"
+              onClick={() => onSessionClick(s.id)}
             >
               <CircleDot className="size-3 shrink-0 text-emerald-500" />
               <span className="text-xs text-muted-foreground shrink-0 w-16 tabular-nums">

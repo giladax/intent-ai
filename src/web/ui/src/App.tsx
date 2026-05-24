@@ -6,6 +6,7 @@ import { BrainSync } from "./components/BrainSync";
 import { SyncDiffTree } from "./components/SyncDiffTree";
 import { KnowledgeTreePage } from "./components/KnowledgeTreePage";
 import { SessionsPage } from "./components/SessionsPage";
+import { SessionDetailPage } from "./components/SessionDetailPage";
 import { fetchProjects, fetchTopics, fetchSessions } from "./api";
 import type { Project, TopicSummary, Session, BrainSyncProposal } from "./types";
 import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard } from "lucide-react";
@@ -29,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-type View = "overview" | "knowledge" | "sessions" | "topic" | "sync";
+type View = "overview" | "knowledge" | "sessions" | "session-detail" | "topic" | "sync";
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -41,18 +42,20 @@ export function App() {
   const [view, setView] = useState<View>("overview");
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProjects().then((ps) => {
       setProjects(ps);
       if (ps.length > 0) setSelectedProject(ps[0]);
     });
-    fetchSessions().then(setSessions);
+    // Sessions loaded per-project below
   }, []);
 
   useEffect(() => {
-    if (!selectedProject) { setTopics([]); return; }
+    if (!selectedProject) { setTopics([]); setSessions([]); return; }
     fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));
+    fetchSessions(selectedProject.id).then(setSessions).catch(() => setSessions([]));
     fetch("/api/brain/discover", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -85,9 +88,12 @@ export function App() {
 
   const selectedTopicName = topics.find((t) => t.id === selectedTopicId)?.name;
 
+  const selectedSessionSummary = sessions.find((s) => s.id === selectedSessionId)?.narrative_summary?.split(/[.!?\n]/)[0] ?? "Session";
+
   const breadcrumbLabel =
     view === "sync" ? "Sync Brain" :
     view === "sessions" ? "Sessions" :
+    view === "session-detail" ? selectedSessionSummary :
     view === "topic" && selectedTopicName ? selectedTopicName :
     view === "knowledge" ? "Knowledge Tree" :
     "Overview";
@@ -203,6 +209,10 @@ export function App() {
                     <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("knowledge"); setSelectedTopicId(null); }}>
                       Knowledge Tree
                     </BreadcrumbLink>
+                  ) : view === "session-detail" ? (
+                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("sessions"); setSelectedSessionId(null); }}>
+                      Sessions
+                    </BreadcrumbLink>
                   ) : view !== "overview" ? (
                     <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("overview"); setSelectedTopicId(null); }}>
                       Overview
@@ -258,11 +268,17 @@ export function App() {
                       />
                     </div>
                   )
+                ) : view === "session-detail" && selectedSessionId ? (
+                  <SessionDetailPage
+                    sessionId={selectedSessionId}
+                    onTopicClick={handleTopicSelect}
+                  />
                 ) : view === "sessions" ? (
                   <SessionsPage
                     sessions={sessions}
                     undigestedCount={undigestedCount}
                     onSync={() => setView("sync")}
+                    onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
                   />
                 ) : view === "overview" ? (
                   <OverviewPanel

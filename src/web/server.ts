@@ -218,28 +218,44 @@ export async function startWebServer(port: number): Promise<void> {
 
   // ── Sessions ──────────────────────────────────────────────────────
 
-  app.get("/api/sessions", async (_req, res) => {
+  app.get("/api/sessions", async (req, res) => {
     try {
       const sql = getClient();
-      const rows = await sql`
-        SELECT s.id, s.source_type, s.source_path, s.session_shape, s.started_at, s.ended_at, s.created_at,
-               n.summary AS narrative_summary,
-               (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count,
-               COALESCE(
-                 (SELECT json_agg(json_build_object('featureId', fs.feature_id, 'role', fs.role))
-                  FROM feature_sessions fs WHERE fs.session_id = s.id),
-                 '[]'::json
-               ) AS features,
-               COALESCE(
-                 (SELECT json_agg(json_build_object('topicId', t.id, 'topicName', t.name))
-                  FROM topic_sessions ts
-                  JOIN topics t ON t.id = ts.topic_id
-                  WHERE ts.session_id = s.id),
-                 '[]'::json
-               ) AS topics
-        FROM sessions s
-        LEFT JOIN narratives n ON n.session_id = s.id
-        ORDER BY s.created_at DESC`;
+      const repoId = req.query.repoId as string | undefined;
+      // Get project path slug for source_path matching
+      const [proj] = repoId ? await sql`SELECT path FROM projects WHERE id = ${repoId}` : [null];
+      const pathSlug = proj ? (proj.path as string).replace(/\//g, "-") : null;
+
+      const rows = repoId && pathSlug
+        ? await sql`
+          SELECT s.id, s.source_type, s.source_path, s.session_shape, s.started_at, s.ended_at, s.created_at,
+                 n.summary AS narrative_summary,
+                 (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count,
+                 COALESCE(
+                   (SELECT json_agg(json_build_object('topicId', t.id, 'topicName', t.name))
+                    FROM topic_sessions ts
+                    JOIN topics t ON t.id = ts.topic_id
+                    WHERE ts.session_id = s.id),
+                   '[]'::json
+                 ) AS topics
+          FROM sessions s
+          LEFT JOIN narratives n ON n.session_id = s.id
+          WHERE s.source_path LIKE ${"%" + pathSlug + "%"}
+          ORDER BY s.created_at DESC`
+        : await sql`
+          SELECT s.id, s.source_type, s.source_path, s.session_shape, s.started_at, s.ended_at, s.created_at,
+                 n.summary AS narrative_summary,
+                 (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count,
+                 COALESCE(
+                   (SELECT json_agg(json_build_object('topicId', t.id, 'topicName', t.name))
+                    FROM topic_sessions ts
+                    JOIN topics t ON t.id = ts.topic_id
+                    WHERE ts.session_id = s.id),
+                   '[]'::json
+                 ) AS topics
+          FROM sessions s
+          LEFT JOIN narratives n ON n.session_id = s.id
+          ORDER BY s.created_at DESC`;
       res.json(rows);
     } catch (err) {
       res.status(500).json({ error: String(err) });

@@ -70,7 +70,8 @@ export const fetchTimeline = (repoId: string) =>
   json<TimelineData>(`/api/timeline?repoId=${repoId}`);
 
 // Sessions
-export const fetchSessions = () => json<Session[]>("/api/sessions");
+export const fetchSessions = (repoId?: string) =>
+  json<Session[]>(repoId ? `/api/sessions?repoId=${repoId}` : "/api/sessions");
 export const fetchSessionDetail = (id: string) =>
   json<SessionDetail>(`/api/sessions/${id}`);
 
