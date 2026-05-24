@@ -77,6 +77,20 @@ Implementation direction:
 - Surface in dashboard: "3 specs may be stale after commit abc123"
 - Eventually: auto-trigger targeted re-synthesis on affected specs only (not full brain re-run)
 
+### 4. `.repo/` as single source for tree, cards, and agent navigation
+The `.repo/` directory should be the canonical source for both the UI and agents. Currently the UI reads from Postgres and `.repo/` is a derived export. Flip this: `.repo/` IS the knowledge tree. The sidebar, overview, and diff tree should all read from the same `.repo/topics/*.md` files that agents read.
+
+Each topic file already has: summary, insights by category, files, sessions, related topics. The card is derivable from this data. The MCP server already reads from `.repo/`.
+
+Next steps:
+- UI serves `.repo/` markdown directly (or the server pre-parses it)
+- Per-file agent navigation: generate `.repo/files/<path>.md` breadcrumbs that map each source file to its covering specs + card summary + constraints
+- Agent's local `.claude/` or project-level file references the `.repo/` structure for navigation
+- The sidebar tree component and the overview tree are the same component reading the same data
+
+### 5. Before/after diff with scroll sync
+The sync preview should show the current brain tree (left/before) and the proposed tree (right/after) side by side, or as a single annotated tree that you can scroll through. The current implementation shows a single annotated tree. A future iteration could add a "before" snapshot for comparison.
+
 ## Design decisions (don't undo)
 - MCP reads from `.repo/` filesystem, not DB — works on any branch without infra
 - Card is the universal navigation atom (same format in MCP, UI, and export)
