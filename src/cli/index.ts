@@ -52,84 +52,62 @@ program
   .option("--repo <repoId>", "Project/repo UUID to store topics under")
   .option("--dry-run", "Print topics without storing to DB")
   .action(async (sessionIds: string[], opts: { repo?: string; dryRun?: boolean }) => {
-    const { synthesizeFromSession, storeTopics, loadExistingTopics, printTopics, createBrainVersion } = await import("../pipeline/brain-synthesis.js");
+    const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
     const { closeDb, getClient } = await import("../storage/connection.js");
     try {
       const sql = getClient();
 
-      for (const sessionId of sessionIds) {
-        // Check if session already processed
-        const [alreadyProcessed] = await sql`
-          SELECT 1 FROM topic_sessions WHERE session_id = ${sessionId} LIMIT 1
-        `;
-        if (alreadyProcessed && !opts.dryRun) {
-          console.log(`\nSession ${sessionId} already processed. Skipping.`);
-          continue;
-        }
-
-        // Resolve repo ID per session — match session source_path to project path
-        let repoId = opts.repo ?? null;
-        if (!repoId && !opts.dryRun) {
-          const [session] = await sql`SELECT source_path FROM sessions WHERE id = ${sessionId}`;
-          if (session?.source_path) {
-            // Match by project path prefix in source_path
-            const projects = await sql`SELECT id, name, path FROM projects ORDER BY length(path) DESC`;
-            for (const p of projects) {
-              if (session.source_path.includes(p.name) || session.source_path.includes(p.path.replace(/\//g, '-'))) {
-                repoId = p.id;
-                console.log(`\nProject: ${p.name}`);
-                break;
-              }
-            }
-          }
-          if (!repoId) {
-            // Fallback to first project
-            const [first] = await sql`SELECT id, name FROM projects ORDER BY created_at LIMIT 1`;
-            if (first) {
-              repoId = first.id;
-              console.log(`\nProject (default): ${first.name}`);
-            } else {
-              console.error("No projects found. Create one first or use --dry-run.");
-              await closeDb();
-              process.exit(1);
+      // Resolve repo ID — match first session's source_path to project path
+      let repoId = opts.repo ?? null;
+      if (!repoId && !opts.dryRun) {
+        const [session] = await sql`SELECT source_path FROM sessions WHERE id = ${sessionIds[0]}`;
+        if (session?.source_path) {
+          const projects = await sql`SELECT id, name, path FROM projects ORDER BY length(path) DESC`;
+          for (const p of projects) {
+            if (session.source_path.includes(p.name) || session.source_path.includes(p.path.replace(/\//g, '-'))) {
+              repoId = p.id;
+              console.log(`Project: ${p.name}`);
+              break;
             }
           }
         }
-
-        // Load existing brain state for THIS project from DB
-        const existingTopics = repoId ? await loadExistingTopics(repoId) : undefined;
-        const topicCount = existingTopics?.length || 0;
-
-        console.log(`Synthesizing from session ${sessionId}${topicCount > 0 ? ` (${topicCount} existing topics)` : ""}...`);
-        const topics = await synthesizeFromSession(sessionId, existingTopics);
-        printTopics(topics);
-
-        // Store to DB unless dry-run
-        if (!opts.dryRun && repoId) {
-          const momentRows = await sql`SELECT id FROM moments WHERE session_id = ${sessionId} ORDER BY id`;
-          const momentIdMap = new Map<string, string>();
-          for (const m of momentRows) {
-            momentIdMap.set(m.id, m.id);
+        if (!repoId) {
+          const [first] = await sql`SELECT id, name FROM projects ORDER BY created_at LIMIT 1`;
+          if (first) {
+            repoId = first.id;
+            console.log(`Project (default): ${first.name}`);
+          } else {
+            console.error("No projects found. Create one first or use --dry-run.");
+            await closeDb();
+            process.exit(1);
           }
-
-          await storeTopics(repoId, sessionId, topics, momentIdMap);
-          let commitSha: string | undefined;
-          try {
-            const { execSync } = await import("node:child_process");
-            commitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
-          } catch { /* not a git repo */ }
-          const versionId = await createBrainVersion(repoId, commitSha);
-          console.log(`  Stored ${topics.length} topics. Brain version: ${versionId}`);
         }
+      }
 
-        if (sessionIds.length > 1) {
-          console.log("\n" + "=".repeat(60) + "\n");
+      // Use a placeholder repoId for dry-run when none resolved
+      const effectiveRepoId = repoId || "dry-run";
+
+      console.log(`Synthesizing from ${sessionIds.length} session(s)...`);
+      const { plan, specs } = await synthesizeV2(sessionIds, effectiveRepoId, { dryRun: opts.dryRun });
+
+      // Print results
+      console.log(`\nGraph plan: ${plan.assignments.length} assignments, ${plan.merges.length} merges, ${plan.splits.length} splits`);
+      for (const spec of specs) {
+        console.log(`\n## ${spec.name}`);
+        console.log(spec.summary);
+        for (const i of spec.insights) {
+          console.log(`  [${i.category}] ${i.statement}`);
         }
+      }
+
+      if (!opts.dryRun) {
+        console.log(`\nStored ${specs.length} specs. Brain version created.`);
       }
 
       await closeDb();
     } catch (err) {
       console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      const { closeDb } = await import("../storage/connection.js");
       await closeDb();
       process.exit(1);
     }
