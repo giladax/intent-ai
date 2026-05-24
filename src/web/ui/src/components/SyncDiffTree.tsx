@@ -5,6 +5,7 @@ import { ChevronRight, Plus, Pencil, Merge } from "lucide-react";
 interface Props {
   topics: TopicSummary[];
   proposal: BrainSyncProposal;
+  onTopicClick?: (topicId: string) => void;
 }
 
 // Colors for change types
@@ -30,6 +31,7 @@ const CHANGE_ICON: Record<string, typeof Plus> = {
 };
 
 interface TreeNode {
+  id: string | null; // topic ID for existing topics (null for new)
   name: string;
   summary: string;
   parentName: string | null;
@@ -38,7 +40,7 @@ interface TreeNode {
   change: BrainSyncChange | null; // null = existing unchanged
 }
 
-export function SyncDiffTree({ topics, proposal }: Props) {
+export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
   // Build change lookup
   const changeByName = new Map<string, BrainSyncChange>();
   for (const c of proposal.changes) {
@@ -56,6 +58,7 @@ export function SyncDiffTree({ topics, proposal }: Props) {
   // Add existing topics
   for (const t of topics) {
     nodeMap.set(t.name, {
+      id: t.id,
       name: t.name,
       summary: t.summary,
       parentName: topics.find((p) => p.id === t.parent_topic_id)?.name ?? null,
@@ -71,6 +74,7 @@ export function SyncDiffTree({ topics, proposal }: Props) {
     if (!name || nodeMap.has(name)) continue;
     const spec = specSummary.get(name);
     nodeMap.set(name, {
+      id: null, // new topic, no DB id yet
       name,
       summary: spec?.summary ?? "",
       parentName: c.parent ?? null,
@@ -122,7 +126,7 @@ export function SyncDiffTree({ topics, proposal }: Props) {
       </div>
       <div className="space-y-0.5">
         {roots.map((node) => (
-          <DiffNode key={node.name} node={node} depth={0} countChanges={countChanges} />
+          <DiffNode key={node.name} node={node} depth={0} countChanges={countChanges} onTopicClick={onTopicClick} />
         ))}
       </div>
     </div>
@@ -133,10 +137,12 @@ function DiffNode({
   node,
   depth,
   countChanges,
+  onTopicClick,
 }: {
   node: TreeNode;
   depth: number;
   countChanges: (n: TreeNode) => number;
+  onTopicClick?: (topicId: string) => void;
 }) {
   const hasChildren = node.children.length > 0;
   const childChangeCount = hasChildren ? countChanges(node) - (node.change ? 1 : 0) : 0;
@@ -176,9 +182,18 @@ function DiffNode({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`font-medium ${change ? CHANGE_TEXT[changeType!] : "text-muted-foreground"}`}>
-              {node.name}
-            </span>
+            {node.id && onTopicClick ? (
+              <span
+                className={`font-medium underline underline-offset-2 cursor-pointer ${change ? CHANGE_TEXT[changeType!] : "text-muted-foreground hover:text-foreground"}`}
+                onClick={(e) => { e.stopPropagation(); onTopicClick(node.id!); }}
+              >
+                {node.name}
+              </span>
+            ) : (
+              <span className={`font-medium ${change ? CHANGE_TEXT[changeType!] : "text-muted-foreground"}`}>
+                {node.name}
+              </span>
+            )}
             {changeType && (
               <span className={`text-[10px] font-medium uppercase ${CHANGE_TEXT[changeType]}`}>
                 {changeType}
@@ -214,7 +229,7 @@ function DiffNode({
       {expanded && hasChildren && (
         <div className="space-y-0.5 mt-0.5">
           {node.children.map((child) => (
-            <DiffNode key={child.name} node={child} depth={depth + 1} countChanges={countChanges} />
+            <DiffNode key={child.name} node={child} depth={depth + 1} countChanges={countChanges} onTopicClick={onTopicClick} />
           ))}
         </div>
       )}

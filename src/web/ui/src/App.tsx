@@ -146,7 +146,14 @@ export function App() {
         <div className="flex-1 overflow-hidden">
           {reviewProposal ? (
             <div className="h-full overflow-y-auto">
-              <SyncDiffTree topics={topics} proposal={reviewProposal} />
+              <SyncDiffTree
+                topics={topics}
+                proposal={reviewProposal}
+                onTopicClick={(topicId) => {
+                  setReviewProposal(null);
+                  setSelectedTopicId(topicId);
+                }}
+              />
             </div>
           ) : !selectedTopicId ? (
             <OverviewPanel
