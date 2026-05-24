@@ -43,11 +43,11 @@ describe("GraphPlanSchema", () => {
   it("parses a well-formed GraphPlan", () => {
     const input = {
       assignments: [
-        { fragmentIndex: 0, targetSpec: "Pipeline Architecture", action: "update" },
-        { fragmentIndex: 1, targetSpec: "New Topic", action: "create", parentSpec: "Pipeline Architecture" },
+        { fragmentIndex: 0, targetSpec: "Pipeline Architecture", action: "update", level: "root" },
+        { fragmentIndex: 1, targetSpec: "New Topic", action: "create", level: "child", parentSpec: "Pipeline Architecture" },
       ],
       merges: [
-        { specs: ["Spec A", "Spec B"], intoName: "Merged Spec" },
+        { specs: ["Spec A", "Spec B"], intoName: "Merged Spec", level: "root" },
       ],
       splits: [
         {
@@ -65,13 +65,15 @@ describe("GraphPlanSchema", () => {
     expect(result.merges).toHaveLength(1);
     expect(result.splits).toHaveLength(1);
     expect(result.assignments[0].action).toBe("update");
+    expect(result.assignments[0].level).toBe("root");
     expect(result.assignments[1].parentSpec).toBe("Pipeline Architecture");
+    expect(result.assignments[1].level).toBe("child");
   });
 
   it("applies defaults for empty merges and splits", () => {
     const input = {
       assignments: [
-        { fragmentIndex: 0, targetSpec: "Some Spec", action: "create" },
+        { fragmentIndex: 0, targetSpec: "Some Spec", action: "create", level: "root" },
       ],
     };
 
@@ -84,9 +86,9 @@ describe("GraphPlanSchema", () => {
   it("handles minimal plan (assignments only)", () => {
     const input = {
       assignments: [
-        { fragmentIndex: 0, targetSpec: "Spec A", action: "update" },
-        { fragmentIndex: 1, targetSpec: "Spec B", action: "update" },
-        { fragmentIndex: 2, targetSpec: "Spec C", action: "create" },
+        { fragmentIndex: 0, targetSpec: "Spec A", action: "update", level: "root" },
+        { fragmentIndex: 1, targetSpec: "Spec B", action: "update", level: "root" },
+        { fragmentIndex: 2, targetSpec: "Spec C", action: "create", level: "child", parentSpec: "Spec A" },
       ],
     };
 
@@ -96,10 +98,20 @@ describe("GraphPlanSchema", () => {
     expect(result.splits).toEqual([]);
   });
 
+  it("requires level field on assignments", () => {
+    const input = {
+      assignments: [
+        { fragmentIndex: 0, targetSpec: "Spec A", action: "update" },
+      ],
+    };
+
+    expect(() => GraphPlanSchema.parse(input)).toThrow();
+  });
+
   it("preserves extra fields via passthrough", () => {
     const input = {
       assignments: [
-        { fragmentIndex: 0, targetSpec: "Spec A", action: "update", reasoning: "fits well" },
+        { fragmentIndex: 0, targetSpec: "Spec A", action: "update", level: "root", reasoning: "fits well" },
       ],
       rationale: "simple update",
     };
@@ -120,7 +132,7 @@ describe("buildBrainOrganizePrompt", () => {
 
     const { system, user } = buildBrainOrganizePrompt(specs, fragments, signals);
 
-    expect(system).toContain("knowledge graph");
+    expect(system).toContain("2-level knowledge tree");
     expect(user).toContain("Pipeline Architecture");
     expect(user).toContain("Insights: 5");
     expect(user).toContain("Sessions: 3");

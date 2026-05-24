@@ -16,19 +16,21 @@ export interface OrganizeSignals {
   sharedFileRatios: { specA: string; specB: string; ratio: number }[];
 }
 
-// ── Zod Schema ──────────────────────────────────────────────────────
+// ── Zod Schema (Gen2B: tree-first, no conceptualMap) ─────────────────
 
 const AssignmentSchema = z.object({
   fragmentIndex: z.number(),
   targetSpec: z.string(),
   action: z.enum(["update", "create"]),
+  level: z.enum(["root", "child"]),
   parentSpec: z.string().optional(),
 }).passthrough();
 
 const MergeSchema = z.object({
   specs: z.array(z.string()),
   intoName: z.string(),
-  parentSpec: z.string().optional(),
+  level: z.enum(["root", "child"]),
+  parentSpec: z.string().nullable().optional(),
 }).passthrough();
 
 const SplitIntoSchema = z.object({
@@ -42,14 +44,7 @@ const SplitSchema = z.object({
   parentSpec: z.string().optional(),
 }).passthrough();
 
-const ConceptGroupSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  children: z.array(z.string()).optional().default([]),
-}).passthrough();
-
 export const GraphPlanSchema = z.object({
-  conceptualMap: z.array(ConceptGroupSchema).optional().default([]),
   assignments: z.array(AssignmentSchema),
   merges: z.array(MergeSchema).optional().default([]),
   splits: z.array(SplitSchema).optional().default([]),
@@ -66,62 +61,52 @@ export function buildBrainOrganizePrompt(
 ): { system: string; user: string } {
   const isColdStart = existingSpecs.length === 0;
 
-  const system = `You organize a codebase knowledge graph. A coding agent will navigate this tree to find context before writing code.
+  const system = `You are building a 2-level knowledge tree for a codebase. A coding agent navigates this tree to find context before writing code.
 
-YOUR APPROACH — think like this:
+THE TREE HAS EXACTLY TWO LEVELS:
+- ROOT specs are major project areas (2-4 total). Reading just the root names should tell you what the project does.
+- CHILD specs are specific concepts within a root area. Every spec that is not a root MUST be a child.
 
-1. UNDERSTAND THE PROJECT. Read all the specs and fragments. What is this project? What does it do? What are its major subsystems?
+HOW TO DECIDE:
+- If spec B only makes sense in the context of spec A, then B is a child of A.
+- Example: "Moment Detection" is a child of "Pipeline" because it's a specific stage within the pipeline.
+- Example: "Pipeline" is a root because it's a major subsystem of the project.
+- If two specs describe the same concept from different angles, merge them.
 
-2. FIND THE NATURAL GROUPS. Which concepts are semantically close? What belongs together? Think about it like a developer explaining the project to a new teammate — you wouldn't list 7 disconnected topics, you'd say "there are two main systems: X which does A, and Y which does B, and they connect through Z."
+YOUR APPROACH:
+1. UNDERSTAND THE PROJECT. Read all specs and fragments. What are the 2-4 major areas?
+2. ASSIGN EVERY FRAGMENT. Each fragment becomes part of a spec. Each spec is either root or child.
+3. ENFORCE THE TREE. There should be 2-4 root specs. Every other spec is a child with a parentSpec.
 
-3. BUILD A TREE THAT TELLS THE STORY. The tree should read like a table of contents. A root node is an AREA of the project. Its children are the CONCEPTS within that area. An agent reading just the root names should understand the project's architecture.
-
-WHAT MAKES A GOOD TREE:
-- Root nodes are major project areas (not individual features or files)
-- Child nodes are specific concepts that live inside a parent area
-- If concept B only makes sense in the context of concept A, then B is a child of A
-- If two specs describe the same subsystem from different angles, merge them
-- The tree should have 2-5 roots, each with 1-4 children — not 7 flat siblings
-
-WHAT MAKES A BAD TREE:
-- Everything at root level (flat list, no grouping)
-- Topics named after what happened ("dashboard redesign") rather than what exists ("developer dashboard")
-- A concept that is clearly part of a larger system sitting as a sibling instead of a child
-- Redundant or overlapping specs that should be merged
-
-${isColdStart ? "COLD START: No existing specs. Build the initial tree from fragments alone.\n" : ""}OUTPUT FORMAT:
+${isColdStart ? "COLD START: No existing specs. Build the initial tree from fragments alone.\n\n" : ""}OUTPUT FORMAT:
 {
-  "conceptualMap": [
-    {
-      "name": "area name — the root concept",
-      "description": "one sentence: what this area of the project is about",
-      "children": ["child concept 1", "child concept 2"]
-    }
-  ],
   "assignments": [
     {
       "fragmentIndex": 0,
       "targetSpec": "spec name",
       "action": "update" | "create",
-      "parentSpec": "parent spec name (required for non-root specs)"
+      "level": "root" | "child",
+      "parentSpec": "parent spec name (REQUIRED when level is child)"
     }
   ],
   "merges": [
     {
       "specs": ["spec A", "spec B"],
       "intoName": "merged spec name",
-      "parentSpec": "parent spec name (optional)"
+      "level": "root" | "child",
+      "parentSpec": "parent spec name (REQUIRED when level is child)"
     }
   ],
   "splits": []
 }
 
-PROCESS:
-1. First, fill conceptualMap — your understanding of the project's structure
-2. Then, assign every fragment to a spec that lives in that structure
-3. Merge existing specs that describe the same concept
-4. Every fragment MUST be assigned — no orphans
-5. parentSpec is REQUIRED for any spec that is not a root
+RULES:
+1. Every fragment MUST appear in assignments — no orphans
+2. Every assignment MUST have a "level" field: "root" or "child"
+3. parentSpec is REQUIRED when level is "child". A child without a parent is INVALID.
+4. parentSpec must reference a root-level spec (either existing or being created in this plan)
+5. There should be 2-4 root specs total. If you have more, you're not grouping enough.
+6. Do NOT include a conceptualMap field — the tree structure is expressed through level + parentSpec on each assignment
 
 Respond with valid JSON only.`;
 
