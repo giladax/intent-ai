@@ -149,33 +149,34 @@ export function App() {
                 </SidebarMenuItem>
 
                 {/* Knowledge Tree nav */}
-                <SidebarMenuItem>
+                <SidebarMenuItem className="relative">
                   <SidebarMenuButton
                     isActive={view === "knowledge" || view === "topic"}
                     onClick={() => { setView("knowledge"); setSelectedTopicId(null); }}
                     className="text-sm"
                   >
                     <Layers className="size-4" />
-                    <span className="flex-1">Knowledge Tree</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{topics.length}</span>
+                    <span>Knowledge Tree</span>
                   </SidebarMenuButton>
+                  <span className="absolute top-1 right-2 text-[10px] text-muted-foreground tabular-nums">{topics.length}</span>
                 </SidebarMenuItem>
 
                 {/* Sessions nav */}
-                <SidebarMenuItem>
+                <SidebarMenuItem className="relative">
                   <SidebarMenuButton
                     isActive={view === "sessions"}
                     onClick={() => { setView("sessions"); setSelectedTopicId(null); }}
                     className="text-sm"
                   >
                     <ScrollText className="size-4" />
-                    <span className="flex-1">Sessions</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{sessions.length}</span>
-                    {undigestedCount > 0 && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                        +{undigestedCount}
-                      </Badge>
-                    )}
+                    <span>Sessions</span>
+                  </SidebarMenuButton>
+                  <span className="absolute top-1 right-2 text-[10px] text-muted-foreground tabular-nums">{sessions.length}</span>
+                  {undigestedCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold">
+                      {undigestedCount}
+                    </span>
+                  )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
