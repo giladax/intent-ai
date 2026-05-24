@@ -14,6 +14,7 @@ interface Props {
   repoId: string;
   onSynced: () => void;
   onReviewChange?: (proposal: BrainSyncProposal | null) => void;
+  autoStart?: boolean; // auto-trigger discover on mount (for full-page view)
 }
 
 const CHANGE_ICONS: Record<string, typeof Plus> = { add: Plus, update: Pencil, merge: Merge };
@@ -140,7 +141,7 @@ function ChangeItem({
   );
 }
 
-export function BrainSync({ repoId, onSynced, onReviewChange }: Props) {
+export function BrainSync({ repoId, onSynced, onReviewChange, autoStart }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [sessions, setSessions] = useState<BrainSyncSession[]>([]);
   const [proposal, setProposal] = useState<BrainSyncProposal | null>(null);
@@ -154,6 +155,11 @@ export function BrainSync({ repoId, onSynced, onReviewChange }: Props) {
   useEffect(() => {
     onReviewChange?.(phase === "reviewing" ? proposal : null);
   }, [phase, proposal, onReviewChange]);
+
+  // Auto-start discover when used as full-page sync view
+  useEffect(() => {
+    if (autoStart && phase === "idle") handleDiscover();
+  }, [autoStart]);
 
   // Recover server-side job state on mount (survives page refresh)
   useEffect(() => {
