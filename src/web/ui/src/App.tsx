@@ -8,6 +8,7 @@ import { KnowledgeTreePage } from "./components/KnowledgeTreePage";
 import { SessionsPage } from "./components/SessionsPage";
 import { SessionDetailPage } from "./components/SessionDetailPage";
 import { fetchProjects, fetchTopics, fetchSessions } from "./api";
+import type { LiveState } from "./api";
 import type { Project, TopicSummary, Session, BrainSyncProposal } from "./types";
 import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard } from "lucide-react";
 import {
@@ -43,6 +44,19 @@ export function App() {
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [liveState, setLiveState] = useState<LiveState | null>(null);
+
+  // Poll live state from observe daemon
+  useEffect(() => {
+    const poll = async () => {
+      const { fetchLiveState } = await import('./api');
+      const state = await fetchLiveState();
+      setLiveState(state);
+    };
+    poll(); // initial
+    const interval = setInterval(poll, 5000); // every 5s
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     fetchProjects().then((ps) => {
@@ -102,8 +116,13 @@ export function App() {
     "Overview";
 
   // Chat context based on current view
-  const chatContext = view === "topic" && selectedTopicId
+  const chatContext: {
+    topicId?: string; topicName?: string;
+    sessionId?: string; sessionLabel?: string;
+  } | null = view === "topic" && selectedTopicId
     ? { topicId: selectedTopicId, topicName: selectedTopicName ?? "" }
+    : view === "session-detail" && selectedSessionId
+    ? { sessionId: selectedSessionId, sessionLabel: selectedSessionLabel }
     : null;
 
   return (
@@ -177,7 +196,6 @@ export function App() {
                       {undigestedCount}
                     </span>
                   )}
-                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
@@ -291,8 +309,16 @@ export function App() {
                   <SessionsPage
                     sessions={sessions}
                     undigestedCount={undigestedCount}
+                    liveState={liveState}
                     onSync={() => setView("sync")}
-                    onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
+                    onSessionClick={(id) => {
+                      if (id === 'live') {
+                        console.log('[live-session] clicked live session row', liveState?.state?.sessionId);
+                        return;
+                      }
+                      setSelectedSessionId(id);
+                      setView("session-detail");
+                    }}
                   />
                 ) : view === "overview" ? (
                   <OverviewPanel
@@ -329,6 +355,9 @@ export function App() {
                   <ChatPanel
                     topicId={chatContext?.topicId ?? null}
                     topicName={chatContext?.topicName ?? ""}
+                    sessionId={chatContext?.sessionId ?? null}
+                    sessionLabel={chatContext?.sessionLabel ?? ""}
+                    liveState={liveState}
                   />
                 </ResizablePanel>
               </>

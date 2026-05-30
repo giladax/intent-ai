@@ -1,4 +1,5 @@
 import type { Session } from "../types";
+import type { LiveState } from "../api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, CircleDot } from "lucide-react";
@@ -6,11 +7,12 @@ import { RefreshCw, CircleDot } from "lucide-react";
 interface Props {
   sessions: Session[];
   undigestedCount: number;
+  liveState: LiveState | null;
   onSync: () => void;
   onSessionClick: (id: string) => void;
 }
 
-export function SessionsPage({ sessions, undigestedCount, onSync, onSessionClick }: Props) {
+export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onSessionClick }: Props) {
   const sorted = [...sessions].sort((a, b) => {
     const da = a.started_at ? new Date(a.started_at).getTime() : 0;
     const db = b.started_at ? new Date(b.started_at).getTime() : 0;
@@ -68,6 +70,22 @@ export function SessionsPage({ sessions, undigestedCount, onSync, onSessionClick
         </div>
       ) : (
         <div className="space-y-0.5">
+          {liveState?.state && (
+            <div
+              className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group border border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/20"
+              onClick={() => onSessionClick('live')}
+            >
+              <span className="relative flex size-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-3 bg-emerald-500" />
+              </span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300">Live</Badge>
+              <span className="text-sm flex-1 truncate">
+                {liveState.state.currentIntent || "Active session"}
+              </span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">{liveState.state.turnCount} turns</Badge>
+            </div>
+          )}
           {sorted.map((s) => (
             <div
               key={s.id}

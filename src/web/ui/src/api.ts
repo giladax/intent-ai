@@ -92,6 +92,38 @@ export const discoverBrainSessions = (repoId: string) =>
   });
 // proposeBrainSync and applyBrainSync now use SSE streaming directly in BrainSync.tsx
 
+// Live state (observe daemon)
+export interface LiveState {
+  state: {
+    sessionId: string;
+    startedAt: number;
+    transcriptPath: string;
+    turnCount: number;
+    currentIntent: string;
+    filesInFocus: string[];
+    significantEvents: string[];
+  } | null;
+  suggestion: {
+    suggestions: Array<{
+      prompt: string;
+      reasoning: string;
+      category: 'continue' | 'refine' | 'redirect' | 'verify' | 'explain';
+    }>;
+    sessionSummary: string;
+    updatedAt: number;
+  } | null;
+}
+
+export async function fetchLiveState(): Promise<LiveState | null> {
+  try {
+    const res = await fetch('http://127.0.0.1:4317/live');
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null; // daemon not running
+  }
+}
+
 // Chat (streaming)
 export async function* streamChat(
   question: string,

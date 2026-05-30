@@ -200,4 +200,13 @@ program
     }
   });
 
+program
+  .command("observe")
+  .description("Start the observe daemon for live Claude Code session tracking")
+  .option("-p, --port <port>", "Port for hook server", "4317")
+  .action(async (opts: { port: string }) => {
+    const { startDaemon } = await import("../daemon/index.js");
+    await startDaemon(parseInt(opts.port));
+  });
+
 program.parse();
