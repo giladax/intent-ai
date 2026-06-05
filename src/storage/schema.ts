@@ -25,6 +25,8 @@ export const insightCategoryEnum = pgEnum("insight_category", [
   "behavior",
   "risk",
   "interface",
+  "navigation",
+  "pitfall",
 ]);
 
 export const insightStatusEnum = pgEnum("insight_status", [
@@ -338,4 +340,19 @@ export const brainCards = pgTable("brain_cards", {
   versionId: uuid("version_id").references(() => brainVersions.id),
   repoId: uuid("repo_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Brain: Topic Patterns ─────────────────────────────────────────────
+
+export const topicPatterns = pgTable("topic_patterns", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  topicId: uuid("topic_id").notNull().references(() => topics.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "request" | "struggle" | "file_access"
+  statement: text("statement").notNull(),
+  frequency: integer("frequency").notNull().default(1),
+  confidence: text("confidence").notNull().default("medium"),
+  fileAssociations: jsonb("file_associations").notNull().default([]),
+  evidence: jsonb("evidence").notNull().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
