@@ -201,6 +201,87 @@ program
   });
 
 program
+  .command("scaffold")
+  .description("Generate AGENTS.md from brain knowledge")
+  .option("--repo <repoId>", "Repository ID")
+  .option("--output <path>", "Output path", "AGENTS.md")
+  .action(async (opts: { repo?: string; output: string }) => {
+    const { generateAgentsMd } = await import("../brain/generate-scaffold.js");
+    const { closeDb, getClient } = await import("../storage/connection.js");
+    const { writeFileSync } = await import("node:fs");
+    try {
+      const sql = getClient();
+
+      // Determine repo ID
+      let repoId: string;
+      if (opts.repo) {
+        repoId = opts.repo;
+      } else {
+        const [first] = await sql`SELECT id, name FROM projects ORDER BY created_at LIMIT 1`;
+        if (!first) {
+          console.error("No projects found. Run 'intent digest' first.");
+          await closeDb();
+          process.exit(1);
+        }
+        repoId = first.id as string;
+        console.log(`Using project: ${first.name}`);
+      }
+
+      const [projectRow] = await sql`SELECT name FROM projects WHERE id = ${repoId}`;
+      const projectName = (projectRow?.name ?? "project") as string;
+
+      // Load topics
+      const allTopics = await sql`SELECT id, name, summary FROM topics WHERE repo_id = ${repoId} ORDER BY name`;
+
+      const topicData = await Promise.all(allTopics.map(async (t: any) => {
+        const topicInsights = await sql`
+          SELECT category, statement FROM insights
+          WHERE topic_id = ${t.id} AND status = 'active'
+          ORDER BY category, confidence DESC
+        `;
+        const patterns = await sql`
+          SELECT type, statement, frequency FROM topic_patterns
+          WHERE topic_id = ${t.id}
+          ORDER BY frequency DESC
+        `;
+        const skills = await sql`
+          SELECT name, status, steps, pitfalls, files FROM topic_skills
+          WHERE topic_id = ${t.id}
+          ORDER BY name
+        `;
+        const files = await sql`
+          SELECT DISTINCT file_path, role FROM topic_files
+          WHERE topic_id = ${t.id}
+          ORDER BY file_path
+        `;
+        return {
+          name: t.name as string,
+          summary: (t.summary ?? "") as string,
+          insights: topicInsights.map((i: any) => ({ category: i.category as string, statement: i.statement as string })),
+          patterns: patterns.map((p: any) => ({ type: p.type as string, statement: p.statement as string, frequency: Number(p.frequency) })),
+          skills: skills.map((s: any) => ({
+            name: s.name as string,
+            status: s.status as string,
+            steps: (s.steps ?? []) as Array<{ order: number; instruction: string; files: string[] }>,
+            pitfalls: (s.pitfalls ?? []) as string[],
+            files: (s.files ?? []) as string[],
+          })),
+          files: files.map((f: any) => ({ path: f.file_path as string, role: (f.role ?? "") as string })),
+        };
+      }));
+
+      const md = generateAgentsMd({ projectName, topics: topicData });
+      writeFileSync(opts.output, md);
+      console.log(`Scaffold written to ${opts.output} (${md.split("\n").length} lines)`);
+      await closeDb();
+    } catch (err) {
+      console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      await closeDb();
+      process.exit(1);
+    }
+  });
+
+program
   .command("mcp")
   .description("Start MCP server for brain queries (reads from .repo/ directory)")
   .action(async () => {
