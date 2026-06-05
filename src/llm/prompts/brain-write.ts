@@ -10,6 +10,8 @@ const InsightCategorySchema = z.enum([
   "behavior",
   "risk",
   "interface",
+  "navigation",
+  "pitfall",
 ]);
 
 const FileRefSchema = z.object({
@@ -66,6 +68,17 @@ export const WrittenSpecSchema = z.object({
   insights: InsightsSchema,
   fileRefs: z.array(FileRefSchema).optional().default([]),
   files: z.array(z.any()).optional(), // LLM sometimes uses "files" instead of "fileRefs"
+  patterns: z.array(z.object({
+    type: z.enum(["request", "struggle", "file_access"]),
+    statement: z.string(),
+    frequency: z.number().optional().default(1),
+    confidence: z.enum(["high", "medium", "low"]).optional().default("medium"),
+    fileAssociations: z.array(z.string()).optional().default([]),
+    evidence: z.array(z.object({
+      sessionId: z.string().optional().default(""),
+      momentId: z.string().optional().default(""),
+    })).optional().default([]),
+  })).optional().default([]),
 }).passthrough().transform((t) => ({
   ...t,
   summary: t.summary || t.description || "",
@@ -134,6 +147,24 @@ Insight categories:
 
 EVIDENCE REQUIREMENT:
 Every insight must cite specific moments by their [id] from the fragments. The evidence.momentId field must reference a real momentId from the provided fragment evidence.
+
+## PATTERNS
+
+If the fragments contain requests[], struggles[], or fileSequences[], synthesize them into a \`patterns\` array on the spec.
+
+Each pattern has:
+- type: "request" (agents keep asking this) | "struggle" (agents keep failing at this) | "file_access" (these files are always accessed together)
+- statement: what the pattern is, in plain language
+- frequency: how many sessions show this pattern
+- confidence: high (4+ sessions) | medium (2-3) | low (1)
+- fileAssociations: files involved in this pattern
+- evidence: [{sessionId, momentId}] — cite the source moments
+
+Merge similar patterns from different fragments. Deduplicate — if two fragments describe the same request, combine into one pattern with merged evidence.
+
+Also produce \`navigation\` and \`pitfall\` insights from patterns:
+- A recurring request becomes a \`navigation\` insight: "Auth middleware is in src/middleware/auth.ts — agents frequently ask about this"
+- A recurring struggle becomes a \`pitfall\` insight: "When adding endpoints, agents forget to update OpenAPI spec"
 
 Respond with valid JSON only.`;
 

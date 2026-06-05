@@ -142,6 +142,37 @@ describe("WrittenSpecSchema", () => {
     expect(result.fileRefs[1].role).toBe(""); // string path gets empty role
   });
 
+  it("parses written spec with patterns", () => {
+    const raw = {
+      name: "Pipeline",
+      summary: "Core pipeline system",
+      insights: { structure: [{ statement: "two-pass", confidence: 80 }] },
+      fileRefs: [{ path: "src/pipeline/orchestrator.ts", role: "core" }],
+      patterns: [{
+        type: "request",
+        statement: "agents ask how to add pipeline nodes",
+        frequency: 3,
+        confidence: "high",
+        fileAssociations: ["orchestrator.ts", "types.ts"],
+        evidence: [{ sessionId: "s1", momentId: "m1" }],
+      }],
+    };
+    const result = WrittenSpecSchema.parse(raw);
+    expect(result.patterns).toHaveLength(1);
+    expect(result.patterns[0].type).toBe("request");
+  });
+
+  it("defaults patterns to empty array", () => {
+    const raw = {
+      name: "Pipeline",
+      summary: "Core pipeline",
+      insights: { structure: [{ statement: "test", confidence: 80 }] },
+      fileRefs: [],
+    };
+    const result = WrittenSpecSchema.parse(raw);
+    expect(result.patterns).toEqual([]);
+  });
+
   it("does NOT include relatedTopics field", () => {
     const raw = {
       name: "No Related Topics",
