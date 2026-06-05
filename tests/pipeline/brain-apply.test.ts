@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeName, detectCycles, buildParentMap } from "../../src/pipeline/brain-apply.js";
+import { normalizeName, detectCycles, buildParentMap, deduplicatePatterns } from "../../src/pipeline/brain-apply.js";
 import type { GraphPlan } from "../../src/llm/prompts/brain-organize.js";
 
 describe("normalizeName", () => {
@@ -164,5 +164,44 @@ describe("buildParentMap", () => {
 
     const map = buildParentMap(plan);
     expect(map.get("pipeline")).toBe("root");
+  });
+});
+
+describe("deduplicatePatterns", () => {
+  it("merges similar patterns of same type, sums frequencies", () => {
+    const patterns = [
+      { type: "request" as const, statement: "how does the pipeline work", frequency: 3, confidence: "medium" as const, fileAssociations: ["orchestrator.ts"], evidence: [{ sessionId: "s1" }] },
+      { type: "request" as const, statement: "how does the pipeline function", frequency: 1, confidence: "low" as const, fileAssociations: ["types.ts"], evidence: [{ sessionId: "s2" }] },
+      { type: "struggle" as const, statement: "forgot to update types", frequency: 2, confidence: "medium" as const, fileAssociations: [], evidence: [{ sessionId: "s3" }] },
+    ];
+    const deduped = deduplicatePatterns(patterns);
+    expect(deduped).toHaveLength(2); // two similar requests merged
+    expect(deduped[0].frequency).toBe(4); // frequencies summed
+    expect(deduped[0].evidence).toHaveLength(2); // evidence merged
+    expect(deduped[0].fileAssociations).toContain("orchestrator.ts");
+    expect(deduped[0].fileAssociations).toContain("types.ts");
+  });
+
+  it("does not merge patterns of different types", () => {
+    const patterns = [
+      { type: "request" as const, statement: "how does the pipeline work", frequency: 1, evidence: [{ sessionId: "s1" }] },
+      { type: "struggle" as const, statement: "how does the pipeline work", frequency: 1, evidence: [{ sessionId: "s2" }] },
+    ];
+    const deduped = deduplicatePatterns(patterns);
+    expect(deduped).toHaveLength(2);
+  });
+
+  it("keeps higher confidence when merging", () => {
+    const patterns = [
+      { type: "request" as const, statement: "how does auth work", frequency: 1, confidence: "low" as const, evidence: [] },
+      { type: "request" as const, statement: "how does auth function", frequency: 1, confidence: "high" as const, evidence: [] },
+    ];
+    const deduped = deduplicatePatterns(patterns);
+    expect(deduped).toHaveLength(1);
+    expect(deduped[0].confidence).toBe("high");
+  });
+
+  it("returns empty array for empty input", () => {
+    expect(deduplicatePatterns([])).toEqual([]);
   });
 });

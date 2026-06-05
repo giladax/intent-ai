@@ -60,6 +60,51 @@ export function detectCycles(parentMap: Map<string, string>): void {
   }
 }
 
+/**
+ * Deduplicate patterns by type + semantic similarity.
+ * Similar patterns of the same type are merged: frequencies summed, evidence combined,
+ * fileAssociations unioned, and the higher confidence kept.
+ */
+export function deduplicatePatterns(
+  patterns: Array<{
+    type: string;
+    statement: string;
+    frequency: number;
+    confidence?: string;
+    fileAssociations?: string[];
+    evidence: Array<{ sessionId: string; momentId?: string }>;
+  }>,
+  threshold = 0.7,
+) {
+  const result = [...patterns];
+  const toRemove = new Set<number>();
+
+  for (let i = 0; i < result.length; i++) {
+    if (toRemove.has(i)) continue;
+    for (let j = i + 1; j < result.length; j++) {
+      if (toRemove.has(j)) continue;
+      if (result[i].type !== result[j].type) continue;
+      const score = computeSimilarity(result[i].statement, result[j].statement);
+      if (score >= threshold) {
+        result[i] = {
+          ...result[i],
+          frequency: result[i].frequency + result[j].frequency,
+          evidence: [...result[i].evidence, ...result[j].evidence],
+          fileAssociations: [...new Set([...(result[i].fileAssociations ?? []), ...(result[j].fileAssociations ?? [])])],
+        };
+        // Keep higher confidence
+        const confOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+        const ci = confOrder[result[i].confidence ?? "medium"] ?? 2;
+        const cj = confOrder[result[j].confidence ?? "medium"] ?? 2;
+        if (cj > ci) result[i] = { ...result[i], confidence: result[j].confidence };
+        toRemove.add(j);
+      }
+    }
+  }
+
+  return result.filter((_, idx) => !toRemove.has(idx));
+}
+
 // ── Main function ───────────────────────────────────────────────────
 
 /**
@@ -340,6 +385,25 @@ async function storeSpecContent(
       INSERT INTO topic_files (topic_id, file_path, role, session_id)
       VALUES (${topicId}, ${f.path}, ${f.role}, ${sessionId})
     `;
+  }
+
+  // Store patterns (if WrittenSpec has them)
+  if ((spec as any).patterns?.length) {
+    const deduped = deduplicatePatterns((spec as any).patterns);
+    for (const pattern of deduped) {
+      await sql`
+        INSERT INTO topic_patterns (topic_id, type, statement, frequency, confidence, file_associations, evidence)
+        VALUES (
+          ${topicId},
+          ${pattern.type},
+          ${pattern.statement},
+          ${pattern.frequency},
+          ${pattern.confidence ?? "medium"},
+          ${JSON.stringify(pattern.fileAssociations ?? [])}::jsonb,
+          ${JSON.stringify(pattern.evidence ?? [])}::jsonb
+        )
+      `;
+    }
   }
 }
 
