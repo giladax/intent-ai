@@ -356,3 +356,25 @@ export const topicPatterns = pgTable("topic_patterns", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ── Brain: Topic Skills ───────────────────────────────────────────────
+
+export const skillStatusEnum = pgEnum("skill_status", [
+  "draft",
+  "approved",
+  "validated",
+]);
+
+export const topicSkills = pgTable("topic_skills", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  topicId: uuid("topic_id").notNull().references(() => topics.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  steps: jsonb("steps").notNull().default([]),
+  pitfalls: jsonb("pitfalls").notNull().default([]),
+  files: jsonb("files").notNull().default([]),
+  status: skillStatusEnum("status").notNull().default("draft"),
+  evidence: jsonb("evidence").notNull().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
