@@ -155,6 +155,38 @@ describe("SpecFragmentOutputSchema", () => {
     expect(result.fragments[0].nameHint).toBe("Aliased Fragment");
     expect(result.fragments[0].fileRefs).toEqual([{ path: "src/x.ts", role: "entry" }]);
   });
+
+  it("parses fragments with requests, struggles, and fileSequences", () => {
+    const raw = {
+      fragments: [{
+        nameHint: "Pipeline",
+        insights: { structure: [{ statement: "uses two passes", confidence: 85 }] },
+        fileRefs: [{ path: "src/pipeline/orchestrator.ts", role: "core" }],
+        requests: [{ statement: "how does the pipeline work?", momentIds: ["m1"] }],
+        struggles: [{ statement: "forgot to update orchestrator", momentIds: ["m2"] }],
+        fileSequences: [{ files: ["types.ts", "orchestrator.ts"], context: "adding a node" }],
+      }],
+    };
+    const result = SpecFragmentOutputSchema.parse(raw);
+    expect(result.fragments[0].requests).toHaveLength(1);
+    expect(result.fragments[0].requests[0].statement).toBe("how does the pipeline work?");
+    expect(result.fragments[0].struggles).toHaveLength(1);
+    expect(result.fragments[0].fileSequences).toHaveLength(1);
+  });
+
+  it("defaults requests/struggles/fileSequences to empty arrays", () => {
+    const raw = {
+      fragments: [{
+        nameHint: "Pipeline",
+        insights: { structure: [{ statement: "test", confidence: 80 }] },
+        fileRefs: [],
+      }],
+    };
+    const result = SpecFragmentOutputSchema.parse(raw);
+    expect(result.fragments[0].requests).toEqual([]);
+    expect(result.fragments[0].struggles).toEqual([]);
+    expect(result.fragments[0].fileSequences).toEqual([]);
+  });
 });
 
 // ── Prompt Builder Tests ─────────────────────────────────────────────

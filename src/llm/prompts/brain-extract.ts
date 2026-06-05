@@ -15,6 +15,8 @@ const InsightCategorySchema = z.enum([
   "behavior",
   "risk",
   "interface",
+  "navigation",
+  "pitfall",
 ]);
 
 const FileRefSchema = z.object({
@@ -69,6 +71,18 @@ const SpecFragmentSchema = z.object({
   insights: InsightsSchema,
   fileRefs: z.array(FileRefSchema).optional().default([]),
   files: z.array(z.any()).optional(), // alias for fileRefs
+  requests: z.array(z.object({
+    statement: z.string(),
+    momentIds: z.array(z.string()).optional().default([]),
+  })).optional().default([]),
+  struggles: z.array(z.object({
+    statement: z.string(),
+    momentIds: z.array(z.string()).optional().default([]),
+  })).optional().default([]),
+  fileSequences: z.array(z.object({
+    files: z.array(z.string()),
+    context: z.string(),
+  })).optional().default([]),
 }).passthrough().transform((f) => ({
   ...f,
   nameHint: f.nameHint || f.name || "",
@@ -124,6 +138,29 @@ Rules:
 - Skip moments that don't contribute reusable codebase knowledge.
 - NO relatedTopics, NO hierarchy — just raw material.
 
+## ALSO EXTRACT: Agent Behavior Signals
+
+For each fragment, also extract:
+
+### requests[]
+What was the agent asked to do or find? Direct requests from the developer.
+- "find where auth is handled"
+- "add a new pipeline node"
+- "explain the chunking logic"
+Each request needs the momentId(s) where it appeared.
+
+### struggles[]
+Where did the agent struggle, retry, or make mistakes?
+- "opened wrong file first"
+- "forgot to update types.ts after schema change"
+- "had to retry migration 3 times"
+Each struggle needs the momentId(s) where it was observed.
+
+### fileSequences[]
+What files were accessed together, in what order, for what purpose?
+- files: ["types.ts", "orchestrator.ts"], context: "adding a pipeline node"
+Only include sequences of 2+ files that represent a meaningful workflow.
+
 Respond with valid JSON only.`;
 
   const user = `## Session Digest
@@ -152,13 +189,16 @@ Extract knowledge fragments with categorized insights. Respond with ONLY valid J
       "nameHint": "suggested spec name",
       "insights": [
         {
-          "category": "structure|decision|constraint|behavior|risk|interface",
+          "category": "structure|decision|constraint|behavior|risk|interface|navigation|pitfall",
           "statement": "the insight",
           "evidence": [{ "momentId": "abc-123", "reasoning": "why this moment supports the insight" }],
           "confidence": 80
         }
       ],
-      "fileRefs": [{ "path": "src/foo.ts", "role": "what this file does" }]
+      "fileRefs": [{ "path": "src/foo.ts", "role": "what this file does" }],
+      "requests": [{ "statement": "what the developer asked", "momentIds": ["abc-123"] }],
+      "struggles": [{ "statement": "where the agent had difficulty", "momentIds": ["abc-123"] }],
+      "fileSequences": [{ "files": ["src/types.ts", "src/orchestrator.ts"], "context": "adding a pipeline node" }]
     }
   ]
 }`;
