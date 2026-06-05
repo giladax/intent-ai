@@ -173,6 +173,42 @@ describe("WrittenSpecSchema", () => {
     expect(result.patterns).toEqual([]);
   });
 
+  it("parses written spec with candidateSkills", () => {
+    const raw = {
+      name: "Pipeline",
+      summary: "Core pipeline",
+      insights: { structure: [{ statement: "test", confidence: 80 }] },
+      fileRefs: [],
+      patterns: [],
+      candidateSkills: [{
+        name: "Add Pipeline Node",
+        description: "Steps to add a new processing node",
+        steps: [
+          { order: 1, instruction: "Create src/pipeline/<name>.ts", files: ["src/pipeline/"] },
+          { order: 2, instruction: "Add types to types.ts", files: ["src/adapters/types.ts"] },
+        ],
+        pitfalls: ["Don't forget to wire into orchestrator.ts"],
+        files: ["src/pipeline/", "src/adapters/types.ts", "src/pipeline/orchestrator.ts"],
+        evidence: [{ sessionId: "s1", momentId: "m1" }],
+      }],
+    };
+    const result = WrittenSpecSchema.parse(raw);
+    expect(result.candidateSkills).toHaveLength(1);
+    expect(result.candidateSkills[0].steps).toHaveLength(2);
+    expect(result.candidateSkills[0].name).toBe("Add Pipeline Node");
+  });
+
+  it("defaults candidateSkills to empty array", () => {
+    const raw = {
+      name: "Pipeline",
+      summary: "Core pipeline",
+      insights: { structure: [{ statement: "test", confidence: 80 }] },
+      fileRefs: [],
+    };
+    const result = WrittenSpecSchema.parse(raw);
+    expect(result.candidateSkills).toEqual([]);
+  });
+
   it("does NOT include relatedTopics field", () => {
     const raw = {
       name: "No Related Topics",

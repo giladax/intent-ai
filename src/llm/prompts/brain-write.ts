@@ -79,6 +79,22 @@ export const WrittenSpecSchema = z.object({
       momentId: z.string().optional().default(""),
     })).optional().default([]),
   })).optional().default([]),
+  candidateSkills: z.array(z.object({
+    name: z.string(),
+    description: z.string().optional().default(""),
+    steps: z.array(z.object({
+      order: z.number(),
+      instruction: z.string(),
+      files: z.array(z.string()).optional().default([]),
+      notes: z.string().optional(),
+    })),
+    pitfalls: z.array(z.string()).optional().default([]),
+    files: z.array(z.string()).optional().default([]),
+    evidence: z.array(z.object({
+      sessionId: z.string().optional().default(""),
+      momentId: z.string().optional().default(""),
+    })).optional().default([]),
+  })).optional().default([]),
 }).passthrough().transform((t) => ({
   ...t,
   summary: t.summary || t.description || "",
@@ -165,6 +181,23 @@ Merge similar patterns from different fragments. Deduplicate — if two fragment
 Also produce \`navigation\` and \`pitfall\` insights from patterns:
 - A recurring request becomes a \`navigation\` insight: "Auth middleware is in src/middleware/auth.ts — agents frequently ask about this"
 - A recurring struggle becomes a \`pitfall\` insight: "When adding endpoints, agents forget to update OpenAPI spec"
+
+## CANDIDATE SKILLS
+
+If you receive patterns with frequency 3+ (from 3+ distinct sessions), generate candidateSkills.
+
+A skill is a step-by-step recipe for a common task in this topic area.
+
+Each skill has:
+- name: short action name ("Add Pipeline Node", "Debug Migration Failure")
+- description: one sentence explaining when to use this
+- steps: ordered [{order, instruction, files, notes?}] — concrete, actionable
+- pitfalls: common mistakes from struggle patterns
+- files: all files involved across all steps
+- evidence: cite the pattern/moment sources
+
+Only generate skills when you have STRONG pattern evidence (3+ sessions). Quality over quantity.
+Do NOT generate skills for one-off tasks or session-specific work.
 
 Respond with valid JSON only.`;
 

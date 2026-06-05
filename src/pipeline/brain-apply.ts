@@ -387,6 +387,25 @@ async function storeSpecContent(
     `;
   }
 
+  // Store candidate skills (always as draft)
+  if ((spec as any).candidateSkills?.length) {
+    for (const skill of (spec as any).candidateSkills) {
+      await sql`
+        INSERT INTO topic_skills (topic_id, name, description, steps, pitfalls, files, status, evidence)
+        VALUES (
+          ${topicId},
+          ${skill.name},
+          ${skill.description ?? ""},
+          ${JSON.stringify(skill.steps ?? [])}::jsonb,
+          ${JSON.stringify(skill.pitfalls ?? [])}::jsonb,
+          ${JSON.stringify(skill.files ?? [])}::jsonb,
+          'draft',
+          ${JSON.stringify(skill.evidence ?? [])}::jsonb
+        )
+      `;
+    }
+  }
+
   // Store patterns (if WrittenSpec has them)
   if ((spec as any).patterns?.length) {
     const deduped = deduplicatePatterns((spec as any).patterns);
