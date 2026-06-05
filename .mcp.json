@@ -6,6 +6,14 @@
         "shadcn@latest",
         "mcp"
       ]
+    },
+    "intent-brain": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "src/cli/index.ts",
+        "mcp"
+      ]
     }
   }
 }
