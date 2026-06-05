@@ -30,6 +30,20 @@ interface RelatedRow {
   name: string;
 }
 
+interface PatternRow {
+  type: string;
+  statement: string;
+  frequency: number;
+  confidence: string;
+}
+
+interface SkillRow {
+  name: string;
+  description: string;
+  steps: string[] | null;
+  status: string;
+}
+
 interface BrainCardRow {
   node_name: string;
   level: string;
@@ -228,6 +242,20 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
     WHERE tr.topic_id = ${topicId}
   ` as RelatedRow[];
 
+  const patterns = await sql`
+    SELECT type, statement, frequency, confidence
+    FROM topic_patterns
+    WHERE topic_id = ${topicId}
+    ORDER BY frequency DESC, confidence DESC
+  ` as PatternRow[];
+
+  const skills = await sql`
+    SELECT name, description, steps, status
+    FROM topic_skills
+    WHERE topic_id = ${topicId} AND status IN ('approved', 'validated')
+    ORDER BY name
+  ` as SkillRow[];
+
   // ── Build LLM-friendly markdown ──
 
   let md = `# ${topic.name}\n\n`;
@@ -260,6 +288,33 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
     md += `\n## ${cat}\n\n`;
     for (const i of catInsights) {
       md += `- ${i.statement}\n`;
+    }
+  }
+
+  // Patterns
+  if (patterns.length > 0) {
+    const patternIcon: Record<string, string> = {
+      request: "?",
+      struggle: "!",
+      file_access: "~",
+    };
+    md += `\n## Patterns\n\n`;
+    for (const p of patterns) {
+      const icon = patternIcon[p.type] ?? "-";
+      md += `- ${icon} **${p.type}**: ${p.statement} (${p.frequency} sessions, ${p.confidence})\n`;
+    }
+  }
+
+  // Skills
+  if (skills.length > 0) {
+    md += `\n## Skills\n`;
+    for (const s of skills) {
+      md += `\n### ${s.name}\n\n`;
+      if (s.description) md += `${s.description}\n\n`;
+      const steps: string[] = Array.isArray(s.steps) ? s.steps : [];
+      for (let i = 0; i < steps.length; i++) {
+        md += `${i + 1}. ${steps[i]}\n`;
+      }
     }
   }
 
