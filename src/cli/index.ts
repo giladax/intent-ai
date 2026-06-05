@@ -201,6 +201,14 @@ program
   });
 
 program
+  .command("mcp")
+  .description("Start MCP server for brain queries (reads from .repo/ directory)")
+  .action(async () => {
+    const { startMcpServer } = await import("../mcp/server.js");
+    await startMcpServer();
+  });
+
+program
   .command("observe")
   .description("Start the observe daemon for live Claude Code session tracking")
   .option("-p, --port <port>", "Port for hook server", "4317")

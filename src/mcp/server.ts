@@ -616,13 +616,8 @@ export function createBrainServer(): McpServer {
 
 // ── Entry point ───────────────────────────────────────────────────
 
-async function main() {
+export async function startMcpServer() {
   const server = createBrainServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
-
-main().catch((err) => {
-  console.error("Brain MCP server failed:", err);
-  process.exit(1);
-});
