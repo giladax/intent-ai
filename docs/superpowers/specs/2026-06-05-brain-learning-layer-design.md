@@ -158,28 +158,45 @@ For `ask_intent`, the query hits session moments and outcomes with evidence, ret
 
 ## Scaffold Export
 
-`intent scaffold` command generates static AGENTS.md from the brain:
+`intent scaffold` generates AGENTS.md — the cross-tool standard (read by Claude Code, Codex, Cursor, Copilot, Gemini CLI, Windsurf, Devin, Amazon Q, Augment, Aider). Future: tool-specific skins (.cursorrules, CLAUDE.md, DESIGN.md) from the same brain data.
+
+The scaffold covers the full taxonomy of agentic scaffold content, not just skills. Each section maps to a brain data source:
 
 ```markdown
-# Project: intent-ai
+# Project: <name>
 
 ## Overview
-[from root topic summaries]
+[from root topic summaries — project identity, tech stack]
 
-## File Map
-[from topic file accumulation]
+## Architecture
+[from `structure` insights — directory layout, data flow, module boundaries]
+
+## Key Files
+[from topic file accumulation — entry points, important modules with roles]
+
+## Conventions
+[from `constraint` + `behavior` insights — code style, naming, error handling, import patterns]
+
+## Commands
+[from session tool_call events — build, test, lint, dev server, migrations]
 
 ## Common Workflows
-[from approved skills — name, steps, files]
+[from approved skills — step-by-step recipes for recurring tasks]
+
+## Domain Rules
+[from `decision` + `constraint` insights — data model, API conventions, business logic]
 
 ## Watch Out For
-[from validated struggle patterns — pitfalls, common mistakes]
+[from `pitfall` insights + `struggle` patterns — anti-patterns, common mistakes, forbidden patterns]
 
 ## Navigation Guide
-[from navigation insights — "auth lives in X", "pipeline starts at Y"]
+[from `navigation` insights + `request` patterns — where things live, common questions answered]
+
+## Testing
+[from `constraint` insights on test topics — framework, patterns, what to test]
 ```
 
-This is a **view** on the brain — regenerated on demand, not a separate data store. Future: other skins (Cursor rules, Codex hints) from the same data.
+This is a **view** on the brain — regenerated on demand, not a separate data store. Sections are included only when the brain has enough evidence (2+ insights or patterns in that category). Under ~200 lines to stay within agent instruction limits.
 
 ## Sync Flow Extension
 

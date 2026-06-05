@@ -1049,7 +1049,26 @@ git commit -m "feat(mcp): add Claude Code MCP config for intent-brain"
 
 ## Phase 4: Scaffold Export
 
-### Task 12: AGENTS.md Generator
+### Task 12: AGENTS.md Generator — Full Scaffold Taxonomy
+
+AGENTS.md is the cross-tool standard (read by Claude Code, Codex, Cursor, Copilot, Gemini CLI, Windsurf, Devin, Amazon Q, Augment, Aider). The generator must cover the full taxonomy of agentic scaffold content, not just skills.
+
+**Scaffold sections mapped to brain data sources:**
+
+| Section | Brain Source | Insight Categories |
+|---------|-------------|-------------------|
+| Overview | Root topic summaries | — |
+| Architecture | `structure` insights | structure |
+| Key Files | Topic file accumulation | — |
+| Conventions | `constraint` + `behavior` insights | constraint, behavior |
+| Commands | Session tool_call events (build, test, lint) | — |
+| Common Workflows | Approved skills | — |
+| Domain Rules | `decision` + `constraint` insights | decision, constraint |
+| Watch Out For | `pitfall` insights + `struggle` patterns | pitfall, risk |
+| Navigation Guide | `navigation` insights + `request` patterns | navigation |
+| Testing | `constraint` insights on test-related topics | constraint |
+
+Target: under ~200 lines output (frontier models follow ~150-200 instructions reliably).
 
 **Files:**
 - Create: `src/brain/generate-scaffold.ts`
@@ -1064,45 +1083,106 @@ import { describe, it, expect } from "vitest";
 import { generateAgentsMd } from "../../src/brain/generate-scaffold.js";
 
 describe("generateAgentsMd", () => {
-  it("generates AGENTS.md from brain data", () => {
+  it("generates full scaffold from brain data", () => {
     const input = {
       projectName: "intent-ai",
       topics: [
         {
           name: "Core Pipeline",
-          summary: "The processing pipeline",
+          summary: "The processing pipeline for session digestion",
           insights: [
-            { category: "navigation", statement: "Pipeline starts at orchestrator.ts" },
-            { category: "pitfall", statement: "Always update types.ts when adding nodes" },
+            { category: "structure", statement: "Pipeline uses Extract → Organize → Write three-node architecture" },
+            { category: "navigation", statement: "Pipeline entry point is src/pipeline/orchestrator.ts" },
+            { category: "pitfall", statement: "Always update types.ts when adding pipeline nodes" },
+            { category: "constraint", statement: "TypeScript ESM with .js extensions in imports" },
+            { category: "behavior", statement: "Sonnet for reasoning, Haiku for classification" },
+            { category: "decision", statement: "Sequential processing to avoid API rate limits" },
+            { category: "risk", statement: "Large sessions (1200+ events) can hit token limits" },
           ],
           patterns: [
             { type: "request", statement: "how to add a pipeline node", frequency: 4 },
+            { type: "struggle", statement: "forgot to wire node into orchestrator.ts", frequency: 3 },
+            { type: "file_access", statement: "types.ts and orchestrator.ts always modified together", frequency: 5 },
           ],
           skills: [
             {
               name: "Add Pipeline Node",
               status: "approved",
               steps: [
-                { order: 1, instruction: "Create src/pipeline/<name>.ts", files: [] },
-                { order: 2, instruction: "Add types to types.ts", files: [] },
+                { order: 1, instruction: "Create src/pipeline/<name>.ts — export a function", files: ["src/pipeline/"] },
+                { order: 2, instruction: "Define types in src/adapters/types.ts", files: ["src/adapters/types.ts"] },
+                { order: 3, instruction: "Wire into src/pipeline/orchestrator.ts", files: ["src/pipeline/orchestrator.ts"] },
               ],
-              pitfalls: ["Wire into orchestrator.ts"],
-              files: ["src/pipeline/", "src/adapters/types.ts"],
+              pitfalls: ["Don't forget to wire into orchestrator.ts"],
+              files: ["src/pipeline/", "src/adapters/types.ts", "src/pipeline/orchestrator.ts"],
             },
           ],
-          files: [{ path: "src/pipeline/orchestrator.ts", role: "core" }],
+          files: [
+            { path: "src/pipeline/orchestrator.ts", role: "core" },
+            { path: "src/adapters/types.ts", role: "types" },
+          ],
         },
       ],
     };
 
     const md = generateAgentsMd(input);
+
+    // All scaffold sections present
     expect(md).toContain("# intent-ai");
+    expect(md).toContain("## Overview");
+    expect(md).toContain("## Architecture");
+    expect(md).toContain("Extract → Organize → Write");
+    expect(md).toContain("## Key Files");
+    expect(md).toContain("orchestrator.ts");
+    expect(md).toContain("## Conventions");
+    expect(md).toContain("ESM");
     expect(md).toContain("## Common Workflows");
     expect(md).toContain("Add Pipeline Node");
+    expect(md).toContain("## Domain Rules");
+    expect(md).toContain("Sequential processing");
     expect(md).toContain("## Watch Out For");
     expect(md).toContain("Always update types.ts");
     expect(md).toContain("## Navigation Guide");
-    expect(md).toContain("Pipeline starts at orchestrator.ts");
+    expect(md).toContain("Pipeline entry point");
+  });
+
+  it("omits sections with no data", () => {
+    const input = {
+      projectName: "minimal",
+      topics: [{
+        name: "App",
+        summary: "A simple app",
+        insights: [],
+        patterns: [],
+        skills: [],
+        files: [],
+      }],
+    };
+    const md = generateAgentsMd(input);
+    expect(md).toContain("## Overview");
+    expect(md).not.toContain("## Architecture");
+    expect(md).not.toContain("## Common Workflows");
+    expect(md).not.toContain("## Watch Out For");
+  });
+
+  it("only includes approved/validated skills, not drafts", () => {
+    const input = {
+      projectName: "test",
+      topics: [{
+        name: "App",
+        summary: "test",
+        insights: [],
+        patterns: [],
+        skills: [
+          { name: "Draft Skill", status: "draft", steps: [], pitfalls: [], files: [] },
+          { name: "Approved Skill", status: "approved", steps: [{ order: 1, instruction: "do thing", files: [] }], pitfalls: [], files: [] },
+        ],
+        files: [],
+      }],
+    };
+    const md = generateAgentsMd(input);
+    expect(md).not.toContain("Draft Skill");
+    expect(md).toContain("Approved Skill");
   });
 });
 ```
@@ -1138,41 +1218,62 @@ interface ScaffoldInput {
   topics: ScaffoldTopic[];
 }
 
+function collectInsights(topics: ScaffoldTopic[], ...categories: string[]) {
+  return topics.flatMap((t) => t.insights.filter((i) => categories.includes(i.category)));
+}
+
+function collectPatterns(topics: ScaffoldTopic[], type: string) {
+  return topics.flatMap((t) => t.patterns.filter((p) => p.type === type));
+}
+
+function section(lines: string[], title: string, items: string[]): void {
+  if (!items.length) return;
+  lines.push(`## ${title}`);
+  lines.push("");
+  lines.push(...items);
+  lines.push("");
+}
+
 export function generateAgentsMd(input: ScaffoldInput): string {
   const lines: string[] = [];
+  const { topics } = input;
 
   lines.push(`# ${input.projectName}`);
   lines.push("");
 
-  // Overview from root topic summaries
+  // Overview — always present
   lines.push("## Overview");
   lines.push("");
-  for (const t of input.topics) {
+  for (const t of topics) {
     lines.push(`**${t.name}:** ${t.summary}`);
-    lines.push("");
   }
-
-  // File map
-  lines.push("## Key Files");
   lines.push("");
-  for (const t of input.topics) {
-    if (t.files.length) {
-      lines.push(`### ${t.name}`);
-      for (const f of t.files) {
-        lines.push(`- \`${f.path}\` — ${f.role}`);
-      }
-      lines.push("");
+
+  // Architecture — from structure insights
+  const structureInsights = collectInsights(topics, "structure");
+  section(lines, "Architecture", structureInsights.map((i) => `- ${i.statement}`));
+
+  // Key Files — from topic file accumulation
+  const fileLines: string[] = [];
+  for (const t of topics) {
+    for (const f of t.files) {
+      fileLines.push(`- \`${f.path}\` — ${f.role} (${t.name})`);
     }
   }
+  section(lines, "Key Files", fileLines);
 
-  // Common workflows from approved/validated skills
-  const allSkills = input.topics.flatMap((t) =>
+  // Conventions — from constraint + behavior insights
+  const conventions = collectInsights(topics, "constraint", "behavior");
+  section(lines, "Conventions", conventions.map((i) => `- ${i.statement}`));
+
+  // Common Workflows — from approved/validated skills
+  const approvedSkills = topics.flatMap((t) =>
     t.skills.filter((s) => s.status === "approved" || s.status === "validated"),
   );
-  if (allSkills.length) {
+  if (approvedSkills.length) {
     lines.push("## Common Workflows");
     lines.push("");
-    for (const skill of allSkills) {
+    for (const skill of approvedSkills) {
       lines.push(`### ${skill.name}`);
       lines.push("");
       for (const step of skill.steps) {
@@ -1181,43 +1282,33 @@ export function generateAgentsMd(input: ScaffoldInput): string {
       if (skill.pitfalls.length) {
         lines.push("");
         lines.push("**Watch out:**");
-        for (const p of skill.pitfalls) {
-          lines.push(`- ${p}`);
-        }
+        for (const p of skill.pitfalls) lines.push(`- ${p}`);
       }
       lines.push("");
     }
   }
 
-  // Pitfalls from pitfall insights + struggle patterns
-  const pitfalls = input.topics.flatMap((t) =>
-    t.insights.filter((i) => i.category === "pitfall"),
-  );
-  const struggles = input.topics.flatMap((t) =>
-    t.patterns.filter((p) => p.type === "struggle"),
-  );
-  if (pitfalls.length || struggles.length) {
-    lines.push("## Watch Out For");
-    lines.push("");
-    for (const p of pitfalls) lines.push(`- ${p.statement}`);
-    for (const s of struggles) lines.push(`- ${s.statement} (seen in ${s.frequency} sessions)`);
-    lines.push("");
-  }
+  // Domain Rules — from decision insights
+  const decisions = collectInsights(topics, "decision");
+  section(lines, "Domain Rules", decisions.map((i) => `- ${i.statement}`));
 
-  // Navigation from navigation insights + request patterns
-  const navInsights = input.topics.flatMap((t) =>
-    t.insights.filter((i) => i.category === "navigation"),
-  );
-  const requests = input.topics.flatMap((t) =>
-    t.patterns.filter((p) => p.type === "request"),
-  );
-  if (navInsights.length || requests.length) {
-    lines.push("## Navigation Guide");
-    lines.push("");
-    for (const n of navInsights) lines.push(`- ${n.statement}`);
-    for (const r of requests) lines.push(`- Common question: "${r.statement}" (asked in ${r.frequency} sessions)`);
-    lines.push("");
-  }
+  // Watch Out For — pitfall insights + risk insights + struggle patterns
+  const pitfalls = collectInsights(topics, "pitfall", "risk");
+  const struggles = collectPatterns(topics, "struggle");
+  const watchItems = [
+    ...pitfalls.map((i) => `- ${i.statement}`),
+    ...struggles.map((s) => `- ${s.statement} (seen in ${s.frequency} sessions)`),
+  ];
+  section(lines, "Watch Out For", watchItems);
+
+  // Navigation Guide — navigation insights + request patterns
+  const navInsights = collectInsights(topics, "navigation");
+  const requests = collectPatterns(topics, "request");
+  const navItems = [
+    ...navInsights.map((i) => `- ${i.statement}`),
+    ...requests.map((r) => `- Common question: "${r.statement}" (asked in ${r.frequency} sessions)`),
+  ];
+  section(lines, "Navigation Guide", navItems);
 
   return lines.join("\n");
 }
@@ -1239,10 +1330,12 @@ program
   .description("Generate AGENTS.md from brain knowledge")
   .option("--repo <repoId>", "Repository ID")
   .option("--output <path>", "Output path", "AGENTS.md")
+  .option("--format <format>", "Output format: agents-md | claude-md | cursor-rules", "agents-md")
   .action(async (opts) => {
     // Load topics with insights, patterns, skills from DB
     // Call generateAgentsMd()
     // Write to output path
+    // Future: switch on format for different skins
   });
 ```
 
@@ -1250,7 +1343,7 @@ program
 
 ```bash
 git add src/brain/generate-scaffold.ts src/cli/index.ts tests/brain/generate-scaffold.test.ts
-git commit -m "feat(scaffold): generate AGENTS.md from brain knowledge graph"
+git commit -m "feat(scaffold): generate AGENTS.md with full scaffold taxonomy from brain"
 ```
 
 ---
