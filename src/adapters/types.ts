@@ -194,7 +194,9 @@ export type InsightCategory =
   | "constraint"
   | "behavior"
   | "risk"
-  | "interface";
+  | "interface"
+  | "navigation"
+  | "pitfall";
 
 export interface FileRef {
   path: string;
@@ -279,4 +281,34 @@ export interface BrainCard {
   related?: string[];
   sessions: string[];
   versionId?: string;
+}
+
+export interface TopicPattern {
+  id?: string;
+  topicId: string;
+  type: "request" | "struggle" | "file_access";
+  statement: string;
+  frequency: number;
+  confidence: "high" | "medium" | "low";
+  fileAssociations: string[];
+  evidence: { sessionId: string; momentId?: string }[];
+}
+
+export interface TopicSkill {
+  id?: string;
+  topicId: string;
+  name: string;
+  description: string;
+  steps: SkillStep[];
+  pitfalls: string[];
+  files: string[];
+  status: "draft" | "approved" | "validated";
+  evidence: { sessionId: string; momentId?: string }[];
+}
+
+export interface SkillStep {
+  order: number;
+  instruction: string;
+  files: string[];
+  notes?: string;
 }
