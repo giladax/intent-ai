@@ -1040,6 +1040,165 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
+  // ── Brain Learning Layer ─────────────────────────────────────────
+
+  // GET /api/brain/search — search across topics, insights, patterns by free text
+  app.get("/api/brain/search", async (req, res) => {
+    try {
+      const { q, repoId } = req.query;
+      if (!q || !repoId) {
+        res.status(400).json({ error: "q and repoId required" });
+        return;
+      }
+
+      const query = String(q).toLowerCase();
+      const repo = String(repoId);
+      const sql = getClient();
+
+      const allTopics = await sql`SELECT * FROM topics WHERE repo_id = ${repo}`;
+      const allInsights = await sql`SELECT * FROM insights`;
+      const allPatterns = await sql`SELECT * FROM topic_patterns`;
+
+      const scored = allTopics.map((topic: any) => {
+        let score = 0;
+        if (topic.name.toLowerCase().includes(query)) score += 3;
+        if (topic.summary?.toLowerCase().includes(query)) score += 2;
+        const topicInsights = allInsights.filter((i: any) => i.topic_id === topic.id);
+        for (const ins of topicInsights) {
+          if (ins.statement.toLowerCase().includes(query)) score += 1;
+        }
+        const topicPats = allPatterns.filter((p: any) => p.topic_id === topic.id);
+        for (const pat of topicPats) {
+          if (pat.statement.toLowerCase().includes(query)) score += 2;
+        }
+        return { topic, insights: topicInsights, patterns: topicPats, score };
+      }).filter((r: any) => r.score > 0).sort((a: any, b: any) => b.score - a.score).slice(0, 10);
+
+      res.json(scored);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // GET /api/brain/topics/:id/full — full topic detail including insights, patterns, skills, files
+  app.get("/api/brain/topics/:id/full", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const sql = getClient();
+
+      const topicRows = await sql`SELECT * FROM topics WHERE id = ${id} LIMIT 1`;
+      if (!topicRows.length) {
+        res.status(404).json({ error: "topic not found" });
+        return;
+      }
+
+      const [topicInsights, patterns, skills, files] = await Promise.all([
+        sql`SELECT * FROM insights WHERE topic_id = ${id}`,
+        sql`SELECT * FROM topic_patterns WHERE topic_id = ${id}`,
+        sql`SELECT * FROM topic_skills WHERE topic_id = ${id}`,
+        sql`SELECT * FROM topic_files WHERE topic_id = ${id}`,
+      ]);
+
+      res.json({ ...topicRows[0], insights: topicInsights, patterns, skills, files });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // GET /api/brain/skills/:id — single skill detail
+  app.get("/api/brain/skills/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const sql = getClient();
+
+      const skillRows = await sql`SELECT * FROM topic_skills WHERE id = ${id} LIMIT 1`;
+      if (!skillRows.length) {
+        res.status(404).json({ error: "skill not found" });
+        return;
+      }
+      res.json(skillRows[0]);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/brain/files-context — get brain context for specific files
+  app.post("/api/brain/files-context", async (req, res) => {
+    try {
+      const { files: filePaths, repoId } = req.body;
+      if (!filePaths?.length || !repoId) {
+        res.status(400).json({ error: "files and repoId required" });
+        return;
+      }
+
+      const sql = getClient();
+      const allTopicFiles = await sql`SELECT * FROM topic_files`;
+      const matchingTopicIds = new Set(
+        allTopicFiles
+          .filter((tf: any) =>
+            filePaths.some(
+              (f: string) => tf.file_path.includes(f) || f.includes(tf.file_path),
+            ),
+          )
+          .map((tf: any) => tf.topic_id),
+      );
+
+      const matchedTopics = await sql`SELECT * FROM topics WHERE repo_id = ${repoId}`;
+      const relevant = matchedTopics.filter((t: any) => matchingTopicIds.has(t.id));
+
+      const result = await Promise.all(
+        relevant.map(async (t: any) => ({
+          topic: t,
+          insights: await sql`SELECT * FROM insights WHERE topic_id = ${t.id}`,
+          patterns: await sql`SELECT * FROM topic_patterns WHERE topic_id = ${t.id}`,
+        })),
+      );
+
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/brain/ask-intent — search session moments and outcomes
+  app.post("/api/brain/ask-intent", async (req, res) => {
+    try {
+      const { query: q, repoId } = req.body;
+      if (!q || !repoId) {
+        res.status(400).json({ error: "query and repoId required" });
+        return;
+      }
+
+      const searchQ = String(q).toLowerCase();
+      const sql = getClient();
+
+      const [allMoments, allOutcomes, allNarratives] = await Promise.all([
+        sql`SELECT * FROM moments`,
+        sql`SELECT * FROM outcomes`,
+        sql`SELECT * FROM narratives`,
+      ]);
+
+      const matchingMoments = allMoments.filter(
+        (m: any) =>
+          m.statement?.toLowerCase().includes(searchQ) ||
+          m.significance?.toLowerCase().includes(searchQ),
+      );
+      const matchingOutcomes = allOutcomes.filter((o: any) =>
+        o.statement?.toLowerCase().includes(searchQ),
+      );
+
+      res.json({
+        moments: matchingMoments.slice(0, 20),
+        outcomes: matchingOutcomes.slice(0, 10),
+        narratives: allNarratives
+          .filter((n: any) => n.summary?.toLowerCase().includes(searchQ))
+          .slice(0, 5),
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // SPA fallback — serve index.html for non-API routes
   app.get("/{*path}", (_req, res) => {
     res.sendFile(join(__dirname, "public", "index.html"));
