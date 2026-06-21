@@ -312,3 +312,24 @@ export interface SkillStep {
   files: string[];
   notes?: string;
 }
+
+// ── Activity Events ─────────────────────────────────────────────────
+
+export interface ActivityEvent {
+  id?: string;
+  timestamp: Date;
+  category: string;
+  tags: string[];
+  actor: string;
+  summary: string;
+  metadata: Record<string, unknown>;
+  sourceType?: string;
+  sourceId?: string;
+  sessionId?: string;
+  repo?: string;
+  branch?: string;
+  worktree?: string;
+  topicIds?: string[];
+  files?: string[];
+  embedding?: number[];
+}
