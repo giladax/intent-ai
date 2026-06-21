@@ -22,8 +22,25 @@ vi.mock("../../src/pipeline/narrative.js", () => ({
   generateNarrative: vi.fn(),
 }));
 
+vi.mock("../../src/storage/connection.js", () => {
+  const mockSql = Object.assign(
+    vi.fn().mockResolvedValue([]),
+    { unsafe: vi.fn().mockResolvedValue([]) }
+  );
+  return {
+    getClient: vi.fn(() => mockSql),
+    getDb: vi.fn(),
+    closeDb: vi.fn(),
+  };
+});
+
 vi.mock("../../src/storage/queries.js", () => ({
   storeSessionDigest: vi.fn(),
+  emitEvents: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("../../src/pipeline/emit-events.js", () => ({
+  buildSessionEvents: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock("../../src/pipeline/classify-exchanges.js", () => ({
