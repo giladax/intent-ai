@@ -27,6 +27,13 @@ npx tsx src/cli/index.ts brain <sessionId...>       # synthesize topics from ses
 npx tsx src/cli/index.ts brain-classify <sessionId>  # classify session relevance to topics
 npx tsx src/cli/index.ts brain-export                # generate .repo/ markdown from DB
 
+# Activity events
+npx tsx src/cli/index.ts events                     # query activity event stream
+npx tsx src/cli/index.ts events --category struggle  # filter by category prefix
+npx tsx src/cli/index.ts events --repo intent-ai     # filter by repo
+npx tsx src/cli/index.ts observe-events              # run observation layer over recent events
+npx tsx src/cli/index.ts observe-events --dry-run    # show observations without emitting
+
 # Infrastructure
 npx tsx src/cli/index.ts up                  # start Postgres + migrate
 npx tsx src/cli/index.ts down                # stop Postgres
@@ -47,12 +54,16 @@ npx tsc --noEmit            # type check
 ### Pipeline
 
 ```
-CC log → parse → normalize (+ threading) → [classify + chunk + analyze] → moments p1 → moments p2 → transitions → narrative
-         │         │                          │          │        │           │             │             │            │
-       adapter   deterministic             Haiku     deterministic        Sonnet ×N     Sonnet ×1     Sonnet ×1    Sonnet ×1
+CC log → parse → normalize (+ threading) → [classify + chunk + analyze] → moments p1 → moments p2 → transitions → narrative → emit events
+         │         │                          │          │        │           │             │             │            │           │
+       adapter   deterministic             Haiku     deterministic        Sonnet ×N     Sonnet ×1     Sonnet ×1    Sonnet ×1   deterministic
 ```
 
 Each step enriches a shared context — never replaces upstream data. All types in `src/adapters/types.ts`. Read this file before modifying any pipeline step.
+
+### Activity Event Backbone
+
+A unified `activity_events` table captures every significant thing that happens — session moments, brain mutations, live observations — as time-ordered, searchable, RAG-ready events. Events are self-contained (denormalized session context). Categories and tags are freeform. See `docs/superpowers/specs/2026-06-21-activity-event-backbone-design.md`.
 
 ### Source Layout
 
@@ -62,6 +73,8 @@ src/
     types.ts       All domain types
   pipeline/        Processing steps (each is a function, no classes)
     orchestrator.ts End-to-end pipeline runner
+    emit-events.ts  Builds ActivityEvents from session digest
+    observe-events.ts LLM-driven observation layer over event stream
   llm/
     client.ts      Anthropic SDK wrapper (streaming, retries, Zod validation)
     prompts/       Prompt builders per pipeline step
@@ -115,6 +128,13 @@ Fixtures in `tests/eval/fixtures/`. Criteria in `tests/eval/session-criteria.ts`
 4. Wire into `src/pipeline/orchestrator.ts`
 5. Write tests in `tests/pipeline/<name>.test.ts`
 6. Run eval to verify no regression
+
+### Emit activity events from a new source
+
+1. Import `emitEvents` from `src/storage/queries.ts` and `ActivityEvent` from `src/adapters/types.ts`
+2. Build events with freeform `category`, `tags`, `actor`, `summary`, and structured `metadata`
+3. Call `emitEvents(events)` wrapped in try/catch (never fail the parent operation)
+4. Events auto-carry `repo`, `branch`, `worktree` when emitted from the pipeline
 
 ## Agent Skills (`.claude/skills/agents/`)
 
