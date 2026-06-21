@@ -63,9 +63,18 @@ activity_events (
 
 **Indexes:** `category` (text_pattern_ops), `timestamp`, `session_id`, `repo`, `branch`, `tags` (GIN), `topic_ids` (GIN), `files` (GIN), `embedding` (HNSW), composite `(category, timestamp)`, composite `(repo, branch)`.
 
+## Event Granularity
+
+Two levels emitted per session:
+
+- **Session-level event** — narrative summary, session shape, key arcs. One event per session. Answers "what was this session about?"
+- **Individual events** — moments, transitions, outcomes. The atoms. Answer "what specifically happened?"
+
+The session-level event gives the forest. Individual events give the trees. Search can hit either.
+
 ## Event Sources
 
-**Session digest:** moments, transitions, outcomes promoted into the event stream after digestion.
+**Session digest:** session summary + moments, transitions, outcomes promoted into the event stream after digestion.
 
 **Brain/learning:** topic, insight, skill creation and updates emitted as events.
 
@@ -106,3 +115,27 @@ Embeddings populated async. Events are useful immediately via structured queries
 - **Automatic:** observation layer notices recurring signals, emits observations. Lightweight, LLM-driven, no hardcoded rules.
 - **Manual:** `intent brain` reads from event stream instead of raw session data. Deep synthesis stays deliberate.
 - **Closed loop:** scaffolds improve agents → better sessions → more events → richer observations → better memory.
+
+## Quality
+
+### EDD (pre-ship)
+
+Before building the emit step, define expected events for known sessions (existing test fixtures). Score on:
+
+- **Accuracy** — did the event actually happen in the session?
+- **Completeness** — did we miss important moments?
+- **Summary quality** — is the summary searchable and meaningful, not vague?
+- **Metadata richness** — does the event carry enough context to be self-explanatory?
+
+Run baseline on existing digested sessions, inspect output, iterate.
+
+### Self-monitoring (ongoing)
+
+The observation layer watches its own event quality:
+
+- Sessions that produce zero or very few events → possible extraction failure
+- Events with vague summaries ("something happened") → summary quality degradation
+- Clusters of near-identical events → possible duplication or over-emission
+- Events that never get referenced by observations or memory → possible noise
+
+These quality signals are themselves observations, emitted as events — the system audits itself through the same stream.
