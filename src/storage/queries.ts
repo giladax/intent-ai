@@ -16,6 +16,7 @@ import type {
   AcceptedOutcome,
   SessionNarrative,
   SessionShape,
+  ActivityEvent,
 } from "../adapters/types.js";
 
 function batchArray<T>(arr: T[], size: number): T[][] {
@@ -261,4 +262,104 @@ export async function getChunkEvents(sessionId: string, chunkId: string): Promis
     rawEventId: e.raw_event_id ?? "",
     turnId: "",
   }));
+}
+
+// ── Activity Events ─────────────────────────────────────────────────
+
+export async function emitEvent(event: ActivityEvent): Promise<string> {
+  const sql = getClient();
+  const id = event.id ?? randomUUID();
+  await sql`
+    INSERT INTO activity_events (
+      id, timestamp, category, tags, actor, summary, metadata,
+      source_type, source_id, session_id, repo, branch, worktree,
+      topic_ids, files
+    ) VALUES (
+      ${id},
+      ${event.timestamp.toISOString()},
+      ${event.category},
+      ${event.tags ?? []},
+      ${event.actor},
+      ${event.summary},
+      ${JSON.stringify(event.metadata ?? {})},
+      ${event.sourceType ?? null},
+      ${event.sourceId ?? null},
+      ${event.sessionId ?? null},
+      ${event.repo ?? null},
+      ${event.branch ?? null},
+      ${event.worktree ?? null},
+      ${event.topicIds ?? []},
+      ${event.files ?? []}
+    )
+  `;
+  return id;
+}
+
+export async function emitEvents(events: ActivityEvent[]): Promise<string[]> {
+  const ids: string[] = [];
+  for (const event of events) {
+    ids.push(await emitEvent(event));
+  }
+  return ids;
+}
+
+export interface EventQuery {
+  categoryPrefix?: string;
+  tags?: string[];
+  actor?: string;
+  sessionId?: string;
+  repo?: string;
+  branch?: string;
+  files?: string[];
+  topicIds?: string[];
+  since?: Date;
+  until?: Date;
+  limit?: number;
+  offset?: number;
+}
+
+export async function queryEvents(query: EventQuery): Promise<ActivityEvent[]> {
+  const sql = getClient();
+  const conditions: string[] = ["TRUE"];
+
+  if (query.categoryPrefix) conditions.push(`category LIKE '${query.categoryPrefix}%'`);
+  if (query.actor) conditions.push(`actor = '${query.actor}'`);
+  if (query.sessionId) conditions.push(`session_id = '${query.sessionId}'`);
+  if (query.repo) conditions.push(`repo = '${query.repo}'`);
+  if (query.branch) conditions.push(`branch = '${query.branch}'`);
+  if (query.since) conditions.push(`timestamp >= '${query.since.toISOString()}'`);
+  if (query.until) conditions.push(`timestamp <= '${query.until.toISOString()}'`);
+  if (query.tags?.length) conditions.push(`tags && ARRAY[${query.tags.map(t => `'${t}'`).join(",")}]::text[]`);
+  if (query.files?.length) conditions.push(`files && ARRAY[${query.files.map(f => `'${f}'`).join(",")}]::text[]`);
+  if (query.topicIds?.length) conditions.push(`topic_ids && ARRAY[${query.topicIds.map(id => `'${id}'`).join(",")}]::uuid[]`);
+
+  const limit = query.limit ?? 100;
+  const offset = query.offset ?? 0;
+  const where = conditions.join(" AND ");
+
+  const rows = await sql.unsafe(
+    `SELECT * FROM activity_events WHERE ${where} ORDER BY timestamp DESC LIMIT ${limit} OFFSET ${offset}`
+  );
+
+  return rows.map(rowToActivityEvent);
+}
+
+function rowToActivityEvent(row: Record<string, unknown>): ActivityEvent {
+  return {
+    id: row.id as string,
+    timestamp: new Date(row.timestamp as string),
+    category: row.category as string,
+    tags: (row.tags as string[]) ?? [],
+    actor: row.actor as string,
+    summary: row.summary as string,
+    metadata: (row.metadata as Record<string, unknown>) ?? {},
+    sourceType: row.source_type as string | undefined,
+    sourceId: row.source_id as string | undefined,
+    sessionId: row.session_id as string | undefined,
+    repo: row.repo as string | undefined,
+    branch: row.branch as string | undefined,
+    worktree: row.worktree as string | undefined,
+    topicIds: (row.topic_ids as string[]) ?? [],
+    files: (row.files as string[]) ?? [],
+  };
 }
