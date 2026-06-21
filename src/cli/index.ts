@@ -339,4 +339,68 @@ program
     }
   });
 
+program
+  .command("observe-events")
+  .description("Run observation layer over recent activity events")
+  .option("--since <date>", "Observe events since date")
+  .option("--category <prefix>", "Filter events by category")
+  .option("--limit <n>", "Max events to observe", "50")
+  .option("--dry-run", "Show observations without emitting")
+  .action(async (opts: { since?: string; category?: string; limit: string; dryRun?: boolean }) => {
+    try {
+      const { queryEvents, emitEvents } = await import("../storage/queries.js");
+      const { observeEvents } = await import("../pipeline/observe-events.js");
+
+      const events = await queryEvents({
+        since: opts.since ? new Date(opts.since) : undefined,
+        categoryPrefix: opts.category,
+        limit: parseInt(opts.limit),
+      });
+
+      process.stderr.write(`Observing ${events.length} events...\n`);
+
+      if (events.length === 0) {
+        process.stdout.write("No events to observe.\n");
+        const { closeDb } = await import("../storage/connection.js");
+        await closeDb();
+        return;
+      }
+
+      const observations = await observeEvents(events);
+
+      if (observations.length === 0) {
+        process.stdout.write("No observations found.\n");
+      } else {
+        for (const obs of observations) {
+          process.stdout.write(`[${obs.confidence}] ${obs.statement}\n`);
+          if (obs.suggestedTags.length) {
+            process.stdout.write(`  tags: ${obs.suggestedTags.join(", ")}\n`);
+          }
+        }
+      }
+
+      if (!opts.dryRun && observations.length > 0) {
+        const obsEvents = observations.map((obs) => ({
+          timestamp: new Date(),
+          category: "observation",
+          tags: obs.suggestedTags,
+          actor: "system" as const,
+          summary: obs.statement,
+          metadata: {
+            confidence: obs.confidence,
+            supportingEventIds: obs.supportingEventIds,
+          },
+        }));
+        await emitEvents(obsEvents);
+        process.stderr.write(`Emitted ${obsEvents.length} observation events.\n`);
+      }
+
+      const { closeDb } = await import("../storage/connection.js");
+      await closeDb();
+    } catch (err) {
+      process.stderr.write(`Error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
+  });
+
 program.parse();
