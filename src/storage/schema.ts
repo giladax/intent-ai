@@ -378,3 +378,34 @@ export const topicSkills = pgTable("topic_skills", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ── Activity Events ─────────────────────────────────────────────────
+
+export const activityEvents = pgTable("activity_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
+  category: text("category").notNull(),
+  tags: text("tags").array().default([]),
+  actor: text("actor").notNull(),
+  summary: text("summary").notNull(),
+  metadata: jsonb("metadata").default({}),
+
+  // Source pointer
+  sourceType: text("source_type"),
+  sourceId: uuid("source_id"),
+
+  // Session context (denormalized)
+  sessionId: uuid("session_id"),
+  repo: text("repo"),
+  branch: text("branch"),
+  worktree: text("worktree"),
+
+  // Searchable dimensions
+  topicIds: uuid("topic_ids").array().default([]),
+  files: text("files").array().default([]),
+
+  // RAG — stored as text for now, cast to vector in queries when pgvector is enabled
+  embedding: text("embedding"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
