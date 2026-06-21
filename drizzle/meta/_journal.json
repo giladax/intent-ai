@@ -33,8 +33,22 @@
     {
       "idx": 4,
       "version": "7",
+      "when": 1779493791403,
+      "tag": "0004_brain_hierarchy",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779565347639,
+      "tag": "0005_brain_cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
       "when": 1782076026429,
-      "tag": "0004_woozy_wallow",
+      "tag": "0006_activity_events",
       "breakpoints": true
     }
   ]
