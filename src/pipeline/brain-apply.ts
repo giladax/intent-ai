@@ -1,4 +1,6 @@
 import { getClient } from "../storage/connection.js";
+import { emitEvents } from "../storage/queries.js";
+import type { ActivityEvent } from "../adapters/types.js";
 import type { GraphPlan } from "../llm/prompts/brain-organize.js";
 import type { WrittenSpec } from "../llm/prompts/brain-write.js";
 import { findDuplicateIndices, computeSimilarity } from "./dedup.js";
@@ -126,6 +128,9 @@ export async function applyGraphPlan(
 ): Promise<void> {
   const sql = getClient();
 
+  // Track mutations for event emission
+  const mutations = { created: [] as string[], updated: [] as string[], merged: [] as string[], split: [] as string[] };
+
   // Build a lookup from normalized spec name → WrittenSpec
   const specByName = new Map<string, WrittenSpec>();
   for (const spec of writtenSpecs) {
@@ -200,6 +205,8 @@ export async function applyGraphPlan(
         ON CONFLICT DO NOTHING
       `;
     }
+
+    mutations.merged.push(targetName);
   }
 
   // ── 3. Split ─────────────────────────────────────────────────────
@@ -245,6 +252,8 @@ export async function applyGraphPlan(
     if (originalId) {
       await sql`DELETE FROM topics WHERE id = ${originalId}`;
     }
+
+    mutations.split.push(split.spec);
   }
 
   // ── 4. Create ────────────────────────────────────────────────────
@@ -282,6 +291,8 @@ export async function applyGraphPlan(
       INSERT INTO topic_sessions (topic_id, session_id) VALUES (${inserted.id}, ${sessionId})
       ON CONFLICT DO NOTHING
     `;
+
+    mutations.created.push(assignment.targetSpec);
   }
 
   // ── 5. Update ────────────────────────────────────────────────────
@@ -308,6 +319,74 @@ export async function applyGraphPlan(
       INSERT INTO topic_sessions (topic_id, session_id) VALUES (${topicId}, ${sessionId})
       ON CONFLICT DO NOTHING
     `;
+
+    mutations.updated.push(assignment.targetSpec);
+  }
+
+  // ── 6. Emit activity events ───────────────────────────────────────
+  await emitBrainEvents(mutations, repoId);
+}
+
+// ── Brain event emission ────────────────────────────────────────────
+
+async function emitBrainEvents(
+  mutations: { created: string[]; updated: string[]; merged: string[]; split: string[] },
+  repoId: string,
+): Promise<void> {
+  const events: ActivityEvent[] = [];
+  const now = new Date();
+
+  for (const name of mutations.created) {
+    events.push({
+      timestamp: now,
+      category: "topic-created",
+      tags: [],
+      actor: "pipeline",
+      summary: `New topic: ${name}`,
+      metadata: { repoId },
+    });
+  }
+
+  for (const name of mutations.updated) {
+    events.push({
+      timestamp: now,
+      category: "topic-updated",
+      tags: [],
+      actor: "pipeline",
+      summary: `Updated topic: ${name}`,
+      metadata: { repoId },
+    });
+  }
+
+  for (const name of mutations.merged) {
+    events.push({
+      timestamp: now,
+      category: "topic-merged",
+      tags: [],
+      actor: "pipeline",
+      summary: `Merged topics into: ${name}`,
+      metadata: { repoId },
+    });
+  }
+
+  for (const name of mutations.split) {
+    events.push({
+      timestamp: now,
+      category: "topic-split",
+      tags: [],
+      actor: "pipeline",
+      summary: `Split topic: ${name}`,
+      metadata: { repoId },
+    });
+  }
+
+  if (events.length > 0) {
+    try {
+      await emitEvents(events);
+    } catch (err) {
+      // Don't fail brain-apply if event emission fails
+      process.stderr.write(`  ⚠ Failed to emit brain events: ${err instanceof Error ? err.message : String(err)}\n`);
+    }
   }
 }
 
