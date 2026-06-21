@@ -35,20 +35,33 @@ activity_events (
   tags          TEXT[] DEFAULT '{}',
   actor         TEXT NOT NULL,
   summary       TEXT NOT NULL,
-  metadata      JSONB DEFAULT '{}',
+  metadata      JSONB DEFAULT '{}',        -- event-specific context: diff snippet, conversation exchange, error, etc.
+
+  -- Source pointer (drill into detailed record)
   source_type   TEXT,
   source_id     UUID,
+
+  -- Session context (denormalized — events are self-contained, no joins needed)
   session_id    UUID,
+  repo          TEXT,                       -- repo path or name
+  branch        TEXT,                       -- git branch at time of event
+  worktree      TEXT,                       -- worktree path if not main checkout
+
+  -- Searchable dimensions
   topic_ids     UUID[] DEFAULT '{}',
   files         TEXT[] DEFAULT '{}',
-  embedding     vector(1536),
+
+  -- RAG
+  embedding     vector(1536),               -- populated async
   created_at    TIMESTAMPTZ DEFAULT now()
 )
 ```
 
 **No enums. No fixed taxonomy.** Categories, tags, actor values are freeform. Conventions emerge from usage.
 
-**Indexes:** `category` (text_pattern_ops), `timestamp`, `session_id`, `tags` (GIN), `topic_ids` (GIN), `files` (GIN), `embedding` (HNSW), composite `(category, timestamp)`.
+**Events are self-contained.** Session context (repo, branch, worktree) is denormalized onto each event so queries don't require joins. Multiple sessions can run in parallel on different branches/worktrees of the same repo.
+
+**Indexes:** `category` (text_pattern_ops), `timestamp`, `session_id`, `repo`, `branch`, `tags` (GIN), `topic_ids` (GIN), `files` (GIN), `embedding` (HNSW), composite `(category, timestamp)`, composite `(repo, branch)`.
 
 ## Event Sources
 
@@ -74,7 +87,7 @@ Not pattern detection. Not rule-based.
 ## RAG Readiness
 
 Three retrieval layers:
-- **Structured:** filter by category, tags, files, timestamp, session_id, topic_ids
+- **Structured:** filter by category, tags, files, timestamp, session_id, repo, branch, worktree, topic_ids
 - **Semantic:** embedding similarity on summary
 - **Hybrid:** filter then rank by embedding distance
 
