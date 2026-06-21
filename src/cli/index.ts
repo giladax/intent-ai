@@ -298,4 +298,45 @@ program
     await startDaemon(parseInt(opts.port));
   });
 
+program
+  .command("events")
+  .description("Query the activity event stream")
+  .option("--category <prefix>", "Filter by category prefix")
+  .option("--repo <repo>", "Filter by repo")
+  .option("--branch <branch>", "Filter by branch")
+  .option("--session <id>", "Filter by session ID")
+  .option("--since <date>", "Events after this date")
+  .option("--tags <tags>", "Filter by tags (comma-separated)")
+  .option("--limit <n>", "Max events", "20")
+  .action(async (opts: { category?: string; repo?: string; branch?: string; session?: string; since?: string; tags?: string; limit: string }) => {
+    try {
+      const { queryEvents } = await import("../storage/queries.js");
+      const events = await queryEvents({
+        categoryPrefix: opts.category,
+        repo: opts.repo,
+        branch: opts.branch,
+        sessionId: opts.session,
+        tags: opts.tags ? opts.tags.split(",") : undefined,
+        since: opts.since ? new Date(opts.since) : undefined,
+        limit: parseInt(opts.limit),
+      });
+
+      for (const event of events) {
+        const time = event.timestamp.toISOString().slice(0, 16);
+        const tags = event.tags.length ? ` [${event.tags.join(", ")}]` : "";
+        process.stdout.write(`${time} | ${event.category} | ${event.actor} | ${event.summary}${tags}\n`);
+      }
+
+      if (events.length === 0) {
+        process.stdout.write("No events found.\n");
+      }
+
+      const { closeDb } = await import("../storage/connection.js");
+      await closeDb();
+    } catch (err) {
+      process.stderr.write(`Error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
+  });
+
 program.parse();
