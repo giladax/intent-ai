@@ -29,10 +29,19 @@ export function registerDigestCommand(program: Command): void {
         const paths = await resolvePaths(path, opts.last);
 
         for (const logPath of paths) {
-          const result = await runPipeline(logPath);
-          printDigest(result);
-          if (paths.length > 1) {
-            console.log("\n" + "─".repeat(60) + "\n");
+          try {
+            const result = await runPipeline(logPath);
+            printDigest(result);
+            if (paths.length > 1) {
+              console.log("\n" + "─".repeat(60) + "\n");
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (msg.includes("already digested")) {
+              console.error(`  ⚠ ${msg}`);
+              continue;
+            }
+            throw err;
           }
         }
         await closeDb();
