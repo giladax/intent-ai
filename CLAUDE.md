@@ -1,6 +1,6 @@
-# Intent-AI: Execution Memory System
+# Intent-AI: Org-Level Learning Layer for AI-Assisted Development
 
-A TypeScript CLI that ingests Claude Code conversation logs and produces execution memory — reconstructions of how understanding evolved during AI-assisted development.
+A TypeScript system that captures knowledge from AI coding sessions and makes it available to agents and humans. Ingests conversation logs, extracts execution memory, synthesizes a knowledge graph, and serves it via MCP to any agent mid-session.
 
 ## Quick Start
 
@@ -14,6 +14,19 @@ npx tsx src/cli/index.ts web --port 3456   # start dashboard
 
 Requires: `ANTHROPIC_API_KEY` and `DATABASE_URL` in `.env` (see `.env.example`).
 
+## Vision
+
+Intent-AI is becoming an org-level learning layer for AI-assisted development. The core loop:
+
+1. **Capture** — ingest coding sessions (Claude Code today, Codex/Copilot/Jira/Slack later)
+2. **Understand** — extract moments, transitions, outcomes, narrative arcs
+3. **Observe** — LLM-driven observation layer notices patterns across sessions
+4. **Learn** — synthesize topics, insights, constraints, skills into a knowledge graph
+5. **Serve** — MCP server makes brain available to any agent mid-session
+6. **Improve** — each session makes the brain smarter for the next one
+
+The MCP server is the integration surface — any tool that speaks MCP can query the brain. Claude Code is the initial consumer, but the architecture supports any agent platform.
+
 ## Commands
 
 ```bash
@@ -26,6 +39,10 @@ npx tsx src/cli/index.ts digest --last 3     # digest N most recent
 npx tsx src/cli/index.ts brain <sessionId...>       # synthesize topics from sessions
 npx tsx src/cli/index.ts brain-classify <sessionId>  # classify session relevance to topics
 npx tsx src/cli/index.ts brain-export                # generate .repo/ markdown from DB
+
+# MCP brain (available to agents via .mcp.json)
+npx tsx src/cli/index.ts mcp                        # start MCP server (stdio)
+# Tools: brain_overview, brain_search, brain_get, brain_traverse, brain_file_context
 
 # Activity events
 npx tsx src/cli/index.ts events                     # query activity event stream
@@ -80,8 +97,11 @@ src/
     prompts/       Prompt builders per pipeline step
   storage/         Postgres via Drizzle ORM
   cli/             Commander.js CLI
+  brain/           Knowledge graph synthesis (topics, insights, skills)
+  mcp/             MCP server — exposes brain to agents (5 tools, stdio transport)
   eval/            Fitness scoring, LLM-as-judge, organism runner
   web/             Dashboard server (three-panel: Features | Sessions+Story | Chat)
+  daemon/          Background daemon for continuous session watching
   utils/           CC log discovery
 ```
 
