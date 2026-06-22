@@ -1,7 +1,5 @@
 # Architecture & Design
 
-> Children: [Database Infrastructure](database-infrastructure.md)
-
 This document describes the high-level architecture and design principles of the codebase. It serves as the entry point for new developers to understand how the system is structured, what major components exist, why key design decisions were made, and how those components interact. The system's database infrastructure is covered in depth by the child spec 'Database Infrastructure' — this document focuses on the broader architectural picture and cross-cutting concerns. As a living document, it will be updated as architectural evidence is gathered from the codebase. Currently, no knowledge fragments have been provided beyond the child spec boundary, so this spec remains a structured placeholder awaiting population from future analysis sessions.
 
 ## constraint
@@ -21,10 +19,6 @@ This document describes the high-level architecture and design principles of the
 - `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/user_prefers_typescript.md`
 - `docs/superpowers/specs/2026-05-21-execution-memory-design.md`
 - `docs/superpowers/specs/2026-05-21-execution-memory-design.md`
-- _from [Database Infrastructure](database-infrastructure.md):_
-  - `drizzle.config.ts`
-  - `src/cli/digest.ts`
-  - `src/cli/infra.ts`
 
 ## Sessions
 

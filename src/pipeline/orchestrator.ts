@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
+import path from "node:path";
 import { basename } from "node:path";
+import { execSync } from "node:child_process";
 import { parseClaudeCodeLog } from "../adapters/claude-code.js";
 import { getClient } from "../storage/connection.js";
 import { normalize } from "./normalize.js";
@@ -9,7 +11,8 @@ import { chunkSession } from "./chunk.js";
 import { detectMoments } from "./moments.js";
 import { detectTransitionsAndOutcomes } from "./transitions.js";
 import { generateNarrative } from "./narrative.js";
-import { storeSessionDigest } from "../storage/queries.js";
+import { buildSessionEvents } from "./emit-events.js";
+import { storeSessionDigest, emitEvents } from "../storage/queries.js";
 import type {
   SessionNarrative,
   SessionMoment,
@@ -19,6 +22,23 @@ import type {
 
 function log(step: string): void {
   process.stderr.write(`${step}\n`);
+}
+
+function getGitContext(sourcePath: string): { repo?: string; branch?: string; worktree?: string } {
+  try {
+    const dir = path.dirname(sourcePath);
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", { cwd: dir, encoding: "utf-8" }).trim();
+    const toplevel = execSync("git rev-parse --show-toplevel", { cwd: dir, encoding: "utf-8" }).trim();
+    const repo = path.basename(toplevel);
+    let worktree: string | undefined;
+    try {
+      const commonDir = execSync("git rev-parse --path-format=absolute --git-common-dir", { cwd: dir, encoding: "utf-8" }).trim().replace(/\/.git$/, "");
+      if (commonDir !== toplevel) worktree = toplevel;
+    } catch { /* not a worktree */ }
+    return { repo, branch, worktree };
+  } catch {
+    return {};
+  }
 }
 
 export async function runPipeline(logPath: string): Promise<{
@@ -122,6 +142,25 @@ export async function runPipeline(logPath: string): Promise<{
       `  ⚠ Database write failed: ${err instanceof Error ? err.message : String(err)}`,
     );
     log("  Pipeline results are still available, just not persisted.");
+  }
+
+  // 11. Emit activity events
+  try {
+    const gitCtx = getGitContext(logPath);
+    const activityEvents = buildSessionEvents({
+      sessionId,
+      repo: gitCtx.repo,
+      branch: gitCtx.branch,
+      worktree: gitCtx.worktree,
+      moments: sessionMoments,
+      transitions,
+      outcomes,
+      narrative,
+    });
+    await emitEvents(activityEvents);
+    log(`  → Emitted ${activityEvents.length} activity events`);
+  } catch (err) {
+    log(`  ⚠ Failed to emit activity events: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   return {

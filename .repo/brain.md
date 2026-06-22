@@ -4,6 +4,10 @@
 > Each spec below is a concept in the codebase with accumulated insights from development sessions.
 > Use the file index at the bottom to find which spec covers any source file.
 
+## Activity Event Backbone
+
+- [Activity Event Backbone](topics/activity-event-backbone.md) — The Activity Event Backbone is the central nervous system of the intent-ai platform: a single app... (9 files)
+
 ## APIs & Interfaces
 
 - [APIs & Interfaces](topics/apis-interfaces.md) — The APIs & Interfaces layer defines the external and internal contracts through which the system ... (5 files)
@@ -11,8 +15,11 @@
 
 ## Architecture & Design
 
-- [Architecture & Design](topics/architecture-design.md) — This document describes the high-level architecture and design principles of the codebase. It ser... (7 files)
-  - [Database Infrastructure](topics/database-infrastructure.md) — The database infrastructure layer provides persistent storage for the pipeline orchestrator using... (3 files)
+- [Architecture & Design](topics/architecture-design.md) — This document describes the high-level architecture and design principles of the codebase. It ser... (4 files)
+
+## Architecture & Infrastructure
+
+- [Architecture & Infrastructure](topics/architecture-infrastructure.md) — This spec covers the high-level architectural decisions and infrastructure choices that define ho... (6 files)
 
 ## Core Pipeline & Brain
 
@@ -35,14 +42,20 @@
 | `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/MEMORY.md` | Architecture & Design |
 | `/Users/giladkoch/.claude/projects/-Users-giladkoch/memory/user_prefers_typescript.md` | Architecture & Design |
 | `docs/superpowers/specs/2026-05-21-execution-memory-design.md` | Core Pipeline & Brain |
+| `docs/superpowers/specs/2026-06-21-activity-event-backbone-design.md` | Activity Event Backbone |
+| `src/adapters/types.ts` | Activity Event Backbone |
+| `src/storage/schema.ts` | Activity Event Backbone |
 | `docs/superpowers/specs/2026-05-21-execution-memory-design.md` | Core Pipeline & Brain |
-| `drizzle.config.ts` | Architecture & Design > Database Infrastructure |
+| `drizzle.config.ts` | Architecture & Infrastructure |
+| `drizzle/0004_brain_hierarchy.sql` | Architecture & Infrastructure |
+| `drizzle/0004_woozy_wallow.sql` | Architecture & Infrastructure |
+| `drizzle/meta/_journal.json` | Architecture & Infrastructure |
 | `src/adapters/types.ts` | Core Pipeline & Brain |
 | `src/brain/cards.ts` | APIs & Interfaces > MCP Server & Graph Navigation |
 | `src/brain/generate-markdown.ts` | Core Pipeline & Brain > Static Repo Index |
 | `src/cli/digest.ts` | Core Pipeline & Brain |
 | `src/cli/index.ts` | Core Pipeline & Brain |
-| `src/cli/infra.ts` | Architecture & Design > Database Infrastructure |
+| `src/cli/infra.ts` | Architecture & Infrastructure |
 | `src/db/schema.ts` | Core Pipeline & Brain |
 | `src/llm/client.ts` | Core Pipeline & Brain |
 | `src/llm/prompts/brain-synthesis.ts` | Core Pipeline & Brain |
@@ -53,6 +66,7 @@
 | `src/pipeline/moments.ts` | Core Pipeline & Brain |
 | `src/pipeline/orchestrator.ts` | Core Pipeline & Brain |
 | `src/storage/connection.ts` | Core Pipeline & Brain |
+| `src/storage/queries.ts` | Activity Event Backbone |
 | `src/storage/schema.ts` | Core Pipeline & Brain |
 | `src/web/server.ts` | Dashboard & UI |
 | `src/web/ui/src/api.ts` | Dashboard & UI |
@@ -66,3 +80,4 @@
 | `src/web/ui/src/index.css` | Dashboard & UI |
 | `src/web/ui/src/types.ts` | Dashboard & UI |
 | `tests/mcp/server.test.ts` | APIs & Interfaces > MCP Server & Graph Navigation |
+| `tests/pipeline/orchestrator.test.ts` | Activity Event Backbone |
