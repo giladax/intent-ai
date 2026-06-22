@@ -392,7 +392,7 @@ export const activityEvents = pgTable("activity_events", {
 
   // Source pointer
   sourceType: text("source_type"),
-  sourceId: uuid("source_id"),
+  sourceId: text("source_id"),
 
   // Session context (denormalized)
   sessionId: uuid("session_id"),
