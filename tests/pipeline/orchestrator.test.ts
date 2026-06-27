@@ -10,8 +10,8 @@ vi.mock("../../src/pipeline/classify.js", () => ({
   classifySession: vi.fn(),
 }));
 
-vi.mock("../../src/pipeline/moments.js", () => ({
-  detectMoments: vi.fn(),
+vi.mock("../../src/eval/organism.js", () => ({
+  detectMomentsWithOrganism: vi.fn(),
 }));
 
 vi.mock("../../src/pipeline/transitions.js", () => ({
@@ -22,21 +22,27 @@ vi.mock("../../src/pipeline/narrative.js", () => ({
   generateNarrative: vi.fn(),
 }));
 
-vi.mock("../../src/storage/connection.js", () => {
-  const mockSql = Object.assign(
-    vi.fn().mockResolvedValue([]),
-    { unsafe: vi.fn().mockResolvedValue([]) }
-  );
-  return {
-    getClient: vi.fn(() => mockSql),
-    getDb: vi.fn(),
-    closeDb: vi.fn(),
-  };
-});
+// Controllable duplicate-check query. Default: no existing row (not a duplicate).
+const { mockSql } = vi.hoisted(() => ({
+  mockSql: Object.assign(
+    vi.fn(async () => [] as Array<{ id: string }>),
+    { unsafe: vi.fn().mockResolvedValue([]) },
+  ),
+}));
+
+vi.mock("../../src/storage/connection.js", () => ({
+  getClient: vi.fn(() => mockSql),
+  getDb: vi.fn(),
+  closeDb: vi.fn(),
+}));
 
 vi.mock("../../src/storage/queries.js", () => ({
   storeSessionDigest: vi.fn(),
   emitEvents: vi.fn().mockResolvedValue([]),
+  getSessionNarrative: vi.fn(),
+  getSessionMoments: vi.fn(),
+  getSessionTransitions: vi.fn(),
+  getSessionOutcomes: vi.fn(),
 }));
 
 vi.mock("../../src/pipeline/emit-events.js", () => ({
@@ -58,10 +64,16 @@ vi.mock("../../src/pipeline/classify-exchanges.js", () => ({
 import { runPipeline } from "../../src/pipeline/orchestrator.js";
 import { parseClaudeCodeLog } from "../../src/adapters/claude-code.js";
 import { classifySession } from "../../src/pipeline/classify.js";
-import { detectMoments } from "../../src/pipeline/moments.js";
+import { detectMomentsWithOrganism } from "../../src/eval/organism.js";
 import { detectTransitionsAndOutcomes } from "../../src/pipeline/transitions.js";
 import { generateNarrative } from "../../src/pipeline/narrative.js";
-import { storeSessionDigest } from "../../src/storage/queries.js";
+import {
+  storeSessionDigest,
+  getSessionNarrative,
+  getSessionMoments,
+  getSessionTransitions,
+  getSessionOutcomes,
+} from "../../src/storage/queries.js";
 
 import type {
   RawDevEvent,
@@ -73,10 +85,14 @@ import type {
 
 const mockedParse = vi.mocked(parseClaudeCodeLog);
 const mockedClassify = vi.mocked(classifySession);
-const mockedMoments = vi.mocked(detectMoments);
+const mockedMoments = vi.mocked(detectMomentsWithOrganism);
 const mockedTransitions = vi.mocked(detectTransitionsAndOutcomes);
 const mockedNarrative = vi.mocked(generateNarrative);
 const mockedStore = vi.mocked(storeSessionDigest);
+const mockedGetNarrative = vi.mocked(getSessionNarrative);
+const mockedGetMoments = vi.mocked(getSessionMoments);
+const mockedGetTransitions = vi.mocked(getSessionTransitions);
+const mockedGetOutcomes = vi.mocked(getSessionOutcomes);
 
 // ── Test Data ───────────────────────────────────────────────────────
 
@@ -169,6 +185,8 @@ describe("runPipeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Default: duplicate-check query returns no rows (not already digested).
+    mockSql.mockResolvedValue([]);
     mockedParse.mockResolvedValue(fakeRawEvents);
     mockedClassify.mockResolvedValue("narrative");
     mockedMoments.mockResolvedValue(fakeMoments);
@@ -196,10 +214,11 @@ describe("runPipeline", () => {
     expect(classifyArgs[0]).toBeInstanceOf(Array);
     expect(classifyArgs[0].length).toBeGreaterThan(0);
 
-    // Verify moments gets chunks and shape
+    // Verify moments gets the default organism, chunks, and shape
     const momentsArgs = mockedMoments.mock.calls[0];
-    expect(momentsArgs[0]).toBeInstanceOf(Array); // chunks
-    expect(momentsArgs[1]).toBe("narrative"); // shape
+    expect(momentsArgs[0]).toMatchObject({ name: expect.any(String) }); // organism
+    expect(momentsArgs[2]).toBeInstanceOf(Array); // chunks
+    expect(momentsArgs[3]).toBe("narrative"); // shape
 
     // Verify transitions gets moments and sessionId
     const transitionsArgs = mockedTransitions.mock.calls[0];
@@ -269,5 +288,39 @@ describe("runPipeline", () => {
   it("propagates LLM step errors", async () => {
     mockedClassify.mockRejectedValue(new Error("LLM call failed after 3 retries"));
     await expect(runPipeline("/fake/log.jsonl")).rejects.toThrow("LLM call failed");
+  });
+
+  it("is idempotent — returns the stored digest without re-running the pipeline when already digested", async () => {
+    // Duplicate-check query finds an existing session for this source hash.
+    mockSql.mockResolvedValue([{ id: "existing-session-1" }]);
+    mockedGetNarrative.mockResolvedValue({ ...fakeNarrative, sessionId: "existing-session-1" });
+    mockedGetMoments.mockResolvedValue(fakeMoments);
+    mockedGetTransitions.mockResolvedValue(fakeTransitions);
+    mockedGetOutcomes.mockResolvedValue(fakeOutcomes);
+
+    const result = await runPipeline("/fake/already-done.jsonl");
+
+    // Returned the stored digest...
+    expect(result.sessionId).toBe("existing-session-1");
+    expect(result.moments).toEqual(fakeMoments);
+    expect(result.transitions).toEqual(fakeTransitions);
+    expect(result.outcomes).toEqual(fakeOutcomes);
+
+    // ...and did NOT re-run any of the expensive pipeline steps.
+    expect(mockedParse).not.toHaveBeenCalled();
+    expect(mockedClassify).not.toHaveBeenCalled();
+    expect(mockedMoments).not.toHaveBeenCalled();
+    expect(mockedStore).not.toHaveBeenCalled();
+  });
+
+  it("re-digests when the duplicate check errors (DB unreachable)", async () => {
+    mockSql.mockRejectedValue(new Error("Connection refused"));
+
+    const result = await runPipeline("/fake/log.jsonl");
+
+    // Falls through to a normal digest run.
+    expect(mockedParse).toHaveBeenCalledTimes(1);
+    expect(mockedMoments).toHaveBeenCalledTimes(1);
+    expect(result.narrative.summary).toBe("Developer added a Redis caching layer");
   });
 });

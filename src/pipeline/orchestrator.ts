@@ -7,18 +7,34 @@ import { getClient } from "../storage/connection.js";
 import { normalize } from "./normalize.js";
 import { analyzeInteractions } from "./analyze.js";
 import { classifySession } from "./classify.js";
-import { chunkSession } from "./chunk.js";
-import { detectMoments } from "./moments.js";
+import { chunkSession, detectTopicShifts } from "./chunk.js";
+import { detectMomentsWithOrganism } from "../eval/organism.js";
+import { DEFAULT_ORGANISM } from "./default-organism.js";
 import { detectTransitionsAndOutcomes } from "./transitions.js";
 import { generateNarrative } from "./narrative.js";
 import { buildSessionEvents } from "./emit-events.js";
-import { storeSessionDigest, emitEvents } from "../storage/queries.js";
+import {
+  storeSessionDigest,
+  emitEvents,
+  getSessionNarrative,
+  getSessionMoments,
+  getSessionTransitions,
+  getSessionOutcomes,
+} from "../storage/queries.js";
 import type {
   SessionNarrative,
   SessionMoment,
   IntentTransition,
   AcceptedOutcome,
 } from "../adapters/types.js";
+
+interface PipelineResult {
+  sessionId: string;
+  narrative: SessionNarrative;
+  moments: SessionMoment[];
+  transitions: IntentTransition[];
+  outcomes: AcceptedOutcome[];
+}
 
 function log(step: string): void {
   process.stderr.write(`${step}\n`);
@@ -41,20 +57,18 @@ function getGitContext(sourcePath: string): { repo?: string; branch?: string; wo
   }
 }
 
-export async function runPipeline(logPath: string): Promise<{
-  sessionId: string;
-  narrative: SessionNarrative;
-  moments: SessionMoment[];
-  transitions: IntentTransition[];
-  outcomes: AcceptedOutcome[];
-}> {
-  // 0. Check for duplicate — extract CC session UUID from filename
+export async function runPipeline(logPath: string): Promise<PipelineResult> {
+  // 0. Idempotency — skip paths already digested (keyed on the CC session UUID
+  //    from the filename). Re-digesting the same path returns the stored digest
+  //    instead of re-running the LLM pipeline, so `digest` is idempotent and a
+  //    batch run (`--last N`) never aborts on an already-processed session.
   const ccSessionId = basename(logPath, ".jsonl");
-  const sql = getClient();
-  const [existing] = await sql`SELECT id FROM sessions WHERE source_hash = ${ccSessionId}`;
-  if (existing) {
-    log(`  ⚠ Session already digested (${existing.id}). Skipping.`);
-    throw new Error(`Session already digested: ${ccSessionId} → ${existing.id}`);
+  const existingId = await findDigestedSession(ccSessionId);
+  if (existingId) {
+    log(`  ⚠ Session already digested (${existingId}). Returning stored digest.`);
+    const stored = await loadStoredDigest(existingId);
+    if (stored) return stored;
+    log("  ⚠ Stored digest incomplete; re-digesting.");
   }
 
   // 1. Parse
@@ -77,19 +91,28 @@ export async function runPipeline(logPath: string): Promise<{
     );
   }
 
-  // 4-5-6. Analyze + Classify + Chunk in parallel (all depend only on normalizedEvents)
-  log("[3/10] Analyzing + classifying + chunking (parallel)...");
-  const [directives, sessionShape, sessionChunks] = await Promise.all([
+  // 4-5-6. Analyze + Classify + Topic-shift detection in parallel
+  //        (all depend only on normalizedEvents). Chunking consumes the
+  //        topic-shift signal, so it runs right after.
+  log("[3/10] Analyzing + classifying + detecting topic shifts (parallel)...");
+  const [directives, sessionShape, topicShiftIds] = await Promise.all([
     analyzeInteractions(normalizedEvents),
     classifySession(normalizedEvents),
-    Promise.resolve(chunkSession(normalizedEvents, sessionId)),
+    detectTopicShifts(normalizedEvents),
   ]);
+  const sessionChunks = chunkSession(normalizedEvents, sessionId, topicShiftIds);
   log(`  Shape: ${sessionShape}, ${sessionChunks.length} chunks, ${directives.exchangeSummary.totalExchanges} exchanges`);
 
-  // 7. Detect moments (pass 1 + 2)
+  // 7. Detect moments using the promoted default organism (Gen 0 winner)
   log("[6/10] Detecting moments (pass 1)...");
   log("[7/10] Detecting moments (pass 2)...");
-  const sessionMoments = await detectMoments(sessionChunks, sessionShape, directives, normalizedEvents);
+  const sessionMoments = await detectMomentsWithOrganism(
+    DEFAULT_ORGANISM,
+    rawEvents,
+    sessionChunks,
+    sessionShape,
+    normalizedEvents,
+  );
 
   // 8. Transitions + outcomes
   log("[8/10] Detecting transitions & outcomes...");
@@ -170,4 +193,51 @@ export async function runPipeline(logPath: string): Promise<{
     transitions,
     outcomes,
   };
+}
+
+// ── Idempotency Helpers ──────────────────────────────────────────────
+
+/**
+ * Look up whether a CC session (by source hash) has already been digested.
+ * Returns the stored session id, or null if not found. A DB error is treated
+ * as "not digested" so a missing/unreachable database never blocks digestion.
+ */
+async function findDigestedSession(
+  sourceHash: string,
+): Promise<string | null> {
+  try {
+    const sql = getClient();
+    const rows = await sql`SELECT id FROM sessions WHERE source_hash = ${sourceHash} LIMIT 1`;
+    return rows.length > 0 ? (rows[0].id as string) : null;
+  } catch (err) {
+    log(
+      `  ⚠ Duplicate check failed (${err instanceof Error ? err.message : String(err)}). Proceeding with digest.`,
+    );
+    return null;
+  }
+}
+
+/**
+ * Reconstruct a previously stored digest so a repeat run can return the same
+ * result without re-running the LLM pipeline. Returns null if the stored data
+ * is incomplete (e.g. narrative missing) so the caller can re-digest.
+ */
+async function loadStoredDigest(
+  sessionId: string,
+): Promise<PipelineResult | null> {
+  try {
+    const [narrative, moments, transitions, outcomes] = await Promise.all([
+      getSessionNarrative(sessionId),
+      getSessionMoments(sessionId),
+      getSessionTransitions(sessionId),
+      getSessionOutcomes(sessionId),
+    ]);
+    if (!narrative) return null;
+    return { sessionId, narrative, moments, transitions, outcomes };
+  } catch (err) {
+    log(
+      `  ⚠ Failed to load stored digest (${err instanceof Error ? err.message : String(err)}). Re-digesting.`,
+    );
+    return null;
+  }
 }
