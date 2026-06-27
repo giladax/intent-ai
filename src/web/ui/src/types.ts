@@ -10,8 +10,42 @@ export interface Feature {
   project_id: string;
   name: string;
   description: string;
+  // WS-B / WS-A schema contract: understanding fields
+  current_understanding?: string | null;
+  constraints?: string[];
+  known_unknowns?: string[];
   created_at: string;
   session_count: number;
+}
+
+// ── Feature↔File map (WS-B) ──────────────────────────────────────────
+export interface FeatureFile {
+  id: string;
+  glob: string;
+  file_path: string;
+  created_at: string;
+}
+
+// ── Observation review queue (WS-B) ──────────────────────────────────
+export interface PendingObservation {
+  id: string;
+  category: string; // observation:<kind>
+  summary: string;
+  feature_id: string | null;
+  feature_name: string | null;
+  review_status: string; // pending | approved | rejected (freeform)
+  created_at: string;
+  session_id?: string | null;
+  tags?: string[] | null;
+  actor?: string | null;
+}
+
+export interface FeatureObservation {
+  id: string;
+  category: string;
+  summary: string;
+  review_status: string;
+  created_at: string;
 }
 
 export interface Session {
@@ -46,6 +80,8 @@ export interface FeatureDetail {
   feature: Feature;
   sessions: FeatureSession[];
   story: string;
+  files?: FeatureFile[];
+  observations?: FeatureObservation[];
 }
 
 export interface SessionMoment {

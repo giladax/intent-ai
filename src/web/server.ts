@@ -13,6 +13,11 @@ import {
   getChunkEvents,
 } from "../storage/queries.js";
 import { buildSystemPrompt, loadDigest } from "../cli/explore.js";
+import {
+  composeCurrentUnderstanding,
+  normalizeGlob,
+  OBSERVATION_CATEGORY_PREFIX,
+} from "./observations.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -183,7 +188,29 @@ export async function startWebServer(port: number): Promise<void> {
         .map((s: any) => s.narrativeSummary)
         .join("\n\n---\n\n");
 
-      res.json({ feature, sessions, story });
+      // Feature↔file map (longest-glob-first, the resolver's precedence order).
+      // Tolerate the table not existing yet (WS-A owns it) so the panel still loads.
+      let files: any[] = [];
+      try {
+        files = await sql`
+          SELECT id, glob, file_path, created_at
+          FROM feature_files
+          WHERE feature_id = ${req.params.id}
+          ORDER BY length(glob) DESC, glob ASC`;
+      } catch { files = []; }
+
+      // Observations attached to this feature (approved + pending), newest first.
+      let observations: any[] = [];
+      try {
+        observations = await sql`
+          SELECT id, category, summary, review_status, created_at
+          FROM activity_events
+          WHERE feature_id = ${req.params.id}
+            AND category LIKE ${OBSERVATION_CATEGORY_PREFIX + "%"}
+          ORDER BY created_at DESC`;
+      } catch { observations = []; }
+
+      res.json({ feature, sessions, story, files, observations });
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
@@ -211,6 +238,185 @@ export async function startWebServer(port: number): Promise<void> {
       const sql = getClient();
       await sql`DELETE FROM feature_sessions WHERE feature_id = ${req.params.id} AND session_id = ${req.params.sid}`;
       res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ── Feature Understanding (manual edit) ───────────────────────────
+  // WS-B: lets a human set/curate Current Understanding, constraints, and
+  // known-unknowns directly. Approving an observation also writes here.
+
+  app.patch("/api/features/:id", async (req, res) => {
+    try {
+      const { currentUnderstanding, constraints, knownUnknowns } = req.body;
+      const sql = getClient();
+
+      if (currentUnderstanding !== undefined) {
+        await sql`UPDATE features SET current_understanding = ${currentUnderstanding} WHERE id = ${req.params.id}`;
+      }
+      if (constraints !== undefined) {
+        await sql`UPDATE features SET constraints = ${JSON.stringify(constraints)}::jsonb WHERE id = ${req.params.id}`;
+      }
+      if (knownUnknowns !== undefined) {
+        await sql`UPDATE features SET known_unknowns = ${JSON.stringify(knownUnknowns)}::jsonb WHERE id = ${req.params.id}`;
+      }
+
+      const [feature] = await sql`SELECT * FROM features WHERE id = ${req.params.id}`;
+      res.json({ feature });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ── Feature↔File Map ──────────────────────────────────────────────
+  // WS-B: add/remove globs in feature_files. Resolver is longest-glob-wins
+  // (implemented by WS-A in brain.enter); here we only manage the rows.
+
+  app.get("/api/features/:id/files", async (req, res) => {
+    try {
+      const sql = getClient();
+      const rows = await sql`
+        SELECT id, glob, file_path, created_at
+        FROM feature_files
+        WHERE feature_id = ${req.params.id}
+        ORDER BY length(glob) DESC, glob ASC`;
+      res.json(rows);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.post("/api/features/:id/files", async (req, res) => {
+    try {
+      const glob = normalizeGlob(req.body?.glob);
+      if (!glob) {
+        res.status(400).json({ error: "glob is required" });
+        return;
+      }
+      // file_path is an optional concrete example/path; default to the glob.
+      const filePath = (req.body?.filePath ?? req.body?.file_path ?? glob) as string;
+      const sql = getClient();
+      const [row] = await sql`
+        INSERT INTO feature_files (feature_id, glob, file_path)
+        VALUES (${req.params.id}, ${glob}, ${filePath})
+        RETURNING id, glob, file_path, created_at`;
+      res.json(row);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.delete("/api/features/:id/files/:fileId", async (req, res) => {
+    try {
+      const sql = getClient();
+      await sql`DELETE FROM feature_files WHERE id = ${req.params.fileId} AND feature_id = ${req.params.id}`;
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ── Observation Review Queue ──────────────────────────────────────
+  // WS-B: pending observations are activity_events rows with category
+  // `observation:<kind>` and review_status = 'pending'. Approve promotes the
+  // summary into features.current_understanding; reject sets rejected; edit
+  // updates the summary. NO enum/CHECK on category or review_status — freeform.
+
+  app.get("/api/observations/pending", async (req, res) => {
+    try {
+      const repoId = req.query.repoId as string | undefined;
+      const sql = getClient();
+      // Join through features (feature_id is denormalized TEXT) to surface the
+      // feature name and to allow optional repo scoping. Compare f.id::text so a
+      // non-uuid feature_id never throws a cast error. Unresolved observations
+      // (null feature_id) are always included.
+      const rows = repoId
+        ? await sql`
+          SELECT ae.id, ae.category, ae.summary, ae.feature_id, ae.review_status,
+                 ae.created_at, f.name AS feature_name
+          FROM activity_events ae
+          LEFT JOIN features f ON f.id::text = ae.feature_id
+          WHERE ae.review_status = 'pending'
+            AND ae.category LIKE ${OBSERVATION_CATEGORY_PREFIX + "%"}
+            AND (f.project_id = ${repoId} OR ae.feature_id IS NULL)
+          ORDER BY ae.created_at DESC`
+        : await sql`
+          SELECT ae.id, ae.category, ae.summary, ae.feature_id, ae.review_status,
+                 ae.created_at, f.name AS feature_name
+          FROM activity_events ae
+          LEFT JOIN features f ON f.id::text = ae.feature_id
+          WHERE ae.review_status = 'pending'
+            AND ae.category LIKE ${OBSERVATION_CATEGORY_PREFIX + "%"}
+          ORDER BY ae.created_at DESC`;
+      res.json(rows);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Approve — promote the observation summary into Current Understanding.
+  app.post("/api/observations/:id/approve", async (req, res) => {
+    try {
+      const sql = getClient();
+      const [obs] = await sql`
+        SELECT id, summary, feature_id FROM activity_events WHERE id = ${req.params.id}`;
+      if (!obs) {
+        res.status(404).json({ error: "observation not found" });
+        return;
+      }
+
+      // Promote into the feature's current understanding (if it resolves to one).
+      if (obs.feature_id) {
+        const [feature] = await sql`
+          SELECT id, current_understanding FROM features WHERE id::text = ${obs.feature_id}`;
+        if (feature) {
+          const next = composeCurrentUnderstanding(feature.current_understanding, obs.summary);
+          await sql`UPDATE features SET current_understanding = ${next} WHERE id = ${feature.id}`;
+        }
+      }
+
+      await sql`UPDATE activity_events SET review_status = 'approved' WHERE id = ${req.params.id}`;
+      res.json({ ok: true, status: "approved" });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Reject — mark rejected, no promotion.
+  app.post("/api/observations/:id/reject", async (req, res) => {
+    try {
+      const sql = getClient();
+      const result = await sql`
+        UPDATE activity_events SET review_status = 'rejected'
+        WHERE id = ${req.params.id} RETURNING id`;
+      if (result.length === 0) {
+        res.status(404).json({ error: "observation not found" });
+        return;
+      }
+      res.json({ ok: true, status: "rejected" });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Edit — update the observation summary (stays pending unless separately acted on).
+  app.patch("/api/observations/:id", async (req, res) => {
+    try {
+      const summary = (req.body?.summary ?? "").toString();
+      if (!summary.trim()) {
+        res.status(400).json({ error: "summary is required" });
+        return;
+      }
+      const sql = getClient();
+      const result = await sql`
+        UPDATE activity_events SET summary = ${summary}
+        WHERE id = ${req.params.id} RETURNING id, summary, review_status`;
+      if (result.length === 0) {
+        res.status(404).json({ error: "observation not found" });
+        return;
+      }
+      res.json(result[0]);
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }

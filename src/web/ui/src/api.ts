@@ -3,6 +3,8 @@ import type {
   Feature,
   Session,
   FeatureDetail,
+  FeatureFile,
+  PendingObservation,
   SessionDetail,
   ChatMessage,
   TopicSummary,
@@ -46,6 +48,47 @@ export const createFeature = (projectId: string, name: string, description = "")
 // Feature detail
 export const fetchFeatureDetail = (featureId: string) =>
   json<FeatureDetail>(`/api/features/${featureId}`);
+
+// Feature understanding (manual curation)
+export const updateFeatureUnderstanding = (
+  featureId: string,
+  patch: { currentUnderstanding?: string; constraints?: string[]; knownUnknowns?: string[] },
+) =>
+  json<{ feature: Feature }>(`/api/features/${featureId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+
+// Feature↔file map
+export const fetchFeatureFiles = (featureId: string) =>
+  json<FeatureFile[]>(`/api/features/${featureId}/files`);
+export const addFeatureFile = (featureId: string, glob: string, filePath?: string) =>
+  json<FeatureFile>(`/api/features/${featureId}/files`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ glob, filePath }),
+  });
+export const removeFeatureFile = (featureId: string, fileId: string) =>
+  json<{ ok: boolean }>(`/api/features/${featureId}/files/${fileId}`, {
+    method: "DELETE",
+  });
+
+// Observation review queue
+export const fetchPendingObservations = (repoId?: string) =>
+  json<PendingObservation[]>(
+    repoId ? `/api/observations/pending?repoId=${repoId}` : "/api/observations/pending",
+  );
+export const approveObservation = (id: string) =>
+  json<{ ok: boolean; status: string }>(`/api/observations/${id}/approve`, { method: "POST" });
+export const rejectObservation = (id: string) =>
+  json<{ ok: boolean; status: string }>(`/api/observations/${id}/reject`, { method: "POST" });
+export const editObservation = (id: string, summary: string) =>
+  json<{ id: string; summary: string; review_status: string }>(`/api/observations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ summary }),
+  });
 
 // Feature sessions
 export const tagSession = (featureId: string, sessionId: string, role: string) =>

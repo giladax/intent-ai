@@ -7,10 +7,13 @@ import { SyncDiffTree } from "./components/SyncDiffTree";
 import { KnowledgeTreePage } from "./components/KnowledgeTreePage";
 import { SessionsPage } from "./components/SessionsPage";
 import { SessionDetailPage } from "./components/SessionDetailPage";
-import { fetchProjects, fetchTopics, fetchSessions } from "./api";
+import { FeaturesPage } from "./components/FeaturesPage";
+import { FeatureDetail } from "./components/FeatureDetail";
+import { ReviewQueue } from "./components/ReviewQueue";
+import { fetchProjects, fetchTopics, fetchSessions, fetchFeatures, fetchPendingObservations } from "./api";
 import type { LiveState } from "./api";
-import type { Project, TopicSummary, Session, BrainSyncProposal } from "./types";
-import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard } from "lucide-react";
+import type { Project, TopicSummary, Session, Feature, BrainSyncProposal } from "./types";
+import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard, Boxes, Inbox } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton,
@@ -31,7 +34,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-type View = "overview" | "knowledge" | "sessions" | "session-detail" | "topic" | "sync";
+type View =
+  | "overview"
+  | "features"
+  | "feature-detail"
+  | "review"
+  | "knowledge"
+  | "sessions"
+  | "session-detail"
+  | "topic"
+  | "sync";
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -44,6 +56,9 @@ export function App() {
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const [liveState, setLiveState] = useState<LiveState | null>(null);
 
   // Poll live state from observe daemon
@@ -67,9 +82,13 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!selectedProject) { setTopics([]); setSessions([]); return; }
+    if (!selectedProject) { setTopics([]); setSessions([]); setFeatures([]); setPendingCount(0); return; }
     fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));
     fetchSessions(selectedProject.id).then(setSessions).catch(() => setSessions([]));
+    fetchFeatures(selectedProject.id).then(setFeatures).catch(() => setFeatures([]));
+    fetchPendingObservations(selectedProject.id)
+      .then((obs) => setPendingCount(obs.length))
+      .catch(() => setPendingCount(0));
     fetch("/api/brain/discover", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -91,6 +110,11 @@ export function App() {
     setView("topic");
   }, []);
 
+  const handleFeatureSelect = useCallback((id: string) => {
+    setSelectedFeatureId(id);
+    setView("feature-detail");
+  }, []);
+
   const handleSyncComplete = useCallback(() => {
     setReviewProposal(null);
     if (selectedProject) {
@@ -101,6 +125,7 @@ export function App() {
   }, [selectedProject]);
 
   const selectedTopicName = topics.find((t) => t.id === selectedTopicId)?.name;
+  const selectedFeatureName = features.find((f) => f.id === selectedFeatureId)?.name;
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
   const selectedSessionLabel = selectedSession
@@ -109,6 +134,9 @@ export function App() {
 
   const breadcrumbLabel =
     view === "sync" ? "Sync Brain" :
+    view === "features" ? "Features" :
+    view === "feature-detail" ? (selectedFeatureName ?? "Feature") :
+    view === "review" ? "Review Queue" :
     view === "sessions" ? "Sessions" :
     view === "session-detail" ? selectedSessionLabel :
     view === "topic" && selectedTopicName ? selectedTopicName :
@@ -165,6 +193,36 @@ export function App() {
                     <LayoutDashboard className="size-4" />
                     <span>Overview</span>
                   </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {/* Features nav (primary node) */}
+                <SidebarMenuItem className="relative">
+                  <SidebarMenuButton
+                    isActive={view === "features" || view === "feature-detail"}
+                    onClick={() => { setView("features"); setSelectedFeatureId(null); }}
+                    className="text-sm"
+                  >
+                    <Boxes className="size-4" />
+                    <span>Features</span>
+                  </SidebarMenuButton>
+                  <span className="absolute top-1 right-2 text-[10px] text-muted-foreground tabular-nums">{features.length}</span>
+                </SidebarMenuItem>
+
+                {/* Review Queue nav */}
+                <SidebarMenuItem className="relative">
+                  <SidebarMenuButton
+                    isActive={view === "review"}
+                    onClick={() => { setView("review"); setSelectedTopicId(null); }}
+                    className="text-sm"
+                  >
+                    <Inbox className="size-4" />
+                    <span>Review Queue</span>
+                  </SidebarMenuButton>
+                  {pendingCount > 0 && (
+                    <span className="absolute top-1 right-2 flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold">
+                      {pendingCount}
+                    </span>
+                  )}
                 </SidebarMenuItem>
 
                 {/* Knowledge Tree nav */}
@@ -245,6 +303,10 @@ export function App() {
                     <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("sessions"); setSelectedSessionId(null); }}>
                       Sessions
                     </BreadcrumbLink>
+                  ) : view === "feature-detail" ? (
+                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("features"); setSelectedFeatureId(null); }}>
+                      Features
+                    </BreadcrumbLink>
                   ) : view !== "overview" ? (
                     <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("overview"); setSelectedTopicId(null); }}>
                       Overview
@@ -319,6 +381,21 @@ export function App() {
                       setSelectedSessionId(id);
                       setView("session-detail");
                     }}
+                  />
+                ) : view === "review" ? (
+                  <ReviewQueue
+                    repoId={selectedProject?.id ?? null}
+                    onFeatureClick={handleFeatureSelect}
+                  />
+                ) : view === "feature-detail" && selectedFeatureId ? (
+                  <FeatureDetail
+                    featureId={selectedFeatureId}
+                    onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
+                  />
+                ) : view === "features" ? (
+                  <FeaturesPage
+                    repoId={selectedProject?.id ?? null}
+                    onFeatureClick={handleFeatureSelect}
                   />
                 ) : view === "overview" ? (
                   <OverviewPanel
