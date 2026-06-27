@@ -1,6 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { chunkSession } from "../../src/pipeline/chunk.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("../../src/llm/client.js", () => ({
+  callHaiku: vi.fn(),
+}));
+
+import { chunkSession, detectTopicShifts } from "../../src/pipeline/chunk.js";
+import { callHaiku } from "../../src/llm/client.js";
 import type { NormalizedDevEvent } from "../../src/adapters/types.js";
+
+const mockedHaiku = vi.mocked(callHaiku);
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -137,13 +145,13 @@ describe("chunkSession", () => {
     );
   });
 
-  it("splits on explicit topic shift phrases in user messages", () => {
+  it("splits at topic-shift event ids supplied by the caller", () => {
     const t0 = new Date("2026-05-20T10:00:00.000Z");
 
     // First batch: 12 events
     const batch1 = makeEvents(12, { startTime: t0 });
 
-    // Topic shift event
+    // Topic shift event (id is "s1-12" per makeEvent)
     const shift = makeEvent({
       causalOrder: 12,
       timestamp: new Date(t0.getTime() + 12 * 10_000).toISOString(),
@@ -162,10 +170,39 @@ describe("chunkSession", () => {
     });
 
     const events = [...batch1, shift, ...batch2];
-    const chunks = chunkSession(events, sessionId);
+
+    // Topic-shift detection is now a precomputed (Haiku-classified) signal
+    // passed into chunkSession; here we supply it deterministically.
+    const chunks = chunkSession(events, sessionId, new Set([shift.id]));
 
     expect(chunks.length).toBeGreaterThanOrEqual(2);
     expect(chunks[1].eventRange[0]).toBe(12);
+  });
+
+  it("does NOT split on topic shifts when no signal set is provided", () => {
+    const t0 = new Date("2026-05-20T10:00:00.000Z");
+
+    const batch1 = makeEvents(12, { startTime: t0 });
+    const shift = makeEvent({
+      causalOrder: 12,
+      timestamp: new Date(t0.getTime() + 12 * 10_000).toISOString(),
+      category: "intent",
+      actor: "user",
+      content: {
+        summary: "Now let's work on the tests",
+        detail: "Now let's work on the tests",
+      },
+    });
+    const batch2 = makeEvents(11, {
+      startOrder: 13,
+      startTime: new Date(t0.getTime() + 13 * 10_000),
+    });
+
+    const events = [...batch1, shift, ...batch2];
+
+    // No topic-shift set and no pause/file-shift signals → single chunk.
+    const chunks = chunkSession(events, sessionId);
+    expect(chunks).toHaveLength(1);
   });
 
   it("splits chunks exceeding 80 events at natural boundaries", () => {
@@ -332,5 +369,53 @@ describe("chunkSession", () => {
     const chunks = chunkSession(events, sessionId);
     expect(chunks).toHaveLength(1);
     expect(chunks[0].events).toHaveLength(50);
+  });
+});
+
+describe("detectTopicShifts", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns the set of event ids classified as topic shifts", async () => {
+    const events = makeEvents(10, { category: "intent" });
+    mockedHaiku.mockResolvedValue({
+      shifts: [
+        { eventId: "s1-3", isTopicShift: true },
+        { eventId: "s1-5", isTopicShift: false },
+        { eventId: "s1-7", isTopicShift: true },
+      ],
+    } as never);
+
+    const ids = await detectTopicShifts(events);
+
+    expect(mockedHaiku).toHaveBeenCalledTimes(1);
+    expect(ids.has("s1-3")).toBe(true);
+    expect(ids.has("s1-7")).toBe(true);
+    expect(ids.has("s1-5")).toBe(false);
+  });
+
+  it("skips the LLM call for short sessions", async () => {
+    const events = makeEvents(5, { category: "intent" });
+    const ids = await detectTopicShifts(events);
+    expect(mockedHaiku).not.toHaveBeenCalled();
+    expect(ids.size).toBe(0);
+  });
+
+  it("returns an empty set when there are fewer than 2 intent messages", async () => {
+    // 10 action events (long enough session) but no user/intent messages.
+    const events = makeEvents(10, { category: "action" });
+    const ids = await detectTopicShifts(events);
+    expect(mockedHaiku).not.toHaveBeenCalled();
+    expect(ids.size).toBe(0);
+  });
+
+  it("never throws — returns an empty set when Haiku fails", async () => {
+    const events = makeEvents(10, { category: "intent" });
+    mockedHaiku.mockRejectedValue(new Error("no api key"));
+
+    const ids = await detectTopicShifts(events);
+
+    expect(ids.size).toBe(0);
   });
 });

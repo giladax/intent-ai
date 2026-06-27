@@ -1,4 +1,6 @@
+import { z } from "zod";
 import type { NormalizedDevEvent, SessionChunk } from "../adapters/types.js";
+import { callHaiku } from "../llm/client.js";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -19,24 +21,113 @@ const IGNORED_FILE_PATTERNS = [
   /^\/private\/tmp\//,
 ];
 
-const TOPIC_SHIFT_PATTERNS = [
-  /\bnow let'?s\b/i,
-  /\bmoving on\b/i,
-  /\bswitch to\b/i,
-  /\bok let'?s work on\b/i,
-  /\bok\s+next\b/i,
-  /\blet'?s move on\b/i,
-];
+// ── Topic-Shift Detection (Haiku) ────────────────────────────────────
+// Semantic classification — never regex. We ask Haiku which user (intent)
+// messages mark an explicit pivot to a NEW task/topic. The result is a set
+// of event IDs that `chunkSession` consumes as a deterministic signal, so
+// chunking itself stays pure and the LLM call is opt-in (skipped on dry-run).
+
+const TopicShiftSchema = z
+  .object({
+    shifts: z
+      .array(
+        z
+          .object({
+            eventId: z.string(),
+            isTopicShift: z.boolean().optional().default(false),
+          })
+          .passthrough(),
+      )
+      .optional()
+      .default([]),
+  })
+  .passthrough();
+
+/** Max user messages sent to Haiku in a single classification call. */
+const MAX_TOPIC_SHIFT_CANDIDATES = 250;
+/** Truncate each message to keep the payload bounded. */
+const TOPIC_SHIFT_TEXT_CAP = 280;
+
+/**
+ * Classify which user messages mark an explicit topic/task shift, using Haiku
+ * structured output (replaces the old regex phrase matching).
+ *
+ * Returns a set of event IDs that begin a new topic. On any failure — no API
+ * key, network error, short session, no candidates — returns an empty set so
+ * the deterministic split signals (pauses, file-cluster shifts) still apply
+ * and the parent pipeline never fails because of this enrichment.
+ */
+export async function detectTopicShifts(
+  events: NormalizedDevEvent[],
+): Promise<Set<string>> {
+  const empty = new Set<string>();
+
+  // Short sessions are never split (mirrors chunkSession's short-circuit).
+  if (events.length < SHORT_SESSION_THRESHOLD) return empty;
+
+  const candidates = events
+    .filter((e) => e.category === "intent")
+    .slice(0, MAX_TOPIC_SHIFT_CANDIDATES);
+  if (candidates.length < 2) return empty;
+
+  try {
+    const { system, user } = buildTopicShiftPrompt(candidates);
+    const result = await callHaiku(system, user, TopicShiftSchema);
+    const ids = new Set<string>();
+    for (const s of result.shifts) {
+      if (s.isTopicShift) ids.add(s.eventId);
+    }
+    return ids;
+  } catch (err) {
+    process.stderr.write(
+      `  ⚠ Topic-shift detection failed (${err instanceof Error ? err.message : String(err)}). Continuing without topic-shift splits.\n`,
+    );
+    return empty;
+  }
+}
+
+function buildTopicShiftPrompt(candidates: NormalizedDevEvent[]): {
+  system: string;
+  user: string;
+} {
+  const system = `You analyze the developer's messages within a single AI-assisted coding session and identify which messages mark an EXPLICIT shift to a NEW topic or task.
+
+A topic shift is when the developer deliberately pivots away from what was just being worked on to start a different piece of work — for example: "now let's work on X", "moving on to Y", "switch to Z", "ok, next: ...", "different thing now".
+
+The following are NOT topic shifts: continuations of the current task, clarifications, answers to a question the assistant asked, bug reports about the in-progress work, approvals/rejections ("yes", "no", "looks good"), and refinements of the same goal.
+
+Be conservative — only flag a message when the developer is clearly starting new work.
+
+Respond with ONLY a JSON object of the form:
+{ "shifts": [ { "eventId": "<id>", "isTopicShift": true|false }, ... ] }
+Include an entry for every message id you were given.`;
+
+  const lines = candidates.map(
+    (e) =>
+      `- id: ${e.id}\n  message: ${(e.content.detail || e.content.summary || "").slice(0, TOPIC_SHIFT_TEXT_CAP)}`,
+  );
+
+  const user = `Developer messages, in order:
+
+${lines.join("\n")}
+
+For each message id, decide whether it marks an explicit shift to a new topic/task. Return JSON only.`;
+
+  return { system, user };
+}
 
 // ── Main Entry Point ─────────────────────────────────────────────────
 
 /**
  * Split a session's normalized events into bounded reasoning windows (chunks).
- * Deterministic — no LLM calls.
+ * Deterministic — no LLM calls. Topic-shift split signals are supplied as a
+ * precomputed set of event IDs (see `detectTopicShifts`); when omitted, only
+ * pause and file-cluster-shift signals are used.
  */
 export function chunkSession(
   events: NormalizedDevEvent[],
   sessionId: string,
+  topicShiftEventIds: Set<string> = new Set(),
 ): SessionChunk[] {
   if (events.length === 0) return [];
 
@@ -46,7 +137,7 @@ export function chunkSession(
   }
 
   // Find all split points
-  const splitIndices = findSplitPoints(events);
+  const splitIndices = findSplitPoints(events, topicShiftEventIds);
 
   // Build chunks from split points
   const rawChunks = splitAtIndices(events, splitIndices);
@@ -67,7 +158,10 @@ export function chunkSession(
  * Find indices where the event list should be split.
  * A split index N means: chunk boundary between events[N-1] and events[N].
  */
-function findSplitPoints(events: NormalizedDevEvent[]): number[] {
+function findSplitPoints(
+  events: NormalizedDevEvent[],
+  topicShiftEventIds: Set<string>,
+): number[] {
   const splits: number[] = [];
   let lastSplit = 0; // Enforce minimum gap between splits
 
@@ -92,8 +186,8 @@ function findSplitPoints(events: NormalizedDevEvent[]): number[] {
       continue;
     }
 
-    // Priority 3: Explicit topic shift in user messages
-    if (hasTopicShift(events[i])) {
+    // Priority 3: Explicit topic shift in user messages (Haiku-classified)
+    if (hasTopicShift(events[i], topicShiftEventIds)) {
       splits.push(i);
       lastSplit = i;
     }
@@ -145,12 +239,14 @@ function hasFileClusterShift(
 }
 
 /**
- * Check if an event contains an explicit topic shift phrase.
+ * Check if an event was classified as an explicit topic shift by Haiku.
  */
-function hasTopicShift(event: NormalizedDevEvent): boolean {
+function hasTopicShift(
+  event: NormalizedDevEvent,
+  topicShiftEventIds: Set<string>,
+): boolean {
   if (event.category !== "intent") return false;
-  const text = event.content.detail;
-  return TOPIC_SHIFT_PATTERNS.some((p) => p.test(text));
+  return topicShiftEventIds.has(event.id);
 }
 
 // ── Merge Tiny Chunks ────────────────────────────────────────────────
