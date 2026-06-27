@@ -3,6 +3,27 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { readFileSync, existsSync, readdirSync } from "fs";
 import { join, resolve } from "path";
+import {
+  getDefaultProjectId,
+  listFeatures,
+  getFeatureById,
+  getFeatureFileRows,
+  loadFeatureContext,
+  insertObservation,
+  type FeatureRecord,
+} from "../storage/queries.js";
+import {
+  tokenize,
+  fuzzyScore,
+  resolveFeature,
+  resolveTask,
+  formatCandidates,
+  formatFeatureContext,
+} from "./feature.js";
+
+// Re-export the shared text-scoring helpers (used by the legacy topic tools
+// and covered by tests/mcp/server.test.ts).
+export { tokenize, fuzzyScore };
 
 // ── Graph model ───────────────────────────────────────────────────
 //
@@ -160,29 +181,35 @@ function loadBrainGraph(repoDir: string): BrainGraph {
 }
 
 // ── Search scoring ────────────────────────────────────────────────
+// tokenize / fuzzyScore are imported from ./feature.js (shared with the
+// Feature tools) and re-exported above.
 
-function tokenize(text: string): string[] {
-  return text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+// ── Feature-tool helpers (Postgres-backed) ───────────────────────────
+
+function mcpText(text: string) {
+  return { content: [{ type: "text" as const, text }] };
 }
 
-export function fuzzyScore(query: string, text: string): number {
-  const qTokens = tokenize(query);
-  const tTokens = new Set(tokenize(text));
-  if (qTokens.length === 0) return 0;
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
-  // Exact substring match is strongest
-  if (text.toLowerCase().includes(query.toLowerCase())) return 1.0;
+async function featureContextResponse(featureId: string) {
+  const ctx = await loadFeatureContext(featureId);
+  if (!ctx) return mcpText(`Feature ${featureId} not found.`);
+  return mcpText(formatFeatureContext(ctx));
+}
 
-  // Token overlap with partial matching
-  let hits = 0;
-  for (const q of qTokens) {
-    if (tTokens.has(q)) { hits += 1; continue; }
-    // Partial: any target token starts with or contains query token
-    for (const t of tTokens) {
-      if (t.includes(q) || q.includes(t)) { hits += 0.5; break; }
-    }
+async function featuresByIds(ids: string[], projectId: string | null): Promise<FeatureRecord[]> {
+  // On 0 candidates, surface the full project Feature list so the agent
+  // can pick — we never silently guess, but we do help it choose.
+  if (ids.length === 0) return await listFeatures(projectId ?? undefined);
+  const out: FeatureRecord[] = [];
+  for (const id of ids) {
+    const f = await getFeatureById(id);
+    if (f) out.push(f);
   }
-  return hits / qTokens.length;
+  return out;
 }
 
 // ── Card format (compact overview for LLM navigation) ─────────
@@ -534,80 +561,184 @@ export function createBrainServer(): McpServer {
     },
   );
 
-  // ── brain_file_context ────────────────────────────────────────
-  // Given a file path, return all relevant knowledge:
-  // covering specs, their constraints/decisions, related specs.
-  // This is the breadcrumb → knowledge bridge.
+  // ── brain_file_context (re-keyed onto Feature) ────────────────
+  // Given a file path, resolve its Feature via the file↔Feature map
+  // (longest-glob-wins) and return the Feature's served context. On 0 or
+  // >1 matching Features, returns the candidate list — never guesses.
 
   server.tool(
     "brain_file_context",
-    "Get brain knowledge for a source file — constraints, decisions, and related areas. Use before editing unfamiliar code.",
+    "Get Brain context for a source file — resolves the file's Feature and returns its current understanding, constraints, and relevant files. Use before editing unfamiliar code.",
     {
       file: z.string().describe("File path (relative or absolute)"),
     },
     async ({ file }) => {
-      const { topics, fileIndex } = getGraph();
-      const normalized = file.replace(/^\.\//, "");
-
-      // Find matching topics
-      const matchingTopics = new Set<string>();
-      for (const [indexedFile, topicNames] of fileIndex) {
-        if (indexedFile === normalized || indexedFile.endsWith(normalized) || normalized.endsWith(indexedFile)) {
-          for (const name of topicNames) matchingTopics.add(name);
-        }
+      try {
+        const projectId = await getDefaultProjectId();
+        const rows = await getFeatureFileRows(projectId ?? undefined);
+        const res = resolveFeature(file, rows);
+        if (res.featureId) return await featureContextResponse(res.featureId);
+        const candidates = await featuresByIds(res.candidateIds, projectId);
+        return mcpText(formatCandidates(candidates, `file: ${file}`));
+      } catch (err) {
+        return mcpText(`brain_file_context unavailable: ${errMsg(err)}`);
       }
-      for (const node of topics.values()) {
-        for (const f of node.files) {
-          if (f.endsWith(normalized) || normalized.endsWith(f)) {
-            matchingTopics.add(node.name);
-          }
+    },
+  );
+
+  // ── brain_enter ───────────────────────────────────────────────
+  // The primary entry point for agents. Keyed by file OR task/goal.
+  // Resolves to a Feature and returns its served context; on 0 or >1
+  // matches returns the candidate list for the agent to pick.
+
+  server.tool(
+    "brain_enter",
+    "Enter the Brain for a file or task. Returns the Feature's current understanding, constraints, relevant files, related sessions, and known unknowns. On 0 or >1 matches, returns the candidate list to pick from — never guesses.",
+    {
+      file: z.string().optional().describe("File path you are about to work on"),
+      task: z.string().optional().describe("Task or goal description"),
+    },
+    async ({ file, task }) => {
+      try {
+        const projectId = await getDefaultProjectId();
+        if (file) {
+          const rows = await getFeatureFileRows(projectId ?? undefined);
+          const res = resolveFeature(file, rows);
+          if (res.featureId) return await featureContextResponse(res.featureId);
+          const candidates = await featuresByIds(res.candidateIds, projectId);
+          return mcpText(formatCandidates(candidates, `file: ${file}`));
         }
-      }
-
-      if (matchingTopics.size === 0) {
-        return { content: [{ type: "text" as const, text: `No specs cover "${file}".` }] };
-      }
-
-      const parts: string[] = [`# Context for \`${normalized}\`\n`];
-
-      for (const name of matchingTopics) {
-        const node = topics.get(name);
-        if (!node) continue;
-
-        // Card for the covering spec
-        parts.push(formatCard(node));
-
-        // Pull out constraints + decisions specifically (actionable when editing)
-        const actionable = node.insights.filter(
-          (i) => i.category === "constraint" || i.category === "decision"
-        );
-        if (actionable.length > 0) {
-          parts.push("\n**Constraints & Decisions:**");
-          for (const a of actionable) {
-            parts.push(`- [${a.category}] ${a.statement}`);
-          }
+        if (task) {
+          const features = await listFeatures(projectId ?? undefined);
+          const res = resolveTask(task, features);
+          if (res.feature) return await featureContextResponse(res.feature.id);
+          return mcpText(formatCandidates(res.candidates, `task: ${task}`));
         }
-
-        // Inherited from parent
-        if (node.parent) {
-          const parentNode = topics.get(node.parent);
-          if (parentNode) {
-            const inherited = parentNode.insights.filter(
-              (i) => i.category === "constraint" || i.category === "decision"
-            ).slice(0, 5);
-            if (inherited.length > 0) {
-              parts.push(`\n**Inherited from ${parentNode.name}:**`);
-              for (const c of inherited) {
-                parts.push(`- [${c.category}] ${c.statement}`);
-              }
-            }
-          }
-        }
-
-        parts.push("\n---\n");
+        return mcpText("Provide either `file` or `task` to enter the Brain.");
+      } catch (err) {
+        return mcpText(`brain_enter unavailable: ${errMsg(err)}`);
       }
+    },
+  );
 
-      return { content: [{ type: "text" as const, text: parts.join("\n") }] };
+  // ── brain_feature_context ─────────────────────────────────────
+  // Fetch a Feature's served context directly by id (after picking from
+  // a candidate list returned by brain_enter / brain_file_context).
+
+  server.tool(
+    "brain_feature_context",
+    "Get the served context for a Feature by id: summary, current understanding, constraints, relevant files, related sessions, known unknowns, and agent instructions.",
+    {
+      featureId: z.string().describe("Feature id (from a candidate list)"),
+    },
+    async ({ featureId }) => {
+      try {
+        return await featureContextResponse(featureId);
+      } catch (err) {
+        return mcpText(`brain_feature_context unavailable: ${errMsg(err)}`);
+      }
+    },
+  );
+
+  // ── Write-side tools ──────────────────────────────────────────
+  // Each inserts an activity_events row with category observation:<kind>,
+  // feature_id set, review_status 'pending'. No automatic promotion — a
+  // human reviews. Failures are reported, never thrown to the agent.
+
+  server.tool(
+    "brain_report_observation",
+    "Report an observation about a Feature (something you noticed while working). Stored pending human review.",
+    {
+      featureId: z.string().optional().describe("Feature this observation is about"),
+      summary: z.string().describe("The observation, in one or two sentences"),
+      kind: z.string().optional().describe("Observation kind tag, e.g. tech-debt, decision, behavior"),
+      tags: z.array(z.string()).optional().describe("Freeform tags"),
+      files: z.array(z.string()).optional().describe("Related file paths"),
+    },
+    async ({ featureId, summary, kind, tags, files }) => {
+      try {
+        const id = await insertObservation({
+          kind: kind ?? "observation",
+          summary,
+          featureId: featureId ?? null,
+          tags,
+          files,
+          metadata: { kind: kind ?? "observation" },
+        });
+        return mcpText(`Observation recorded (id: ${id}, status: pending review).`);
+      } catch (err) {
+        return mcpText(`Could not record observation: ${errMsg(err)}`);
+      }
+    },
+  );
+
+  server.tool(
+    "brain_report_unknown",
+    "Report an open question / unknown about a Feature — something Brain does not yet know. Stored pending human review.",
+    {
+      featureId: z.string().optional().describe("Feature this unknown relates to"),
+      summary: z.string().describe("The open question or unknown"),
+      files: z.array(z.string()).optional(),
+    },
+    async ({ featureId, summary, files }) => {
+      try {
+        const id = await insertObservation({
+          kind: "unknown",
+          summary,
+          featureId: featureId ?? null,
+          files,
+        });
+        return mcpText(`Unknown recorded (id: ${id}, status: pending review).`);
+      } catch (err) {
+        return mcpText(`Could not record unknown: ${errMsg(err)}`);
+      }
+    },
+  );
+
+  server.tool(
+    "brain_rate_context",
+    "Rate how useful the Feature context was for your task (self-report). Stored as a pending observation.",
+    {
+      featureId: z.string().optional(),
+      rating: z.number().describe("Usefulness rating, e.g. 1-5"),
+      comment: z.string().optional().describe("Optional note about what was missing or helpful"),
+    },
+    async ({ featureId, rating, comment }) => {
+      try {
+        const id = await insertObservation({
+          kind: "context-rating",
+          summary: comment ?? `Context usefulness rating: ${rating}`,
+          featureId: featureId ?? null,
+          metadata: { rating, comment: comment ?? null },
+        });
+        return mcpText(`Context rating recorded (id: ${id}).`);
+      } catch (err) {
+        return mcpText(`Could not record rating: ${errMsg(err)}`);
+      }
+    },
+  );
+
+  server.tool(
+    "brain_propose_knowledge_delta",
+    "Propose a change to a Feature's understanding (a reviewable delta). Stored pending human review — Brain never edits understanding silently.",
+    {
+      featureId: z.string().optional(),
+      summary: z.string().describe("Proposed change to the understanding"),
+      before: z.string().optional().describe("Current understanding being changed"),
+      after: z.string().optional().describe("Proposed new understanding"),
+    },
+    async ({ featureId, summary, before, after }) => {
+      try {
+        const id = await insertObservation({
+          kind: "knowledge-delta",
+          summary,
+          featureId: featureId ?? null,
+          metadata: { before: before ?? null, after: after ?? null },
+        });
+        return mcpText(`Knowledge delta proposed (id: ${id}, status: pending review).`);
+      } catch (err) {
+        return mcpText(`Could not propose knowledge delta: ${errMsg(err)}`);
+      }
     },
   );
 

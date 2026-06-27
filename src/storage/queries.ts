@@ -363,3 +363,281 @@ function rowToActivityEvent(row: Record<string, unknown>): ActivityEvent {
     files: (row.files as string[]) ?? [],
   };
 }
+
+// ── Features (PRD v0.3 — the primary node) ──────────────────────────
+//
+// The Feature is the unit understanding converges on. These read/write
+// helpers back the MCP `brain.enter` / `brain.featureContext` tools and
+// the write-side observation loop. activity_events stay denormalized and
+// self-contained — `feature_id` is a plain text column, NOT a foreign key.
+
+export interface FeatureRecord {
+  id: string;
+  name: string;
+  description: string;
+  currentUnderstanding: string | null;
+  constraints: string[];
+  knownUnknowns: string[];
+}
+
+/** A row of the file↔Feature map. Either `glob` or `filePath` is set. */
+export interface FeatureFileRow {
+  featureId: string;
+  glob: string | null;
+  filePath: string | null;
+}
+
+export interface RelatedSession {
+  id: string;
+  shape: string | null;
+  summary: string;
+  role: string;
+  startedAt: Date | null;
+}
+
+export interface FeatureObservation {
+  id: string;
+  category: string;
+  summary: string;
+  reviewStatus: string;
+  timestamp: Date;
+}
+
+/** Assembled, served view of a Feature — the data behind featureContext(). */
+export interface FeatureContextData {
+  feature: FeatureRecord;
+  relevantFiles: string[];
+  relatedSessions: RelatedSession[];
+  approvedObservations: FeatureObservation[];
+  reportedUnknowns: FeatureObservation[];
+}
+
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((v) => String(v));
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.map((v) => String(v));
+    } catch {
+      /* fall through */
+    }
+  }
+  return [];
+}
+
+function rowToFeature(row: Record<string, unknown>): FeatureRecord {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    description: (row.description as string) ?? "",
+    currentUnderstanding: (row.current_understanding as string | null) ?? null,
+    constraints: toStringArray(row.constraints),
+    knownUnknowns: toStringArray(row.known_unknowns),
+  };
+}
+
+/** Resolve the default project — first by created_at. Used when the MCP
+ *  caller provides no explicit project context. Returns null if none. */
+export async function getDefaultProjectId(): Promise<string | null> {
+  const sql = getClient();
+  const rows = await sql`SELECT id FROM projects ORDER BY created_at LIMIT 1`;
+  return rows.length ? (rows[0].id as string) : null;
+}
+
+export async function listFeatures(projectId?: string): Promise<FeatureRecord[]> {
+  const sql = getClient();
+  const rows = projectId
+    ? await sql`SELECT * FROM features WHERE project_id = ${projectId} ORDER BY name`
+    : await sql`SELECT * FROM features ORDER BY name`;
+  return rows.map(rowToFeature);
+}
+
+export async function getFeatureById(featureId: string): Promise<FeatureRecord | null> {
+  const sql = getClient();
+  const rows = await sql`SELECT * FROM features WHERE id = ${featureId} LIMIT 1`;
+  return rows.length ? rowToFeature(rows[0]) : null;
+}
+
+/** All file↔Feature mappings, optionally scoped to one project. */
+export async function getFeatureFileRows(projectId?: string): Promise<FeatureFileRow[]> {
+  const sql = getClient();
+  const rows = projectId
+    ? await sql`SELECT ff.feature_id, ff.glob, ff.file_path FROM feature_files ff
+        JOIN features f ON f.id = ff.feature_id WHERE f.project_id = ${projectId}`
+    : await sql`SELECT feature_id, glob, file_path FROM feature_files`;
+  return rows.map((r: any) => ({
+    featureId: r.feature_id as string,
+    glob: (r.glob as string | null) ?? null,
+    filePath: (r.file_path as string | null) ?? null,
+  }));
+}
+
+/** Insert a file↔Feature mapping. Pass a glob OR an exact file path. */
+export async function addFeatureFile(
+  featureId: string,
+  pattern: { glob?: string; filePath?: string },
+): Promise<string> {
+  const sql = getClient();
+  const id = randomUUID();
+  await sql`INSERT INTO feature_files (id, feature_id, glob, file_path, created_at)
+    VALUES (${id}, ${featureId}, ${pattern.glob ?? null}, ${pattern.filePath ?? null}, NOW())`;
+  return id;
+}
+
+export async function getFeatureSessions(featureId: string): Promise<RelatedSession[]> {
+  const sql = getClient();
+  const rows = await sql`
+    SELECT s.id, s.session_shape, s.started_at, fs.role, n.summary
+    FROM feature_sessions fs
+    JOIN sessions s ON s.id = fs.session_id
+    LEFT JOIN narratives n ON n.session_id = s.id
+    WHERE fs.feature_id = ${featureId}
+    ORDER BY s.started_at DESC NULLS LAST`;
+  return rows.map((r: any) => ({
+    id: r.id as string,
+    shape: (r.session_shape as string | null) ?? null,
+    summary: (r.summary as string | null) ?? "(no narrative)",
+    role: (r.role as string) ?? "evidence",
+    startedAt: r.started_at ? new Date(r.started_at) : null,
+  }));
+}
+
+/** Observations attached to a Feature, filtered by review status. */
+export async function getFeatureObservations(
+  featureId: string,
+  reviewStatus?: string,
+): Promise<FeatureObservation[]> {
+  const sql = getClient();
+  const rows = reviewStatus
+    ? await sql`SELECT id, category, summary, review_status, timestamp
+        FROM activity_events
+        WHERE feature_id = ${featureId} AND review_status = ${reviewStatus}
+          AND category LIKE 'observation:%'
+        ORDER BY timestamp DESC`
+    : await sql`SELECT id, category, summary, review_status, timestamp
+        FROM activity_events
+        WHERE feature_id = ${featureId} AND category LIKE 'observation:%'
+        ORDER BY timestamp DESC`;
+  return rows.map((r: any) => ({
+    id: r.id as string,
+    category: r.category as string,
+    summary: r.summary as string,
+    reviewStatus: (r.review_status as string) ?? "pending",
+    timestamp: new Date(r.timestamp as string),
+  }));
+}
+
+/** Pending observations across the repo (review-queue feed for the UI). */
+export async function getPendingObservations(featureId?: string): Promise<FeatureObservation[]> {
+  const sql = getClient();
+  const rows = featureId
+    ? await sql`SELECT id, category, summary, review_status, timestamp FROM activity_events
+        WHERE category LIKE 'observation:%' AND review_status = 'pending' AND feature_id = ${featureId}
+        ORDER BY timestamp DESC`
+    : await sql`SELECT id, category, summary, review_status, timestamp FROM activity_events
+        WHERE category LIKE 'observation:%' AND review_status = 'pending'
+        ORDER BY timestamp DESC`;
+  return rows.map((r: any) => ({
+    id: r.id as string,
+    category: r.category as string,
+    summary: r.summary as string,
+    reviewStatus: (r.review_status as string) ?? "pending",
+    timestamp: new Date(r.timestamp as string),
+  }));
+}
+
+/** Assemble the served view of a Feature. */
+export async function loadFeatureContext(featureId: string): Promise<FeatureContextData | null> {
+  const feature = await getFeatureById(featureId);
+  if (!feature) return null;
+  const sql = getClient();
+  const fileRows = await sql`SELECT glob, file_path FROM feature_files WHERE feature_id = ${featureId}`;
+  const relevantFiles = fileRows
+    .map((r: any) => (r.glob as string | null) ?? (r.file_path as string | null))
+    .filter((p: string | null): p is string => !!p);
+  const [relatedSessions, approvedObservations, reportedUnknowns] = await Promise.all([
+    getFeatureSessions(featureId),
+    getFeatureObservations(featureId, "approved"),
+    getFeatureObservations(featureId, "pending"),
+  ]);
+  return {
+    feature,
+    relevantFiles,
+    relatedSessions,
+    approvedObservations,
+    reportedUnknowns: reportedUnknowns.filter((o) => o.category === "observation:unknown"),
+  };
+}
+
+// ── Write-side observation loop ─────────────────────────────────────
+//
+// MCP write tools insert activity_events with category `observation:<kind>`,
+// `feature_id` set, and `review_status` = 'pending'. No automatic promotion —
+// a human approves, which sets 'approved' and promotes the text into the
+// Feature's current_understanding. review_status is freeform TEXT: no
+// enum, no CHECK.
+
+export interface ObservationInput {
+  kind: string;
+  category?: string;
+  summary: string;
+  featureId?: string | null;
+  actor?: string;
+  tags?: string[];
+  files?: string[];
+  sessionId?: string | null;
+  repo?: string | null;
+  branch?: string | null;
+  worktree?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export async function insertObservation(input: ObservationInput): Promise<string> {
+  const sql = getClient();
+  const id = randomUUID();
+  const category = input.category ?? `observation:${input.kind}`;
+  await sql`
+    INSERT INTO activity_events (
+      id, timestamp, category, tags, actor, summary, metadata,
+      source_type, session_id, repo, branch, worktree, files,
+      feature_id, review_status
+    ) VALUES (
+      ${id}, NOW(), ${category}, ${input.tags ?? []}, ${input.actor ?? "agent"},
+      ${input.summary}, ${JSON.stringify(input.metadata ?? {})},
+      ${"mcp"}, ${input.sessionId ?? null}, ${input.repo ?? null},
+      ${input.branch ?? null}, ${input.worktree ?? null}, ${input.files ?? []},
+      ${input.featureId ?? null}, ${"pending"}
+    )`;
+  return id;
+}
+
+export async function setObservationReviewStatus(eventId: string, status: string): Promise<void> {
+  const sql = getClient();
+  await sql`UPDATE activity_events SET review_status = ${status} WHERE id = ${eventId}`;
+}
+
+export async function updateObservationSummary(eventId: string, summary: string): Promise<void> {
+  const sql = getClient();
+  await sql`UPDATE activity_events SET summary = ${summary} WHERE id = ${eventId}`;
+}
+
+/** Approve an observation: mark approved and promote its text into the
+ *  Feature's current_understanding (appended). */
+export async function approveObservation(eventId: string): Promise<void> {
+  const sql = getClient();
+  const rows = await sql`SELECT summary, feature_id FROM activity_events WHERE id = ${eventId} LIMIT 1`;
+  if (!rows.length) return;
+  const summary = rows[0].summary as string;
+  const featureId = rows[0].feature_id as string | null;
+  await sql`UPDATE activity_events SET review_status = 'approved' WHERE id = ${eventId}`;
+  if (featureId) {
+    await sql`UPDATE features
+      SET current_understanding =
+        CASE
+          WHEN current_understanding IS NULL OR current_understanding = ''
+          THEN ${summary}
+          ELSE current_understanding || E'\n- ' || ${summary}
+        END
+      WHERE id = ${featureId}`;
+  }
+}

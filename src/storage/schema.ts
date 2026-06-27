@@ -7,7 +7,6 @@ import {
   integer,
   jsonb,
   pgEnum,
-  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 // ── Enums ──────────────────────────────────────────────────────────────
@@ -51,6 +50,26 @@ export const features = pgTable("features", {
   projectId: uuid("project_id").references(() => projects.id).notNull(),
   name: text("name").notNull(),
   description: text("description").default(""),
+  // ── Understanding fields (PRD v0.3) ──
+  // currentUnderstanding: Brain's synthesized answer for the Feature
+  // (Week-1 = description + approved Observations, assembled).
+  currentUnderstanding: text("current_understanding"),
+  // constraints / knownUnknowns: freeform JSON arrays of strings.
+  constraints: jsonb("constraints").default([]).notNull(),
+  knownUnknowns: jsonb("known_unknowns").default([]).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Feature Files (file ↔ Feature map) ────────────────────────────────
+// Maps a glob OR an exact file_path to a Feature. The brain.enter resolver
+// uses longest-glob-wins over this table. Bootstrap from feature_sessions
+// affected files, then human-correct.
+
+export const featureFiles = pgTable("feature_files", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  featureId: uuid("feature_id").references(() => features.id, { onDelete: "cascade" }).notNull(),
+  glob: text("glob"),
+  filePath: text("file_path"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -260,7 +279,8 @@ export const topics = pgTable("topics", {
   repoId: uuid("repo_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
   name: text("name").notNull(),
   summary: text("summary").notNull(),
-  parentTopicId: uuid("parent_topic_id").references((): AnyPgColumn => topics.id, { onDelete: "set null" }),
+  // parent_topic_id RETIRED (PRD v0.3): the topic tree no longer competes
+  // with the Feature graph. See drizzle/0008_retire_parent_topic.sql.
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -399,6 +419,13 @@ export const activityEvents = pgTable("activity_events", {
   repo: text("repo"),
   branch: text("branch"),
   worktree: text("worktree"),
+
+  // Feature link (DENORMALIZED — intentionally NOT a foreign key, keeps
+  // activity_events self-contained per the backbone anti-patterns).
+  featureId: text("feature_id"),
+  // Observation review lifecycle. Freeform TEXT by convention
+  // (pending | approved | rejected) — NO enum, NO CHECK constraint.
+  reviewStatus: text("review_status").default("pending"),
 
   // Searchable dimensions
   topicIds: uuid("topic_ids").array().default([]),
