@@ -98,8 +98,17 @@ External systems generate events → **Brain evaluates: did organizational under
 
 ## MCP Surface
 
-**Read:** `brain.enter(target)` · `brain.search()` · `brain.trace()` · `brain.featureContext()`
-**Write:** `brain.reportObservation()` · `brain.reportUnknown()` · `brain.rateContext()` · `brain.proposeKnowledgeDelta()`
+**Read:** `brain.enter(file|task)` · `brain.search()` · `brain.featureContext(id)`
+**Write:** `brain.reportObservation()` · `brain.reportUnknown()` · `brain.rateContext()`
+
+Critical review of the implemented surface, with findings and the v1.1 contract: [`docs/specs/2026-07-03-brain-api-review.md`](./specs/2026-07-03-brain-api-review.md). Binding decisions from it:
+
+1. **One ontology.** The served surface speaks *Feature* only. The legacy Topic tools (`brain_overview/search/get/traverse` over `.repo/` markdown) are retired or re-keyed onto Feature — an agent must never see two competing vocabularies and two data stores in one tool list.
+2. **No silent guessing — tasks included.** The implemented task resolution auto-selects any single fuzzy match above 0.3, which *is* a silent guess and contradicts this PRD. Ambiguity always returns a candidate list.
+3. **Structured outputs.** Candidate lists and ids return as structured content, not prose an agent must parse ids out of.
+4. **Provenance on writes.** Every write captures session id + actor. "Evidence over assertion" starts at the API.
+5. **The surface instruments itself.** Every MCP call emits an `activity_event` (tool, feature, hit/miss, latency). Brain cannot claim to observe development while being blind to its own usage.
+6. **`proposeKnowledgeDelta` is deferred** along with the Knowledge Delta object the Week-1 trim already cut — as implemented it stores an ordinary observation wearing a costume, and the trim discipline should apply to the API too.
 
 *Note on `enter`:* keyed by **task/goal or file**. In the MVP, Feature "resolution" is an honest **manual lookup** over the file↔Feature map — not solved information retrieval. We do not pretend otherwise.
 
@@ -108,10 +117,17 @@ External systems generate events → **Brain evaluates: did organizational under
 ## MVP — Week 1
 
 ### Goal
-Prove — **with measurement** — that **feature-aware context significantly improves coding-agent performance.** Nothing else.
+Prove — **with measurement** — that **Brain-derived feature context significantly improves coding-agent performance.** Nothing else.
+
+**Derived is the load-bearing word.** Every constraint, understanding line, and file pointer served in the treatment arm must trace to a digested session or an approved Observation — never hand-authored into a Feature for the eval. Hand-curated context proves only that telling an agent the answer helps (already consensus); the product claim is that Brain can *learn* the answer from watching work happen.
 
 ### Scope
-One repository (this one) · Claude Code · Brain MCP · Postgres · session digestion · **manual** feature management.
+Two repositories · Claude Code · Brain MCP · Postgres · session digestion · **manual** feature management (Features and the file↔Feature map stay manually *managed*; their *content* must be Brain-derived per the rule above).
+
+- **Primary: `intent-ai`** — the only repo with surviving session history. Hard mode: the baseline docs here are unusually strong, so a win means something.
+- **Generalization arm: one external repo (`story-time`)** — must be seeded with 5–10 real working sessions first (prior logs were purged by Claude Code's ~30-day retention; the evidence corpus has to be regenerated). Representative mode: decent docs, no answer key, closer to a real customer repo.
+
+> Session evidence **evaporates** (30-day log retention). Continuous capture via the daemon is not a nice-to-have; it is the only reason an evidence corpus exists at all.
 
 ### Trimmed object set (Week 1)
 **Feature · Session · Observation · file↔Feature map · Current Understanding (text).**
@@ -144,37 +160,52 @@ We **cut Claim, Evidence-as-object, and Implementation Object from Week 1** — 
 
 ### Measurement harness — **in scope** (this is the proof, not a demo)
 
-The repo's own EDD principle requires this: a goal phrased as "*prove*" needs a baseline, a metric, **and a pre-registered bar**, or it cannot fail. Built on existing infra (`src/eval/{fitness,brain-judge,runner}.ts`, `tests/eval/`) recomposed as a two-arm A/B.
+The repo's own EDD principle requires this: a goal phrased as "*prove*" needs a baseline, a metric, **and a pre-registered bar**, or it cannot fail.
 
-- **Hypothesis (falsifiable):** With Brain feature context injected at task start (`brain.enter`), a coding agent reaches a correct, constraint-respecting edit with materially fewer exploratory tool calls *and* fewer constraint violations than the same agent armed only with the repo's existing docs.
+Full mechanics: [`docs/specs/2026-07-03-measurement-v2-spec.md`](./specs/2026-07-03-measurement-v2-spec.md). The v1 harness (commit `c7fab1e`) implemented sound scoring math over an **invalid experimental design**; v2 keeps the math and fixes the design. The binding rules:
+
+- **Hypothesis (falsifiable):** With **Brain-derived** feature context injected at task start (`brain.enter`), a coding agent reaches a correct, constraint-respecting edit with materially less information-gathering *and* fewer constraint violations than the same agent armed only with the repo's existing docs.
 - **Baseline arm:** Claude Code + existing `.repo/brain.md` + `CLAUDE.md`, **Brain MCP disabled.** (Feature context must beat *good repo docs*, not beat nothing.)
 - **Treatment arm:** identical repo + task, Brain MCP enabled, agent calls `brain.enter` first. Only the *context source* varies; model/prompt/temperature/commit held constant.
+- **Provenance rule.** Treatment context is assembled from digested sessions + approved Observations only. No constraint may be hand-typed into a Feature for the eval.
+- **Hold-out constraints.** A discriminating constraint is valid only if it appears in **no document the baseline receives** (CLAUDE.md, `.repo/brain.md`). v1's tasks 2 and 4 failed this — their constraints are verbatim in CLAUDE.md, which is injected into every baseline prompt, making the baseline-CVR floor structurally unreachable.
+- **Decontaminated checkout.** Both arms run in a worktree that excludes the harness and task criteria; in v1 the answer key (`src/eval/mvp-task-criteria.ts`) was committed to the repo both arms explore.
+- **Efficiency is symmetric.** ETC counts **all** information-gathering, including `brain_*` MCP reads (v1 excluded them, making treatment exploration free by construction). **Tokens-to-completion is co-primary** — served context is not free.
+- **CVR detection is deterministic first.** Structural checks on the final diff (enum/CHECK, missing try/catch, JOINs) with a Haiku judge as tie-breaker only. A "treatment CVR = 0" bar may not hinge on a single judge call.
+- **Live collection is a deliverable, not a stub.** The runner that spawns headless sessions with MCP toggled and captures transcript + diff + tsc/test results was v1's unowned long pole.
 
-**Two primary metrics:**
-- **ETC — Exploratory Tool-calls to first Correct edit.** Read/Grep/Glob/search calls before the first Edit/Write in a task-correct file. Measures efficiency. Extracted deterministically from the agent's own session JSONL (the same logs we digest — dogfood).
-- **CVR — Constraint-Violation Rate.** Did the final diff violate the feature's pre-listed constraint (e.g. added an enum/CHECK on `activity_events.category`; a non-lenient Zod field; bypassed the `emitEvents` try/catch)? **This is the sharpest discriminator — it measures the *unique* value of feature context (surfacing the right constraint at the right moment), not generic retrieval speed.**
+**Two primary metrics** (definitions unchanged in spirit): **ETC** — information-gathering tool calls to first correct edit; **CVR** — constraint-violation rate on the final diff. CVR remains the sharpest discriminator: it measures the *unique* value of feature context (the right constraint at the right moment), not generic retrieval speed. Secondary: task success (`tsc --noEmit` + targeted test + judge) · turns · `rateContext()` self-report (never feeds the pass bar).
 
-Secondary: task success (`tsc --noEmit` + targeted test + Haiku judge) · turns/tokens (cost) · optional `rateContext()` self-report.
+**Task set:** 5 real tasks per repo, re-drawn under the hold-out rule (**v1's task list is retired**), each a `TaskCriteria { goal, correctFiles[], constraints[], acceptance }` written before any run and kept outside the eval checkout.
 
-**Task set — 5 real features in this repo,** each a `TaskCriteria { goal, correctFiles[], constraints[], acceptance }` written *before* any run:
-
-| # | Task | Discriminating constraint |
-|---|------|---------------------------|
-| 1 | Add MCP tool `brain_recent` (N latest events) | follow existing tool-registration/stdio pattern; no new transport |
-| 2 | Emit `coding:struggle` event on a struggle moment | `category` is freeform TEXT — no enum/CHECK/migration; `emitEvents` in try/catch |
-| 3 | Add `events --since <date>` CLI filter | reuse events query path; denormalized columns, no joins |
-| 4 | Add optional `worktree` to moment schema (default null) | Zod lenient `.optional().default()`; don't break existing parses |
-| 5 | `brain-export` recency filter for topics | two-store (DB + `.repo/`) sync; cite moment UUIDs, not indices |
-
-- **Variance:** N=3 per (task × arm) → 30 sessions; report median + min/max (reuse `printComparisonTable`).
-- **Pass bar (pre-registered):** ship iff (median) **ETC ≤ 0.7× baseline on ≥3/5 tasks** AND **baseline CVR ≥2 violations → treatment CVR = 0** AND **treatment success ≥ baseline.**
-- **Kill switch:** any one of — ETC reduction ≤10%, OR treatment CVR ≥ baseline CVR, OR treatment success < baseline → feature context isn't earning its complexity; don't ship the loop as-is.
+- **Variance:** N=5 per (task × arm) on the two sharpest tasks, N=3 on the rest; report medians + all raw values; claim directional consistency, not statistical significance.
+- **Pass bar (pre-registered):** ship iff (median) **ETC ≤ 0.7× baseline on ≥3/5 tasks** AND **baseline CVR ≥2 violations → treatment CVR = 0** AND **treatment success ≥ baseline** AND **treatment tokens ≤ 1.15× baseline.**
+- **Kill switch:** any one of — ETC reduction ≤10%, OR treatment CVR ≥ baseline CVR, OR treatment success < baseline, OR treatment tokens > 1.5× baseline → feature context isn't earning its complexity; don't ship the loop as-is.
 
 ### Out of scope (Week 1)
 Automatic feature discovery · PRD/Docs/Jira ingestion · knowledge evolution · graph visualization · branch workspaces · conflict resolution · automatic claim generation. (See `future-knowledge.md`.)
 
 ### The alignment commitment (read this once, out loud)
 > The MVP deliberately tests the **single-repo agent-context loop** and contains **no intent layer**. Intent ingestion and **alignment/drift detection are Phase 2 and remain the real moat.** The wedge ("feature-aware context for agents") is a crowded space; the win ("is what we built still what we wanted?") is the defensible one. We are sequencing, not reversing — and we will not mistake the wedge for the win.
+
+---
+
+## Organizational Data Points — probable integrations
+
+Brain's evidence today is code + coding sessions. Each integration below adds an organizational signal as **evidence under Features** — never a new store (Principle 1). Ingestion is **pluggable, PRD-first** (see `future-knowledge.md` §Spec-Driven Development); each source maps to Artifact (+Revision) references classified as intent- or implementation-evidence. Probable order:
+
+| Phase | Source (probable integration) | Evidence kind | Question it unlocks |
+|---|---|---|---|
+| P2 | **PRDs** — Google Docs / Notion / Confluence | intent | "Is what we built still what we wanted?" — the moat |
+| P2 | **GitHub / GitLab** — PRs, reviews, issues | implementation | "What changed here, and what governed the change?" |
+| P3 | **Jira / Linear** — tickets, epics | intent | "What was actually asked for? What's unmet?" |
+| P3 | **Slack / Teams** — decision threads | intent | "Where was this decided, by whom, and why?" |
+| P3 | **Figma** — designs, design specs | intent | "Does what we built match what we designed?" |
+| P3 | **CI / test results** | implementation | "Is this feature healthy right now?" |
+| P4 | **Incident tools** — PagerDuty, incident.io | implementation | "Which intent did this outage betray?" |
+| P4 | **Support / CS** — Zendesk, Intercom | intent (external) | "What do users believe this feature promises?" |
+
+Two rules keep this honest: an integration earns its place only if it makes the intent↔implementation relationship more legible for a Feature (the roadmap's single judging question), and no integration enters scope before the MVP bar is met.
 
 ---
 
@@ -192,5 +223,5 @@ Every increment is judged by one question: *does it make the intent↔implementa
 
 ## Success Metrics
 
-- **MVP headline:** significant reduction in exploratory tool-calls-to-first-correct-edit vs. the doc baseline, at equal-or-better task success.
+- **MVP headline:** significant reduction in information-gathering-to-first-correct-edit vs. the doc baseline, at equal-or-better task success and no material token overhead — with all treatment context **Brain-derived**.
 - **Beyond MVP:** developers answer *"why?"* without reading multiple documents · repeated unknowns decrease · feature context measurably improves across repeated sessions · organizational understanding stays fresh.
