@@ -138,7 +138,14 @@ function BeatRow({ beat, onFeatureClick }: { beat: JournalBeat; onFeatureClick: 
   });
   const featureId = typeof beat.metadata?.["featureId"] === "string" ? (beat.metadata["featureId"] as string) : null;
   return (
-    <div className="j-beat">
+    <div
+      className="j-beat"
+      data-talk
+      data-talk-kind="event"
+      data-talk-id={beat.id}
+      data-talk-label={beatLabel(beat.category) || beat.category}
+      data-talk-summary={beat.summary}
+    >
       <span className="j-beat-time">{time}</span>
       <span className="j-beat-glyph" data-tone={beatTone(beat)}>
         {beatGlyph(beat.category)}
@@ -220,7 +227,15 @@ function Entry({
   const sessionId = ep.kind === "session" ? ep.id.slice("session:".length) : null;
 
   return (
-    <article className="j-entry j-rise" style={{ "--i": index } as React.CSSProperties}>
+    <article
+      className="j-entry j-rise"
+      style={{ "--i": index } as React.CSSProperties}
+      data-talk
+      data-talk-kind="episode"
+      data-talk-id={ep.id}
+      data-talk-label={ep.title || `${ep.kind} ${shortId(ep.id)}`}
+      data-talk-summary={`${ep.kind} by ${ep.actor}`}
+    >
       <span className="j-node" data-tone={nodeTone(ep)} title={ep.actor}>
         {episodeGlyph(ep.kind)}
       </span>
@@ -254,7 +269,15 @@ function Entry({
       {ep.pending.map((p) => {
         const busy = busyPending === p.id;
         return (
-          <div key={p.id} className="j-margin-note">
+          <div
+            key={p.id}
+            className="j-margin-note"
+            data-talk
+            data-talk-kind="observation"
+            data-talk-id={p.id}
+            data-talk-label={beatLabel(p.category) || "observation"}
+            data-talk-summary={p.summary}
+          >
             <div className="j-margin-note-label">{beatLabel(p.category) || "observation"} · awaiting review</div>
             <p className="j-margin-note-text">{p.summary}</p>
             <div className="mt-2.5 flex items-center gap-2">

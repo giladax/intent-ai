@@ -108,6 +108,11 @@ export function FeaturesPage({ repoId, onFeatureClick }: Props) {
               className="ink-ledger-row ink-rise"
               style={{ "--i": i + 3 } as React.CSSProperties}
               onClick={() => onFeatureClick(f.id)}
+              data-talk
+              data-talk-kind="feature"
+              data-talk-id={f.id}
+              data-talk-label={f.name}
+              data-talk-summary={f.description || undefined}
             >
               <div className="min-w-0 flex-1">
                 <div className="ink-ledger-title">{f.name}</div>

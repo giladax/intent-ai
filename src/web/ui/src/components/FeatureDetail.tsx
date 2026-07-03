@@ -128,7 +128,15 @@ export function FeatureDetail({ featureId, onSessionClick }: Props) {
           <h3 className="ink-section">Constraints — served to every agent that enters</h3>
           <div className="mt-4 space-y-3">
             {constraints.map((c, i) => (
-              <div key={i} className="ink-note">
+              <div
+                key={i}
+                className="ink-note"
+                data-talk
+                data-talk-kind="note"
+                data-talk-id={`${featureId}:constraint:${i}`}
+                data-talk-label={`constraint on ${f.name}`}
+                data-talk-summary={c}
+              >
                 <div className="ink-note-label">constraint</div>
                 <p className="ink-note-text">{c}</p>
               </div>
@@ -158,7 +166,16 @@ export function FeatureDetail({ featureId, onSessionClick }: Props) {
           <h3 className="ink-section">Evidence — {detail.sessions.length} session{detail.sessions.length === 1 ? "" : "s"}</h3>
           <div className="ink-ledger mt-4">
             {detail.sessions.map((s) => (
-              <button key={s.id} className="ink-ledger-row" onClick={() => onSessionClick?.(s.id)}>
+              <button
+                key={s.id}
+                className="ink-ledger-row"
+                onClick={() => onSessionClick?.(s.id)}
+                data-talk
+                data-talk-kind="session"
+                data-talk-id={s.id}
+                data-talk-label={`session · ${formatDate(s.startedAt) || s.id.slice(0, 8)}`}
+                data-talk-summary={s.narrativeSummary || undefined}
+              >
                 <span className="ink-ledger-meta w-12 shrink-0">{formatDate(s.startedAt)}</span>
                 <span className="ink-ledger-title min-w-0 flex-1" style={{ fontSize: "0.95rem" }}>
                   {s.narrativeSummary || s.sessionShape || "Session"}

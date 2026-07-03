@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import confetti from "canvas-confetti";
 import {
   fetchPendingObservations,
   approveObservation,
@@ -8,6 +9,21 @@ import {
 import type { PendingObservation } from "../types";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+
+/** Ink flecks, not party confetti — the queue-cleared flourish. */
+function inkFlourish() {
+  confetti({
+    particleCount: 45,
+    spread: 75,
+    startVelocity: 28,
+    gravity: 0.9,
+    scalar: 0.7,
+    ticks: 120,
+    origin: { x: 0.5, y: 0.25 },
+    colors: ["#3d3a33", "#b8452e", "#5a7d5a", "#8a867c"],
+    disableForReducedMotion: true,
+  });
+}
 
 interface Props {
   repoId: string | null;
@@ -25,6 +41,9 @@ export function ReviewQueue({ repoId, onFeatureClick }: Props) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // id → verdict while the stamp lands and the note slides out
+  const [stamped, setStamped] = useState<Map<string, "taught" | "dismissed">>(new Map());
+  const hadItemsRef = useRef(false);
 
   const load = useCallback(() => {
     setItems(null);
@@ -37,11 +56,28 @@ export function ReviewQueue({ repoId, onFeatureClick }: Props) {
     load();
   }, [load]);
 
-  const act = async (id: string, fn: (id: string) => Promise<unknown>) => {
+  useEffect(() => {
+    if (items && items.length > 0) hadItemsRef.current = true;
+  }, [items]);
+
+  const act = async (id: string, fn: (id: string) => Promise<unknown>, verdict: "taught" | "dismissed") => {
     setBusyId(id);
     try {
       await fn(id);
-      setItems((prev) => (prev ? prev.filter((o) => o.id !== id) : prev));
+      // the stamp lands, the note lingers a beat, then slides off the desk
+      setStamped((prev) => new Map(prev).set(id, verdict));
+      setTimeout(() => {
+        setItems((prev) => {
+          const next = prev ? prev.filter((o) => o.id !== id) : prev;
+          if (hadItemsRef.current && next && next.length === 0) inkFlourish();
+          return next;
+        });
+        setStamped((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      }, 950);
     } catch {
       // leave the item in place on failure
     } finally {
@@ -103,8 +139,23 @@ export function ReviewQueue({ repoId, onFeatureClick }: Props) {
           const kind = kindOf(o.category);
           const isEditing = editingId === o.id;
           const busy = busyId === o.id;
+          const verdict = stamped.get(o.id);
           return (
-            <div key={o.id} className="ink-note ink-rise" style={{ "--i": i + 3 } as React.CSSProperties}>
+            <div
+              key={o.id}
+              className={`ink-note ink-rise relative ${verdict ? "ink-note--leaving" : ""}`}
+              style={{ "--i": i + 3 } as React.CSSProperties}
+              data-talk
+              data-talk-kind="observation"
+              data-talk-id={o.id}
+              data-talk-label={kind || "observation"}
+              data-talk-summary={o.summary}
+            >
+              {verdict && (
+                <span className={`ink-stamp-verdict ink-stamp-verdict--${verdict}`}>
+                  {verdict}
+                </span>
+              )}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="ink-note-label">{kind || "observation"} · awaiting review</span>
                 <span className="ml-auto ink-ledger-meta">
@@ -139,10 +190,10 @@ export function ReviewQueue({ repoId, onFeatureClick }: Props) {
                   </>
                 ) : (
                   <>
-                    <button className="ink-stamp ink-stamp--approve" disabled={busy} onClick={() => act(o.id, approveObservation)}>
+                    <button className="ink-stamp ink-stamp--approve" disabled={busy || !!verdict} onClick={() => act(o.id, approveObservation, "taught")}>
                       Approve
                     </button>
-                    <button className="ink-stamp ink-stamp--reject" disabled={busy} onClick={() => act(o.id, rejectObservation)}>
+                    <button className="ink-stamp ink-stamp--reject" disabled={busy || !!verdict} onClick={() => act(o.id, rejectObservation, "dismissed")}>
                       Reject
                     </button>
                     <button

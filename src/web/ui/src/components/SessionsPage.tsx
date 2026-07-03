@@ -74,6 +74,11 @@ export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onS
               className="ink-ledger-row ink-rise"
               style={{ "--i": i + 3 } as React.CSSProperties}
               onClick={() => onSessionClick(s.id)}
+              data-talk
+              data-talk-kind="session"
+              data-talk-id={s.id}
+              data-talk-label={`session · ${formatDate(s.started_at) || s.id.slice(0, 8)}`}
+              data-talk-summary={s.narrative_summary?.split(/[.!?\n]/)[0] || undefined}
             >
               <span className="ink-ledger-meta w-12 shrink-0">{formatDate(s.started_at)}</span>
               <span className="min-w-0 flex-1">

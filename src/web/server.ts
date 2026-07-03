@@ -38,6 +38,100 @@ async function emitReviewEvent(action: ReviewAction, obs: ReviewedObservation): 
   }
 }
 
+// ── Pinned chat context ──────────────────────────────────────────────
+// The chat dock pins page elements into the conversation. Each pinned item
+// resolves server-side to real material: a feature dossier, a session digest,
+// an activity event. Unknown kinds fall back to the label/summary the page sent.
+
+interface PinnedItem {
+  kind?: string;
+  id?: string;
+  label?: string;
+  summary?: string;
+}
+
+async function buildPinnedContextSection(item: PinnedItem): Promise<string> {
+  const sql = getClient();
+  const label = item.label ?? "pinned item";
+  let kind = item.kind ?? "note";
+  let id = item.id ?? "";
+
+  // Journal episode ids are prefixed: session:<uuid> · event:<uuid> · review:<uuid> · run:<id>
+  if (kind === "episode") {
+    const m = id.match(/^(session|event|review|run):(.+)$/);
+    if (m) {
+      kind = m[1] === "session" ? "session" : m[1] === "run" ? "run" : "event";
+      id = m[2];
+    } else {
+      kind = "event";
+    }
+  }
+
+  switch (kind) {
+    case "feature": {
+      const [f] = await sql`SELECT * FROM features WHERE id = ${id}`;
+      if (!f) return `### Feature: ${label}\n(feature not found)`;
+      const globs = await sql`SELECT glob FROM feature_files WHERE feature_id = ${id} ORDER BY length(glob) DESC LIMIT 20`;
+      const narratives = await sql`
+        SELECT n.summary FROM feature_sessions fs
+        JOIN narratives n ON n.session_id = fs.session_id
+        WHERE fs.feature_id = ${id}
+        ORDER BY n.id DESC LIMIT 5`;
+      const constraints = Array.isArray(f.constraints) ? f.constraints : [];
+      const unknowns = Array.isArray(f.known_unknowns) ? f.known_unknowns : [];
+      return [
+        `### Feature: ${f.name}`,
+        f.description ? `${f.description}` : "",
+        f.current_understanding ? `**Current understanding:**\n${f.current_understanding}` : "**Current understanding:** (none yet)",
+        constraints.length ? `**Constraints:**\n${constraints.map((c: string) => `- ${c}`).join("\n")}` : "",
+        unknowns.length ? `**Known unknowns:**\n${unknowns.map((u: string) => `- ${u}`).join("\n")}` : "",
+        globs.length ? `**File map:** ${globs.map((g: any) => g.glob).join(", ")}` : "",
+        narratives.length ? `**Recent session narratives:**\n${narratives.map((n: any) => `- ${n.summary}`).join("\n")}` : "",
+      ].filter(Boolean).join("\n\n");
+    }
+    case "session": {
+      const digest = await loadDigest(id);
+      const prompt = buildSystemPrompt(digest);
+      const digestStart = prompt.indexOf("## Session Digest");
+      return `### Session ${id.slice(0, 8)} (${label})\n${digestStart >= 0 ? prompt.slice(digestStart) : prompt}`;
+    }
+    case "topic": {
+      const [t] = await sql`SELECT * FROM topics WHERE id = ${id}`;
+      if (!t) return `### Topic: ${label}\n(topic not found)`;
+      const insights = await sql`
+        SELECT statement, category, confidence FROM insights
+        WHERE topic_id = ${id} AND status = 'active'
+        ORDER BY confidence DESC LIMIT 12`;
+      return [
+        `### Topic: ${t.name}`,
+        t.summary,
+        insights.length ? `**Insights:**\n${insights.map((i: any) => `- [${i.category}] ${i.statement}`).join("\n")}` : "",
+      ].filter(Boolean).join("\n\n");
+    }
+    case "observation":
+    case "event": {
+      const [e] = await sql`SELECT * FROM activity_events WHERE id = ${id}`;
+      if (!e) return `### ${label}\n${item.summary ?? "(event not found)"}`;
+      return [
+        `### ${kind === "observation" ? "Observation" : "Activity event"}: ${label}`,
+        `${e.summary}`,
+        `category: ${e.category} · actor: ${e.actor} · at ${e.timestamp}${e.review_status ? ` · review: ${e.review_status}` : ""}`,
+        e.metadata && Object.keys(e.metadata).length ? `metadata: ${JSON.stringify(e.metadata)}` : "",
+      ].filter(Boolean).join("\n");
+    }
+    case "run": {
+      const events = await sql`
+        SELECT summary, category, actor FROM activity_events
+        WHERE metadata->>'runId' = ${id}
+        ORDER BY timestamp ASC LIMIT 20`;
+      if (events.length === 0) return `### Run ${label}\n${item.summary ?? "(no events found)"}`;
+      return `### Run: ${label}\n${events.map((e: any) => `- [${e.category}] ${e.summary}`).join("\n")}`;
+    }
+    default:
+      return `### ${label}\n${item.summary ?? "(no detail — the user pinned this element from the page)"}`;
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -649,7 +743,7 @@ export async function startWebServer(port: number): Promise<void> {
       }
       const sql = getClient();
       const rows = await sql`
-        SELECT t.id, t.name, t.summary, t.parent_topic_id, t.updated_at,
+        SELECT t.id, t.name, t.summary, t.updated_at,
           (SELECT count(*) FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count,
           (SELECT count(DISTINCT ts.session_id) FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count,
           (SELECT count(*) FROM brain_versions bv WHERE bv.repo_id = t.repo_id) as update_count
@@ -771,7 +865,7 @@ export async function startWebServer(port: number): Promise<void> {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { question, featureId, sessionId, topicId, history } = req.body;
+      const { question, featureId, sessionId, topicId, history, contextItems } = req.body;
 
       if (!question) {
         res.status(400).json({ error: "question is required" });
@@ -787,7 +881,26 @@ export async function startWebServer(port: number): Promise<void> {
       // Build system prompt based on scope
       let systemPrompt = "";
 
-      if (featureId) {
+      if (Array.isArray(contextItems) && contextItems.length > 0) {
+        // Dock-scoped: the user pinned page elements into the conversation.
+        const sections: string[] = [];
+        for (const item of contextItems.slice(0, 8)) {
+          try {
+            sections.push(await buildPinnedContextSection(item));
+          } catch (err) {
+            sections.push(`### ${item?.label ?? "pinned item"}\n(unavailable: ${err instanceof Error ? err.message : String(err)})`);
+          }
+        }
+        systemPrompt = `You are the Brain — the organizational understanding engine for this repository. The user is reading the dashboard and has pinned specific elements of the page into this conversation. Treat the pinned material below as the working context; the conversation is *about* these things.
+
+${sections.join("\n\n---\n\n")}
+
+## Rules
+- Ground answers in the pinned material and say so when something isn't covered by it.
+- When attributing decisions, use the agency field where present (developer vs ai vs collaborative).
+- Connect the dots across pinned items when the user asks how they relate.
+- Keep responses concise but thorough; quote evidence where available.`;
+      } else if (featureId) {
         // Feature-scoped: load all sessions for this feature
         const sql = getClient();
         const featureRows = await sql`SELECT * FROM features WHERE id = ${featureId}`;

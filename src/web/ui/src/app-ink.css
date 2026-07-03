@@ -342,3 +342,342 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
 @media (prefers-reduced-motion: reduce) {
   .ink-rise { animation: none; }
 }
+
+/* ── The Correspondence — chat as evidence board ─────────────────────
+   Pin clippings from the page; the Brain answers in prose. The dock is
+   a paper sheet sliding over the page, stitched with a red thread.    */
+
+.chat-dock {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(430px, 94vw);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(120% 40% at 50% 0%, oklch(0.97 0.012 80 / 0.6), transparent 60%),
+    var(--j-paper-raise);
+  border-left: 1px solid var(--j-hairline);
+  box-shadow: -32px 0 64px -32px oklch(0.2 0.02 60 / 0.35);
+  transform: translateX(calc(100% + 48px));
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dark .chat-dock {
+  background:
+    radial-gradient(120% 40% at 50% 0%, oklch(0.23 0.015 60 / 0.7), transparent 60%),
+    var(--j-paper-raise);
+}
+.chat-dock[data-open="true"] {
+  transform: translateX(0);
+}
+/* the red stitch down the dock's spine */
+.chat-dock::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--j-red) 0 7px,
+    transparent 7px 13px
+  );
+  opacity: 0.5;
+}
+
+.chat-dock-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.1rem 1.1rem 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--j-hairline);
+}
+.chat-dock-title {
+  font-family: var(--j-serif);
+  font-weight: 500;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+  color: var(--j-ink);
+  margin-top: 0.15rem;
+}
+
+/* the clipping board */
+.chat-dock-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 1.1rem 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--j-hairline);
+  background: color-mix(in oklch, var(--j-wash) 45%, transparent);
+}
+.chat-dock-context-label {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+}
+.chat-dock-context-empty {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--j-faint);
+}
+.chat-dock-clear {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  cursor: pointer;
+}
+.chat-dock-clear:hover { color: var(--j-red); }
+
+/* a pinned clipping: torn paper + brass pin, slightly askew */
+@keyframes clip-drop {
+  0% { opacity: 0; transform: translateY(-10px) rotate(3deg) scale(1.08); }
+  60% { opacity: 1; transform: translateY(1px) rotate(-1deg) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.talk-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--j-ink);
+  background: var(--j-paper);
+  border: 1px solid var(--j-hairline);
+  border-radius: 2px;
+  box-shadow: 0 2px 5px -2px oklch(0.2 0.02 60 / 0.28);
+  padding: 0.22rem 0.5rem 0.22rem 0.9rem;
+  cursor: pointer;
+  animation: clip-drop 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.talk-chip:nth-child(odd) { rotate: -1deg; }
+.talk-chip:nth-child(even) { rotate: 0.8deg; }
+.talk-chip:hover { border-color: var(--j-red); }
+/* the brass pin */
+.talk-chip::before {
+  content: "";
+  position: absolute;
+  left: 0.28rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, oklch(0.85 0.09 85), oklch(0.6 0.1 70));
+  box-shadow: 0 1px 1px oklch(0.2 0.02 60 / 0.4);
+}
+.talk-chip--auto {
+  border-style: dashed;
+  font-style: normal;
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--j-ink-soft);
+}
+.talk-chip-glyph { font-style: normal; color: var(--j-consult); font-size: 0.7rem; }
+
+/* conversation */
+.chat-dock-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.chat-dock-empty {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--j-faint);
+  text-align: center;
+  margin-top: 3rem;
+  text-wrap: pretty;
+}
+.chat-dock-empty kbd, .chat-dock-context-empty kbd {
+  font-family: var(--j-mono);
+  font-style: normal;
+  font-size: 0.62rem;
+  border: 1px solid var(--j-hairline);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  color: var(--j-ink-soft);
+  background: var(--j-paper);
+}
+/* the Brain speaks in prose */
+.chat-msg--brain {
+  font-family: var(--j-serif);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--j-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-wrap: pretty;
+}
+.chat-msg--brain::before {
+  content: "⌁ the brain";
+  display: block;
+  font-family: var(--j-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--j-consult);
+  margin-bottom: 0.25rem;
+}
+/* you write in the margin */
+.chat-msg--user {
+  align-self: flex-end;
+  max-width: 88%;
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--j-ink-soft);
+  border-right: 2px solid var(--j-red);
+  padding: 0.15rem 0.6rem 0.15rem 0;
+  text-align: right;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-dock-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 1.25rem;
+  border-top: 1px solid var(--j-hairline);
+}
+.chat-dock-suggest-item {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.8rem;
+  text-align: left;
+  color: var(--j-ink-soft);
+  cursor: pointer;
+  border-left: 2px solid var(--j-hairline);
+  padding-left: 0.5rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.chat-dock-suggest-item:hover { color: var(--j-ink); border-color: var(--j-consult); }
+
+.chat-dock-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.8rem 1.1rem 1rem 1.25rem;
+  border-top: 1px solid var(--j-hairline);
+}
+.chat-dock-input {
+  flex: 1;
+  resize: none;
+  border: none;
+  border-bottom: 1px solid var(--j-hairline);
+  background: transparent;
+  font-family: var(--j-serif);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--j-ink);
+  outline: none;
+  padding: 0.2rem 0.1rem;
+  transition: border-color 0.2s ease;
+}
+.chat-dock-input:focus { border-bottom-color: var(--j-ink-soft); }
+.chat-dock-input::placeholder { color: var(--j-faint); font-style: italic; }
+.chat-dock-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  border: 1px solid var(--j-hairline);
+  color: var(--j-ink-soft);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chat-dock-send:hover:not(:disabled) { background: var(--j-ink); border-color: var(--j-ink); color: var(--j-paper); }
+.chat-dock-send:disabled { opacity: 0.35; cursor: default; }
+
+/* ── Talkable elements: red-thread focus + pin affordance ──────────── */
+
+.talk-focused {
+  outline: 1.5px dashed color-mix(in oklch, var(--j-red) 75%, transparent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.talk-affordance {
+  position: fixed;
+  z-index: 70;
+  font-family: var(--j-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--j-red);
+  background: var(--j-paper);
+  border: 1px solid color-mix(in oklch, var(--j-red) 55%, transparent);
+  border-radius: 3px;
+  padding: 0.18rem 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px -2px oklch(0.2 0.02 60 / 0.3);
+  transition: all 0.12s ease;
+}
+.talk-affordance:hover {
+  background: var(--j-red);
+  color: var(--j-paper);
+  rotate: -2deg;
+}
+
+/* ── The stamp thunk — approving is a physical act ─────────────────── */
+
+@keyframes stamp-thunk {
+  0% { opacity: 0; transform: rotate(-14deg) scale(2.1); }
+  55% { opacity: 1; transform: rotate(-8deg) scale(0.96); }
+  75% { transform: rotate(-8deg) scale(1.04); }
+  100% { opacity: 1; transform: rotate(-8deg) scale(1); }
+}
+.ink-stamp-verdict {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  font-family: var(--j-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.9rem 0.3rem 1.2rem;
+  border: 3px double currentColor;
+  border-radius: 4px;
+  pointer-events: none;
+  animation: stamp-thunk 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  mix-blend-mode: multiply;
+}
+.dark .ink-stamp-verdict { mix-blend-mode: screen; }
+.ink-stamp-verdict--taught { color: var(--j-moss); }
+.ink-stamp-verdict--dismissed { color: var(--j-red); }
+@keyframes note-exit {
+  to { opacity: 0; max-height: 0; margin: 0; padding-top: 0; padding-bottom: 0; transform: translateX(14px); }
+}
+.ink-note--leaving {
+  overflow: hidden;
+  max-height: 200px;
+  animation: note-exit 0.4s ease 0.55s both;
+}

@@ -3,8 +3,9 @@ import "@fontsource-variable/newsreader";
 import "@fontsource-variable/newsreader/wght-italic.css";
 import "./app-ink.css";
 import { TopicDetail } from "./components/TopicDetail";
-import { ChatPanel } from "./components/ChatPanel";
-import { OverviewPanel } from "./components/OverviewPanel";
+import { ChatDock } from "./components/ChatDock";
+import { TalkLayer } from "./components/TalkLayer";
+import { ChatDockProvider, useChatDock } from "./chat-dock";
 import { BrainSync } from "./components/BrainSync";
 import { SyncDiffTree } from "./components/SyncDiffTree";
 import { KnowledgeTreePage } from "./components/KnowledgeTreePage";
@@ -32,15 +33,11 @@ import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import {
-  ResizablePanelGroup, ResizablePanel, ResizableHandle,
-} from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 type View =
   | "journal"
-  | "overview"
   | "features"
   | "feature-detail"
   | "review"
@@ -51,12 +48,19 @@ type View =
   | "sync";
 
 export function App() {
+  return (
+    <ChatDockProvider>
+      <AppShell />
+    </ChatDockProvider>
+  );
+}
+
+function AppShell() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [topics, setTopics] = useState<TopicSummary[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [chatCollapsed, setChatCollapsed] = useState(true);
   const [view, setView] = useState<View>("journal");
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
@@ -148,15 +152,19 @@ export function App() {
     view === "knowledge" ? "Knowledge Tree" :
     "Overview";
 
-  // Chat context based on current view
-  const chatContext: {
-    topicId?: string; topicName?: string;
-    sessionId?: string; sessionLabel?: string;
-  } | null = view === "topic" && selectedTopicId
-    ? { topicId: selectedTopicId, topicName: selectedTopicName ?? "" }
-    : view === "session-detail" && selectedSessionId
-    ? { sessionId: selectedSessionId, sessionLabel: selectedSessionLabel }
-    : null;
+  // The chat dock follows navigation — whatever you're reading is its context.
+  const { setAutoItem } = useChatDock();
+  useEffect(() => {
+    if (view === "feature-detail" && selectedFeatureId) {
+      setAutoItem({ kind: "feature", id: selectedFeatureId, label: selectedFeatureName ?? "this feature", auto: true });
+    } else if (view === "session-detail" && selectedSessionId) {
+      setAutoItem({ kind: "session", id: selectedSessionId, label: selectedSessionLabel, auto: true });
+    } else if (view === "topic" && selectedTopicId) {
+      setAutoItem({ kind: "topic", id: selectedTopicId, label: selectedTopicName ?? "this topic", auto: true });
+    } else {
+      setAutoItem(null);
+    }
+  }, [view, selectedFeatureId, selectedFeatureName, selectedSessionId, selectedSessionLabel, selectedTopicId, selectedTopicName, setAutoItem]);
 
   return (
     <SidebarProvider className="ink-app">
@@ -310,26 +318,11 @@ export function App() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <button
-            className="ink-chip mr-3 inline-flex items-center gap-1.5"
-            data-active={!chatCollapsed}
-            style={{
-              fontFamily: "var(--j-mono)", fontSize: "0.625rem", letterSpacing: "0.14em",
-              textTransform: "uppercase", border: "1px solid var(--j-hairline)", borderRadius: 999,
-              padding: "0.3rem 0.75rem", color: chatCollapsed ? "var(--j-ink-soft)" : "var(--j-paper)",
-              background: chatCollapsed ? "transparent" : "var(--j-ink)", cursor: "pointer",
-            }}
-            onClick={() => setChatCollapsed(!chatCollapsed)}
-          >
-            {chatCollapsed ? <MessageSquare className="size-3" /> : <X className="size-3" />}
-            {chatCollapsed ? "Ask the Brain" : "Close"}
-          </button>
+          <AskBrainButton />
         </header>
 
         <div className="flex-1 overflow-hidden">
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={chatCollapsed ? 100 : 65} minSize={35}>
-              <div className="h-full overflow-y-auto">
+          <div className="h-full overflow-y-auto">
                 {view === "journal" ? (
                   <JournalPage
                     repoId={selectedProject?.id ?? null}
@@ -395,14 +388,6 @@ export function App() {
                     repoId={selectedProject?.id ?? null}
                     onFeatureClick={handleFeatureSelect}
                   />
-                ) : view === "overview" ? (
-                  <OverviewPanel
-                    topics={topics}
-                    sessions={sessions}
-                    repoId={selectedProject?.id ?? null}
-                    onTopicClick={handleTopicSelect}
-                    onSyncBrain={() => setView("sync")}
-                  />
                 ) : view === "topic" && selectedTopicId ? (
                   <TopicDetail
                     topicId={selectedTopicId}
@@ -420,26 +405,34 @@ export function App() {
                     undigestedCount={undigestedCount}
                   />
                 )}
-              </div>
-            </ResizablePanel>
-
-            {!chatCollapsed && (
-              <>
-                <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={35} minSize={20}>
-                  <ChatPanel
-                    topicId={chatContext?.topicId ?? null}
-                    topicName={chatContext?.topicName ?? ""}
-                    sessionId={chatContext?.sessionId ?? null}
-                    sessionLabel={chatContext?.sessionLabel ?? ""}
-                    liveState={liveState}
-                  />
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
+          </div>
         </div>
       </SidebarInset>
+
+      {/* Always-live conversational layer */}
+      <ChatDock liveState={liveState} />
+      <TalkLayer />
     </SidebarProvider>
+  );
+}
+
+// The header toggle — reads pinned-count so the button itself tells the story.
+function AskBrainButton() {
+  const { open, toggleDock, items } = useChatDock();
+  return (
+    <button
+      className="mr-3 inline-flex items-center gap-1.5"
+      style={{
+        fontFamily: "var(--j-mono)", fontSize: "0.625rem", letterSpacing: "0.14em",
+        textTransform: "uppercase", border: "1px solid var(--j-hairline)", borderRadius: 999,
+        padding: "0.3rem 0.75rem", color: open ? "var(--j-paper)" : "var(--j-ink-soft)",
+        background: open ? "var(--j-ink)" : "transparent", cursor: "pointer",
+      }}
+      title="⌘J"
+      onClick={toggleDock}
+    >
+      {open ? <X className="size-3" /> : <MessageSquare className="size-3" />}
+      {open ? "Close" : items.length > 0 ? `Correspondence · ${items.length}` : "Ask the Brain"}
+    </button>
   );
 }

@@ -180,18 +180,29 @@ export async function fetchLiveState(): Promise<LiveState | null> {
   }
 }
 
-// Chat (streaming)
+// Chat (streaming). Context can be scoped the legacy way (feature/session/
+// topic ids) or by pinned page elements (contextItems from the chat dock).
+export interface ChatContextItem {
+  kind: string;
+  id: string;
+  label: string;
+  summary?: string;
+}
+
 export async function* streamChat(
   question: string,
   history: ChatMessage[],
-  featureId?: string,
-  sessionId?: string,
-  topicId?: string,
+  opts: {
+    featureId?: string;
+    sessionId?: string;
+    topicId?: string;
+    contextItems?: ChatContextItem[];
+  } = {},
 ): AsyncGenerator<{ type: string; content?: string }> {
   const res = await fetch(`${BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, history, featureId, sessionId, topicId }),
+    body: JSON.stringify({ question, history, ...opts }),
   });
 
   if (!res.ok) {
