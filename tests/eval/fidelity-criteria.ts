@@ -43,7 +43,7 @@ export const fidelityCriteria: SessionFidelityCriteria[] = [
       { desc: "brain_cards unique-constraint bug (4th bug, dropped)", keywords: ["brain_cards"] },
       // Additional from catalog §1:
       { desc: "rag-readiness requirement (embedding column, pgvector)", keywords: ["rag"] },
-      { desc: "index-layer architecture decision (layer on top of events)", keywords: ["layer"] },
+      { desc: "index-layer architecture decision (layer on top of events)", keywords: ["layer on top"] },
     ],
     forbiddenClaims: [
       { desc: "all 5 tools confirmed (only 3 invoked — audit F4)", keywords: ["all 5", "confirm"] },
@@ -61,7 +61,7 @@ export const fidelityCriteria: SessionFidelityCriteria[] = [
     ],
     forbiddenClaims: [
       { desc: "vi.hoisted claimed to unblock tests (a later fix did — audit F4)", keywords: ["hoisted", "unblock"] },
-      { desc: "ai identified redesign without being prompted (inverts developer initiative)", keywords: ["identified", "prompted"] },
+      { desc: "ai identified redesign without being prompted (inverts developer initiative)", keywords: ["without being prompted"] },
     ],
   },
   {
@@ -72,7 +72,7 @@ export const fidelityCriteria: SessionFidelityCriteria[] = [
       { desc: "founding requirement: activity event table + derived memory", keywords: ["activity", "event"], agency: "developer" },
       { desc: "file-sink vs DB gap discovery", keywords: ["file", "sink"], agency: "ai" },
       // Additional from catalog §1:
-      { desc: "open A/B/C architectural fork at session end", keywords: ["daemon"] },
+      { desc: "open A/B/C architectural fork at session end", keywords: ["persist daemon events", "activity log"] },
     ],
     forbiddenClaims: [],
   },

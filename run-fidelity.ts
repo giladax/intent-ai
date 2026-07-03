@@ -35,7 +35,7 @@ for (const c of fidelityCriteria) {
   const sessionId = sess[0].id as string;
 
   const momentRows = await sql`
-    SELECT m.id, m.statement, m.type, m.agency, m.confidence, NULL as occurred_at, c2.chunk_index
+    SELECT m.id, m.statement, m.type, m.agency, m.confidence, NULL as occurred_at /* TODO: replace with m.occurred_at once the understanding-stage migration adds the column */, c2.chunk_index
     FROM moments m LEFT JOIN chunks c2 ON m.chunk_id = c2.id
     WHERE m.session_id = ${sessionId}`;
   const evidence = await sql`
