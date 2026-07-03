@@ -59,7 +59,7 @@ export function SyncDiffTree({ topics, proposal, onTopicClick }: Props) {
       id: t.id,
       name: t.name,
       summary: t.summary,
-      parentName: topics.find((p) => p.id === t.parent_topic_id)?.name ?? null,
+      parentName: null, // parent_topic_id retired (PRD v0.3) — existing topics render flat
       children: [],
       insightCount: t.insight_count,
       change: mergeTarget

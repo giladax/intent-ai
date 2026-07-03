@@ -30,14 +30,9 @@ export function KnowledgeTreePage({ topics, sessions, onTopicClick, onSync, undi
     );
   }
 
-  const topicIds = new Set(topics.map((t) => t.id));
+  // parent_topic_id retired (PRD v0.3) — topics render as a flat sorted list
   const childrenOf = new Map<string | null, TopicSummary[]>();
-  for (const t of topics) {
-    const pid = t.parent_topic_id && topicIds.has(t.parent_topic_id) ? t.parent_topic_id : null;
-    const list = childrenOf.get(pid) || [];
-    list.push(t);
-    childrenOf.set(pid, list);
-  }
+  childrenOf.set(null, [...topics]);
   const roots = (childrenOf.get(null) || []).sort((a, b) => a.name.localeCompare(b.name));
 
   return (

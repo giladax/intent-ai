@@ -217,7 +217,6 @@ export interface TopicSummary {
   id: string;
   name: string;
   summary: string;
-  parent_topic_id: string | null;
   updated_at: string;
   insight_count: number;
   session_count: number;

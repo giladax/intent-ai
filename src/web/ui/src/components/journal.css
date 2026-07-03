@@ -3,27 +3,10 @@
    serif masthead (Newsreader), one continuous timeline spine, red-ink
    margin notes for pending items, day runheads like a diary.           */
 
+/* --j-* tokens are owned app-wide by .ink-app (app-ink.css); the journal
+   page inherits them and keeps only its page-specific surface below. */
+
 .journal-page {
-  /* ink & paper */
-  --j-ink: oklch(0.24 0.02 60);
-  --j-ink-soft: oklch(0.45 0.015 60);
-  --j-faint: oklch(0.58 0.012 60);
-  --j-hairline: oklch(0.86 0.012 75);
-  --j-paper: oklch(0.982 0.006 85);
-  --j-paper-raise: oklch(0.995 0.004 90);
-  --j-wash: oklch(0.955 0.01 85);
-  /* red ink (pending / misses / unread) */
-  --j-red: oklch(0.55 0.19 30);
-  --j-red-soft: oklch(0.55 0.19 30 / 0.08);
-  /* moss ink (approvals / learnings) */
-  --j-moss: oklch(0.52 0.09 150);
-  --j-moss-soft: oklch(0.52 0.09 150 / 0.1);
-  /* consult ink (agent ↳ brain) */
-  --j-consult: oklch(0.5 0.09 250);
-
-  --j-serif: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
-  --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-
   background:
     radial-gradient(120% 60% at 50% 0%, oklch(0.97 0.012 80 / 0.7), transparent 60%),
     var(--j-paper);
@@ -33,19 +16,6 @@
 }
 
 .dark .journal-page {
-  --j-ink: oklch(0.9 0.012 80);
-  --j-ink-soft: oklch(0.72 0.012 75);
-  --j-faint: oklch(0.58 0.012 70);
-  --j-hairline: oklch(0.32 0.012 60);
-  --j-paper: oklch(0.185 0.008 55);
-  --j-paper-raise: oklch(0.22 0.01 55);
-  --j-wash: oklch(0.24 0.012 55);
-  --j-red: oklch(0.68 0.17 32);
-  --j-red-soft: oklch(0.68 0.17 32 / 0.12);
-  --j-moss: oklch(0.72 0.1 150);
-  --j-moss-soft: oklch(0.72 0.1 150 / 0.14);
-  --j-consult: oklch(0.72 0.09 250);
-
   background:
     radial-gradient(120% 60% at 50% 0%, oklch(0.23 0.015 60 / 0.8), transparent 60%),
     var(--j-paper);
