@@ -5,6 +5,7 @@ import {
   normalizeGlob,
   isObservationCategory,
   observationKind,
+  buildReviewEvent,
 } from "../../src/web/observations.js";
 
 describe("composeCurrentUnderstanding", () => {
@@ -69,5 +70,46 @@ describe("observation category helpers", () => {
     expect(observationKind("observation:unknown")).toBe("unknown");
     expect(observationKind("observation:")).toBe("");
     expect(observationKind("coding:struggle")).toBe("");
+  });
+});
+
+describe("buildReviewEvent", () => {
+  it("builds a review:approved event carrying the observation's identity", () => {
+    const ev = buildReviewEvent("approved", {
+      id: "obs-1",
+      category: "observation:constraint",
+      featureId: "feat-1",
+      featureName: "Activity events",
+      summary: "emitEvents call sites must be wrapped in try/catch",
+    });
+    expect(ev.category).toBe("review:approved");
+    expect(ev.tags).toEqual(["review", "constraint"]);
+    expect(ev.actor).toBe("human:local");
+    expect(ev.sourceType).toBe("review");
+    expect(ev.sourceId).toBe("obs-1");
+    expect(ev.summary).toContain('Approved a constraint on "Activity events"');
+    expect(ev.metadata).toMatchObject({
+      observationId: "obs-1",
+      featureId: "feat-1",
+      kind: "constraint",
+    });
+  });
+
+  it("falls back to generic kind and omits feature clause when unresolved", () => {
+    const ev = buildReviewEvent("rejected", {
+      id: "obs-2",
+      category: "something-else",
+      summary: "noise",
+    });
+    expect(ev.category).toBe("review:rejected");
+    expect(ev.summary).toBe("Rejected a observation: noise");
+    expect(ev.metadata.featureId).toBeNull();
+  });
+
+  it("truncates long summaries to keep the Journal line narratable", () => {
+    const long = "x".repeat(200);
+    const ev = buildReviewEvent("edited", { id: "obs-3", summary: long });
+    expect(ev.summary.length).toBeLessThan(160);
+    expect(ev.summary).toContain("...");
   });
 });

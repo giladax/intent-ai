@@ -9,6 +9,8 @@
 //     `features.current_understanding`; rejecting sets `review_status = 'rejected'`;
 //     editing updates the observation `summary`.
 
+import type { ActivityEvent } from "../adapters/types.js";
+
 export const OBSERVATION_CATEGORY_PREFIX = "observation:";
 
 /** Freeform review states. Stored as plain TEXT — never as a DB enum/CHECK. */
@@ -73,4 +75,47 @@ export function isObservationCategory(category: string | null | undefined): bool
 export function observationKind(category: string | null | undefined): string {
   if (!isObservationCategory(category)) return "";
   return (category as string).slice(OBSERVATION_CATEGORY_PREFIX.length);
+}
+
+// ── review:* events (Journal §7.3) ───────────────────────────────────
+//
+// The human's own gate actions become visible on the timeline. Pure builder;
+// the endpoints emit it failure-safe (a lost event never fails the review).
+
+export type ReviewAction = "approved" | "rejected" | "edited";
+
+export interface ReviewedObservation {
+  id: string;
+  category?: string | null;
+  featureId?: string | null;
+  featureName?: string | null;
+  summary: string;
+}
+
+export function buildReviewEvent(
+  action: ReviewAction,
+  obs: ReviewedObservation,
+  actor = "human:local",
+): ActivityEvent {
+  const kind = observationKind(obs.category) || "observation";
+  const target = obs.featureName ? ` on "${obs.featureName}"` : "";
+  const text = obs.summary.length > 120 ? `${obs.summary.slice(0, 117)}...` : obs.summary;
+  return {
+    timestamp: new Date(),
+    category: `review:${action}`,
+    tags: ["review", kind],
+    actor,
+    summary: `${capitalize(action)} a ${kind}${target}: ${text}`,
+    sourceType: "review",
+    sourceId: obs.id,
+    metadata: {
+      observationId: obs.id,
+      featureId: obs.featureId ?? null,
+      kind,
+    },
+  };
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }

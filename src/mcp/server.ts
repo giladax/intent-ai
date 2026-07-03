@@ -20,6 +20,12 @@ import {
   formatCandidates,
   formatFeatureContext,
 } from "./feature.js";
+import {
+  buildMcpReadEvent,
+  emitMcpReadEvent,
+  getRepoContext,
+  type McpOutcome,
+} from "./instrument.js";
 
 // Re-export the shared text-scoring helpers (used by the legacy topic tools
 // and covered by tests/mcp/server.test.ts).
@@ -271,6 +277,44 @@ export function createBrainServer(): McpServer {
     return graph;
   }
 
+  // ── Self-instrumentation (Journal §7.3 / API review F5, F6) ─────
+  // Every read emits an `mcp:<tool>` event, failure-safe. Actor comes from
+  // MCP client info; repo/branch are stamped server-side.
+
+  const repoCtx = getRepoContext();
+
+  function actorName(): string {
+    try {
+      const client = server.server.getClientVersion();
+      return client?.name ? `agent:${client.name}` : "agent:mcp-client";
+    } catch {
+      return "agent:mcp-client";
+    }
+  }
+
+  async function emitRead(
+    tool: string,
+    startedAt: number,
+    outcome: McpOutcome,
+    summary: string,
+    extra?: { sessionId?: string; featureId?: string; metadata?: Record<string, unknown> },
+  ): Promise<void> {
+    await emitMcpReadEvent(
+      buildMcpReadEvent({
+        tool,
+        outcome,
+        summary,
+        latencyMs: Date.now() - startedAt,
+        actor: actorName(),
+        repo: repoCtx.repo,
+        branch: repoCtx.branch,
+        sessionId: extra?.sessionId,
+        featureId: extra?.featureId,
+        metadata: extra?.metadata,
+      }),
+    );
+  }
+
   // ── brain_overview ────────────────────────────────────────────
   // Entry point: compact tree with one-line summaries.
   // Agent reads this first to orient, then drills in.
@@ -280,6 +324,7 @@ export function createBrainServer(): McpServer {
     "Get top-level knowledge areas as cards — start here, then drill into any area",
     {},
     async () => {
+      const startedAt = Date.now();
       const { topics } = getGraph();
       const roots = [...topics.values()].filter((t) => !t.parent);
 
@@ -292,6 +337,13 @@ export function createBrainServer(): McpServer {
       text += cards.join("\n\n---\n\n");
       text += `\n\n---\n_${topics.size} specs total. Use brain_get(name) to expand, brain_traverse(name) for neighbors._`;
 
+      await emitRead(
+        "overview",
+        startedAt,
+        roots.length > 0 ? "hit" : "miss",
+        `Agent viewed the brain overview (${roots.length} top-level areas)`,
+        { metadata: { areas: roots.length } },
+      );
       return { content: [{ type: "text" as const, text }] };
     },
   );
@@ -309,6 +361,7 @@ export function createBrainServer(): McpServer {
         .describe("Focus search on a specific dimension"),
     },
     async ({ query, prism }) => {
+      const startedAt = Date.now();
       const { topics, fileIndex } = getGraph();
 
       type Result = { name: string; score: number; via: string };
@@ -365,6 +418,14 @@ export function createBrainServer(): McpServer {
 
       const sorted = [...best.values()].sort((a, b) => b.score - a.score).slice(0, 8);
 
+      await emitRead(
+        "search",
+        startedAt,
+        sorted.length > 0 ? "hit" : "miss",
+        `Agent searched the brain for "${query}" — ${sorted.length} result${sorted.length === 1 ? "" : "s"}`,
+        { metadata: { query, prism, results: sorted.length } },
+      );
+
       if (sorted.length === 0) {
         return { content: [{ type: "text" as const, text: `No results for "${query}". Try brain_overview to see all topics.` }] };
       }
@@ -391,6 +452,7 @@ export function createBrainServer(): McpServer {
         .describe("Return only a specific section to save context"),
     },
     async ({ topic, section }) => {
+      const startedAt = Date.now();
       const { topics, slugToName } = getGraph();
 
       // Resolve: try name, then slug, then fuzzy
@@ -412,8 +474,15 @@ export function createBrainServer(): McpServer {
       }
 
       if (!node) {
+        await emitRead("get", startedAt, "miss", `Agent requested topic "${topic}" — not found`, {
+          metadata: { topic, section },
+        });
         return { content: [{ type: "text" as const, text: `Topic "${topic}" not found. Use brain_overview or brain_search.` }] };
       }
+
+      await emitRead("get", startedAt, "hit", `Agent read topic "${node.name}" (${section})`, {
+        metadata: { topic: node.name, section },
+      });
 
       if (section === "full") {
         let text = node.fullMarkdown;
@@ -498,6 +567,7 @@ export function createBrainServer(): McpServer {
         .describe("Which edges to follow"),
     },
     async ({ from, direction }) => {
+      const startedAt = Date.now();
       const { topics, slugToName, fileIndex } = getGraph();
 
       // Resolve topic
@@ -508,6 +578,9 @@ export function createBrainServer(): McpServer {
         if (name) node = topics.get(name);
       }
       if (!node) {
+        await emitRead("traverse", startedAt, "miss", `Agent traversed from "${from}" — topic not found`, {
+          metadata: { from, direction },
+        });
         return { content: [{ type: "text" as const, text: `Topic "${from}" not found.` }] };
       }
 
@@ -536,6 +609,14 @@ export function createBrainServer(): McpServer {
         }
         for (const co of coTopics) neighbors.push({ name: co, via: "shared files" });
       }
+
+      await emitRead(
+        "traverse",
+        startedAt,
+        neighbors.length > 0 ? "hit" : "miss",
+        `Agent traversed ${direction} from "${node.name}" — ${neighbors.length} neighbor${neighbors.length === 1 ? "" : "s"}`,
+        { metadata: { from: node.name, direction, neighbors: neighbors.length } },
+      );
 
       if (neighbors.length === 0) {
         return { content: [{ type: "text" as const, text: `No ${direction} neighbors for "${node.name}".` }] };
@@ -571,16 +652,36 @@ export function createBrainServer(): McpServer {
     "Get Brain context for a source file — resolves the file's Feature and returns its current understanding, constraints, and relevant files. Use before editing unfamiliar code.",
     {
       file: z.string().describe("File path (relative or absolute)"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ file }) => {
+    async ({ file, sessionId }) => {
+      const startedAt = Date.now();
       try {
         const projectId = await getDefaultProjectId();
         const rows = await getFeatureFileRows(projectId ?? undefined);
         const res = resolveFeature(file, rows);
-        if (res.featureId) return await featureContextResponse(res.featureId);
+        if (res.featureId) {
+          await emitRead("file-context", startedAt, "hit", `Agent got feature context for ${file}`, {
+            sessionId, featureId: res.featureId, metadata: { file },
+          });
+          return await featureContextResponse(res.featureId);
+        }
+        const outcome: McpOutcome = res.candidateIds.length === 0 ? "miss" : "candidates";
+        await emitRead(
+          "file-context",
+          startedAt,
+          outcome,
+          outcome === "miss"
+            ? `Agent asked for context on ${file} — no Feature maps it`
+            : `Agent asked for context on ${file} — ${res.candidateIds.length} candidate Features`,
+          { sessionId, metadata: { file, candidates: res.candidateIds.length } },
+        );
         const candidates = await featuresByIds(res.candidateIds, projectId);
         return mcpText(formatCandidates(candidates, `file: ${file}`));
       } catch (err) {
+        await emitRead("file-context", startedAt, "error", `brain_file_context failed for ${file}`, {
+          sessionId, metadata: { file, error: errMsg(err) },
+        });
         return mcpText(`brain_file_context unavailable: ${errMsg(err)}`);
       }
     },
@@ -597,25 +698,61 @@ export function createBrainServer(): McpServer {
     {
       file: z.string().optional().describe("File path you are about to work on"),
       task: z.string().optional().describe("Task or goal description"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ file, task }) => {
+    async ({ file, task, sessionId }) => {
+      const startedAt = Date.now();
+      const target = file ? `file ${file}` : task ? `task "${task}"` : "nothing";
       try {
         const projectId = await getDefaultProjectId();
         if (file) {
           const rows = await getFeatureFileRows(projectId ?? undefined);
           const res = resolveFeature(file, rows);
-          if (res.featureId) return await featureContextResponse(res.featureId);
+          if (res.featureId) {
+            await emitRead("enter", startedAt, "hit", `Agent entered the Brain for ${target}`, {
+              sessionId, featureId: res.featureId, metadata: { file },
+            });
+            return await featureContextResponse(res.featureId);
+          }
+          const outcome: McpOutcome = res.candidateIds.length === 0 ? "miss" : "candidates";
+          await emitRead(
+            "enter",
+            startedAt,
+            outcome,
+            outcome === "miss"
+              ? `Agent entered for ${target} — no Feature maps it`
+              : `Agent entered for ${target} — ${res.candidateIds.length} candidate Features`,
+            { sessionId, metadata: { file, candidates: res.candidateIds.length } },
+          );
           const candidates = await featuresByIds(res.candidateIds, projectId);
           return mcpText(formatCandidates(candidates, `file: ${file}`));
         }
         if (task) {
           const features = await listFeatures(projectId ?? undefined);
           const res = resolveTask(task, features);
-          if (res.feature) return await featureContextResponse(res.feature.id);
+          if (res.feature) {
+            await emitRead("enter", startedAt, "hit", `Agent entered the Brain for ${target}`, {
+              sessionId, featureId: res.feature.id, metadata: { task },
+            });
+            return await featureContextResponse(res.feature.id);
+          }
+          const outcome: McpOutcome = res.candidates.length === 0 ? "miss" : "candidates";
+          await emitRead(
+            "enter",
+            startedAt,
+            outcome,
+            outcome === "miss"
+              ? `Agent entered for ${target} — no Feature matched`
+              : `Agent entered for ${target} — ${res.candidates.length} candidate Features`,
+            { sessionId, metadata: { task, candidates: res.candidates.length } },
+          );
           return mcpText(formatCandidates(res.candidates, `task: ${task}`));
         }
         return mcpText("Provide either `file` or `task` to enter the Brain.");
       } catch (err) {
+        await emitRead("enter", startedAt, "error", `brain_enter failed for ${target}`, {
+          sessionId, metadata: { file: file ?? null, task: task ?? null, error: errMsg(err) },
+        });
         return mcpText(`brain_enter unavailable: ${errMsg(err)}`);
       }
     },
@@ -630,11 +767,27 @@ export function createBrainServer(): McpServer {
     "Get the served context for a Feature by id: summary, current understanding, constraints, relevant files, related sessions, known unknowns, and agent instructions.",
     {
       featureId: z.string().describe("Feature id (from a candidate list)"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ featureId }) => {
+    async ({ featureId, sessionId }) => {
+      const startedAt = Date.now();
       try {
-        return await featureContextResponse(featureId);
+        const ctx = await loadFeatureContext(featureId);
+        await emitRead(
+          "feature-context",
+          startedAt,
+          ctx ? "hit" : "miss",
+          ctx
+            ? `Agent got context for Feature "${ctx.feature.name}"`
+            : `Agent requested Feature ${featureId} — not found`,
+          { sessionId, featureId, metadata: {} },
+        );
+        if (!ctx) return mcpText(`Feature ${featureId} not found.`);
+        return mcpText(formatFeatureContext(ctx));
       } catch (err) {
+        await emitRead("feature-context", startedAt, "error", `brain_feature_context failed for ${featureId}`, {
+          sessionId, featureId, metadata: { error: errMsg(err) },
+        });
         return mcpText(`brain_feature_context unavailable: ${errMsg(err)}`);
       }
     },
@@ -654,13 +807,18 @@ export function createBrainServer(): McpServer {
       kind: z.string().optional().describe("Observation kind tag, e.g. tech-debt, decision, behavior"),
       tags: z.array(z.string()).optional().describe("Freeform tags"),
       files: z.array(z.string()).optional().describe("Related file paths"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ featureId, summary, kind, tags, files }) => {
+    async ({ featureId, summary, kind, tags, files, sessionId }) => {
       try {
         const id = await insertObservation({
           kind: kind ?? "observation",
           summary,
           featureId: featureId ?? null,
+          actor: actorName(),
+          sessionId: sessionId ?? null,
+          repo: repoCtx.repo ?? null,
+          branch: repoCtx.branch ?? null,
           tags,
           files,
           metadata: { kind: kind ?? "observation" },
@@ -679,13 +837,18 @@ export function createBrainServer(): McpServer {
       featureId: z.string().optional().describe("Feature this unknown relates to"),
       summary: z.string().describe("The open question or unknown"),
       files: z.array(z.string()).optional(),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ featureId, summary, files }) => {
+    async ({ featureId, summary, files, sessionId }) => {
       try {
         const id = await insertObservation({
           kind: "unknown",
           summary,
           featureId: featureId ?? null,
+          actor: actorName(),
+          sessionId: sessionId ?? null,
+          repo: repoCtx.repo ?? null,
+          branch: repoCtx.branch ?? null,
           files,
         });
         return mcpText(`Unknown recorded (id: ${id}, status: pending review).`);
@@ -700,15 +863,20 @@ export function createBrainServer(): McpServer {
     "Rate how useful the Feature context was for your task (self-report). Stored as a pending observation.",
     {
       featureId: z.string().optional(),
-      rating: z.number().describe("Usefulness rating, e.g. 1-5"),
+      rating: z.number().int().min(1).max(5).describe("Usefulness rating, 1 (useless) to 5 (decisive)"),
       comment: z.string().optional().describe("Optional note about what was missing or helpful"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ featureId, rating, comment }) => {
+    async ({ featureId, rating, comment, sessionId }) => {
       try {
         const id = await insertObservation({
           kind: "context-rating",
           summary: comment ?? `Context usefulness rating: ${rating}`,
           featureId: featureId ?? null,
+          actor: actorName(),
+          sessionId: sessionId ?? null,
+          repo: repoCtx.repo ?? null,
+          branch: repoCtx.branch ?? null,
           metadata: { rating, comment: comment ?? null },
         });
         return mcpText(`Context rating recorded (id: ${id}).`);
@@ -726,13 +894,18 @@ export function createBrainServer(): McpServer {
       summary: z.string().describe("Proposed change to the understanding"),
       before: z.string().optional().describe("Current understanding being changed"),
       after: z.string().optional().describe("Proposed new understanding"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ featureId, summary, before, after }) => {
+    async ({ featureId, summary, before, after, sessionId }) => {
       try {
         const id = await insertObservation({
           kind: "knowledge-delta",
           summary,
           featureId: featureId ?? null,
+          actor: actorName(),
+          sessionId: sessionId ?? null,
+          repo: repoCtx.repo ?? null,
+          branch: repoCtx.branch ?? null,
           metadata: { before: before ?? null, after: after ?? null },
         });
         return mcpText(`Knowledge delta proposed (id: ${id}, status: pending review).`);

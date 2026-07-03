@@ -11,13 +11,27 @@ import {
   getSessionTransitions,
   getSessionOutcomes,
   getChunkEvents,
+  emitEvents,
 } from "../storage/queries.js";
 import { buildSystemPrompt, loadDigest } from "../cli/explore.js";
 import {
   composeCurrentUnderstanding,
   normalizeGlob,
   OBSERVATION_CATEGORY_PREFIX,
+  buildReviewEvent,
+  type ReviewAction,
+  type ReviewedObservation,
 } from "./observations.js";
+
+// Journal §7.3: the human's gate actions become timeline events. Failure-safe —
+// a lost event never fails the review action itself.
+async function emitReviewEvent(action: ReviewAction, obs: ReviewedObservation): Promise<void> {
+  try {
+    await emitEvents([buildReviewEvent(action, obs)]);
+  } catch {
+    // never fail the review on instrumentation
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -360,23 +374,32 @@ export async function startWebServer(port: number): Promise<void> {
     try {
       const sql = getClient();
       const [obs] = await sql`
-        SELECT id, summary, feature_id FROM activity_events WHERE id = ${req.params.id}`;
+        SELECT id, summary, category, feature_id FROM activity_events WHERE id = ${req.params.id}`;
       if (!obs) {
         res.status(404).json({ error: "observation not found" });
         return;
       }
 
       // Promote into the feature's current understanding (if it resolves to one).
+      let featureName: string | null = null;
       if (obs.feature_id) {
         const [feature] = await sql`
-          SELECT id, current_understanding FROM features WHERE id::text = ${obs.feature_id}`;
+          SELECT id, name, current_understanding FROM features WHERE id::text = ${obs.feature_id}`;
         if (feature) {
+          featureName = feature.name;
           const next = composeCurrentUnderstanding(feature.current_understanding, obs.summary);
           await sql`UPDATE features SET current_understanding = ${next} WHERE id = ${feature.id}`;
         }
       }
 
       await sql`UPDATE activity_events SET review_status = 'approved' WHERE id = ${req.params.id}`;
+      await emitReviewEvent("approved", {
+        id: obs.id,
+        category: obs.category,
+        featureId: obs.feature_id,
+        featureName,
+        summary: obs.summary,
+      });
       res.json({ ok: true, status: "approved" });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -389,11 +412,17 @@ export async function startWebServer(port: number): Promise<void> {
       const sql = getClient();
       const result = await sql`
         UPDATE activity_events SET review_status = 'rejected'
-        WHERE id = ${req.params.id} RETURNING id`;
+        WHERE id = ${req.params.id} RETURNING id, summary, category, feature_id`;
       if (result.length === 0) {
         res.status(404).json({ error: "observation not found" });
         return;
       }
+      await emitReviewEvent("rejected", {
+        id: result[0].id,
+        category: result[0].category,
+        featureId: result[0].feature_id,
+        summary: result[0].summary,
+      });
       res.json({ ok: true, status: "rejected" });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -411,12 +440,18 @@ export async function startWebServer(port: number): Promise<void> {
       const sql = getClient();
       const result = await sql`
         UPDATE activity_events SET summary = ${summary}
-        WHERE id = ${req.params.id} RETURNING id, summary, review_status`;
+        WHERE id = ${req.params.id} RETURNING id, summary, review_status, category, feature_id`;
       if (result.length === 0) {
         res.status(404).json({ error: "observation not found" });
         return;
       }
-      res.json(result[0]);
+      await emitReviewEvent("edited", {
+        id: result[0].id,
+        category: result[0].category,
+        featureId: result[0].feature_id,
+        summary: result[0].summary,
+      });
+      res.json({ id: result[0].id, summary: result[0].summary, review_status: result[0].review_status });
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
