@@ -134,6 +134,8 @@ export interface SessionMoment {
   arcId?: string;
   arcRole?: "origin" | "escalation" | "turning_point" | "resolution";
   evidence: Evidence[];
+  occurredAt?: string | null;
+  verification?: "supported" | "contradicted" | "unverified" | null;
 }
 
 // ── Transitions & Outcomes ──────────────────────────────────────────
@@ -310,6 +312,35 @@ export interface SkillStep {
   instruction: string;
   files: string[];
   notes?: string;
+}
+
+// ── Understanding Stage Types ────────────────────────────────────────
+
+export interface Sitting {
+  sittingIndex: number;          // 0-based
+  startedAt: string;             // ISO, first event's timestamp
+  endedAt: string;               // ISO, last event's timestamp
+  eventRange: [number, number];  // causalOrder span, inclusive
+}
+
+export interface EvidenceAnchor {
+  quote: string;
+  eventIndex: number | null;     // causalOrder cited by the LLM (null if unparseable)
+  anchored: boolean;             // code-verified: index in chunk range AND quote found in that event
+  sourceType: "user" | "ai" | "tool_output";
+}
+
+export interface ExtractedMoment {
+  id: string;                    // deterministic: `c${chunkIndex}-m${i}`, assigned in code
+  chunkIndex: number;
+  type: SessionMoment["type"];
+  statement: string;
+  significance: string;
+  agency: "developer" | "ai" | "collaborative";
+  confidence: "high" | "medium" | "low" | null;
+  topicFingerprint: string;
+  evidence: EvidenceAnchor[];    // ≥1, schema-enforced at the LLM boundary
+  occurredAt: string | null;     // ISO; first anchored evidence's event timestamp, else chunk start
 }
 
 // ── Activity Events ─────────────────────────────────────────────────
