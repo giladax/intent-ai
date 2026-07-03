@@ -228,7 +228,6 @@ export interface Topic {
   repoId: string;
   name: string;
   summary: string;
-  parentTopicId?: string | null;
   insights: Insight[];
   fileRefs: FileRef[];
   sessionRefs: string[];

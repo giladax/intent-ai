@@ -4,7 +4,6 @@ interface TopicRow {
   id: string;
   name: string;
   summary: string;
-  parent_topic_id?: string | null;
 }
 
 interface InsightRow {
@@ -77,7 +76,7 @@ async function buildTopicTree(repoId: string): Promise<{
   const sql = getClient();
 
   const topics = await sql`
-    SELECT t.id, t.name, t.summary, t.parent_topic_id,
+    SELECT t.id, t.name, t.summary,
       (SELECT count(*)::int FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count,
       (SELECT count(DISTINCT ts.session_id)::int FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count
     FROM topics t WHERE t.repo_id = ${repoId} ORDER BY t.name
@@ -101,7 +100,7 @@ async function buildTopicTree(repoId: string): Promise<{
       id: t.id,
       name: t.name,
       summary: t.summary,
-      parentId: t.parent_topic_id || null,
+      parentId: null, // parent_topic_id retired (PRD v0.3) — flat topic list
       children: [],
       ownFiles: fileRows.map((f: any) => f.file_path),
       accumulatedFiles: [],
@@ -207,17 +206,12 @@ export async function generateBrainMarkdown(repoId: string): Promise<string> {
 export async function generateTopicMarkdown(topicId: string): Promise<{ slug: string; content: string }> {
   const sql = getClient();
 
-  const [topic] = await sql`SELECT id, name, summary, parent_topic_id, repo_id FROM topics WHERE id = ${topicId}` as any[];
+  const [topic] = await sql`SELECT id, name, summary, repo_id FROM topics WHERE id = ${topicId}` as any[];
   if (!topic) throw new Error(`Topic ${topicId} not found`);
 
   const { nodeByName } = await buildTopicTree(topic.repo_id);
   const node = nodeByName.get(topic.name);
 
-  // Query parent
-  const parentRows = topic.parent_topic_id
-    ? await sql`SELECT name FROM topics WHERE id = ${topic.parent_topic_id}` as { name: string }[]
-    : [];
-  const parent = parentRows[0] ?? null;
 
   const insights = await sql`
     SELECT category, statement, confidence FROM insights
@@ -260,15 +254,11 @@ export async function generateTopicMarkdown(topicId: string): Promise<{ slug: st
 
   let md = `# ${topic.name}\n\n`;
 
-  // Navigation breadcrumb
-  if (parent) {
-    md += `> Parent: [${parent.name}](${slugify(parent.name)}.md)\n`;
-  }
+  // Navigation breadcrumb (parent_topic_id retired — topics are flat)
   if (node && node.children.length > 0) {
     const childLinks = node.children.map(c => `[${c.name}](${slugify(c.name)}.md)`).join(", ");
-    md += `> Children: ${childLinks}\n`;
+    md += `> Children: ${childLinks}\n\n`;
   }
-  if (parent || (node && node.children.length > 0)) md += "\n";
 
   // Summary
   md += `${topic.summary}\n`;

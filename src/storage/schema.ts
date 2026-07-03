@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   pgEnum,
+  index,
 } from "drizzle-orm/pg-core";
 
 // ── Enums ──────────────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ export const featureFiles = pgTable("feature_files", {
   glob: text("glob"),
   filePath: text("file_path"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [index("idx_ff_feature_id").on(t.featureId)]);
 
 // ── Sessions ───────────────────────────────────────────────────────────
 
@@ -280,7 +281,7 @@ export const topics = pgTable("topics", {
   name: text("name").notNull(),
   summary: text("summary").notNull(),
   // parent_topic_id RETIRED (PRD v0.3): the topic tree no longer competes
-  // with the Feature graph. See drizzle/0008_retire_parent_topic.sql.
+  // with the Feature graph.
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -435,4 +436,16 @@ export const activityEvents = pgTable("activity_events", {
   embedding: text("embedding"),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => [
+  index("idx_ae_category").using("btree", t.category.op("text_pattern_ops")),
+  index("idx_ae_timestamp").on(t.timestamp),
+  index("idx_ae_session_id").on(t.sessionId),
+  index("idx_ae_repo").on(t.repo),
+  index("idx_ae_branch").on(t.branch),
+  index("idx_ae_tags").using("gin", t.tags),
+  index("idx_ae_topic_ids").using("gin", t.topicIds),
+  index("idx_ae_files").using("gin", t.files),
+  index("idx_ae_category_ts").on(t.category, t.timestamp),
+  index("idx_ae_repo_branch").on(t.repo, t.branch),
+  index("idx_ae_feature_review").on(t.featureId, t.reviewStatus),
+]);

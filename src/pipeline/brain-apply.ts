@@ -158,13 +158,7 @@ export async function applyGraphPlan(
       targetId = inserted.id;
     }
 
-    // Set parent if specified
-    if (merge.parentSpec) {
-      const parentId = await findTopicId(sql, repoId, merge.parentSpec);
-      if (parentId) {
-        await sql`UPDATE topics SET parent_topic_id = ${parentId} WHERE id = ${targetId}`;
-      }
-    }
+    // parent_topic_id retired (PRD v0.3): merge.parentSpec is ignored.
 
     // Move insights, evidence, files, sessions from absorbed topics to target
     for (const specName of merge.specs) {
@@ -217,14 +211,10 @@ export async function applyGraphPlan(
       const intoNorm = normalizeName(into.name);
       const spec = specByName.get(intoNorm);
 
-      // Create new topic
-      const parentId = split.parentSpec
-        ? await findTopicId(sql, repoId, split.parentSpec)
-        : null;
-
+      // Create new topic (parent_topic_id retired, split.parentSpec ignored)
       const [newTopic] = await sql`
-        INSERT INTO topics (repo_id, name, summary, parent_topic_id)
-        VALUES (${repoId}, ${into.name}, ${spec?.summary || ""}, ${parentId})
+        INSERT INTO topics (repo_id, name, summary)
+        VALUES (${repoId}, ${into.name}, ${spec?.summary || ""})
         RETURNING id
       `;
 
@@ -273,13 +263,9 @@ export async function applyGraphPlan(
     if (existing) continue;
 
     const spec = specByName.get(norm);
-    const parentId = assignment.parentSpec
-      ? await findTopicId(sql, repoId, assignment.parentSpec)
-      : null;
-
     const [inserted] = await sql`
-      INSERT INTO topics (repo_id, name, summary, parent_topic_id)
-      VALUES (${repoId}, ${assignment.targetSpec}, ${spec?.summary || ""}, ${parentId})
+      INSERT INTO topics (repo_id, name, summary)
+      VALUES (${repoId}, ${assignment.targetSpec}, ${spec?.summary || ""})
       RETURNING id
     `;
 
