@@ -681,3 +681,34 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   max-height: 200px;
   animation: note-exit 0.4s ease 0.55s both;
 }
+
+/* the intake — sidebar footer, quiet until sessions wait */
+.ink-intake {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  font-family: var(--j-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  border: 1px solid var(--j-hairline);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: transparent;
+}
+.ink-intake:hover { color: var(--j-ink); border-color: var(--j-faint); }
+.ink-intake--waiting {
+  color: var(--j-red);
+  border-color: color-mix(in oklch, var(--j-red) 45%, transparent);
+  background: var(--j-red-soft);
+}
+.ink-intake--waiting:hover {
+  background: var(--j-red);
+  color: var(--j-paper);
+  border-color: var(--j-red);
+}

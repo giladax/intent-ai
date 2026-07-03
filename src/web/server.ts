@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { getClient } from "../storage/connection.js";
 import {
@@ -178,6 +179,127 @@ function upsertJob(repoId: string, update: Partial<SyncJob>): SyncJob {
   };
   syncJobs.set(repoId, job);
   return job;
+}
+
+// ── Scheduled digestion (cron with elapse settings) ──────────────────
+//
+// An in-process scheduler: every `intervalMinutes` it scans ~/.claude/projects
+// for each registered project and digests any JSONL that has been *quiet* for
+// `debounceMinutes` (a log written moments ago is probably a live session —
+// digesting mid-session wastes LLM calls and truncates the narrative).
+// Settings persist to .intent/digest-schedule.json so they survive restarts.
+// Emits digest:run events per the observability contract (§7.3).
+
+interface DigestSchedule {
+  enabled: boolean;
+  intervalMinutes: number;
+  debounceMinutes: number;
+}
+
+const SCHEDULE_PATH = join(process.cwd(), ".intent", "digest-schedule.json");
+const DEFAULT_SCHEDULE: DigestSchedule = { enabled: false, intervalMinutes: 30, debounceMinutes: 10 };
+
+function loadSchedule(): DigestSchedule {
+  try {
+    const raw = JSON.parse(readFileSync(SCHEDULE_PATH, "utf-8"));
+    return {
+      enabled: Boolean(raw.enabled),
+      intervalMinutes: Math.max(1, Number(raw.intervalMinutes) || DEFAULT_SCHEDULE.intervalMinutes),
+      debounceMinutes: Math.max(0, Number(raw.debounceMinutes) ?? DEFAULT_SCHEDULE.debounceMinutes),
+    };
+  } catch {
+    return { ...DEFAULT_SCHEDULE };
+  }
+}
+
+function saveSchedule(s: DigestSchedule): void {
+  mkdirSync(dirname(SCHEDULE_PATH), { recursive: true });
+  writeFileSync(SCHEDULE_PATH, JSON.stringify(s, null, 2));
+}
+
+let schedule: DigestSchedule = loadSchedule();
+let scheduleTimer: ReturnType<typeof setInterval> | null = null;
+let scheduleRunning = false;
+let lastScheduledRun: { at: number; digested: number; skippedLive: number } | null = null;
+
+async function runScheduledDigest(): Promise<void> {
+  if (scheduleRunning) return; // never overlap runs
+  scheduleRunning = true;
+  const runId = crypto.randomUUID();
+  const startedAt = Date.now();
+  const digestedIds: string[] = [];
+  let skippedLive = 0;
+  try {
+    const sql = getClient();
+    const projects = await sql`SELECT id, name, path FROM projects`;
+    const { discoverLogs } = await import("../utils/log-discovery.js");
+    const { basename } = await import("node:path");
+    const { statSync } = await import("node:fs");
+    const allSourceHashes = await sql`SELECT source_hash FROM sessions WHERE source_hash IS NOT NULL`;
+    const digestedHashes = new Set(allSourceHashes.map((r: any) => r.source_hash));
+
+    for (const project of projects) {
+      const slug = project.path.replace(/\//g, "-");
+      const logPaths = await discoverLogs(20, slug);
+      for (const logPath of logPaths) {
+        if (digestedHashes.has(basename(logPath, ".jsonl"))) continue;
+        // Debounce: skip logs still being written to (probably a live session).
+        try {
+          const quietMs = Date.now() - statSync(logPath).mtimeMs;
+          if (quietMs < schedule.debounceMinutes * 60 * 1000) {
+            skippedLive++;
+            continue;
+          }
+        } catch {
+          continue;
+        }
+        try {
+          const { runPipeline } = await import("../pipeline/orchestrator.js");
+          const result = await runPipeline(logPath);
+          digestedIds.push(result.sessionId);
+        } catch (err: any) {
+          if (!err?.message?.includes("already digested")) {
+            console.error(`[digest-schedule] ${basename(logPath)}: ${err?.message ?? err}`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`[digest-schedule] run failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    scheduleRunning = false;
+    lastScheduledRun = { at: Date.now(), digested: digestedIds.length, skippedLive };
+    if (digestedIds.length > 0) {
+      try {
+        await emitEvents([
+          {
+            timestamp: new Date(),
+            category: "digest:run",
+            tags: ["digest", "scheduled"],
+            actor: "system:pipeline",
+            summary: `Scheduled digestion caught up on ${digestedIds.length} session${digestedIds.length === 1 ? "" : "s"}${skippedLive > 0 ? ` (${skippedLive} still live, left for next pass)` : ""}.`,
+            sourceType: "digest",
+            sourceId: runId,
+            metadata: { runId, sessionIds: digestedIds, durationMs: Date.now() - startedAt, skippedLive },
+          },
+        ]);
+      } catch {
+        // instrumentation never fails the run
+      }
+    }
+  }
+}
+
+function applySchedule(): void {
+  if (scheduleTimer) {
+    clearInterval(scheduleTimer);
+    scheduleTimer = null;
+  }
+  if (schedule.enabled) {
+    scheduleTimer = setInterval(runScheduledDigest, schedule.intervalMinutes * 60 * 1000);
+    // one pass shortly after enabling, so the user sees it work
+    setTimeout(runScheduledDigest, 5_000);
+  }
 }
 
 export async function startWebServer(port: number): Promise<void> {
@@ -732,140 +854,11 @@ export async function startWebServer(port: number): Promise<void> {
     }
   });
 
-  // ── Topics ───────────────────────────────────────────────────────
-
-  app.get("/api/topics", async (req, res) => {
-    try {
-      const repoId = req.query.repoId as string;
-      if (!repoId) {
-        res.status(400).json({ error: "repoId query parameter is required" });
-        return;
-      }
-      const sql = getClient();
-      const rows = await sql`
-        SELECT t.id, t.name, t.summary, t.updated_at,
-          (SELECT count(*) FROM insights i WHERE i.topic_id = t.id AND i.status = 'active') as insight_count,
-          (SELECT count(DISTINCT ts.session_id) FROM topic_sessions ts WHERE ts.topic_id = t.id) as session_count,
-          (SELECT count(*) FROM brain_versions bv WHERE bv.repo_id = t.repo_id) as update_count
-        FROM topics t WHERE t.repo_id = ${repoId}
-        ORDER BY t.name`;
-      res.json(rows);
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  app.get("/api/topics/:id", async (req, res) => {
-    try {
-      const sql = getClient();
-      const topicRows = await sql`SELECT * FROM topics WHERE id = ${req.params.id}`;
-      if (topicRows.length === 0) {
-        res.status(404).json({ error: "topic not found" });
-        return;
-      }
-      const topic = topicRows[0];
-
-      // Active insights with evidence
-      const insights = await sql`
-        SELECT i.*,
-          COALESCE(
-            (SELECT json_agg(json_build_object('id', ie.id, 'reasoning', ie.reasoning))
-             FROM insight_evidence ie WHERE ie.insight_id = i.id),
-            '[]'::json
-          ) AS evidence
-        FROM insights i
-        WHERE i.topic_id = ${req.params.id} AND i.status = 'active'
-        ORDER BY i.created_at DESC`;
-
-      // Files
-      const files = await sql`
-        SELECT * FROM topic_files
-        WHERE topic_id = ${req.params.id}
-        ORDER BY file_path`;
-
-      // Sessions that contributed
-      const sessions = await sql`
-        SELECT s.id, s.source_type, s.source_path, s.session_shape, s.started_at, s.ended_at,
-               n.summary AS narrative_summary,
-               (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count
-        FROM topic_sessions ts
-        JOIN sessions s ON s.id = ts.session_id
-        LEFT JOIN narratives n ON n.session_id = s.id
-        WHERE ts.topic_id = ${req.params.id}
-        ORDER BY s.started_at ASC NULLS LAST`;
-
-      // Related topics
-      const relatedTopics = await sql`
-        SELECT t2.id, t2.name, tr.relationship
-        FROM topic_relations tr
-        JOIN topics t2 ON t2.id = tr.related_topic_id
-        WHERE tr.topic_id = ${req.params.id}
-        ORDER BY t2.name`;
-
-      res.json({
-        topic: { id: topic.id, name: topic.name, summary: topic.summary },
-        insights: insights.map((i: any) => ({
-          id: i.id,
-          category: i.category,
-          statement: i.statement,
-          confidence: Number(i.confidence),
-        })),
-        files: files.map((f: any) => ({
-          file_path: f.file_path,
-          role: f.role,
-        })),
-        sessions: sessions.map((s: any) => ({
-          session_id: s.id,
-          session_shape: s.session_shape,
-          summary: s.narrative_summary,
-          started_at: s.started_at,
-          moment_count: Number(s.moment_count),
-        })),
-        relatedTopics: relatedTopics.map((r: any) => ({
-          id: r.id,
-          name: r.name,
-        })),
-      });
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  // ── Brain Cards ───────────────────────────────────────────────────
-
-  app.get("/api/brain/cards/:repoId", async (req, res) => {
-    try {
-      const sql = getClient();
-      const cards = await sql`
-        SELECT node_name, level, summary, parent_node, children, insights, files, sessions
-        FROM brain_cards WHERE repo_id = ${req.params.repoId}
-        ORDER BY level, node_name
-      `;
-      res.json(cards);
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  app.get("/api/brain/cards/:repoId/:nodeName", async (req, res) => {
-    try {
-      const sql = getClient();
-      const [card] = await sql`
-        SELECT node_name, level, summary, parent_node, children, insights, files, related, sessions
-        FROM brain_cards WHERE repo_id = ${req.params.repoId} AND node_name = ${req.params.nodeName}
-      `;
-      if (!card) { res.status(404).json({ error: "Card not found" }); return; }
-      res.json(card);
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
   // ── Chat (SSE streaming) ──────────────────────────────────────────
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { question, featureId, sessionId, topicId, history, contextItems } = req.body;
+      const { question, featureId, sessionId, history, contextItems } = req.body;
 
       if (!question) {
         res.status(400).json({ error: "question is required" });
@@ -944,59 +937,6 @@ ${sessionContexts}
 - Keep responses concise but thorough. Use evidence to support your points.
 - When referencing events, indicate which session they came from.`;
         }
-      } else if (topicId) {
-        // Topic-scoped: load insights and session digests for this topic
-        const sql = getClient();
-        const topicRows = await sql`SELECT * FROM topics WHERE id = ${topicId}`;
-        const topicName = topicRows[0]?.name ?? "Unknown Topic";
-        const topicSummary = topicRows[0]?.summary ?? "";
-
-        const insightRows = await sql`
-          SELECT i.statement, i.category, i.confidence
-          FROM insights i
-          WHERE i.topic_id = ${topicId} AND i.status = 'active'
-          ORDER BY i.created_at DESC`;
-
-        const sessionRows = await sql`
-          SELECT s.id FROM topic_sessions ts
-          JOIN sessions s ON s.id = ts.session_id
-          WHERE ts.topic_id = ${topicId}
-          ORDER BY s.started_at ASC NULLS LAST`;
-
-        const digests = [];
-        for (const row of sessionRows) {
-          try {
-            const digest = await loadDigest(row.id);
-            digests.push(digest);
-          } catch {
-            // Skip sessions without complete digests
-          }
-        }
-
-        const insightsText = insightRows.length > 0
-          ? insightRows.map((i: any, idx: number) => `${idx + 1}. [${i.category}] (confidence: ${i.confidence}) ${i.statement}`).join("\n")
-          : "No insights recorded yet.";
-
-        const sessionContexts = digests.map((d, i) => {
-          const prompt = buildSystemPrompt(d);
-          const digestStart = prompt.indexOf("## Session Digest");
-          return `### Session ${i + 1}\n${digestStart >= 0 ? prompt.slice(digestStart) : prompt}`;
-        }).join("\n\n---\n\n");
-
-        systemPrompt = `You are a brain assistant for the topic "${topicName}".${topicSummary ? ` Topic summary: ${topicSummary}` : ""}
-
-## Known Insights
-${insightsText}
-
-${digests.length > 0 ? `## Session Digests (${digests.length} sessions contributed)\n${sessionContexts}` : "No session digests available yet."}
-
-## Rules
-- Answer based on the evidence in the insights and digests. Don't speculate beyond what the data shows.
-- When attributing decisions, use the agency field (developer vs ai vs collaborative).
-- Quote the developer's actual words when available (from evidence).
-- If asked about something not covered by the data, say so.
-- Keep responses concise but thorough. Use evidence to support your points.
-- When referencing events, indicate which session they came from.`;
       } else if (sessionId) {
         // Session-scoped
         try {
@@ -1055,52 +995,30 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
-  // ── Timeline ─────────────────────────────────────────────────────
+  // ── Brain Sync ─────────────────────────────────────────────────────
 
-  app.get("/api/timeline", async (req, res) => {
+  // Sync status — lets the UI recover state after page refresh
+  // ── Digest schedule (cron elapse settings) ────────────────────────
+  app.get("/api/digest/schedule", (_req, res) => {
+    res.json({ ...schedule, lastRun: lastScheduledRun });
+  });
+
+  app.put("/api/digest/schedule", (req, res) => {
     try {
-      const repoId = req.query.repoId as string;
-      if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
-
-      const sql = getClient();
-
-      // Get brain versions for this repo
-      const versions = await sql`
-        SELECT bv.id, bv.commit_sha, bv.created_at,
-          (SELECT count(*)::int FROM topics t WHERE t.repo_id = bv.repo_id) as topic_count,
-          (SELECT count(*)::int FROM insights i JOIN topics t ON i.topic_id = t.id WHERE t.repo_id = bv.repo_id) as insight_count
-        FROM brain_versions bv
-        WHERE bv.repo_id = ${repoId}
-        ORDER BY bv.created_at DESC
-      `;
-
-      // Get project source_path to run git log
-      const [project] = await sql`SELECT path FROM projects WHERE id = ${repoId}`;
-      let commits: Array<{ sha: string; message: string; date: string }> = [];
-
-      if (project?.path) {
-        try {
-          const { execSync } = await import("node:child_process");
-          const log = execSync(
-            'git log --pretty=format:"%H|%s|%aI" -50',
-            { cwd: project.path, encoding: "utf-8" }
-          );
-          commits = log.trim().split("\n").filter(Boolean).map((line) => {
-            const [sha, message, date] = line.split("|");
-            return { sha, message, date };
-          });
-        } catch { /* not a git repo or no commits */ }
-      }
-
-      res.json({ commits, brainVersions: versions });
+      const { enabled, intervalMinutes, debounceMinutes } = req.body ?? {};
+      schedule = {
+        enabled: Boolean(enabled),
+        intervalMinutes: Math.min(24 * 60, Math.max(1, Number(intervalMinutes) || DEFAULT_SCHEDULE.intervalMinutes)),
+        debounceMinutes: Math.min(120, Math.max(0, Number(debounceMinutes) ?? DEFAULT_SCHEDULE.debounceMinutes)),
+      };
+      saveSchedule(schedule);
+      applySchedule();
+      res.json({ ...schedule, lastRun: lastScheduledRun });
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
   });
 
-  // ── Brain Sync ─────────────────────────────────────────────────────
-
-  // Sync status — lets the UI recover state after page refresh
   app.get("/api/brain/sync-status", (req, res) => {
     const repoId = req.query.repoId as string;
     if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
@@ -1108,132 +1026,26 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     res.json(job);
   });
 
-  // Step 1: Discover — find new CC logs, digest them, score branch relevance
+  // Discover — count undigested CC logs for this project (digest is Step 0)
   app.post("/api/brain/discover", async (req, res) => {
     try {
       const { repoId } = req.body;
       if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
 
-      upsertJob(repoId, { phase: "discovering", startedAt: Date.now() });
-
       const sql = getClient();
       const [project] = await sql`SELECT name, path FROM projects WHERE id = ${repoId}`;
-      if (!project) {
-        upsertJob(repoId, { phase: "error", error: "Project not found" });
-        res.status(404).json({ error: "Project not found" });
-        return;
-      }
+      if (!project) { res.status(404).json({ error: "Project not found" }); return; }
 
-      const projectName = project.name;
       const projectPathSlug = project.path.replace(/\//g, "-");
-
-      // 1. Count undigested CC logs (don't digest them here — too slow)
       const { discoverLogs } = await import("../utils/log-discovery.js");
-      const logPaths = await discoverLogs(20, projectPathSlug);
-      // Check which are already digested by matching filename UUIDs
       const { basename } = await import("node:path");
+      const logPaths = await discoverLogs(20, projectPathSlug);
       const allSourceHashes = await sql`SELECT source_hash FROM sessions WHERE source_hash IS NOT NULL`;
       const digestedHashes = new Set(allSourceHashes.map((r: any) => r.source_hash));
       const undigestedPaths = logPaths.filter(p => !digestedHashes.has(basename(p, ".jsonl")));
-      const digestedCount = 0;
 
-      // 2. Find unprocessed sessions for this repo
-      const sessions = await sql`
-        SELECT s.id, s.session_shape, LEFT(n.summary, 120) as summary,
-               s.started_at, s.ended_at
-        FROM sessions s
-        LEFT JOIN narratives n ON n.session_id = s.id
-        WHERE n.id IS NOT NULL
-          AND (
-            s.source_path LIKE ${"%" + projectName + "%"}
-            OR s.source_path LIKE ${"%" + projectPathSlug + "%"}
-          )
-          AND NOT EXISTS (
-            SELECT 1 FROM topic_sessions ts WHERE ts.session_id = s.id
-          )
-        ORDER BY s.started_at DESC
-        LIMIT 10
-      `;
-
-      if (sessions.length === 0) {
-        syncJobs.delete(repoId);
-        res.json({ status: "up_to_date", digestedCount, undigestedCount: undigestedPaths.length, sessions: [] });
-        return;
-      }
-
-      // 3. Compute branch relevance for each session
-      let branchFiles: Set<string> = new Set();
-      let commitTimestamps: Date[] = [];
-      try {
-        const { execSync } = await import("node:child_process");
-        // Files changed on this branch vs main
-        const mainBranch = execSync("git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || echo refs/heads/main",
-          { cwd: project.path, encoding: "utf-8" }).trim().replace("refs/remotes/origin/", "").replace("refs/heads/", "");
-        const diffFiles = execSync(`git diff ${mainBranch}...HEAD --name-only 2>/dev/null || true`,
-          { cwd: project.path, encoding: "utf-8" }).trim();
-        if (diffFiles) branchFiles = new Set(diffFiles.split("\n").filter(Boolean));
-
-        // Commit timestamps on this branch
-        const logOutput = execSync(`git log ${mainBranch}..HEAD --format="%aI" 2>/dev/null || true`,
-          { cwd: project.path, encoding: "utf-8" }).trim();
-        if (logOutput) commitTimestamps = logOutput.split("\n").filter(Boolean).map(d => new Date(d));
-      } catch { /* not a git repo or no main branch */ }
-
-      // Score each session
-      const scoredSessions = [];
-      for (const s of sessions) {
-        // File overlap: session files ∩ branch files
-        const sessionFiles = await sql`
-          SELECT DISTINCT unnest(files_affected) as file_path
-          FROM normalized_events
-          WHERE session_id = ${s.id} AND files_affected IS NOT NULL
-        `;
-        const sessionFileSet = new Set(sessionFiles.map((f: any) => f.file_path));
-        const fileOverlap = [...sessionFileSet].filter(f => {
-          // Normalize: session files may be absolute, branch files relative
-          const rel = f.replace(project.path + "/", "");
-          return branchFiles.has(f) || branchFiles.has(rel);
-        });
-        const fileScore = sessionFileSet.size > 0 ? fileOverlap.length / sessionFileSet.size : 0;
-
-        // Time overlap: session timerange ∩ commit timestamps
-        const sessionStart = s.started_at ? new Date(s.started_at) : null;
-        const sessionEnd = s.ended_at ? new Date(s.ended_at) : null;
-        let timeScore = 0;
-        if (sessionStart && sessionEnd && commitTimestamps.length > 0) {
-          const overlapping = commitTimestamps.filter(ct =>
-            ct >= sessionStart && ct <= new Date(sessionEnd.getTime() + 30 * 60 * 1000) // +30min buffer
-          );
-          timeScore = overlapping.length > 0 ? 1 : 0;
-        }
-
-        let confidence: "high" | "medium" | "low";
-        if (fileScore > 0 && timeScore > 0) confidence = "high";
-        else if (fileScore > 0 || timeScore > 0) confidence = "medium";
-        else confidence = "low";
-
-        scoredSessions.push({
-          id: s.id,
-          shape: s.session_shape,
-          summary: s.summary,
-          date: s.started_at,
-          confidence,
-          fileScore: Math.round(fileScore * 100),
-          timeScore: Math.round(timeScore * 100),
-          selected: confidence !== "low", // auto-select high + medium
-        });
-      }
-
-      upsertJob(repoId, { phase: "selecting", sessions: scoredSessions, digestedCount });
-
-      res.json({
-        status: "sessions_found",
-        digestedCount,
-        undigestedCount: undigestedPaths.length,
-        sessions: scoredSessions,
-      });
+      res.json({ status: undigestedPaths.length > 0 ? "sessions_found" : "up_to_date", undigestedCount: undigestedPaths.length });
     } catch (err) {
-      upsertJob(repoId, { phase: "error", error: String(err) });
       res.status(500).json({ error: String(err) });
     }
   });
@@ -1242,188 +1054,6 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
   function sendSSE(res: express.Response, data: any) {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   }
-
-  // Step 2: Propose — dry run on selected sessions, return diff (SSE streaming)
-  app.post("/api/brain/propose", async (req, res) => {
-    try {
-      const { repoId, sessionIds } = req.body;
-      if (!repoId || !sessionIds?.length) {
-        res.status(400).json({ error: "repoId and sessionIds required" });
-        return;
-      }
-
-      // Set up SSE
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      });
-
-      upsertJob(repoId, { phase: "proposing" });
-
-      sendSSE(res, { phase: "extracting", message: `Extracting fragments from ${sessionIds.length} session${sessionIds.length !== 1 ? "s" : ""}...` });
-
-      const { synthesizeV2 } = await import("../pipeline/brain-synthesis.js");
-
-      sendSSE(res, { phase: "organizing", message: "Building knowledge tree..." });
-
-      const { plan, specs } = await synthesizeV2(sessionIds, repoId, { dryRun: true });
-
-      sendSSE(res, { phase: "organizing", message: `Plan: ${plan.assignments.length} assignments, ${plan.merges.length} merge${plan.merges.length !== 1 ? "s" : ""}` });
-
-      // Build human-readable diff
-      const changes = plan.assignments.map((a: any) => ({
-        type: a.action === "create" ? "add" : "update",
-        spec: a.targetSpec,
-        level: a.level,
-        parent: a.parentSpec || null,
-      }));
-
-      const seen = new Set<string>();
-      const uniqueChanges = changes.filter((c: any) => {
-        if (seen.has(c.spec)) return false;
-        seen.add(c.spec);
-        return true;
-      });
-
-      const merges = plan.merges.map((m: any) => ({
-        type: "merge" as const,
-        from: m.specs,
-        into: m.intoName,
-        level: m.level,
-        parent: m.parentSpec || null,
-      }));
-
-      const proposalResult = {
-        status: "changes_proposed",
-        sessionIds,
-        changes: [...uniqueChanges, ...merges],
-        plan,
-        specs: specs.map((s: any) => ({
-          name: s.name,
-          summary: (s.summary || "").slice(0, 200),
-          insightCount: s.insights?.length || 0,
-        })),
-      };
-
-      upsertJob(repoId, {
-        phase: "reviewing",
-        proposal: proposalResult,
-        selectedSessionIds: sessionIds,
-        cachedPlan: plan,
-        cachedSpecs: specs,
-      });
-
-      sendSSE(res, { phase: "done", proposal: proposalResult });
-      res.end();
-    } catch (err) {
-      upsertJob(repoId, { phase: "error", error: String(err) });
-      if (!res.headersSent) {
-        res.status(500).json({ error: String(err) });
-      } else {
-        sendSSE(res, { phase: "error", message: String(err) });
-        res.end();
-      }
-    }
-  });
-
-  // Step 3: Apply — commit the cached proposal (no re-synthesis)
-  app.post("/api/brain/apply", async (req, res) => {
-    try {
-      const { repoId } = req.body;
-      const job = getActiveJob(repoId);
-
-      if (!repoId) {
-        res.status(400).json({ error: "repoId required" });
-        return;
-      }
-
-      // Get cached synthesis from propose phase — what was reviewed is what gets applied
-      const plan = job?.cachedPlan;
-      const specs = job?.cachedSpecs;
-      const sessionIds = job?.selectedSessionIds ?? job?.proposal?.sessionIds ?? req.body.sessionIds;
-
-      if (!plan || !specs || !sessionIds?.length) {
-        res.status(400).json({ error: "No cached proposal found. Run Synthesize first." });
-        return;
-      }
-
-      // Set up SSE
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      });
-
-      upsertJob(repoId, { phase: "applying" });
-
-      sendSSE(res, { phase: "applying", message: `Applying ${specs.length} spec${specs.length !== 1 ? "s" : ""} to database...` });
-
-      // Apply the cached plan+specs to DB (same code synthesizeV2 uses internally)
-      const { applyGraphPlan, createBrainVersion, normalizeName } = await import("../pipeline/brain-synthesis.js");
-      const sql = getClient();
-
-      // Build moment ID map
-      const momentIdMap = new Map<string, string>();
-      for (const sessionId of sessionIds) {
-        const momentRows = await sql`SELECT id FROM moments WHERE session_id = ${sessionId} ORDER BY id`;
-        for (const m of momentRows) momentIdMap.set(m.id, m.id);
-      }
-
-      await applyGraphPlan(repoId, sessionIds[0], plan, specs, momentIdMap);
-
-      // Link all sessions to their assigned topics
-      for (const sessionId of sessionIds.slice(1)) {
-        for (const a of plan.assignments) {
-          const [topic] = await sql`
-            SELECT id FROM topics WHERE repo_id = ${repoId} AND LOWER(TRIM(name)) = ${normalizeName(a.targetSpec)}
-          `;
-          if (topic) {
-            await sql`
-              INSERT INTO topic_sessions (topic_id, session_id) VALUES (${topic.id}, ${sessionId})
-              ON CONFLICT DO NOTHING
-            `;
-          }
-        }
-      }
-
-      // Create brain version
-      let commitSha: string | undefined;
-      try {
-        const { execSync } = await import("node:child_process");
-        commitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
-      } catch { /* not a git repo */ }
-      await createBrainVersion(repoId, commitSha);
-
-      sendSSE(res, { phase: "exporting", message: "Exporting to .repo/ markdown..." });
-
-      // Export markdown
-      const { generateAllMarkdown } = await import("../brain/generate-markdown.js");
-      const { writeFileSync, mkdirSync } = await import("node:fs");
-      const { resolve } = await import("node:path");
-
-      const { brainMd, topics } = await generateAllMarkdown(repoId);
-      const outDir = resolve(process.cwd(), ".repo");
-      mkdirSync(resolve(outDir, "topics"), { recursive: true });
-      writeFileSync(resolve(outDir, "brain.md"), brainMd);
-      for (const t of topics) {
-        writeFileSync(resolve(outDir, "topics", `${t.slug}.md`), t.content);
-      }
-
-      upsertJob(repoId, { phase: "done" });
-
-      sendSSE(res, { phase: "done", result: { status: "applied", specsWritten: specs.length, merges: plan.merges.length } });
-      res.end();
-    } catch (err) {
-      upsertJob(repoId, { phase: "error", error: String(err) });
-      if (!res.headersSent) {
-        res.status(500).json({ error: String(err) });
-      } else {
-        sendSSE(res, { phase: "error", message: String(err) });
-        res.end();
-      }
-    }
-  });
 
   // Step 0: Digest — run digest pipeline on undigested CC logs (SSE streaming)
   app.post("/api/brain/digest", async (req, res) => {
@@ -1492,171 +1122,15 @@ ${digests.length > 0 ? `## Session Digests (${digests.length} sessions contribut
     }
   });
 
-  // ── Brain Learning Layer ─────────────────────────────────────────
-
-  // GET /api/brain/search — search across topics, insights, patterns by free text
-  app.get("/api/brain/search", async (req, res) => {
-    try {
-      const { q, repoId } = req.query;
-      if (!q || !repoId) {
-        res.status(400).json({ error: "q and repoId required" });
-        return;
-      }
-
-      const query = String(q).toLowerCase();
-      const repo = String(repoId);
-      const sql = getClient();
-
-      const allTopics = await sql`SELECT * FROM topics WHERE repo_id = ${repo}`;
-      const allInsights = await sql`SELECT * FROM insights`;
-      const allPatterns = await sql`SELECT * FROM topic_patterns`;
-
-      const scored = allTopics.map((topic: any) => {
-        let score = 0;
-        if (topic.name.toLowerCase().includes(query)) score += 3;
-        if (topic.summary?.toLowerCase().includes(query)) score += 2;
-        const topicInsights = allInsights.filter((i: any) => i.topic_id === topic.id);
-        for (const ins of topicInsights) {
-          if (ins.statement.toLowerCase().includes(query)) score += 1;
-        }
-        const topicPats = allPatterns.filter((p: any) => p.topic_id === topic.id);
-        for (const pat of topicPats) {
-          if (pat.statement.toLowerCase().includes(query)) score += 2;
-        }
-        return { topic, insights: topicInsights, patterns: topicPats, score };
-      }).filter((r: any) => r.score > 0).sort((a: any, b: any) => b.score - a.score).slice(0, 10);
-
-      res.json(scored);
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  // GET /api/brain/topics/:id/full — full topic detail including insights, patterns, skills, files
-  app.get("/api/brain/topics/:id/full", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const sql = getClient();
-
-      const topicRows = await sql`SELECT * FROM topics WHERE id = ${id} LIMIT 1`;
-      if (!topicRows.length) {
-        res.status(404).json({ error: "topic not found" });
-        return;
-      }
-
-      const [topicInsights, patterns, skills, files] = await Promise.all([
-        sql`SELECT * FROM insights WHERE topic_id = ${id}`,
-        sql`SELECT * FROM topic_patterns WHERE topic_id = ${id}`,
-        sql`SELECT * FROM topic_skills WHERE topic_id = ${id}`,
-        sql`SELECT * FROM topic_files WHERE topic_id = ${id}`,
-      ]);
-
-      res.json({ ...topicRows[0], insights: topicInsights, patterns, skills, files });
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  // GET /api/brain/skills/:id — single skill detail
-  app.get("/api/brain/skills/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const sql = getClient();
-
-      const skillRows = await sql`SELECT * FROM topic_skills WHERE id = ${id} LIMIT 1`;
-      if (!skillRows.length) {
-        res.status(404).json({ error: "skill not found" });
-        return;
-      }
-      res.json(skillRows[0]);
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  // POST /api/brain/files-context — get brain context for specific files
-  app.post("/api/brain/files-context", async (req, res) => {
-    try {
-      const { files: filePaths, repoId } = req.body;
-      if (!filePaths?.length || !repoId) {
-        res.status(400).json({ error: "files and repoId required" });
-        return;
-      }
-
-      const sql = getClient();
-      const allTopicFiles = await sql`SELECT * FROM topic_files`;
-      const matchingTopicIds = new Set(
-        allTopicFiles
-          .filter((tf: any) =>
-            filePaths.some(
-              (f: string) => tf.file_path.includes(f) || f.includes(tf.file_path),
-            ),
-          )
-          .map((tf: any) => tf.topic_id),
-      );
-
-      const matchedTopics = await sql`SELECT * FROM topics WHERE repo_id = ${repoId}`;
-      const relevant = matchedTopics.filter((t: any) => matchingTopicIds.has(t.id));
-
-      const result = await Promise.all(
-        relevant.map(async (t: any) => ({
-          topic: t,
-          insights: await sql`SELECT * FROM insights WHERE topic_id = ${t.id}`,
-          patterns: await sql`SELECT * FROM topic_patterns WHERE topic_id = ${t.id}`,
-        })),
-      );
-
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  // POST /api/brain/ask-intent — search session moments and outcomes
-  app.post("/api/brain/ask-intent", async (req, res) => {
-    try {
-      const { query: q, repoId } = req.body;
-      if (!q || !repoId) {
-        res.status(400).json({ error: "query and repoId required" });
-        return;
-      }
-
-      const searchQ = String(q).toLowerCase();
-      const sql = getClient();
-
-      const [allMoments, allOutcomes, allNarratives] = await Promise.all([
-        sql`SELECT * FROM moments`,
-        sql`SELECT * FROM outcomes`,
-        sql`SELECT * FROM narratives`,
-      ]);
-
-      const matchingMoments = allMoments.filter(
-        (m: any) =>
-          m.statement?.toLowerCase().includes(searchQ) ||
-          m.significance?.toLowerCase().includes(searchQ),
-      );
-      const matchingOutcomes = allOutcomes.filter((o: any) =>
-        o.statement?.toLowerCase().includes(searchQ),
-      );
-
-      res.json({
-        moments: matchingMoments.slice(0, 20),
-        outcomes: matchingOutcomes.slice(0, 10),
-        narratives: allNarratives
-          .filter((n: any) => n.summary?.toLowerCase().includes(searchQ))
-          .slice(0, 5),
-      });
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  // SPA fallback — serve index.html for non-API routes
   app.get("/{*path}", (_req, res) => {
     res.sendFile(join(__dirname, "public", "index.html"));
   });
 
   app.listen(port, () => {
     console.log(`intent web dashboard running at http://localhost:${port}`);
+    applySchedule();
+    if (schedule.enabled) {
+      console.log(`scheduled digestion: every ${schedule.intervalMinutes}m (debounce ${schedule.debounceMinutes}m)`);
+    }
   });
 }

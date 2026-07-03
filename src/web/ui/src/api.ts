@@ -7,12 +7,6 @@ import type {
   PendingObservation,
   SessionDetail,
   ChatMessage,
-  TopicSummary,
-  TopicDetail,
-  TimelineData,
-  BrainDiscoverResult,
-  SyncJobStatus,
-  BrainCard,
   JournalResponse,
   JournalParams,
 } from "./types";
@@ -104,16 +98,6 @@ export const untagSession = (featureId: string, sessionId: string) =>
     method: "DELETE",
   });
 
-// Topics (Brain)
-export const fetchTopics = (repoId: string) =>
-  json<TopicSummary[]>(`/api/topics?repoId=${repoId}`);
-export const fetchTopicDetail = (topicId: string) =>
-  json<TopicDetail>(`/api/topics/${topicId}`);
-
-// Timeline
-export const fetchTimeline = (repoId: string) =>
-  json<TimelineData>(`/api/timeline?repoId=${repoId}`);
-
 // Journal (observability) — GET /api/journal?since&actor&featureId&limit
 export const fetchJournal = (params: JournalParams = {}) => {
   const q = new URLSearchParams();
@@ -131,22 +115,20 @@ export const fetchSessions = (repoId?: string) =>
 export const fetchSessionDetail = (id: string) =>
   json<SessionDetail>(`/api/sessions/${id}`);
 
-// Brain Cards
-export const fetchBrainCards = (repoId: string) =>
-  json<BrainCard[]>(`/api/brain/cards/${repoId}`);
-export const fetchBrainCard = (repoId: string, nodeName: string) =>
-  json<BrainCard>(`/api/brain/cards/${repoId}/${encodeURIComponent(nodeName)}`);
-
-// Brain Sync
-export const getSyncStatus = (repoId: string) =>
-  json<SyncJobStatus | null>(`/api/brain/sync-status?repoId=${repoId}`);
-export const discoverBrainSessions = (repoId: string) =>
-  json<BrainDiscoverResult>("/api/brain/discover", {
-    method: "POST",
+// Digest — the intake and its press schedule (cron elapse settings)
+export interface DigestSchedule {
+  enabled: boolean;
+  intervalMinutes: number;
+  debounceMinutes: number;
+  lastRun?: { at: number; digested: number; skippedLive: number } | null;
+}
+export const fetchDigestSchedule = () => json<DigestSchedule>("/api/digest/schedule");
+export const saveDigestSchedule = (s: DigestSchedule) =>
+  json<DigestSchedule>("/api/digest/schedule", {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ repoId }),
+    body: JSON.stringify(s),
   });
-// proposeBrainSync and applyBrainSync now use SSE streaming directly in BrainSync.tsx
 
 // Live state (observe daemon)
 export interface LiveState {

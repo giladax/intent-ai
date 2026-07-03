@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   sessionId: string;
-  onTopicClick: (id: string) => void;
 }
 
 const MOMENT_COLORS: Record<string, string> = {
@@ -25,7 +24,7 @@ const MOMENT_COLORS: Record<string, string> = {
   transition: "bg-violet-500",
 };
 
-export function SessionDetailPage({ sessionId, onTopicClick }: Props) {
+export function SessionDetailPage({ sessionId }: Props) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
