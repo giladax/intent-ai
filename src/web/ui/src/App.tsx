@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import "@fontsource-variable/newsreader";
+import "@fontsource-variable/newsreader/wght-italic.css";
+import "./app-ink.css";
 import { TopicDetail } from "./components/TopicDetail";
 import { ChatPanel } from "./components/ChatPanel";
 import { OverviewPanel } from "./components/OverviewPanel";
@@ -14,7 +17,7 @@ import { JournalPage } from "./components/JournalPage";
 import { fetchProjects, fetchTopics, fetchSessions, fetchFeatures, fetchPendingObservations } from "./api";
 import type { LiveState } from "./api";
 import type { Project, TopicSummary, Session, Feature, BrainSyncProposal } from "./types";
-import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard, Boxes, Inbox, BookOpen } from "lucide-react";
+import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, ScrollText, Boxes, Inbox, BookOpen } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton,
@@ -53,7 +56,7 @@ export function App() {
   const [topics, setTopics] = useState<TopicSummary[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(true);
   const [view, setView] = useState<View>("journal");
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
@@ -104,7 +107,7 @@ export function App() {
   const handleProjectChange = (p: Project) => {
     setSelectedProject(p);
     setSelectedTopicId(null);
-    setView("knowledge");
+    setView("journal");
   };
 
   const handleTopicSelect = useCallback((id: string) => {
@@ -123,7 +126,7 @@ export function App() {
       fetchTopics(selectedProject.id).then(setTopics).catch(() => setTopics([]));
     }
     setUndigestedCount(0);
-    setView("overview");
+    setView("journal");
   }, [selectedProject]);
 
   const selectedTopicName = topics.find((t) => t.id === selectedTopicId)?.name;
@@ -138,7 +141,7 @@ export function App() {
     view === "sync" ? "Sync Brain" :
     view === "features" ? "Features" :
     view === "feature-detail" ? (selectedFeatureName ?? "Feature") :
-    view === "review" ? "Review Queue" :
+    view === "review" ? "Review" :
     view === "sessions" ? "Sessions" :
     view === "session-detail" ? selectedSessionLabel :
     view === "topic" && selectedTopicName ? selectedTopicName :
@@ -156,17 +159,17 @@ export function App() {
     : null;
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="ink-app">
       <Sidebar side="left" collapsible="icon" className="border-r-0">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton className="font-semibold">
+                  <SidebarMenuButton className="h-10">
                     <BrainIcon className="size-4" />
-                    <span>{selectedProject?.name ?? "intent"}</span>
-                    <ChevronDown className="ml-auto size-4" />
+                    <span className="ink-wordmark">{selectedProject?.name ?? "Brain"}</span>
+                    <ChevronDown className="ml-auto size-3.5 opacity-50" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
@@ -190,22 +193,9 @@ export function App() {
                   <SidebarMenuButton
                     isActive={view === "journal"}
                     onClick={() => { setView("journal"); setSelectedTopicId(null); }}
-                    className="text-sm"
                   >
                     <BookOpen className="size-4" />
-                    <span>Journal</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                {/* Overview */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={view === "overview"}
-                    onClick={() => { setView("overview"); setSelectedTopicId(null); }}
-                    className="text-sm"
-                  >
-                    <LayoutDashboard className="size-4" />
-                    <span>Overview</span>
+                    <span className="ink-nav-label">Journal</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
@@ -214,59 +204,39 @@ export function App() {
                   <SidebarMenuButton
                     isActive={view === "features" || view === "feature-detail"}
                     onClick={() => { setView("features"); setSelectedFeatureId(null); }}
-                    className="text-sm"
                   >
                     <Boxes className="size-4" />
-                    <span>Features</span>
+                    <span className="ink-nav-label">Features</span>
                   </SidebarMenuButton>
-                  <span className="absolute top-1 right-2 text-[10px] text-muted-foreground tabular-nums">{features.length}</span>
+                  <span className="ink-nav-count absolute top-1/2 -translate-y-1/2 right-2">{features.length}</span>
                 </SidebarMenuItem>
 
-                {/* Review Queue nav */}
+                {/* Review nav — the human gate */}
                 <SidebarMenuItem className="relative">
                   <SidebarMenuButton
                     isActive={view === "review"}
                     onClick={() => { setView("review"); setSelectedTopicId(null); }}
-                    className="text-sm"
                   >
                     <Inbox className="size-4" />
-                    <span>Review Queue</span>
+                    <span className="ink-nav-label">Review</span>
                   </SidebarMenuButton>
                   {pendingCount > 0 && (
-                    <span className="absolute top-1 right-2 flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold">
-                      {pendingCount}
-                    </span>
+                    <span className="ink-badge-red absolute top-1/2 -translate-y-1/2 right-2">{pendingCount}</span>
                   )}
-                </SidebarMenuItem>
-
-                {/* Knowledge Tree nav */}
-                <SidebarMenuItem className="relative">
-                  <SidebarMenuButton
-                    isActive={view === "knowledge" || view === "topic"}
-                    onClick={() => { setView("knowledge"); setSelectedTopicId(null); }}
-                    className="text-sm"
-                  >
-                    <Layers className="size-4" />
-                    <span>Knowledge Tree</span>
-                  </SidebarMenuButton>
-                  <span className="absolute top-1 right-2 text-[10px] text-muted-foreground tabular-nums">{topics.length}</span>
                 </SidebarMenuItem>
 
                 {/* Sessions nav */}
                 <SidebarMenuItem className="relative">
                   <SidebarMenuButton
-                    isActive={view === "sessions"}
+                    isActive={view === "sessions" || view === "session-detail"}
                     onClick={() => { setView("sessions"); setSelectedTopicId(null); }}
-                    className="text-sm"
                   >
                     <ScrollText className="size-4" />
-                    <span>Sessions</span>
+                    <span className="ink-nav-label">Sessions</span>
                   </SidebarMenuButton>
-                  <span className="absolute top-1 right-2 text-[10px] text-muted-foreground tabular-nums">{sessions.length}</span>
+                  <span className="ink-nav-count absolute top-1/2 -translate-y-1/2 right-2">{sessions.length}</span>
                   {undigestedCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold">
-                      {undigestedCount}
-                    </span>
+                    <span className="ink-badge-red absolute -top-0.5 right-1">{undigestedCount}</span>
                   )}
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -302,11 +272,11 @@ export function App() {
       </Sidebar>
 
       <SidebarInset className="h-svh overflow-hidden">
-        <header className="sticky top-0 flex h-12 shrink-0 items-center gap-2 border-b bg-background z-10">
+        <header className="ink-bar sticky top-0 flex h-12 shrink-0 items-center gap-2 z-10">
           <div className="flex flex-1 items-center gap-2 px-3">
             <SidebarTrigger />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-            <Breadcrumb>
+            <Breadcrumb className="ink-crumb">
               <BreadcrumbList>
                 <BreadcrumbItem>
                   {view === "topic" ? (
@@ -340,14 +310,20 @@ export function App() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <Button
-            variant="ghost" size="sm"
-            className="mr-3"
+          <button
+            className="ink-chip mr-3 inline-flex items-center gap-1.5"
+            data-active={!chatCollapsed}
+            style={{
+              fontFamily: "var(--j-mono)", fontSize: "0.625rem", letterSpacing: "0.14em",
+              textTransform: "uppercase", border: "1px solid var(--j-hairline)", borderRadius: 999,
+              padding: "0.3rem 0.75rem", color: chatCollapsed ? "var(--j-ink-soft)" : "var(--j-paper)",
+              background: chatCollapsed ? "transparent" : "var(--j-ink)", cursor: "pointer",
+            }}
             onClick={() => setChatCollapsed(!chatCollapsed)}
           >
-            {chatCollapsed ? <MessageSquare className="size-4" /> : <X className="size-4" />}
-            <span className="ml-1 text-xs">{chatCollapsed ? "Chat" : "Close"}</span>
-          </Button>
+            {chatCollapsed ? <MessageSquare className="size-3" /> : <X className="size-3" />}
+            {chatCollapsed ? "Ask the Brain" : "Close"}
+          </button>
         </header>
 
         <div className="flex-1 overflow-hidden">

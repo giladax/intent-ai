@@ -1,8 +1,6 @@
 import type { Session } from "../types";
 import type { LiveState } from "../api";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { RefreshCw, CircleDot } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 interface Props {
   sessions: Session[];
@@ -25,84 +23,69 @@ export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onS
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Sessions</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {sessions.length} digested
-            {undigestedCount > 0 && (
-              <span className="text-amber-600 dark:text-amber-400"> · {undigestedCount} waiting</span>
-            )}
-          </p>
-        </div>
-        {undigestedCount > 0 && (
-          <Button size="sm" className="gap-1.5" onClick={onSync}>
-            <RefreshCw className="size-3" />
-            Digest {undigestedCount} new
-          </Button>
-        )}
-      </div>
-
-      {/* Undigested banner */}
-      {undigestedCount > 0 && (
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-sm">
-          <div className="flex gap-1">
-            {Array.from({ length: Math.min(undigestedCount, 5) }).map((_, i) => (
-              <div key={i} className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
-            ))}
-          </div>
-          <span>{undigestedCount} Claude Code session{undigestedCount !== 1 ? "s" : ""} not yet digested</span>
-        </div>
-      )}
-
-      {/* Session list */}
-      {sorted.length === 0 ? (
-        <div className="text-center text-sm text-muted-foreground py-12">
-          <p>No digested sessions yet.</p>
+    <div className="mx-auto max-w-2xl px-8 pb-24 pt-12">
+      <header>
+        <div className="ink-rise flex items-baseline justify-between" style={{ "--i": 0 } as React.CSSProperties}>
+          <span className="ink-kicker">The record — every session, digested</span>
           {undigestedCount > 0 && (
-            <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={onSync}>
-              <RefreshCw className="size-3" />
-              Start digesting
-            </Button>
+            <button className="ink-stamp ink-stamp--approve inline-flex items-center gap-1.5" onClick={onSync}>
+              <RefreshCw className="size-3" /> Digest {undigestedCount} new
+            </button>
           )}
+        </div>
+        <h1 className="ink-masthead ink-rise mt-2" style={{ "--i": 1 } as React.CSSProperties}>Sessions</h1>
+        <div className="ink-rule-double ink-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
+        <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>
+          <span style={{ fontStyle: "normal", fontWeight: 600, color: "var(--j-ink)" }}>{sessions.length}</span>{" "}
+          session{sessions.length === 1 ? "" : "s"} digested
+          {undigestedCount > 0 && (
+            <>
+              {"; "}
+              <span style={{ color: "var(--j-red)" }}>
+                {undigestedCount} waiting to be read
+              </span>
+            </>
+          )}
+          .
+        </p>
+      </header>
+
+      {sorted.length === 0 ? (
+        <div className="ink-rise mt-16 text-center" style={{ "--i": 3 } as React.CSSProperties}>
+          <p className="ink-deck">No digested sessions yet.</p>
         </div>
       ) : (
-        <div className="space-y-0.5">
+        <div className="ink-ledger mt-8">
           {liveState?.state && (
-            <div
-              className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group border border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/20"
-              onClick={() => onSessionClick('live')}
-            >
-              <span className="relative flex size-3 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-3 bg-emerald-500" />
+            <button className="ink-ledger-row" onClick={() => onSessionClick("live")}>
+              <span className="relative flex size-2.5 shrink-0 self-center">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "var(--j-moss)" }} />
+                <span className="relative inline-flex size-2.5 rounded-full" style={{ background: "var(--j-moss)" }} />
               </span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300">Live</Badge>
-              <span className="text-sm flex-1 truncate">
+              <span className="ink-ledger-title min-w-0 flex-1" style={{ fontSize: "0.98rem" }}>
                 {liveState.state.currentIntent || "Active session"}
               </span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">{liveState.state.turnCount} turns</Badge>
-            </div>
+              <span className="ink-tag ink-tag--moss">live · {liveState.state.turnCount} turns</span>
+            </button>
           )}
-          {sorted.map((s) => (
-            <div
+          {sorted.map((s, i) => (
+            <button
               key={s.id}
-              className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group"
+              className="ink-ledger-row ink-rise"
+              style={{ "--i": i + 3 } as React.CSSProperties}
               onClick={() => onSessionClick(s.id)}
             >
-              <CircleDot className="size-3 shrink-0 text-emerald-500" />
-              <span className="text-xs text-muted-foreground shrink-0 w-16 tabular-nums">
-                {formatDate(s.started_at)}
+              <span className="ink-ledger-meta w-12 shrink-0">{formatDate(s.started_at)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="ink-ledger-title" style={{ fontSize: "0.98rem" }}>
+                  {s.narrative_summary?.split(/[.!?\n]/)[0] || "No narrative"}
+                </span>
               </span>
-              <span className="text-sm flex-1 truncate">
-                {s.narrative_summary?.split(/[.!?\n]/)[0] || "No narrative"}
+              <span className="flex items-center gap-2">
+                {s.session_shape && <span className="ink-tag">{s.session_shape}</span>}
+                <span className="ink-ledger-meta">{s.moment_count} moments</span>
               </span>
-              {s.session_shape && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">{s.session_shape}</Badge>
-              )}
-            </div>
+            </button>
           ))}
         </div>
       )}

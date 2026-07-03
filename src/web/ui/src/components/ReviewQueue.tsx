@@ -6,12 +6,8 @@ import {
   editObservation,
 } from "../api";
 import type { PendingObservation } from "../types";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, X, Pencil, Inbox } from "lucide-react";
 
 interface Props {
   repoId: string | null;
@@ -23,15 +19,6 @@ interface Props {
 function kindOf(category: string): string {
   return category.startsWith("observation:") ? category.slice("observation:".length) : category;
 }
-
-const KIND_COLORS: Record<string, string> = {
-  constraint: "bg-amber-500",
-  unknown: "bg-purple-500",
-  techdebt: "bg-red-500",
-  "tech-debt": "bg-red-500",
-  insight: "bg-blue-500",
-  rating: "bg-slate-500",
-};
 
 export function ReviewQueue({ repoId, onFeatureClick }: Props) {
   const [items, setItems] = useState<PendingObservation[] | null>(null);
@@ -79,131 +66,112 @@ export function ReviewQueue({ repoId, onFeatureClick }: Props) {
 
   if (items === null) {
     return (
-      <div className="max-w-2xl p-6 space-y-4">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
+      <div className="mx-auto max-w-2xl px-8 py-12">
+        <div className="ink-kicker">The gate</div>
+        <Skeleton className="mt-3 h-8 w-40" />
+        <Skeleton className="mt-6 h-24 w-full" />
       </div>
     );
   }
 
+  const minutes = Math.max(1, Math.round(items.length * 0.5));
+
   return (
-    <div className="max-w-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Review Queue</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Pending observations reported by agents. Approve to promote into a feature's Current
-            Understanding.
-          </p>
+    <div className="mx-auto max-w-2xl px-8 pb-24 pt-12">
+      <header>
+        <div className="ink-rise flex items-baseline justify-between" style={{ "--i": 0 } as React.CSSProperties}>
+          <span className="ink-kicker">The gate — what the Brain wants to learn</span>
+          <button className="ink-stamp ink-stamp--quiet" onClick={load}>Refresh</button>
         </div>
-        <Button variant="outline" size="sm" onClick={load}>
-          Refresh
-        </Button>
-      </div>
+        <h1 className="ink-masthead ink-rise mt-2" style={{ "--i": 1 } as React.CSSProperties}>Review</h1>
+        <div className="ink-rule-double ink-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
+        <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>
+          {items.length > 0 ? (
+            <>
+              <span className="j-fig" style={{ fontStyle: "normal", fontWeight: 600, color: "var(--j-red)" }}>{items.length}</span>{" "}
+              observation{items.length === 1 ? "" : "s"} await your judgment — about {minutes} minute{minutes === 1 ? "" : "s"}.
+              Approving teaches; whatever you approve is served to every agent that enters the feature.
+            </>
+          ) : (
+            <>The Brain is current — every observation has been judged. Come back after the next session.</>
+          )}
+        </p>
+      </header>
 
-      {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
-          <Inbox className="size-8" />
-          <p className="text-sm">No pending observations. The brain is up to date.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {items.map((o) => {
-            const kind = kindOf(o.category);
-            const isEditing = editingId === o.id;
-            const busy = busyId === o.id;
-            return (
-              <Card key={o.id} className="p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${KIND_COLORS[kind] ?? "bg-slate-400"}`}
-                  />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {kind || "observation"}
-                  </span>
-                  {o.feature_name ? (
-                    <Badge
-                      variant="outline"
-                      className={onFeatureClick && o.feature_id ? "cursor-pointer hover:bg-accent" : ""}
-                      onClick={() =>
-                        onFeatureClick && o.feature_id && onFeatureClick(o.feature_id)
-                      }
-                    >
-                      {o.feature_name}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-[10px]">
-                      unresolved feature
-                    </Badge>
-                  )}
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {o.created_at ? new Date(o.created_at).toLocaleDateString() : ""}
-                  </span>
-                </div>
+      <div className="mt-8 space-y-4">
+        {items.map((o, i) => {
+          const kind = kindOf(o.category);
+          const isEditing = editingId === o.id;
+          const busy = busyId === o.id;
+          return (
+            <div key={o.id} className="ink-note ink-rise" style={{ "--i": i + 3 } as React.CSSProperties}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="ink-note-label">{kind || "observation"} · awaiting review</span>
+                <span className="ml-auto ink-ledger-meta">
+                  {o.actor ? `${o.actor} · ` : ""}
+                  {o.created_at
+                    ? new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                    : ""}
+                </span>
+              </div>
 
+              {isEditing ? (
+                <Textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  rows={3}
+                  className="mt-2 text-sm"
+                  style={{ fontFamily: "var(--j-serif)", fontStyle: "italic" }}
+                />
+              ) : (
+                <p className="ink-note-text">{o.summary}</p>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {isEditing ? (
-                  <Textarea
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    rows={3}
-                    className="text-sm"
-                  />
+                  <>
+                    <button className="ink-stamp ink-stamp--approve" disabled={busy} onClick={() => saveEdit(o.id)}>
+                      Save
+                    </button>
+                    <button className="ink-stamp ink-stamp--quiet" disabled={busy} onClick={() => setEditingId(null)}>
+                      Cancel
+                    </button>
+                  </>
                 ) : (
-                  <p className="text-sm leading-relaxed">{o.summary}</p>
+                  <>
+                    <button className="ink-stamp ink-stamp--approve" disabled={busy} onClick={() => act(o.id, approveObservation)}>
+                      Approve
+                    </button>
+                    <button className="ink-stamp ink-stamp--reject" disabled={busy} onClick={() => act(o.id, rejectObservation)}>
+                      Reject
+                    </button>
+                    <button
+                      className="ink-stamp ink-stamp--quiet"
+                      disabled={busy}
+                      onClick={() => {
+                        setEditingId(o.id);
+                        setDraft(o.summary);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </>
                 )}
-
-                <div className="flex items-center gap-2">
-                  {isEditing ? (
-                    <>
-                      <Button size="sm" disabled={busy} onClick={() => saveEdit(o.id)}>
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => act(o.id, approveObservation)}
-                      >
-                        <Check className="size-3.5 mr-1" /> Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => act(o.id, rejectObservation)}
-                      >
-                        <X className="size-3.5 mr-1" /> Reject
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() => {
-                          setEditingId(o.id);
-                          setDraft(o.summary);
-                        }}
-                      >
-                        <Pencil className="size-3.5 mr-1" /> Edit
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                {o.feature_name ? (
+                  <button
+                    className="ink-tag ml-auto"
+                    onClick={() => onFeatureClick && o.feature_id && onFeatureClick(o.feature_id)}
+                  >
+                    {o.feature_name}
+                  </button>
+                ) : (
+                  <span className="ink-tag ink-tag--red ml-auto">unresolved feature</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

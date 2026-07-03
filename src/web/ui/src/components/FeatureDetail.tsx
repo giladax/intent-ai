@@ -6,12 +6,8 @@ import {
   removeFeatureFile,
 } from "../api";
 import type { FeatureDetail as FeatureDetailType, FeatureFile } from "../types";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trash2, Plus, FileQuestion, ShieldAlert, BookOpen } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 
 interface Props {
   featureId: string | null;
@@ -72,18 +68,18 @@ export function FeatureDetail({ featureId, onSessionClick }: Props) {
 
   if (!featureId) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-        Select a feature to see its understanding
+      <div className="flex h-full items-center justify-center">
+        <p className="ink-deck">Select a feature to read its dossier.</p>
       </div>
     );
   }
 
   if (!detail) {
     return (
-      <div className="max-w-2xl p-6 space-y-6">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-20 w-full" />
+      <div className="mx-auto max-w-2xl px-8 py-12">
+        <div className="ink-kicker">The dossier</div>
+        <Skeleton className="mt-3 h-8 w-48" />
+        <Skeleton className="mt-6 h-20 w-full" />
       </div>
     );
   }
@@ -93,159 +89,128 @@ export function FeatureDetail({ featureId, onSessionClick }: Props) {
   const knownUnknowns = f.known_unknowns ?? [];
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+  const understandingLines = (f.current_understanding ?? "")
+    .split("\n")
+    .map((l) => l.replace(/^[-*]\s+/, "").trim())
+    .filter(Boolean);
 
   return (
-    <div className="max-w-2xl p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">{f.name}</h2>
+    <div className="mx-auto max-w-2xl px-8 pb-24 pt-12">
+      {/* masthead */}
+      <header>
+        <div className="ink-kicker ink-rise" style={{ "--i": 0 } as React.CSSProperties}>Feature dossier</div>
+        <h1 className="ink-masthead ink-rise mt-2" style={{ "--i": 1 } as React.CSSProperties}>{f.name}</h1>
+        <div className="ink-rule-double ink-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
         {f.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed mt-1">{f.description}</p>
+          <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>{f.description}</p>
         )}
-      </div>
+      </header>
 
-      {/* Current Understanding */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <BookOpen className="size-3.5 text-muted-foreground" />
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Current Understanding
-          </h3>
-        </div>
-        {f.current_understanding ? (
-          <Card className="p-3">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{f.current_understanding}</p>
-          </Card>
+      {/* Current Understanding — the served product, so it reads as prose */}
+      <section className="ink-rise mt-10" style={{ "--i": 3 } as React.CSSProperties}>
+        <h3 className="ink-section">Current understanding</h3>
+        {understandingLines.length > 0 ? (
+          <ul className="ink-prose mt-4">
+            {understandingLines.map((l, i) => (
+              <li key={i}>{l}</li>
+            ))}
+          </ul>
         ) : (
-          <p className="text-sm text-muted-foreground italic">
-            No understanding yet. Approve observations in the Review Queue to build it.
+          <p className="ink-deck mt-4">
+            Nothing yet — approve observations in Review and the understanding assembles here.
           </p>
         )}
-      </div>
+      </section>
 
-      {/* Constraints */}
+      {/* Constraints — red ink; these are what agents must respect */}
       {constraints.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="size-3.5 text-amber-500" />
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Constraints
-            </h3>
-          </div>
-          <div className="space-y-1">
+        <section className="ink-rise mt-10" style={{ "--i": 4 } as React.CSSProperties}>
+          <h3 className="ink-section">Constraints — served to every agent that enters</h3>
+          <div className="mt-4 space-y-3">
             {constraints.map((c, i) => (
-              <Card key={i} className="p-2.5 border-amber-500/30">
-                <p className="text-sm leading-relaxed">{c}</p>
-              </Card>
+              <div key={i} className="ink-note">
+                <div className="ink-note-label">constraint</div>
+                <p className="ink-note-text">{c}</p>
+              </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Known Unknowns */}
+      {/* Known Unknowns — open questions */}
       {knownUnknowns.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <FileQuestion className="size-3.5 text-purple-500" />
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Known Unknowns
-            </h3>
-          </div>
-          <div className="space-y-1">
+        <section className="ink-rise mt-10" style={{ "--i": 5 } as React.CSSProperties}>
+          <h3 className="ink-section">Known unknowns</h3>
+          <div className="mt-4 space-y-3">
             {knownUnknowns.map((u, i) => (
-              <Card key={i} className="p-2.5 border-purple-500/30">
-                <p className="text-sm leading-relaxed">{u}</p>
-              </Card>
+              <div key={i} className="ink-note ink-note--plain">
+                <div className="ink-note-label">open question</div>
+                <p className="ink-note-text">{u}</p>
+              </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Evidence Sessions */}
       {detail.sessions.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Evidence Sessions ({detail.sessions.length})
-          </h3>
-          <div className="space-y-1">
+        <section className="ink-rise mt-10" style={{ "--i": 6 } as React.CSSProperties}>
+          <h3 className="ink-section">Evidence — {detail.sessions.length} session{detail.sessions.length === 1 ? "" : "s"}</h3>
+          <div className="ink-ledger mt-4">
             {detail.sessions.map((s) => (
-              <div
-                key={s.id}
-                className={`flex items-center gap-3 py-2 px-3 rounded hover:bg-accent/50 ${
-                  onSessionClick ? "cursor-pointer" : ""
-                }`}
-                onClick={() => onSessionClick?.(s.id)}
-              >
-                <span className="text-xs text-muted-foreground shrink-0 w-12">
-                  {formatDate(s.startedAt)}
-                </span>
-                <span className="text-sm truncate flex-1">
+              <button key={s.id} className="ink-ledger-row" onClick={() => onSessionClick?.(s.id)}>
+                <span className="ink-ledger-meta w-12 shrink-0">{formatDate(s.startedAt)}</span>
+                <span className="ink-ledger-title min-w-0 flex-1" style={{ fontSize: "0.95rem" }}>
                   {s.narrativeSummary || s.sessionShape || "Session"}
                 </span>
-                {s.role && (
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {s.role}
-                  </Badge>
-                )}
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {s.momentCount} moments
+                <span className="ink-ledger-meta">
+                  {s.role ? `${s.role} · ` : ""}
+                  {s.momentCount} moment{s.momentCount === 1 ? "" : "s"}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Feature↔File Map management */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          File Map ({files.length})
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          Globs that resolve to this feature (longest-glob-wins). Used by{" "}
-          <code className="font-mono">brain.enter(file)</code>.
+      {/* Feature↔File Map */}
+      <section className="ink-rise mt-10" style={{ "--i": 7 } as React.CSSProperties}>
+        <h3 className="ink-section">File map — {files.length} glob{files.length === 1 ? "" : "s"}</h3>
+        <p className="ink-chrome mt-3 italic">
+          Longest glob wins; this is how <code>brain.enter(file)</code> finds the feature.
         </p>
-        <div className="flex gap-2">
-          <Input
+        <div className="mt-3 flex items-center gap-3">
+          <input
+            className="ink-input"
             value={newGlob}
             onChange={(e) => setNewGlob(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") addGlob();
             }}
             placeholder="e.g. src/web/**"
-            className="text-sm font-mono"
           />
-          <Button size="sm" disabled={busy || !newGlob.trim()} onClick={addGlob}>
-            <Plus className="size-3.5 mr-1" /> Add
-          </Button>
+          <button className="ink-stamp ink-stamp--approve inline-flex items-center gap-1" disabled={busy || !newGlob.trim()} onClick={addGlob}>
+            <Plus className="size-3" /> Add
+          </button>
         </div>
-        <div className="space-y-1">
+        <div className="mt-2">
           {files.map((file) => (
-            <div
-              key={file.id}
-              className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-accent/50 group"
-            >
-              <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded flex-1 truncate">
-                {file.glob}
-              </code>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-6 opacity-0 group-hover:opacity-100"
+            <div key={file.id} className="group flex items-center gap-2 border-b py-1.5" style={{ borderColor: "var(--j-hairline)" }}>
+              <code className="ink-chrome flex-1 truncate">{file.glob}</code>
+              <button
+                className="opacity-0 transition-opacity group-hover:opacity-100"
                 disabled={busy}
                 onClick={() => removeGlob(file.id)}
               >
-                <Trash2 className="size-3.5 text-muted-foreground" />
-              </Button>
+                <Trash2 className="size-3.5" style={{ color: "var(--j-faint)" }} />
+              </button>
             </div>
           ))}
           {files.length === 0 && (
-            <p className="text-xs text-muted-foreground italic">
-              No globs yet. Add one to map files to this feature.
-            </p>
+            <p className="ink-chrome mt-2 italic">No globs yet — add one to map files to this feature.</p>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

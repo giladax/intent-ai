@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchFeatures, createFeature } from "../api";
 import type { Feature } from "../types";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Boxes } from "lucide-react";
+import { Plus } from "lucide-react";
 
 interface Props {
   repoId: string | null;
@@ -50,70 +46,77 @@ export function FeaturesPage({ repoId, onFeatureClick }: Props) {
 
   if (features === null) {
     return (
-      <div className="max-w-2xl p-6 space-y-3">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
+      <div className="mx-auto max-w-2xl px-8 py-12">
+        <div className="ink-kicker">The atlas</div>
+        <Skeleton className="mt-3 h-8 w-40" />
+        <Skeleton className="mt-6 h-16 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Features</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            The unit understanding converges on. Each holds Current Understanding, constraints, and
-            evidence.
-          </p>
+    <div className="mx-auto max-w-2xl px-8 pb-24 pt-12">
+      <header>
+        <div className="ink-rise flex items-baseline justify-between" style={{ "--i": 0 } as React.CSSProperties}>
+          <span className="ink-kicker">The atlas — what the Brain holds</span>
+          <button
+            className="ink-stamp ink-stamp--quiet inline-flex items-center gap-1"
+            onClick={() => setCreating((v) => !v)}
+          >
+            <Plus className="size-3" /> New feature
+          </button>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setCreating((v) => !v)}>
-          <Plus className="size-3.5 mr-1" /> New Feature
-        </Button>
-      </div>
+        <h1 className="ink-masthead ink-rise mt-2" style={{ "--i": 1 } as React.CSSProperties}>Features</h1>
+        <div className="ink-rule-double ink-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
+        <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>
+          The unit understanding converges on — each holds a current understanding, its constraints,
+          and the evidence they came from.
+        </p>
+      </header>
 
       {creating && (
-        <div className="flex gap-2">
-          <Input
+        <div className="ink-rise mt-6 flex items-center gap-3">
+          <input
+            className="ink-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") create();
             }}
-            placeholder="Feature name"
-            className="text-sm"
+            placeholder="name the feature…"
             autoFocus
           />
-          <Button size="sm" disabled={busy || !name.trim()} onClick={create}>
+          <button className="ink-stamp ink-stamp--approve" disabled={busy || !name.trim()} onClick={create}>
             Create
-          </Button>
+          </button>
         </div>
       )}
 
       {features.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
-          <Boxes className="size-8" />
-          <p className="text-sm">No features yet. Create one to start mapping understanding.</p>
+        <div className="ink-rise mt-16 text-center" style={{ "--i": 3 } as React.CSSProperties}>
+          <p className="ink-deck">
+            The atlas is empty. Create a feature to start
+            <br />
+            mapping what the Brain understands.
+          </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {features.map((f) => (
-            <Card
+        <div className="ink-ledger mt-8">
+          {features.map((f, i) => (
+            <button
               key={f.id}
-              className="p-4 cursor-pointer hover:bg-accent/40 transition-colors"
+              className="ink-ledger-row ink-rise"
+              style={{ "--i": i + 3 } as React.CSSProperties}
               onClick={() => onFeatureClick(f.id)}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium flex-1 truncate">{f.name}</span>
-                <Badge variant="secondary" className="text-[10px]">
-                  {f.session_count} sessions
-                </Badge>
+              <div className="min-w-0 flex-1">
+                <div className="ink-ledger-title">{f.name}</div>
+                {f.description && <div className="ink-ledger-sub mt-0.5">{f.description}</div>}
               </div>
-              {f.description && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{f.description}</p>
-              )}
-            </Card>
+              <span className="ink-ledger-meta">
+                {f.session_count ?? 0} session{(f.session_count ?? 0) === 1 ? "" : "s"}
+              </span>
+            </button>
           ))}
         </div>
       )}

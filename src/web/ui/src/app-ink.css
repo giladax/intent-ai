@@ -1,0 +1,344 @@
+/* ── Ink & Paper — the app-wide design system ──────────────────────────
+   The Journal's editorial language promoted to the whole product.
+   `.ink-app` wraps the shell: shadcn tokens are re-mapped to paper/ink so
+   every existing component inherits the palette; the classes below carry
+   the editorial typography (serif mastheads, mono small-caps chrome,
+   ledger rows, red-ink notes, stamps).                                  */
+
+.ink-app {
+  /* editorial tokens (shared with journal.css) */
+  --j-ink: oklch(0.24 0.02 60);
+  --j-ink-soft: oklch(0.45 0.015 60);
+  --j-faint: oklch(0.58 0.012 60);
+  --j-hairline: oklch(0.88 0.012 75);
+  --j-paper: oklch(0.982 0.006 85);
+  --j-paper-raise: oklch(0.995 0.004 90);
+  --j-wash: oklch(0.955 0.01 85);
+  --j-red: oklch(0.55 0.19 30);
+  --j-red-soft: oklch(0.55 0.19 30 / 0.08);
+  --j-moss: oklch(0.52 0.09 150);
+  --j-moss-soft: oklch(0.52 0.09 150 / 0.1);
+  --j-consult: oklch(0.5 0.09 250);
+  --j-serif: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
+  --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+  /* re-map shadcn tokens → every component turns paper */
+  --background: var(--j-paper);
+  --foreground: var(--j-ink);
+  --card: var(--j-paper-raise);
+  --card-foreground: var(--j-ink);
+  --popover: var(--j-paper-raise);
+  --popover-foreground: var(--j-ink);
+  --primary: var(--j-ink);
+  --primary-foreground: var(--j-paper);
+  --secondary: var(--j-wash);
+  --secondary-foreground: var(--j-ink);
+  --muted: var(--j-wash);
+  --muted-foreground: var(--j-ink-soft);
+  --accent: var(--j-wash);
+  --accent-foreground: var(--j-ink);
+  --border: var(--j-hairline);
+  --input: var(--j-hairline);
+  --ring: var(--j-faint);
+  --destructive: var(--j-red);
+
+  --sidebar: oklch(0.962 0.009 85);
+  --sidebar-foreground: var(--j-ink);
+  --sidebar-primary: var(--j-ink);
+  --sidebar-primary-foreground: var(--j-paper);
+  --sidebar-accent: oklch(0.93 0.012 85);
+  --sidebar-accent-foreground: var(--j-ink);
+  --sidebar-border: var(--j-hairline);
+  --sidebar-ring: var(--j-faint);
+
+  background: var(--j-paper);
+  color: var(--j-ink);
+}
+
+.dark .ink-app {
+  --j-ink: oklch(0.9 0.012 80);
+  --j-ink-soft: oklch(0.72 0.012 75);
+  --j-faint: oklch(0.58 0.012 70);
+  --j-hairline: oklch(0.3 0.012 60);
+  --j-paper: oklch(0.185 0.008 55);
+  --j-paper-raise: oklch(0.22 0.01 55);
+  --j-wash: oklch(0.24 0.012 55);
+  --j-red: oklch(0.68 0.17 32);
+  --j-red-soft: oklch(0.68 0.17 32 / 0.12);
+  --j-moss: oklch(0.72 0.1 150);
+  --j-moss-soft: oklch(0.72 0.1 150 / 0.14);
+  --j-consult: oklch(0.72 0.09 250);
+
+  --sidebar: oklch(0.165 0.008 55);
+  --sidebar-accent: oklch(0.235 0.012 55);
+}
+
+/* ── Editorial primitives (shared across pages) ───────────────────── */
+
+.ink-kicker {
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+}
+
+.ink-masthead {
+  font-family: var(--j-serif);
+  font-weight: 500;
+  font-size: 1.75rem;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: var(--j-ink);
+}
+
+.ink-deck {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-weight: 380;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--j-ink-soft);
+  text-wrap: pretty;
+}
+
+.ink-rule-double {
+  border-top: 1px solid var(--j-hairline);
+  border-bottom: 1px solid var(--j-hairline);
+  height: 4px;
+}
+
+.ink-section {
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.ink-section::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--j-hairline);
+}
+
+.ink-chrome {
+  font-family: var(--j-mono);
+  font-size: 0.6875rem;
+  color: var(--j-ink-soft);
+}
+
+/* ledger rows — the list primitive */
+.ink-ledger {
+  border-top: 1px solid var(--j-hairline);
+}
+.ink-ledger-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.85rem 0.6rem;
+  border-bottom: 1px solid var(--j-hairline);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ink-ledger-row:hover {
+  background: color-mix(in oklch, var(--j-paper-raise) 80%, transparent);
+}
+.ink-ledger-title {
+  font-family: var(--j-serif);
+  font-size: 1.06rem;
+  font-weight: 480;
+  line-height: 1.4;
+  color: var(--j-ink);
+}
+.ink-ledger-sub {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--j-faint);
+  line-height: 1.45;
+}
+.ink-ledger-meta {
+  font-family: var(--j-mono);
+  font-size: 0.635rem;
+  letter-spacing: 0.04em;
+  color: var(--j-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* red-ink margin note (shared with the Journal's language) */
+.ink-note {
+  padding: 0.7rem 0.9rem 0.75rem;
+  border-left: 2px solid var(--j-red);
+  background: var(--j-red-soft);
+  border-radius: 0 8px 8px 0;
+}
+.ink-note-label {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--j-red);
+}
+.ink-note-text {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--j-ink);
+  margin-top: 0.3rem;
+}
+.ink-note--moss {
+  border-left-color: var(--j-moss);
+  background: var(--j-moss-soft);
+}
+.ink-note--moss .ink-note-label { color: var(--j-moss); }
+.ink-note--plain {
+  border-left-color: var(--j-faint);
+  background: color-mix(in oklch, var(--j-wash) 60%, transparent);
+}
+.ink-note--plain .ink-note-label { color: var(--j-faint); }
+
+/* stamps */
+.ink-stamp {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  border-radius: 3px;
+  border: 1px solid;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.ink-stamp:disabled { opacity: 0.4; cursor: default; }
+.ink-stamp--approve { color: var(--j-moss); border-color: color-mix(in oklch, var(--j-moss) 50%, transparent); }
+.ink-stamp--approve:hover:not(:disabled) { background: var(--j-moss); border-color: var(--j-moss); color: var(--j-paper); }
+.ink-stamp--reject { color: var(--j-faint); border-color: var(--j-hairline); }
+.ink-stamp--reject:hover:not(:disabled) { color: var(--j-red); border-color: var(--j-red); }
+.ink-stamp--quiet { color: var(--j-faint); border-color: transparent; }
+.ink-stamp--quiet:hover:not(:disabled) { color: var(--j-ink); }
+
+/* tags */
+.ink-tag {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--j-ink-soft);
+  border: 1px solid var(--j-hairline);
+  border-radius: 3px;
+  padding: 0.12rem 0.45rem;
+  background: transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+button.ink-tag { cursor: pointer; }
+button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); background: var(--j-wash); }
+.ink-tag--red { color: var(--j-red); border-color: color-mix(in oklch, var(--j-red) 45%, transparent); }
+.ink-tag--moss { color: var(--j-moss); border-color: color-mix(in oklch, var(--j-moss) 45%, transparent); }
+
+/* serif prose (understanding text) */
+.ink-prose {
+  font-family: var(--j-serif);
+  font-size: 1rem;
+  font-weight: 420;
+  line-height: 1.7;
+  color: var(--j-ink);
+  text-wrap: pretty;
+}
+.ink-prose li {
+  margin-left: 1.1rem;
+  list-style: none;
+  position: relative;
+  padding: 0.15rem 0;
+}
+.ink-prose li::before {
+  content: "—";
+  position: absolute;
+  left: -1.1rem;
+  color: var(--j-faint);
+}
+
+/* quiet mono input (search / glob fields) */
+.ink-input {
+  border: none;
+  border-bottom: 1px solid var(--j-hairline);
+  background: transparent;
+  border-radius: 0;
+  font-family: var(--j-mono);
+  font-size: 0.75rem;
+  color: var(--j-ink);
+  padding: 0.3rem 0.15rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+.ink-input:focus { border-bottom-color: var(--j-ink-soft); }
+.ink-input::placeholder { color: var(--j-faint); font-style: italic; }
+
+/* app chrome: header bar + sidebar typography */
+.ink-app header.ink-bar {
+  background: var(--j-paper);
+  border-bottom: 1px solid var(--j-hairline);
+}
+.ink-app .ink-crumb,
+.ink-app .ink-crumb a,
+.ink-app .ink-crumb span {
+  font-family: var(--j-mono);
+  font-size: 0.655rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ink-wordmark {
+  font-family: var(--j-serif);
+  font-weight: 550;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+.ink-nav-label {
+  font-family: var(--j-mono);
+  font-size: 0.685rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ink-nav-count {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  color: var(--j-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ink-badge-red {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--j-red);
+  color: oklch(0.99 0.005 85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* shared rise animation */
+@keyframes ink-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ink-rise {
+  animation: ink-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 40ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ink-rise { animation: none; }
+}
