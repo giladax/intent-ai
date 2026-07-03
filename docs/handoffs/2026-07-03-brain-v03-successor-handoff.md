@@ -36,6 +36,10 @@ Branch `feat/repo-brain`, all of it committed through `28bbf0e` (2026-07-04). Th
 7. Agent full-access MCP + API v1.1 (together). Note: the Topic-tool retirement half of v1.1/F1 shipped with the excision (`28bbf0e`).
 8. Slack adapter → `integration:slack` events. Then measurement v2 (`docs/specs/2026-07-03-measurement-v2-spec.md`) — seed `story-time` early, ~30-day log retention.
 
+## Digest quality is a named blind spot (Gilad, 2026-07-04)
+
+The digestion pipeline was designed by an earlier model generation and never audited by a stronger one. A dedicated dispatch exists: `docs/handoffs/2026-07-04-digest-quality-audit-handoff.md` — **run it before workstream 3**, because the eval suites derive ground truth from digests and would inherit any infidelity. PRD v0.3.2 makes the audit a measurement precondition. Mitigation landed: every digested log is archived raw to `.intent/raw-sessions/` (re-copied as it grows), so digests are permanently re-derivable.
+
 ## Gotchas that cost hours today
 
 - **Docker runs on colima, not Docker Desktop.** Desktop half-starts, squats port 5433, and black-holes connections (TCP connects, no data). Keep it quit. `CONNECT_TIMEOUT` from host → colima's ssh port-forward died → `colima restart`.

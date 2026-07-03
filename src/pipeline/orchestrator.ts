@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { basename } from "node:path";
 import { execSync } from "node:child_process";
@@ -40,6 +41,25 @@ function log(step: string): void {
   process.stderr.write(`${step}\n`);
 }
 
+// ── Raw-session archive ───────────────────────────────────────────────
+// Claude Code purges its logs on a ~30-day clock; the digest must never be
+// the only survivor. Every digested log is copied into .intent/raw-sessions/
+// keyed by CC session UUID — and re-copied when the source has grown (a
+// resumed session), so the raw tail is preserved even where the stored
+// digest is stale. Failure-safe: archiving never fails the digest.
+function archiveRawSession(logPath: string, ccSessionId: string): void {
+  try {
+    const dir = path.join(process.cwd(), ".intent", "raw-sessions");
+    fs.mkdirSync(dir, { recursive: true });
+    const dest = path.join(dir, `${ccSessionId}.jsonl`);
+    const srcSize = fs.statSync(logPath).size;
+    if (fs.existsSync(dest) && fs.statSync(dest).size >= srcSize) return;
+    fs.copyFileSync(logPath, dest);
+  } catch (err) {
+    log(`  ⚠ raw-session archive failed (digest unaffected): ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 function getGitContext(sourcePath: string): { repo?: string; branch?: string; worktree?: string } {
   try {
     const dir = path.dirname(sourcePath);
@@ -63,6 +83,10 @@ export async function runPipeline(logPath: string): Promise<PipelineResult> {
   //    instead of re-running the LLM pipeline, so `digest` is idempotent and a
   //    batch run (`--last N`) never aborts on an already-processed session.
   const ccSessionId = basename(logPath, ".jsonl");
+  // Archive the raw log unconditionally — including on the already-digested
+  // path, so a resumed session's grown log keeps refreshing the archive even
+  // though its digest is stale (the known tail-loss hole stays re-derivable).
+  archiveRawSession(logPath, ccSessionId);
   const existingId = await findDigestedSession(ccSessionId);
   if (existingId) {
     log(`  ⚠ Session already digested (${existingId}). Returning stored digest.`);

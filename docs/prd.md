@@ -1,9 +1,10 @@
-# Brain — Product Requirements (v0.3.1)
+# Brain — Product Requirements (v0.3.2)
 
 > Status: draft · Owner: Gilad · Date: 2026-06-27 · Amended: 2026-07-03
 > Supersedes the implicit "intent↔code alignment" framing and the standalone "Brain PRD v0.2".
 > Companion: [`docs/future-knowledge.md`](./future-knowledge.md) — hypotheses we consciously defer.
 >
+> **v0.3.2 amendments (2026-07-04):** digest fidelity named as a load-bearing precondition — the "derived" in the MVP hypothesis, the Journal's narration, and all digest-derived eval ground truth are only as strong as digestion's faithfulness to the transcript, which has never been audited. See the MVP precondition below and `docs/handoffs/2026-07-04-digest-quality-audit-handoff.md`. **Raw sessions are archived**: every digested log is copied to `.intent/raw-sessions/` (re-copied as it grows), so evidence survives Claude Code's ~30-day purge and every digest stays permanently re-derivable — fidelity audits and pipeline-improvement re-digestion never lose their source. This does not breach Principle 1: CC logs are ephemeral artifacts with no system of record; archiving them is evidence preservation, not becoming a store.
 > **v0.3.1 amendments (2026-07-03):** the Journal (event river) named as the primary substrate and surface — Features are *lenses* over it, not containers; hierarchy and graph-visualization rejected as navigation primitives; the Journal becomes read-write (comments as events); hybrid search named a core capability; MCP expands from report-only writes to full management on the human's behalf. §The Model, §Positioning, §MCP Surface, §Journal below.
 
 ---
@@ -142,13 +143,15 @@ Prove — **with measurement** — that **Brain-derived feature context signific
 
 **Derived is the load-bearing word.** Every constraint, understanding line, and file pointer served in the treatment arm must trace to a digested session or an approved Observation — never hand-authored into a Feature for the eval. Hand-curated context proves only that telling an agent the answer helps (already consensus); the product claim is that Brain can *learn* the answer from watching work happen.
 
+**Precondition: digest fidelity (added v0.3.2).** "Derived from digests" is only meaningful if digests are faithful to the transcripts they summarize — a fluent digest of the wrong emphasis poisons everything downstream (served constraints, Journal narration, digest-derived eval answer keys) while *looking* healthy. Known fidelity risks as of 2026-07-04: confidence calibration collapse (17/17 high on a real session), resumed sessions permanently losing their post-digestion tail (idempotency never re-reads a grown log — systematic now that scheduled digestion triggers on a quiet-window), and digest-time event stamping destroying intra-session chronology. A transcript-vs-digest fidelity audit with a measurable fidelity eval gates the measurement run.
+
 ### Scope
 Two repositories · Claude Code · Brain MCP · Postgres · session digestion · **manual** feature management (Features and the file↔Feature map stay manually *managed*; their *content* must be Brain-derived per the rule above).
 
 - **Primary: `intent-ai`** — the only repo with surviving session history. Hard mode: the baseline docs here are unusually strong, so a win means something.
 - **Generalization arm: one external repo (`story-time`)** — must be seeded with 5–10 real working sessions first (prior logs were purged by Claude Code's ~30-day retention; the evidence corpus has to be regenerated). Representative mode: decent docs, no answer key, closer to a real customer repo.
 
-> Session evidence **evaporates** (30-day log retention). Continuous capture via the daemon is not a nice-to-have; it is the only reason an evidence corpus exists at all.
+> Session evidence **evaporates** (30-day log retention) — for anything not yet digested. As of v0.3.2, digestion archives every raw log to `.intent/raw-sessions/`, so digested evidence never evaporates and history can be re-digested by a better pipeline. Continuous capture (scheduled digestion) remains what gets logs into the archive before the purge.
 
 ### Trimmed object set (Week 1)
 **Feature · Session · Observation · file↔Feature map · Current Understanding (text).**

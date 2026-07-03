@@ -37,6 +37,7 @@ Plus one process finding: **live collection was a stub owned by nobody** (`run-m
 
 | Repo | Role | Precondition |
 |---|---|---|
+| *(both)* | — | **Digest-fidelity audit first** (PRD v0.3.2 precondition): treatment context and any digest-derived criteria are only as valid as digestion's faithfulness to transcripts. See `docs/handoffs/2026-07-04-digest-quality-audit-handoff.md`. |
 | `intent-ai` | Primary. Hard mode — strong baseline docs. | Fresh DB via `drizzle/0000_baseline.sql` (the legacy 0000–0007 chain was rebuilt 2026-07-03; wipe the old volume with `docker compose down -v` first); digest surviving sessions; seed Features; run the observe→approve loop to produce approved Observations. |
 | `story-time` | Generalization arm. Representative mode — real CLAUDE.md (154 lines), no answer key, no harness. | Seed 5–10 real working sessions first (prior logs purged by ~30-day retention), digest them, then same loop. |
 
