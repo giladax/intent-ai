@@ -160,6 +160,7 @@ export function episodeGlyph(kind: JournalEpisode["kind"]): string {
 export function beatGlyph(category: string): string {
   const c = category.toLowerCase();
   if (c.startsWith("mcp:")) return "↳";
+  if (c.startsWith("eval:")) return "⚖";
   if (c.startsWith("observation:")) return "●";
   if (c.startsWith("review:")) return "✓";
   if (c.includes("decision")) return "◆";
