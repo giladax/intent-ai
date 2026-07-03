@@ -84,6 +84,12 @@
       "sourceType": "github",
       "skillPath": "config/skills/swarm/SKILL.md",
       "computedHash": "29122a93989b832c29a7030460871ec64b0541deab4feacffbb39d9f0bc1c70e"
+    },
+    "to-prd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/to-prd/SKILL.md",
+      "computedHash": "5a733e19d825f22e83de52e68b8840c9fd2fa7501282277a122c1aa28a922059"
     }
   }
 }

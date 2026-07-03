@@ -1,8 +1,10 @@
-# Brain — Product Requirements (v0.3)
+# Brain — Product Requirements (v0.3.1)
 
-> Status: draft · Owner: Gilad · Date: 2026-06-27
+> Status: draft · Owner: Gilad · Date: 2026-06-27 · Amended: 2026-07-03
 > Supersedes the implicit "intent↔code alignment" framing and the standalone "Brain PRD v0.2".
 > Companion: [`docs/future-knowledge.md`](./future-knowledge.md) — hypotheses we consciously defer.
+>
+> **v0.3.1 amendments (2026-07-03):** the Journal (event river) named as the primary substrate and surface — Features are *lenses* over it, not containers; hierarchy and graph-visualization rejected as navigation primitives; the Journal becomes read-write (comments as events); hybrid search named a core capability; MCP expands from report-only writes to full management on the human's behalf. §The Model, §Positioning, §MCP Surface, §Journal below.
 
 ---
 
@@ -19,7 +21,8 @@ That alignment question is what makes Brain an *understanding engine* rather tha
 ## Product Principles
 
 1. **Understanding, not storage.** Systems of record stay external. Brain owns understanding, evidence, and the relationships between them — never the source.
-2. **Feature is the primary unit.** Artifacts (PRs, sessions, tickets, PRDs, designs) *contribute evidence*; Features *hold understanding*. Everything converges into Features.
+2. **The river is the substrate; Feature is the primary lens.** Everything that happens lands as time-ordered events in one long-living journal of the org. Features don't *contain* things — they are saved ways of slicing the river, and they *hold the understanding* that converges from their slice. Artifacts (PRs, sessions, tickets, PRDs, designs) contribute evidence as events.
+2a. **No hierarchy as navigation, no graph as UI.** Knowledge is more connected than any tree; trees (and cross-linked trees) are rejected as scaffolding. But the graph lives in *retrieval* — associative expansion of any point in the river — never as a node-link diagram. Time is the one axis everyone natively understands; it stays the navigational spine.
 3. **Understanding is the umbrella; alignment is the spearhead.** We lead with understanding (broad, durable, whole-org) and prove it with alignment (sharp, differentiated, defensible). Alignment is never demoted to "one of six."
 4. **Evidence over assertion.** Every piece of understanding traces back to artifacts. No ungrounded claims.
 5. **Human-gated mutations.** Understanding changes through reviewable deltas, never silently.
@@ -30,7 +33,8 @@ That alignment question is what makes Brain an *understanding engine* rather tha
 
 ## The Model
 
-- **Feature** — the node. The unit humans and agents actually care about.
+- **The Journal (event river)** — the primary substrate *and* the primary surface. Every significant happening — session digested, agent consulting Brain, observation noticed, review decision, integration signal, human comment — is a self-contained, time-ordered event in one stream (`activity_events`). Everything else in this model is a derived projection over it.
+- **Feature** — the primary lens. The unit humans and agents actually care about.
 - **Two kinds of evidence under a Feature:**
   - *Intent-evidence* — **what we want** (PRD, ticket, decision, Slack thread).
   - *Implementation-evidence* — **what we have** (PR, coding session, code).
@@ -68,8 +72,11 @@ This reconciles the two framings we debated: the "intent↔code alignment" idea 
 
 - **Not enterprise search.** Search returns documents; Brain returns *current understanding*.
 - **Not a documentation system.** Brain owns no source of truth — it correlates the ones you already have.
+- **Not a knowledge wiki with folders.** No tree, no filing. You never need to know where something *lives* to find it.
 
 **Differentiator, in one line:** Brain answers *"is what we built still what we wanted?"* — a question neither search nor docs can.
+
+*Positioning nuance on search:* rejecting "enterprise search" as an identity does not demote search as a capability — **search over the river is the front door** and must be cutting-edge at org scale: hybrid retrieval (lexical + semantic over event embeddings + structured filters + associative neighborhood expansion), one engine serving the Journal UI and `brain.search` identically, results rendered as episodes-in-context, never rows. What we refuse is *returning documents as the answer* — search finds the place in the river; understanding is what Brain says about it.
 
 ---
 
@@ -96,10 +103,24 @@ External systems generate events → **Brain evaluates: did organizational under
 
 ---
 
+## The Journal — the served surface (added v0.3.1)
+
+The Journal is not a report *about* the product; it **is** the product surface. A long-living, narrated chronology of the org's development, read the way a field journal is read — and, critically, **written in**:
+
+- **Read** — the river narrates itself: sessions, consults (hits *and* misses), observations, review decisions, integration signals, in one time-ordered stream with the Pulse as its summary sentence.
+- **Comment & reply, anywhere** — a human comment is just another event (`comment:*`, pointing at its target); replies thread the same way. No separate commenting system. A comment on an event is *teaching signal* — promotable into the observation → approval → understanding loop.
+- **Search** — the front door (see Positioning). Every element of the river is findable without knowing where it "lives."
+- **Converse** — any element on the page can be pinned into a live conversation with Brain (the Correspondence): the page *is* the context picker. Humans and agents interrogate the same understanding.
+
+Interaction language: editorial as brand, utilitarian as behavior — the surface tells the story (journal, clippings, stamps, red ink) while the interactions stay keyboard-first and repetition-fast. Delight is a requirement, not decoration: the developer testing it should enjoy it.
+
+---
+
 ## MCP Surface
 
-**Read:** `brain.enter(file|task)` · `brain.search()` · `brain.featureContext(id)`
-**Write:** `brain.reportObservation()` · `brain.reportUnknown()` · `brain.rateContext()`
+**Read:** `brain.enter(file|task)` · `brain.search()` · `brain.featureContext(id)` · journal/event queries
+**Write (report):** `brain.reportObservation()` · `brain.reportUnknown()` · `brain.rateContext()`
+**Write (manage, added v0.3.1):** agents act *on the human's behalf* with explicit actor attribution — create/update Features, manage the file↔Feature map, approve/reject/edit observations, comment. The MCP surface converges on parity with the web API: anything a human can do on the dashboard, their agent can do for them, provenance-stamped (`agent:<platform>` on behalf of `human:<handle>`). Human-gated mutations (Principle 5) still hold — the *gate decision* itself may be delegated to an agent session, but it is always attributed and always visible on the river.
 
 Critical review of the implemented surface, with findings and the v1.1 contract: [`docs/specs/2026-07-03-brain-api-review.md`](./specs/2026-07-03-brain-api-review.md). Binding decisions from it:
 
@@ -183,7 +204,8 @@ Full mechanics: [`docs/specs/2026-07-03-measurement-v2-spec.md`](./specs/2026-07
 - **Kill switch:** any one of — ETC reduction ≤10%, OR treatment CVR ≥ baseline CVR, OR treatment success < baseline, OR treatment tokens > 1.5× baseline → feature context isn't earning its complexity; don't ship the loop as-is.
 
 ### Out of scope (Week 1)
-Automatic feature discovery · PRD/Docs/Jira ingestion · knowledge evolution · graph visualization · branch workspaces · conflict resolution · automatic claim generation. (See `future-knowledge.md`.)
+Automatic feature discovery · PRD/Docs/Jira ingestion · knowledge evolution · branch workspaces · conflict resolution · automatic claim generation. (See `future-knowledge.md`.)
+Graph *visualization* is not merely deferred — it is rejected as a UI (Principle 2a); the graph serves retrieval only.
 
 ### The alignment commitment (read this once, out loud)
 > The MVP deliberately tests the **single-repo agent-context loop** and contains **no intent layer**. Intent ingestion and **alignment/drift detection are Phase 2 and remain the real moat.** The wedge ("feature-aware context for agents") is a crowded space; the win ("is what we built still what we wanted?") is the defensible one. We are sequencing, not reversing — and we will not mistake the wedge for the win.
@@ -192,7 +214,7 @@ Automatic feature discovery · PRD/Docs/Jira ingestion · knowledge evolution ·
 
 ## Organizational Data Points — probable integrations
 
-Brain's evidence today is code + coding sessions. Each integration below adds an organizational signal as **evidence under Features** — never a new store (Principle 1). Ingestion is **pluggable, PRD-first** (see `future-knowledge.md` §Spec-Driven Development); each source maps to Artifact (+Revision) references classified as intent- or implementation-evidence. Probable order:
+Brain's evidence today is code + coding sessions. Each integration below adds an organizational signal as **events in the river, sliced by Feature lenses** — never a new store (Principle 1). Mechanically every integration is the same shape: an adapter emitting `integration:<source>` events into the journal — a new *correspondent writing into the same journal*, not a bolted-on system. Ingestion is **pluggable, PRD-first** (see `future-knowledge.md` §Spec-Driven Development); each source maps to Artifact (+Revision) references classified as intent- or implementation-evidence. Probable order:
 
 | Phase | Source (probable integration) | Evidence kind | Question it unlocks |
 |---|---|---|---|

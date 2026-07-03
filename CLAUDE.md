@@ -16,16 +16,20 @@ Requires: `ANTHROPIC_API_KEY` and `DATABASE_URL` in `.env` (see `.env.example`).
 
 ## Vision
 
-Intent-AI is becoming an org-level learning layer for AI-assisted development. The core loop:
+Intent-AI (product name: **Brain**) is an **organizational understanding engine**: it correlates **intent** — "what we want" (PRDs and, later, other signals) — with **implementation** — "what we have" (code and sessions) — and serves the current understanding to humans and agents over MCP. **The event river (Journal) is the substrate; Feature is the primary lens** — intent and implementation are two kinds of evidence sliced by it; **alignment** ("is what we built still what we wanted?") is the differentiator. Understanding is the umbrella; alignment is the spearhead. No trees, no graph-viz UI — time is the axis, search is the front door.
+
+**Source of truth for product direction: [`docs/prd.md`](docs/prd.md) (PRD v0.3.1 — journal-as-product amendments).** Deferred bets live in [`docs/future-knowledge.md`](docs/future-knowledge.md).
+
+The mechanism is a continuous loop:
 
 1. **Capture** — ingest coding sessions (Claude Code today, Codex/Copilot/Jira/Slack later)
 2. **Understand** — extract moments, transitions, outcomes, narrative arcs
 3. **Observe** — LLM-driven observation layer notices patterns across sessions
-4. **Learn** — synthesize topics, insights, constraints, skills into a knowledge graph
-5. **Serve** — MCP server makes brain available to any agent mid-session
-6. **Improve** — each session makes the brain smarter for the next one
+4. **Learn** — synthesize understanding into the knowledge graph
+5. **Serve** — MCP server makes the brain available to any agent mid-session
+6. **Improve** — each session makes the brain smarter for the next
 
-The MCP server is the integration surface — any tool that speaks MCP can query the brain. Claude Code is the initial consumer, but the architecture supports any agent platform.
+The MCP server is the integration surface — any tool that speaks MCP can query the brain. The Week-1 MVP proves feature-aware context measurably improves coding-agent performance (see the PRD's ETC/CVR measurement harness); intent ingestion and alignment/drift are Phase 2.
 
 ## Commands
 
@@ -35,14 +39,18 @@ npx tsx src/cli/index.ts digest [path]       # digest a session
 npx tsx src/cli/index.ts digest --dry-run    # stats only, no LLM
 npx tsx src/cli/index.ts digest --last 3     # digest N most recent
 
-# Repo brain
+# Repo brain — LEGACY Topic ontology (retired by PRD v0.3.1 + API review F1;
+# excision is a scheduled workstream — don't build on these)
 npx tsx src/cli/index.ts brain <sessionId...>       # synthesize topics from sessions
 npx tsx src/cli/index.ts brain-classify <sessionId>  # classify session relevance to topics
 npx tsx src/cli/index.ts brain-export                # generate .repo/ markdown from DB
 
 # MCP brain (available to agents via .mcp.json)
 npx tsx src/cli/index.ts mcp                        # start MCP server (stdio)
-# Tools: brain_overview, brain_search, brain_get, brain_traverse, brain_file_context
+# Feature tools (current): brain_enter, brain_file_context, brain_feature_context,
+#   brain_search, brain_report_observation, brain_report_unknown, brain_rate_context,
+#   brain_propose_knowledge_delta (deferred per F7)
+# Topic tools (legacy, slated for retirement): brain_overview, brain_get, brain_traverse
 
 # Activity events
 npx tsx src/cli/index.ts events                     # query activity event stream
@@ -97,10 +105,10 @@ src/
     prompts/       Prompt builders per pipeline step
   storage/         Postgres via Drizzle ORM
   cli/             Commander.js CLI
-  brain/           Knowledge graph synthesis (topics, insights, skills)
-  mcp/             MCP server — exposes brain to agents (5 tools, stdio transport)
+  brain/           LEGACY Topic synthesis (topics, insights, skills) — retirement scheduled
+  mcp/             MCP server — exposes brain to agents (11 tools, stdio transport)
   eval/            Fitness scoring, LLM-as-judge, organism runner
-  web/             Dashboard server (three-panel: Features | Sessions+Story | Chat)
+  web/             Dashboard server (Journal-first: river + lenses + Correspondence chat dock)
   daemon/          Background daemon for continuous session watching
   utils/           CC log discovery
 ```
@@ -174,7 +182,10 @@ Structured guides for agentic pipeline work. **Read before modifying the pipelin
 
 | Document | What |
 |----------|------|
-| `.repo/brain.md` | Repo knowledge graph — topics, insights, file map. Start here for codebase navigation. |
-| `docs/superpowers/specs/` | Design specs (execution memory, causal threading, chromosome framework) |
-| `docs/plans/` | Implementation plans |
-| `docs/handoffs/` | Session handoffs for continuity |
+| `docs/prd.md` | **Product source of truth** — Brain PRD v0.3.1 (vision, journal-as-product model, MVP, measurement). Read first. |
+| `docs/future-knowledge.md` | Consciously deferred hypotheses (the alignment moat, and more). |
+| `docs/consolidation-iteration-0.md` | Triage of the prior-plan corpus → seeded MVP backlog + durable observations. |
+| `.repo/brain.md` | **Legacy Topic-tree export** — kept only as the measurement-v2 *baseline* document (the treatment arm must beat it). Not a served surface (PRD v0.3.1); don't extend it. |
+| `docs/superpowers/specs/` | Kept design specs (execution-memory, activity-event backbone). Prior specs/plans archived. |
+| `docs/archive/` | Superseded prior plans/specs/handoffs (historical; framing replaced by v0.3). |
+| `docs/handoffs/` | Session handoffs for continuity. |
