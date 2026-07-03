@@ -13,6 +13,8 @@ import type {
   BrainDiscoverResult,
   SyncJobStatus,
   BrainCard,
+  JournalResponse,
+  JournalParams,
 } from "./types";
 
 const BASE = "";
@@ -111,6 +113,17 @@ export const fetchTopicDetail = (topicId: string) =>
 // Timeline
 export const fetchTimeline = (repoId: string) =>
   json<TimelineData>(`/api/timeline?repoId=${repoId}`);
+
+// Journal (observability) — GET /api/journal?since&actor&featureId&limit
+export const fetchJournal = (params: JournalParams = {}) => {
+  const q = new URLSearchParams();
+  if (params.since) q.set("since", params.since);
+  if (params.actor) q.set("actor", params.actor);
+  if (params.featureId) q.set("featureId", params.featureId);
+  if (params.limit != null) q.set("limit", String(params.limit));
+  const qs = q.toString();
+  return json<JournalResponse>(`/api/journal${qs ? `?${qs}` : ""}`);
+};
 
 // Sessions
 export const fetchSessions = (repoId?: string) =>

@@ -147,6 +147,70 @@ export interface ChatMessage {
   content: string;
 }
 
+// ── Journal (observability) ──────────────────────────────────────────
+// Mirrors the pinned GET /api/journal contract exactly.
+export interface JournalPulse {
+  since: string | null;
+  sessionsDigested: number;
+  consults: number;
+  consultMisses: number;
+  observationsNoticed: number;
+  pendingReview: number;
+  reviewActions: number;
+  learnings: number;
+}
+
+export type JournalEpisodeKind = "session" | "run" | "review-batch" | "observation" | "event";
+
+export interface JournalBeat {
+  id: string;
+  timestamp: string;
+  category: string;
+  summary: string;
+  actor: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface JournalPendingItem {
+  id: string;
+  summary: string;
+  featureId: string | null;
+  category: string;
+}
+
+export interface JournalEpisodeCounts {
+  beats: number;
+  consults: number;
+  consultMisses: number;
+  observations: number;
+  moments: number;
+}
+
+export interface JournalEpisode {
+  id: string;
+  kind: JournalEpisodeKind;
+  title: string;
+  actor: string;
+  startedAt: string;
+  endedAt: string | null;
+  featureIds: string[];
+  counts: JournalEpisodeCounts;
+  pending: JournalPendingItem[];
+  beats: JournalBeat[];
+}
+
+export interface JournalResponse {
+  pulse: JournalPulse;
+  episodes: JournalEpisode[];
+}
+
+export interface JournalParams {
+  since?: string;
+  actor?: string;
+  featureId?: string;
+  limit?: number;
+}
+
 // ── Brain Types ──────────────────────────────────────────────────────
 
 export interface TopicSummary {

@@ -10,10 +10,11 @@ import { SessionDetailPage } from "./components/SessionDetailPage";
 import { FeaturesPage } from "./components/FeaturesPage";
 import { FeatureDetail } from "./components/FeatureDetail";
 import { ReviewQueue } from "./components/ReviewQueue";
+import { JournalPage } from "./components/JournalPage";
 import { fetchProjects, fetchTopics, fetchSessions, fetchFeatures, fetchPendingObservations } from "./api";
 import type { LiveState } from "./api";
 import type { Project, TopicSummary, Session, Feature, BrainSyncProposal } from "./types";
-import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard, Boxes, Inbox } from "lucide-react";
+import { Brain as BrainIcon, ChevronDown, MessageSquare, X, RefreshCw, Layers, ScrollText, LayoutDashboard, Boxes, Inbox, BookOpen } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton,
@@ -35,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 type View =
+  | "journal"
   | "overview"
   | "features"
   | "feature-detail"
@@ -52,7 +54,7 @@ export function App() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [chatCollapsed, setChatCollapsed] = useState(false);
-  const [view, setView] = useState<View>("overview");
+  const [view, setView] = useState<View>("journal");
   const [reviewProposal, setReviewProposal] = useState<BrainSyncProposal | null>(null);
   const [undigestedCount, setUndigestedCount] = useState(0);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -183,6 +185,18 @@ export function App() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
+                {/* Journal (landing / front door) */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={view === "journal"}
+                    onClick={() => { setView("journal"); setSelectedTopicId(null); }}
+                    className="text-sm"
+                  >
+                    <BookOpen className="size-4" />
+                    <span>Journal</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 {/* Overview */}
                 <SidebarMenuItem>
                   <SidebarMenuButton
@@ -307,15 +321,15 @@ export function App() {
                     <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("features"); setSelectedFeatureId(null); }}>
                       Features
                     </BreadcrumbLink>
-                  ) : view !== "overview" ? (
-                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("overview"); setSelectedTopicId(null); }}>
-                      Overview
+                  ) : view !== "journal" ? (
+                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("journal"); setSelectedTopicId(null); }}>
+                      Journal
                     </BreadcrumbLink>
                   ) : (
-                    <BreadcrumbPage>Overview</BreadcrumbPage>
+                    <BreadcrumbPage>Journal</BreadcrumbPage>
                   )}
                 </BreadcrumbItem>
-                {view !== "overview" && (
+                {view !== "journal" && (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -340,7 +354,15 @@ export function App() {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             <ResizablePanel defaultSize={chatCollapsed ? 100 : 65} minSize={35}>
               <div className="h-full overflow-y-auto">
-                {view === "sync" && selectedProject ? (
+                {view === "journal" ? (
+                  <JournalPage
+                    repoId={selectedProject?.id ?? null}
+                    features={features}
+                    onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
+                    onFeatureClick={handleFeatureSelect}
+                    onReviewClick={() => { setView("review"); setSelectedTopicId(null); }}
+                  />
+                ) : view === "sync" && selectedProject ? (
                   reviewProposal ? (
                     <SyncDiffTree
                       topics={topics}

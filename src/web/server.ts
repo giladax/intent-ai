@@ -22,6 +22,11 @@ import {
   type ReviewAction,
   type ReviewedObservation,
 } from "./observations.js";
+import {
+  buildJournal,
+  type JournalEventRow,
+  type JournalSessionRow,
+} from "./journal.js";
 
 // Journal §7.3: the human's gate actions become timeline events. Failure-safe —
 // a lost event never fails the review action itself.
@@ -452,6 +457,99 @@ export async function startWebServer(port: number): Promise<void> {
         summary: result[0].summary,
       });
       res.json({ id: result[0].id, summary: result[0].summary, review_status: result[0].review_status });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ── Journal (design §8.3) ─────────────────────────────────────────
+  // Read-side rendering over activity_events: episodes (grouped) + Pulse
+  // (window stats). SQL stays thin — ALL grouping/pulse logic lives in the
+  // pure journal.ts module. Session episode timing comes from the sessions
+  // table (works around emit-events' digest-time timestamp collapse).
+
+  app.get("/api/journal", async (req, res) => {
+    try {
+      const since = (req.query.since as string | undefined) || null;
+      const actor = (req.query.actor as string | undefined) || undefined;
+      const featureId = (req.query.featureId as string | undefined) || undefined;
+      const limitRaw = parseInt((req.query.limit as string) ?? "", 10);
+      const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 200;
+
+      const sql = getClient();
+
+      // Window events — parameterized to avoid injection.
+      const conds: string[] = ["TRUE"];
+      const params: unknown[] = [];
+      if (since) {
+        params.push(since);
+        conds.push(`timestamp >= $${params.length}`);
+      }
+      if (actor) {
+        params.push(actor);
+        conds.push(`actor = $${params.length}`);
+      }
+      if (featureId) {
+        params.push(featureId);
+        conds.push(`feature_id = $${params.length}`);
+      }
+      params.push(limit);
+      const eventRows = await sql.unsafe(
+        `SELECT id, timestamp, category, tags, actor, summary, metadata,
+                source_type, session_id, feature_id, review_status
+         FROM activity_events
+         WHERE ${conds.join(" AND ")}
+         ORDER BY timestamp DESC
+         LIMIT $${params.length}`,
+        params as any[],
+      );
+
+      const events: JournalEventRow[] = eventRows.map((r: any) => ({
+        id: r.id as string,
+        timestamp: new Date(r.timestamp as string).toISOString(),
+        category: r.category as string,
+        tags: (r.tags as string[]) ?? [],
+        actor: r.actor as string,
+        summary: r.summary as string,
+        metadata: (r.metadata as Record<string, unknown>) ?? {},
+        sourceType: (r.source_type as string | null) ?? null,
+        sessionId: (r.session_id as string | null) ?? null,
+        featureId: (r.feature_id as string | null) ?? null,
+        reviewStatus: (r.review_status as string | null) ?? null,
+      }));
+
+      // Session timing from the sessions table (NOT event timestamps).
+      const sessionIds = [...new Set(events.map((e) => e.sessionId).filter(Boolean))] as string[];
+      let sessions: JournalSessionRow[] = [];
+      if (sessionIds.length) {
+        const sessionRows = await sql`
+          SELECT s.id, s.started_at, s.ended_at, s.session_shape,
+                 n.summary AS narrative_summary
+          FROM sessions s
+          LEFT JOIN narratives n ON n.session_id = s.id
+          WHERE s.id = ANY(${sessionIds})`;
+        sessions = sessionRows.map((r: any) => ({
+          id: r.id as string,
+          startedAt: r.started_at ? new Date(r.started_at as string).toISOString() : null,
+          endedAt: r.ended_at ? new Date(r.ended_at as string).toISOString() : null,
+          sessionShape: (r.session_shape as string | null) ?? null,
+          narrativeSummary: (r.narrative_summary as string | null) ?? null,
+        }));
+      }
+
+      // pendingReview is ALL-time (not window-bound) — a thin COUNT.
+      const [{ count }] = await sql`
+        SELECT COUNT(*)::int AS count FROM activity_events
+        WHERE review_status = 'pending'
+          AND category LIKE ${OBSERVATION_CATEGORY_PREFIX + "%"}`;
+
+      const journal = buildJournal({
+        events,
+        sessions,
+        since,
+        pendingReview: Number(count) || 0,
+      });
+      res.json(journal);
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
