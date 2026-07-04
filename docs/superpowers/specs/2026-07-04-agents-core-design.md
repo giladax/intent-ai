@@ -63,12 +63,31 @@ No judgment field is ever schema-defaulted (same rule as the pipeline).
 - Consolidation agent: tools = `digests.ts` + `git.ts`; output = proposed observations/feature-understanding deltas, which enter the existing approval flow (never auto-commit understanding).
 - Both are config + tools on the standard loop; neither is designed in detail here (YAGNI) — their specs come after the digest agent proves the core.
 
+## Long sessions: rolling window with carried notes
+
+The digest agent's default topology for v1 is a **sequential rolling pass**, not parallel chunk extraction: the graph loops over sittings (or budget-sized segments within a sitting), and the agent carries a working-notes scratchpad in graph state — open threads, unresolved claims, candidate moments — pulling transcript ranges via tools rather than receiving a fixed render. This preserves causality across the whole session (the reader of segment 4 knows what happened in segment 1), which parallel per-chunk extraction structurally cannot. Cost: wall-clock (sequential) — mitigated by the notes preventing re-reads. `parallel-extract` vs `rolling-notes` is pre-registered experiment E1 (topology): expected effect — rolling-notes improves catalog recall and chronology at higher latency, similar tokens.
+
+## Agent trace persistence
+
+Every digest-agent run persists its own reasoning trace as activity events (`sourceType: "agent-trace"`, `sessionId` = the digested session): which transcript ranges it read, which claims it checked, verdicts found, budget consumed. This makes the digester auditable the same way the digest is — and feeds the planned session "zoom" view (timeline: sittings → moments at occurred-time → anchored evidence → raw events → the agent's checks). The zoom view itself is a separate web-UI spec once the core ships; the trace data lands now so it's available.
+
+## Inherited domain-model critique (drives experiments and follow-ups)
+
+The rewrite fixed mechanics, not the domain model. Weaknesses acknowledged and scheduled rather than ignored:
+
+- **Causal edges are the weakest part of the model.** `relatedMomentIds`/`transition_moments` are written but never read; arcs are post-hoc labels. The rolling-notes topology (E1) is expected to produce real edges; if it does, the moment schema gains a first-class `causedBy` reference and the dead join tables get excised.
+- **Confidence should be derived, not emitted** (post-rewrite A5: still ~95% "high" despite the rubric). Experiment E2 (prompt/contract): drop model-emitted confidence; derive in code — anchored + verification=supported → high; anchored → medium; unanchored → low. Structurally cannot saturate.
+- **Transitions/outcomes are re-projections of moments** (two LLM calls + three tables restating pivot/confirmation/execution moments + verification). Follow-up: derive them deterministically as views over agent-produced moments; readers keep working. Gated on E1/E2 results.
+- **Narrative is a derived cache, not a fact.** Keep storing it (the journal needs a stable summary event) but mark it regenerable and re-render it when its moments change. Fixed template (progression/discoveries/…) revisited per-shape later.
+- **Session shape becomes per-sitting** (a 12-hour session is not one genre). Cheap; scheduled with the digest agent since sittings already exist.
+- Cleanup: `significance` free-text is currently stuffed into activity-event `tags` (noise in the tag vocabulary) — move to metadata.
+
 ## EDD iteration protocol (binding)
 
 Fitness: `npx tsx run-fidelity.ts` on the audited sessions — recall / precision / agency / calibration / provenance — plus secondary metrics per run: token cost, turns, wall-clock. Baselines: the pipeline's post-rewrite numbers (`docs/audits/fidelity-after-rewrite-2026-07-04.md`) and each preceding experiment.
 
 Protocol per experiment:
-1. **One dimension only**: graph topology (node/edge structure) · context composition (what the agent is given up front vs must fetch) · tool structure (granularity, names, descriptions, result shapes) · prompt (system prompt content/rubrics). A change touching two dimensions is two experiments.
+1. **One dimension only**: graph topology (node/edge structure) · context composition (what the agent is given up front vs must fetch) · tool structure (granularity, names, descriptions, result shapes) · prompt (system prompt content/rubrics). A change touching two dimensions is two experiments. Pre-registered queue: E1 `parallel-extract` vs `rolling-notes` (topology); E2 derived vs model-emitted confidence (contract); E3 context composition (sittings+shape upfront vs fetch-everything).
 2. **Pre-register** the expected effect (which fidelity metric should move and why) before running.
 3. **Subagent executes**: implements the variant, runs `digest --agent` on the experiment set, runs fidelity, reports the comparison table. The controlling session decides keep/revert; the decision and numbers are recorded in `.claude/skills/agents/experiments/` (existing convention — one file per experiment).
 4. **Experiment set**: default `d73d5190` (short) + `5b31a1bb` (medium) to keep iteration cheap; full set including `20f5efec` (large) before any promotion claim.
