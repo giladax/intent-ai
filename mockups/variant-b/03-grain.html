@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brain — GRAIN · the hour, in evidence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..600&family=Spline+Sans+Mono:wght@300..600&display=swap" rel="stylesheet" />
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   BRAIN · VARIANT B — THE OPS FLOOR AT MIDNIGHT · 3/3 GRAIN (engineer)
+   Deepest zoom of the same instrument: one sitting as a SIGNAL TRACE —
+   activity as a waveform, moments as ink ticks on it. Evidence depth
+   lives in the INSPECTOR docked on the viz: the provenance trail,
+   four hops drawn as one thread — served claim ↑ observation ↑ moment
+   ↑ raw transcript line. Evidence over assertion, as a picture.
+   ═══════════════════════════════════════════════════════════════════════ */
+@view-transition { navigation: auto; }
+
+:root {
+  --b-void:    oklch(0.145 0.018 255);
+  --b-panel:   oklch(0.185 0.02 255);
+  --b-panel-2: oklch(0.215 0.022 255);
+  --b-line:    oklch(0.30 0.018 255);
+  --b-line-2:  oklch(0.245 0.018 255);
+  --b-text:    oklch(0.94 0.012 85);
+  --b-dim:     oklch(0.66 0.015 255);
+  --b-faint:   oklch(0.47 0.015 255);
+  --ink-red:     oklch(0.68 0.19 30);
+  --ink-moss:    oklch(0.76 0.12 150);
+  --ink-gold:    oklch(0.80 0.135 78);
+  --ink-violet:  oklch(0.72 0.13 305);
+  --ink-teal:    oklch(0.77 0.10 210);
+  --ink-consult: oklch(0.73 0.10 250);
+  --sans: "Instrument Sans", "Helvetica Neue", sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: var(--sans); background: var(--b-void); color: var(--b-text); overflow: hidden;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 50% -12%, oklch(0.73 0.10 250 / 0.07), transparent 65%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.7 0 0 0 0 0.7 0 0 0 0 0.75 0 0 0 0.02 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.k { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--b-faint); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+@keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+
+.frame {
+  display: grid; height: 100vh;
+  grid-template-columns: 64px minmax(0, 1fr) 384px;
+  grid-template-rows: 54px minmax(0, 1fr) 46px;
+  grid-template-areas: "mast mast mast" "spine main rail" "margin margin margin";
+}
+
+/* masthead (the permanent frame) */
+.mast { grid-area: mast; display: flex; align-items: center; gap: 1.4rem; padding: 0 1.4rem; border-bottom: 1px solid var(--b-line-2); background: color-mix(in oklab, var(--b-void) 82%, transparent); backdrop-filter: blur(8px); z-index: 20; }
+.wordmark { display: flex; align-items: center; gap: 0.55rem; }
+.wordmark .orb { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-consult); box-shadow: 0 0 12px var(--ink-consult); animation: breathe 2.6s ease-in-out infinite; }
+.wordmark b { font-weight: 600; font-size: 0.98rem; }
+.search { flex: 1; max-width: 30rem; display: flex; align-items: center; gap: 0.55rem; font-family: var(--mono); font-size: 0.68rem; color: var(--b-faint); border: 1px solid var(--b-line-2); border-radius: 999px; padding: 0.38rem 0.85rem; background: color-mix(in oklab, var(--b-panel) 70%, transparent); }
+.search kbd { margin-left: auto; font-size: 0.6rem; border: 1px solid var(--b-line-2); border-radius: 4px; padding: 0.02rem 0.3rem; color: var(--b-faint); }
+.altimeter { margin-left: auto; display: flex; align-items: center; border: 1px solid var(--b-line-2); border-radius: 999px; padding: 3px; gap: 2px; background: color-mix(in oklab, var(--b-panel) 70%, transparent); }
+.altimeter .stop { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--b-dim); text-decoration: none; padding: 0.32rem 0.8rem; border-radius: 999px; transition: color 0.2s, background 0.2s; }
+.altimeter .stop:hover { color: var(--b-text); }
+.altimeter .stop.here { color: var(--b-void); background: var(--b-text); font-weight: 500; }
+.gate-badge { display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.14em; color: var(--ink-red); border: 1px solid color-mix(in oklab, var(--ink-red) 40%, transparent); border-radius: 999px; padding: 0.3rem 0.7rem; }
+.gate-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-red); animation: breathe 2.6s ease-in-out infinite; }
+
+/* spine — the lens is a sliver: one night */
+.spine { grid-area: spine; border-right: 1px solid var(--b-line-2); display: flex; flex-direction: column; align-items: center; padding: 0.9rem 0 0.7rem; }
+.spine .lbl { writing-mode: vertical-rl; font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--b-faint); margin-bottom: 0.8rem; }
+.spine .track { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 2px 0; }
+.spine .t { height: 2px; border-radius: 1px; background: var(--b-line-2); width: 16px; }
+.spine .t.w1 { width: 24px; background: color-mix(in oklab, var(--b-text) 30%, var(--b-line-2)); }
+.spine .t.w2 { width: 34px; height: 3px; background: color-mix(in oklab, var(--b-text) 55%, var(--b-line-2)); }
+.spine .t.w3 { width: 44px; height: 4px; background: color-mix(in oklab, var(--b-text) 85%, var(--b-line-2)); }
+.spine .t.today { background: var(--ink-moss); box-shadow: 0 0 10px oklch(0.76 0.12 150 / 0.6); }
+.spine .lens { position: absolute; left: 5px; right: 5px; border-radius: 4px; border: 1px solid color-mix(in oklab, var(--ink-gold) 60%, transparent); background: oklch(0.80 0.135 78 / 0.08); pointer-events: none; }
+.spine .lens::after { content: "H"; position: absolute; top: 1px; right: 4px; font-family: var(--mono); font-size: 0.5rem; color: var(--ink-gold); opacity: 0.9; }
+
+/* ════════ MAIN ════════ */
+.main { grid-area: main; display: grid; min-height: 0; grid-template-rows: 176px minmax(0, 1fr); gap: 12px; padding: 14px 14px 14px 16px; }
+.panel { background: color-mix(in oklab, var(--b-panel) 88%, transparent); border: 1px solid var(--b-line-2); border-radius: 12px; min-height: 0; display: flex; flex-direction: column; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
+.panel .head { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.7rem 0.95rem 0; }
+.panel .head::after { content: ""; flex: 1; height: 1px; background: var(--b-line-2); align-self: center; }
+
+/* ── the sitting as a signal trace ── */
+.trace { animation-delay: 0.05s; position: relative; }
+.trace .stat { position: absolute; top: 0.66rem; right: 0.95rem; font-family: var(--mono); font-size: 0.6rem; color: var(--b-dim); }
+.trace .stat b { color: var(--b-text); font-weight: 500; }
+.trace .viz { flex: 1; min-height: 0; padding: 0.5rem 0.95rem 0; position: relative; }
+.trace svg { width: 100%; height: 100%; display: block; }
+.trace .reveal { clip-path: inset(0 100% 0 0); animation: sweepx 1.2s 0.25s cubic-bezier(0.4,0,0.2,1) forwards; }
+@keyframes sweepx { to { clip-path: inset(0 0 0 0); } }
+.trace .axis { display: flex; justify-content: space-between; padding: 0.1rem 0.95rem 0.55rem; font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--b-faint); }
+.tick-m { position: absolute; bottom: 26%; width: 5px; height: 16px; border-radius: 2px; transform: translateX(-50%) scaleY(0); transform-origin: bottom; animation: pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; cursor: pointer; }
+@keyframes pop { to { transform: translateX(-50%) scaleY(1); } }
+.tick-m.sel::after { content: ""; position: absolute; inset: -5px; border: 1px solid var(--b-text); border-radius: 5px; animation: breathe 2.6s ease-in-out infinite; }
+
+/* ── the moments ledger — evidence rows, glanceable ── */
+.moments { animation-delay: 0.12s; }
+.moments .rows { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding: 0.4rem 0.5rem 0.6rem; }
+.mrow { display: grid; grid-template-columns: 52px 12px 1fr auto auto; gap: 0.7rem; align-items: center; padding: 0.5rem 0.55rem; border-radius: 9px; text-decoration: none; color: inherit; border: 1px solid transparent; transition: background 0.15s, border-color 0.15s; animation: rise 0.5s cubic-bezier(0.22,1,0.36,1) backwards; }
+.mrow:nth-child(1){animation-delay:.25s}.mrow:nth-child(2){animation-delay:.3s}.mrow:nth-child(3){animation-delay:.35s}.mrow:nth-child(4){animation-delay:.4s}.mrow:nth-child(5){animation-delay:.45s}.mrow:nth-child(6){animation-delay:.5s}.mrow:nth-child(7){animation-delay:.55s}.mrow:nth-child(8){animation-delay:.6s}
+.mrow:hover { background: var(--b-panel-2); border-color: var(--b-line-2); }
+.mrow.sel { background: var(--b-panel-2); border-color: color-mix(in oklab, var(--ink-gold) 45%, var(--b-line-2)); }
+.mrow .t { font-family: var(--mono); font-size: 0.62rem; color: var(--b-faint); font-variant-numeric: tabular-nums; }
+.mrow .ink { width: 8px; height: 8px; border-radius: 2.5px; justify-self: center; }
+.mrow .g { font-size: 0.82rem; font-weight: 500; letter-spacing: 0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mrow .cat { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--b-faint); }
+.mrow .anchor { font-family: var(--mono); font-size: 0.6rem; color: var(--ink-moss); }
+.mrow .anchor.no { color: var(--b-faint); }
+
+/* ── THE INSPECTOR — provenance docked on the viz ── */
+.rail { grid-area: rail; border-left: 1px solid var(--b-line-2); padding: 14px 14px 14px 2px; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.inspector { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; background: color-mix(in oklab, var(--b-panel) 88%, transparent); border: 1px solid var(--b-line-2); border-radius: 12px; padding: 0.85rem 1rem 1rem; animation: rise 0.6s 0.2s cubic-bezier(0.22,1,0.36,1) backwards; }
+.inspector .ik { display: flex; align-items: baseline; gap: 0.6rem; }
+.inspector .ik::after { content: ""; flex: 1; height: 1px; background: var(--b-line-2); align-self: center; }
+
+/* fidelity row: the ring is the score that means something */
+.fid { display: flex; align-items: center; gap: 0.9rem; margin-top: 0.7rem; }
+.ring { position: relative; width: 74px; height: 74px; flex: none; }
+.ring svg { width: 74px; height: 74px; transform: rotate(-90deg); }
+.ring .bg { fill: none; stroke: var(--b-line-2); stroke-width: 6; }
+.ring .val { fill: none; stroke: var(--ink-moss); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 208; stroke-dashoffset: 208; animation: ringdraw 1.3s 0.5s cubic-bezier(0.4,0,0.2,1) forwards; filter: drop-shadow(0 0 5px oklch(0.76 0.12 150 / 0.5)); }
+@keyframes ringdraw { to { stroke-dashoffset: 66.6; } } /* 208 × (1−0.68) */
+.ring .c { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--mono); font-size: 0.95rem; font-weight: 500; }
+.fid .cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.fid .f { border: 1px solid var(--b-line-2); border-radius: 8px; padding: 0.4rem 0.5rem; }
+.fid .f .n { font-family: var(--mono); font-size: 1rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.fid .f .u { font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--b-faint); display: block; }
+.fid .f.ok .n { color: var(--ink-moss); } .fid .f.bad .n { color: var(--ink-red); }
+.chunks { display: flex; gap: 3px; margin-top: 0.6rem; }
+.chunks i { flex: 1; height: 7px; border-radius: 2px; background: var(--ink-moss); opacity: 0.75; }
+.chunks i.thin { background: var(--b-line); }
+.chunks i.hot { background: var(--ink-red); }
+
+/* the provenance trail — four hops, one drawn thread */
+.trail { position: relative; margin-top: 1rem; padding-left: 22px; }
+.trail .thread { position: absolute; left: 7px; top: 10px; bottom: 12px; width: 2px; border-radius: 1px;
+  background: linear-gradient(to bottom, var(--ink-teal), var(--ink-consult), var(--ink-gold), var(--ink-moss));
+  transform: scaleY(0); transform-origin: top; animation: pull 1.5s 0.8s cubic-bezier(0.4,0,0.2,1) forwards; }
+@keyframes pull { to { transform: scaleY(1); } }
+.hop { position: relative; padding: 0.55rem 0 0.6rem; animation: rise 0.5s cubic-bezier(0.22,1,0.36,1) backwards; }
+.hop:nth-child(2){animation-delay:.9s}.hop:nth-child(3){animation-delay:1.15s}.hop:nth-child(4){animation-delay:1.4s}.hop:nth-child(5){animation-delay:1.65s}
+.hop::before { content: ""; position: absolute; left: -21px; top: 0.95rem; width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--hop, var(--b-line)); background: var(--b-panel); box-shadow: 0 0 8px color-mix(in oklab, var(--hop, transparent) 50%, transparent); }
+.hop .hk { font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--hop); }
+.hop .hv { font-size: 0.8rem; line-height: 1.45; margin-top: 0.25rem; color: var(--b-text); }
+.hop .hv i { color: var(--b-dim); }
+.hop .hm { font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.06em; color: var(--b-faint); margin-top: 0.3rem; }
+.hop .hm b { color: var(--ink-moss); font-weight: 500; }
+.hop .raw { font-family: var(--mono); font-size: 0.62rem; line-height: 1.55; margin-top: 0.35rem; background: oklch(0.12 0.015 255); border: 1px solid var(--b-line-2); border-left: 2px solid var(--ink-moss); border-radius: 7px; padding: 0.5rem 0.6rem; color: var(--b-dim); }
+.hop .raw mark { background: oklch(0.76 0.12 150 / 0.2); color: var(--b-text); border-radius: 2px; padding: 0 2px; }
+.trail-foot { font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-moss); margin-top: 0.4rem; display: flex; align-items: center; gap: 0.4rem; }
+.trail-foot::before { content: "◉"; }
+
+/* margin */
+.margin { grid-area: margin; display: flex; align-items: center; gap: 0.9rem; padding: 0 1.4rem; border-top: 1px solid var(--b-line-2); background: color-mix(in oklab, var(--b-void) 85%, transparent); backdrop-filter: blur(8px); }
+.margin .quill { color: var(--ink-consult); }
+.margin .scope { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-consult); border: 1px solid color-mix(in oklab, var(--ink-consult) 35%, transparent); border-radius: 999px; padding: 0.18rem 0.55rem; white-space: nowrap; }
+.margin input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--sans); font-style: italic; font-size: 0.9rem; color: var(--b-text); }
+.margin input::placeholder { color: var(--b-faint); }
+.margin .hint { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--b-faint); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .trace .reveal { clip-path: none; }
+  .ring .val { stroke-dashoffset: 66.6; }
+  .trail .thread { transform: none; }
+  .tick-m { transform: translateX(-50%) scaleY(1); }
+}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header class="mast">
+    <div class="wordmark"><span class="orb"></span> <b>intent-ai</b> <span class="k">mission&nbsp;control</span></div>
+    <div class="search">⌕ search the river <kbd>/</kbd></div>
+    <nav class="altimeter" aria-label="altitude">
+      <a class="stop" href="01-sweep.html">Sweep</a>
+      <a class="stop" href="02-reach.html">Reach</a>
+      <a class="stop here" href="03-grain.html">Grain</a>
+    </nav>
+    <a class="gate-badge" href="02-reach.html"><span class="dot"></span> 2</a>
+  </header>
+
+  <aside class="spine" aria-label="all of history">
+    <span class="lbl">May → now</span>
+    <div class="track" id="spine-track">
+      <div class="lens" style="top:93.5%; height:4.5%"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- one sitting, as signal -->
+    <section class="panel trace">
+      <div class="head"><span class="k">Sitting · sat jul 4 · 21:12 — 23:47 · re-digest + feature seeding</span></div>
+      <div class="stat num"><b>41</b> moments · <b>96</b> ev · gilad × claude</div>
+      <div class="viz" id="wave"></div>
+      <div class="axis"><span>21:12</span><span>21:45</span><span>22:15</span><span>22:45</span><span>23:15</span><span>23:47</span></div>
+    </section>
+
+    <!-- the ledger -->
+    <section class="panel moments">
+      <div class="head"><span class="k">Moments · the evidence</span></div>
+      <div class="rows" id="mrows"></div>
+    </section>
+
+  </main>
+
+  <!-- THE INSPECTOR: fidelity + the provenance trail -->
+  <aside class="rail">
+    <div class="inspector">
+      <div class="ik"><span class="k" style="letter-spacing:0.24em">Inspector · moment #41</span></div>
+
+      <div class="fid">
+        <div class="ring">
+          <svg viewBox="0 0 74 74"><circle class="bg" cx="37" cy="37" r="33"/><circle class="val" cx="37" cy="37" r="33"/></svg>
+          <span class="c num">68%</span>
+        </div>
+        <div class="cols num">
+          <div class="f ok"><span class="n">28</span><span class="u">anchored</span></div>
+          <div class="f"><span class="n">13</span><span class="u">floating</span></div>
+          <div class="f ok"><span class="n">31</span><span class="u">supported</span></div>
+          <div class="f bad"><span class="n">2</span><span class="u">contradicted</span></div>
+        </div>
+      </div>
+      <div class="chunks" aria-label="chunk map">
+        <i></i><i></i><i class="thin"></i><i></i><i class="hot"></i><i></i><i></i><i class="thin"></i><i></i><i></i><i></i><i class="thin"></i><i></i><i></i>
+      </div>
+
+      <div class="ik" style="margin-top:1.1rem"><span class="k" style="letter-spacing:0.24em">Provenance · pull the thread</span></div>
+      <div class="trail">
+        <span class="thread"></span>
+        <div class="hop" style="--hop: var(--ink-teal)">
+          <span class="hk">Served claim</span>
+          <div class="hv">"Event emission must never fail the parent operation."</div>
+          <div class="hm">brain_feature_context · digest pipeline</div>
+        </div>
+        <div class="hop" style="--hop: var(--ink-consult)">
+          <span class="hk">Observation · approved</span>
+          <div class="hv">emitEvents is always wrapped in try/catch across the pipeline.</div>
+          <div class="hm">stamped <b>✓ gilad</b> · jul 4 23:02</div>
+        </div>
+        <div class="hop" style="--hop: var(--ink-gold)">
+          <span class="hk">Moment #41 · discovery</span>
+          <div class="hv"><i>"the wrap-in-try/catch pattern shows up in all six emit sites — it's a rule, not a habit."</i></div>
+          <div class="hm">22:41 · agency: claude · ◉ anchored</div>
+        </div>
+        <div class="hop" style="--hop: var(--ink-moss)">
+          <span class="hk">Raw transcript</span>
+          <div class="raw">L1408 · <mark>emitEvents(events).catch(() =&gt; {})</mark> — "never fail the parent op; the journal is a witness, not a gate"</div>
+          <div class="hm">event 3c91aa · .intent/raw-sessions/2026-07-04-2112.jsonl</div>
+        </div>
+      </div>
+      <div class="trail-foot">fully anchored — all four hops hold</div>
+    </div>
+  </aside>
+
+  <footer class="margin">
+    <span class="quill">✒</span>
+    <span class="scope">this sitting · moment #41</span>
+    <input placeholder="Ask the Brain — its answer pins into the river, evidence threaded" />
+    <span class="hint">⌘J</span>
+  </footer>
+</div>
+
+<script>
+const C = i => getComputedStyle(document.documentElement).getPropertyValue(`--ink-${i}`).trim();
+
+/* ── the sitting as waveform: activity intensity, 21:12 → 23:47 ── */
+(function wave(){
+  const el = document.getElementById("wave");
+  /* intensity per 5-min bucket (31 buckets) */
+  const v = [4,9,14,10,6,12,18,26,20,12,8,15,24,34,28,16,10,6,12,22,38,46,40,24,14,20,30,26,16,8,5];
+  const W=1000, H=220, PB=40, max=50;
+  const X = i => 8 + i*(W-16)/(v.length-1), Y = x => H-PB-(x/max)*(H-PB-16);
+  const sm = p => p.map((q,i)=>{ if(!i) return `M ${q[0]} ${q[1]}`; const [x0,y0]=p[i-1], dx=(q[0]-x0)/2; return `C ${x0+dx} ${y0} ${q[0]-dx} ${q[1]} ${q[0]} ${q[1]}`; }).join(" ");
+  const top = v.map((x,i)=>[X(i), Y(x)]);
+  let s = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g class="reveal">`;
+  s += `<path d="${sm(top)} L ${X(v.length-1)} ${H-PB} L ${X(0)} ${H-PB} Z" fill="${C("consult")}" fill-opacity="0.16"/>`;
+  s += `<path d="${sm(top)}" fill="none" stroke="${C("consult")}" stroke-width="1.6" stroke-opacity="0.9"/>`;
+  s += `<line x1="8" y1="${H-PB}" x2="${W-8}" y2="${H-PB}" stroke="oklch(0.245 0.018 255)"/>`;
+  s += `</g></svg>`;
+  el.innerHTML = s;
+  /* moment ticks on the trace */
+  const M = [ [0.06,"violet"],[0.13,"gold"],[0.21,"red"],[0.24,"red"],[0.30,"teal"],[0.37,"gold"],[0.44,"moss"],[0.52,"violet"],[0.60,"gold"],[0.67,"teal"],[0.71,"gold",1],[0.78,"moss"],[0.85,"moss"],[0.93,"teal"] ];
+  M.forEach((m,i)=>{
+    const t = document.createElement("i");
+    t.className = "tick-m" + (m[2] ? " sel" : "");
+    t.style.left = `calc(0.95rem + (100% - 1.9rem) * ${m[0]})`;
+    t.style.background = C(m[1]);
+    t.style.boxShadow = `0 0 7px ${C(m[1])}66`;
+    t.style.animationDelay = `${0.9 + i*0.05}s`;
+    el.appendChild(t);
+  });
+})();
+
+/* ── the moments ledger ── */
+const ROWS = [
+  ["21:19","violet","Re-digest kicked off — 9 sessions queued","run",1],
+  ["21:38","red","Chunker choked on the 4-hour sitting","struggle",1],
+  ["21:52","teal","Split threshold moved to token count, not turns","decision",1],
+  ["22:07","gold","Overlap >15% double-counts moments","discovery",0],
+  ["22:41","gold","try/catch on every emit site — a rule, not a habit","discovery",1],
+  ["23:02","moss","Observation approved → digest pipeline","verified",1],
+  ["23:15","moss","41 moments re-anchored · 68% hold","verified",1],
+  ["23:31","teal","Six Features seeded from the clean corpus","decision",0],
+];
+document.getElementById("mrows").innerHTML = ROWS.map((r,i)=>
+  `<a class="mrow${i===4?" sel":""}" href="#">
+    <span class="t">${r[0]}</span><span class="ink" style="background:${C(r[1])}; box-shadow:0 0 6px ${C(r[1])}55"></span>
+    <span class="g">${r[2]}</span><span class="cat">${r[3]}</span>
+    <span class="anchor${r[4]?"":" no"}">${r[4]?"◉ anchored":"○ floating"}</span>
+  </a>`).join("");
+
+/* spine */
+(function spine(){
+  const w = [0,1,0,1,2,1,0,1,2,1,2,1,0,2,1,2,2,3,3,3];
+  document.getElementById("spine-track").insertAdjacentHTML("beforeend",
+    w.map((v,i)=>`<span class="t ${v?`w${v}`:""} ${i===19?"today":""}"></span>`).join(""));
+})();
+</script>
+</body>
+</html>
