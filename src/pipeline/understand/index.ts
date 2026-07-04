@@ -14,6 +14,7 @@ import { chunkSession } from "../chunk.js";
 import { extractChunk } from "./extract.js";
 import { weaveMoments } from "./weave.js";
 import { verifyMoments } from "./verify.js";
+import { applyDerivedConfidence } from "./derive-confidence.js";
 import { detectTransitionsAndOutcomes } from "../transitions.js";
 import { generateNarrative } from "../narrative.js";
 import { buildSessionDigest } from "../session-digest.js";
@@ -119,7 +120,10 @@ export async function understand(
   const wovenMoments = await weaveMoments(extracted, chunks, sessionShape, sittings);
 
   // 7. Verify: check outcome claims against tool events
-  const moments = await verifyMoments(wovenMoments, chunks);
+  const verifiedMoments = await verifyMoments(wovenMoments, chunks);
+
+  // 7b. Derive confidence deterministically (overwrite model-emitted value)
+  const moments = applyDerivedConfidence(verifiedMoments);
 
   // 8. Transitions + outcomes
   const { transitions, outcomes } = await detectTransitionsAndOutcomes(

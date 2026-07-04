@@ -25,6 +25,7 @@ import {
   mapAgentOutputToPipelineResult,
   buildAgentTraceEvents,
 } from "./agent.js";
+import { applyDerivedConfidence } from "../../pipeline/understand/derive-confidence.js";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { AgentResult } from "../core/types.js";
 import type { DigestAgentOutput } from "./output-schema.js";
@@ -101,13 +102,16 @@ export async function digestWithAgent(
 
   // 6. Map to pipeline result
   log("[5/7] Mapping agent output to pipeline format...");
-  const { moments, chunks, transitions, outcomes, narrative } = mapAgentOutputToPipelineResult(
+  const mapped = mapAgentOutputToPipelineResult(
     agentResult.output,
     sessionId,
     sittings,
     normalizedEvents,
     sessionShape,
   );
+  // 6b. Derive confidence deterministically (overwrite model-emitted value)
+  const moments = applyDerivedConfidence(mapped.moments);
+  const { chunks, transitions, outcomes, narrative } = mapped;
   narrative.sessionId = sessionId;
 
   // Derive timestamps

@@ -14,7 +14,7 @@ import type {
 import type { AgentConfig, CustomNode } from "../core/types.js";
 import { makeTranscriptTools } from "../tools/transcript.js";
 import { makeGitTools } from "../tools/git.js";
-import { MOMENT_TYPES_TAXONOMY, CONFIDENCE_RUBRIC, AGENCY_RUBRIC } from "../../llm/prompts/shared-rubrics.js";
+import { MOMENT_TYPES_TAXONOMY, AGENCY_RUBRIC } from "../../llm/prompts/shared-rubrics.js";
 import { DigestAgentOutputSchema, type DigestAgentOutput } from "./output-schema.js";
 import { validateAnchors } from "../../pipeline/understand/extract.js";
 import { ExtractOutputSchema } from "../../llm/prompts/understand/extract.js";
@@ -45,8 +45,6 @@ ${sittingsSummary}
 
 ${MOMENT_TYPES_TAXONOMY}
 
-${CONFIDENCE_RUBRIC}
-
 ${AGENCY_RUBRIC}
 
 ## Rolling-Notes Instructions
@@ -62,7 +60,7 @@ Work sitting-by-sitting in causal order. For each sitting:
 
 1. Every moment MUST have at least 1 evidence item with a real eventIndex.
 2. Never fabricate quotes. Quotes must come from events you actually read via tools.
-3. Confidence is nullable — omit or set to null if undecidable.
+3. Confidence is nullable — omit or set null (confidence is derived in code from anchoring; your value is overwritten).
 4. sittingIndex on each moment: which sitting the moment belongs to.
 5. Fewer is better — 2-5 moments per sitting is normal. Only flag inflection points.
 6. Use topicFingerprint in kebab-case to group related moments.`;

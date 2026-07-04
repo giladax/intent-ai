@@ -11,7 +11,10 @@ export const MOMENT_TYPES_TAXONOMY = `## Moment Types
 - **breakthrough** — A struggle resolves. The thing that wasn't working now works, or the confusion clears.
 - **execution** — Sustained implementation of an already-decided approach. Only flag this for significant scope, not every edit.`;
 
-// Confidence rubric — shared between extract prompt and digest agent
+// @deprecated CONFIDENCE_RUBRIC — moment confidence is now derived deterministically in code
+// (src/pipeline/understand/derive-confidence.ts) from anchoring + verification.
+// This rubric is no longer included in any prompt. Kept here only for historical reference.
+// Do not use in new prompts. See A5 fix: feat(understand) derived confidence 2026-07-04.
 export const CONFIDENCE_RUBRIC = `## Confidence Rubric
 
 - **high** — direct quote or tool result in provided events explicitly supports the moment

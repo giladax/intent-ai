@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { SessionChunk, PipelineDirectives } from "../../../adapters/types.js";
 import { renderChunkEvents } from "../../../pipeline/understand/render-chunk-events.js";
-import { MOMENT_TYPES_TAXONOMY, CONFIDENCE_RUBRIC, AGENCY_RUBRIC } from "../shared-rubrics.js";
+import { MOMENT_TYPES_TAXONOMY, AGENCY_RUBRIC } from "../shared-rubrics.js";
 
 // ── Zod Schemas ───────────────────────────────────────────────────────
 
@@ -154,8 +154,6 @@ ${MOMENT_TYPES_TAXONOMY}
 7. **Opening intent is a moment.** If this is chunk 0, the developer's first substantive message states what they came to do — extract it (usually "commitment" or "proposal", agency "developer").
 8. **Cite the event index.** Every evidence item includes "eventIndex": the [N] number shown on the event you are quoting. Quotes must come from the events shown — never from memory.
 
-${CONFIDENCE_RUBRIC}
-
 ${AGENCY_RUBRIC}
 
 ${getShapeGuidance(sessionShape)}${directiveGuidance}
@@ -170,7 +168,6 @@ Return ONLY a JSON object:
       "statement": "What happened, in the developer's own language",
       "significance": "Why this moment matters in the context of the session",
       "agency": "developer|ai|collaborative",
-      "confidence": "high|medium|low",
       "topicFingerprint": "kebab-case-topic-id",
       "evidence": [
         {
