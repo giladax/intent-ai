@@ -20,9 +20,11 @@ import {
   formatDuration,
   shortId,
   episodeGlyph,
+  episodeTone,
   beatGlyph,
   beatLabel,
   beatIsMiss,
+  beatTone,
   type ClauseFilter,
 } from "./journal-util";
 import {
@@ -54,20 +56,9 @@ function formatSince(since: string | null): string {
   });
 }
 
-/** Tone for the spine node, by episode kind. */
-function nodeTone(ep: JournalEpisode): "red" | "moss" | undefined {
-  if (ep.pending.length > 0 || ep.counts.consultMisses > 0) return "red";
-  if (ep.kind === "review-batch") return "moss";
-  return undefined;
-}
-
-function beatTone(beat: JournalBeat): "consult" | "red" | "moss" | undefined {
-  if (beatIsMiss(beat.metadata)) return "red";
-  const c = beat.category.toLowerCase();
-  if (c.startsWith("mcp:")) return "consult";
-  if (c.startsWith("review:") || c.includes("outcome")) return "moss";
-  if (c.includes("struggle") || c.includes("blocker")) return "red";
-  return undefined;
+/** Tone for the spine node — urgency (pending/misses) wins, then kind. */
+function nodeTone(ep: JournalEpisode) {
+  return episodeTone(ep.kind, { pending: ep.pending.length, consultMisses: ep.counts.consultMisses });
 }
 
 // ── Pulse — the masthead sentence ─────────────────────────────────────
@@ -149,11 +140,13 @@ function BeatRow({ beat, onFeatureClick }: { beat: JournalBeat; onFeatureClick: 
       data-talk-summary={beat.summary}
     >
       <span className="j-beat-time">{time}</span>
-      <span className="j-beat-glyph" data-tone={beatTone(beat)}>
+      <span className="j-beat-glyph" data-tone={beatTone(beat.category, beat.metadata)}>
         {beatGlyph(beat.category)}
       </span>
       <div className="j-beat-body">
-        <span className="j-beat-kind">{beatLabel(beat.category)}</span>
+        <span className="j-beat-kind" data-tone={beatTone(beat.category, beat.metadata)}>
+          {beatLabel(beat.category)}
+        </span>
         {miss && <span className="j-beat-miss">miss</span>}
         {beat.summary}
         {featureId && (
@@ -467,10 +460,8 @@ export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, 
         {/* quiet chrome: lenses */}
         <div className="j-rise mt-7 flex flex-wrap items-center gap-2" style={{ "--i": 3 } as React.CSSProperties}>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="j-chip" data-active={!!actor}>
-                {actor ?? "all actors"} <ChevronDown className="size-3" />
-              </button>
+            <DropdownMenuTrigger render={<button className="j-chip" data-active={!!actor} />}>
+              {actor ?? "all actors"} <ChevronDown className="size-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
               <DropdownMenuItem onClick={() => setActor(null)}>all actors</DropdownMenuItem>
@@ -483,10 +474,8 @@ export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, 
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="j-chip" data-active={!!featureId}>
-                {selectedFeatureName ?? "all features"} <ChevronDown className="size-3" />
-              </button>
+            <DropdownMenuTrigger render={<button className="j-chip" data-active={!!featureId} />}>
+              {selectedFeatureName ?? "all features"} <ChevronDown className="size-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
               <DropdownMenuItem onClick={() => setFeatureId(null)}>all features</DropdownMenuItem>

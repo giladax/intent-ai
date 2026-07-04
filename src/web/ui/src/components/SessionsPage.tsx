@@ -91,7 +91,11 @@ export function SessionsPage({ repoId, sessions, undigestedCount, liveState, onS
 
       {sorted.length === 0 ? (
         <div className="ink-rise mt-16 text-center" style={{ "--i": 3 } as React.CSSProperties}>
-          <p className="ink-deck">No digested sessions yet.</p>
+          <p className="ink-deck">
+            The record is empty — digest a session
+            <br />
+            and its story starts here.
+          </p>
         </div>
       ) : (
         <div className="ink-ledger mt-8">

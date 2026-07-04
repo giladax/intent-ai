@@ -181,3 +181,73 @@ export function beatLabel(category: string): string {
 export function beatIsMiss(metadata: Record<string, unknown> | null | undefined): boolean {
   return !!metadata && metadata["outcome"] === "miss";
 }
+
+// ── the inkwell — semantic tones ──────────────────────────────────────
+// Six inks, one meaning each (defined as --j-* accents in app-ink.css):
+// red = struggle/miss, moss = verified/outcome, consult = MCP,
+// gold = discovery/observation, violet = pivot/transition, teal = decision.
+export type InkTone = "red" | "moss" | "consult" | "gold" | "violet" | "teal";
+
+/** Tone for a beat, by (freeform) category — misses always read red. */
+export function beatTone(
+  category: string,
+  metadata?: Record<string, unknown> | null,
+): InkTone | undefined {
+  if (beatIsMiss(metadata)) return "red";
+  const c = category.toLowerCase();
+  if (c.startsWith("mcp:")) return "consult";
+  if (c.startsWith("observation:")) return "gold";
+  if (c.startsWith("review:") || c.includes("outcome") || c.includes("confirmation")) return "moss";
+  if (c.includes("struggle") || c.includes("blocker") || c.includes("rejection")) return "red";
+  if (c.includes("discovery") || c.includes("realization") || c.includes("breakthrough")) return "gold";
+  if (c.includes("pivot") || c.includes("transition") || c.includes("refactor")) return "violet";
+  if (c.includes("decision") || c.includes("commitment") || c.includes("proposal")) return "teal";
+  if (c.startsWith("eval:")) return "violet";
+  return undefined;
+}
+
+/**
+ * Tone for an episode's spine node. Urgency wins: anything pending or
+ * missed reads red; otherwise the episode kind picks its ink.
+ */
+export function episodeTone(
+  kind: JournalEpisode["kind"],
+  opts: { pending?: number; consultMisses?: number } = {},
+): InkTone | undefined {
+  if ((opts.pending ?? 0) > 0 || (opts.consultMisses ?? 0) > 0) return "red";
+  switch (kind) {
+    case "review-batch":
+      return "moss";
+    case "observation":
+      return "gold";
+    case "run":
+      return "violet";
+    default:
+      return undefined; // sessions stay ink — the river's baseline
+  }
+}
+
+/** Tone for a moment type (session detail's ledger of moments). */
+export function momentTone(type: string | null | undefined): InkTone | undefined {
+  switch ((type ?? "").toLowerCase()) {
+    case "discovery":
+    case "realization":
+    case "breakthrough":
+      return "gold";
+    case "decision":
+    case "commitment":
+    case "proposal":
+      return "teal";
+    case "pivot":
+    case "transition":
+    case "refactor":
+      return "violet";
+    case "confirmation":
+      return "moss";
+    case "struggle":
+    case "rejection":
+      return "red";
+    default:
+      return undefined; // implementation/execution stay ink
+  }
+}

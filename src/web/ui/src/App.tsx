@@ -147,12 +147,10 @@ function AppShell() {
       <header className="ink-mast">
         <div className="ink-mast-inner">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="ink-mast-wordmark" title="Switch project">
-                <Feather className="size-3.5" style={{ color: "var(--j-ink-soft)" }} />
-                <span>{selectedProject?.name ?? "Brain"}</span>
-                <ChevronDown className="size-3 opacity-50" />
-              </button>
+            <DropdownMenuTrigger render={<button className="ink-mast-wordmark" title="Switch project" />}>
+              <Feather className="size-3.5" style={{ color: "var(--j-ink-soft)" }} />
+              <span>{selectedProject?.name ?? "Brain"}</span>
+              <ChevronDown className="size-3 opacity-50" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
               {projects.map((p) => (
@@ -208,7 +206,8 @@ function AppShell() {
           unlike hidden, clip keeps the flex item's automatic min-height, so
           without it the area grows to content height and scrolling dies. */}
       <div className="relative min-h-0 flex-1 overflow-clip">
-        <div className="h-full overflow-y-auto">
+        {/* keyed on view: each section turn re-enters like a fresh page */}
+        <div key={view} className="ink-page h-full overflow-y-auto">
           {view === "journal" ? (
             <JournalPage
               repoId={selectedProject?.id ?? null}
@@ -260,20 +259,11 @@ function AppShell() {
 }
 
 // The header toggle — reads pinned-count so the button itself tells the story.
+// Styled as .ink-ask: a consult-blue glow on hover, a satisfying give on press.
 function AskBrainButton() {
   const { open, toggleDock, items } = useChatDock();
   return (
-    <button
-      className="inline-flex items-center gap-1.5"
-      style={{
-        fontFamily: "var(--j-mono)", fontSize: "0.625rem", letterSpacing: "0.14em",
-        textTransform: "uppercase", border: "1px solid var(--j-hairline)", borderRadius: 999,
-        padding: "0.3rem 0.75rem", color: open ? "var(--j-paper)" : "var(--j-ink-soft)",
-        background: open ? "var(--j-ink)" : "transparent", cursor: "pointer",
-      }}
-      title="⌘J"
-      onClick={toggleDock}
-    >
+    <button className="ink-ask" data-open={open} title="⌘J" onClick={toggleDock}>
       {open ? <X className="size-3" /> : <MessageSquare className="size-3" />}
       {open ? "Close" : items.length > 0 ? `Correspondence · ${items.length}` : "Ask the Brain"}
     </button>

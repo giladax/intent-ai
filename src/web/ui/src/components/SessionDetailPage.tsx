@@ -6,6 +6,7 @@ import { fetchSessionDetail, fetchSessionEventsWithWindows, fetchStatsOverview }
 import type { SessionDetail, SessionEventsWithWindows, EventWithWindows, EventWindow, SessionSitting, SessionQuality } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProvenanceRing } from "./Quality";
+import { momentTone } from "./journal-util";
 import { ArrowLeft } from "lucide-react";
 
 interface Props {
@@ -14,7 +15,7 @@ interface Props {
   onBack?: () => void;
 }
 
-/** Moment-type glyphs — the beat vocabulary, not a color system. */
+/** Moment-type glyphs — the beat vocabulary; tones come from momentTone. */
 const MOMENT_GLYPH: Record<string, string> = {
   discovery: "✦",
   decision: "◆",
@@ -30,14 +31,16 @@ const MOMENT_GLYPH: Record<string, string> = {
   transition: "→",
 };
 
-const CHUNK_COLORS = [
-  { border: "#6366f1", bg: "#6366f115", badge: "#6366f1" },
-  { border: "#10b981", bg: "#10b98115", badge: "#10b981" },
-  { border: "#f59e0b", bg: "#f59e0b15", badge: "#f59e0b" },
-  { border: "#ef4444", bg: "#ef444415", badge: "#ef4444" },
-  { border: "#8b5cf6", bg: "#8b5cf615", badge: "#8b5cf6" },
-  { border: "#06b6d4", bg: "#06b6d415", badge: "#06b6d4" },
-];
+/* chunk windows cycle through the inkwell — same six inks as everywhere */
+const CHUNK_TONES = ["consult", "moss", "gold", "violet", "teal", "red"] as const;
+function chunkColor(index: number) {
+  const tone = CHUNK_TONES[index % CHUNK_TONES.length];
+  return {
+    border: `var(--j-${tone})`,
+    bg: `var(--j-${tone}-soft)`,
+    badge: `var(--j-${tone})`,
+  };
+}
 
 function formatGap(prev: SessionSitting, curr: SessionSitting): string {
   const ms = new Date(curr.startedAt).getTime() - new Date(prev.endedAt).getTime();
@@ -148,7 +151,9 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
         <section className="ink-rise mt-10" style={{ "--i": 3 } as React.CSSProperties}>
           <h3 className="ink-section">{moments.length} moment{moments.length === 1 ? "" : "s"}</h3>
           <div className="mt-4">
-            {moments.map((m: any, i: number) => (
+            {moments.map((m: any, i: number) => {
+              const tone = momentTone(m.type);
+              return (
               <div
                 key={m.id || i}
                 className="flex gap-3 border-b py-3"
@@ -156,13 +161,17 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
               >
                 <span
                   className="w-4 shrink-0 pt-0.5 text-center"
-                  style={{ fontFamily: "var(--j-mono)", fontSize: "0.75rem", color: "var(--j-faint)" }}
+                  style={{
+                    fontFamily: "var(--j-mono)",
+                    fontSize: "0.75rem",
+                    color: tone ? `var(--j-${tone})` : "var(--j-faint)",
+                  }}
                 >
                   {MOMENT_GLYPH[m.type] ?? "·"}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="ink-tag">{m.type || "moment"}</span>
+                    <span className={tone ? `ink-tag ink-tag--${tone}` : "ink-tag"}>{m.type || "moment"}</span>
                     {m.agency && <span className="ink-ledger-meta">{m.agency}</span>}
                     {m.confidence && <span className="ink-ledger-meta">{m.confidence}</span>}
                   </div>
@@ -175,7 +184,8 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
                   {m.significance && <p className="ink-ledger-sub mt-1">{m.significance}</p>}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
@@ -210,7 +220,7 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
 
               // Determine primary chunk color (first window)
               const primaryChunkIndex = event.windows[0] ?? 0;
-              const chunkColor = CHUNK_COLORS[primaryChunkIndex % CHUNK_COLORS.length];
+              const chunk = chunkColor(primaryChunkIndex);
 
               // Find chunk metadata for topic hint
               const chunkMeta: EventWindow | undefined = eventsWithWindows.chunks.find(
@@ -231,8 +241,8 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
                   {/* Event row */}
                   <div
                     style={{
-                      borderLeft: `3px solid ${chunkColor.border}`,
-                      background: isOverlap ? chunkColor.bg : undefined,
+                      borderLeft: `3px solid ${chunk.border}`,
+                      background: isOverlap ? chunk.bg : undefined,
                       paddingLeft: "0.75rem",
                       paddingTop: "0.35rem",
                       paddingBottom: "0.35rem",
@@ -248,8 +258,8 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
                             fontFamily: "var(--j-mono)",
                             fontSize: "0.575rem",
                             letterSpacing: "0.04em",
-                            color: chunkColor.badge,
-                            border: `1px solid ${chunkColor.border}`,
+                            color: chunk.badge,
+                            border: `1px solid ${chunk.border}`,
                             borderRadius: "3px",
                             padding: "0 4px",
                             whiteSpace: "nowrap",
@@ -263,8 +273,8 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
                             fontFamily: "var(--j-mono)",
                             fontSize: "0.575rem",
                             letterSpacing: "0.04em",
-                            color: chunkColor.badge,
-                            border: `1px solid ${chunkColor.border}`,
+                            color: chunk.badge,
+                            border: `1px solid ${chunk.border}`,
                             borderRadius: "3px",
                             padding: "0 4px",
                           }}

@@ -831,7 +831,7 @@ export async function startWebServer(port: number): Promise<void> {
     } catch {
       dbAvailable = false;
     }
-    res.json({ dir, dbAvailable, entries: joinArchive(files, sessions) });
+    res.json({ dbAvailable, entries: joinArchive(files, sessions) });
   });
 
   // ── Stats overview — the altitude layer ───────────────────────────

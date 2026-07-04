@@ -10,9 +10,12 @@ import {
   matchesClause,
   matchesSearch,
   episodeGlyph,
+  episodeTone,
   beatGlyph,
   beatLabel,
   beatIsMiss,
+  beatTone,
+  momentTone,
 } from "./journal-util.js";
 import type { JournalEpisode } from "../types.js";
 
@@ -147,5 +150,47 @@ describe("glyphs", () => {
     expect(beatIsMiss({ outcome: "hit" })).toBe(false);
     expect(beatIsMiss(null)).toBe(false);
     expect(beatIsMiss(undefined)).toBe(false);
+  });
+});
+
+describe("the inkwell (semantic tones)", () => {
+  it("maps beat categories to their inks", () => {
+    expect(beatTone("mcp:search")).toBe("consult");
+    expect(beatTone("observation:constraint")).toBe("gold");
+    expect(beatTone("review:approved")).toBe("moss");
+    expect(beatTone("moment:outcome")).toBe("moss");
+    expect(beatTone("moment:discovery")).toBe("gold");
+    expect(beatTone("moment:struggle")).toBe("red");
+    expect(beatTone("moment:pivot")).toBe("violet");
+    expect(beatTone("moment:transition")).toBe("violet");
+    expect(beatTone("moment:decision")).toBe("teal");
+    expect(beatTone("moment:commitment")).toBe("teal");
+    expect(beatTone("eval:fitness")).toBe("violet");
+    expect(beatTone("something:else")).toBeUndefined();
+  });
+
+  it("a consult miss always reads red, whatever the category", () => {
+    expect(beatTone("mcp:search", { outcome: "miss" })).toBe("red");
+    expect(beatTone("mcp:search", { outcome: "hit" })).toBe("consult");
+  });
+
+  it("tones episode nodes by kind, urgency first", () => {
+    expect(episodeTone("session")).toBeUndefined();
+    expect(episodeTone("observation")).toBe("gold");
+    expect(episodeTone("review-batch")).toBe("moss");
+    expect(episodeTone("run")).toBe("violet");
+    expect(episodeTone("session", { pending: 1 })).toBe("red");
+    expect(episodeTone("review-batch", { consultMisses: 2 })).toBe("red");
+  });
+
+  it("tones moment types for the session detail ledger", () => {
+    expect(momentTone("discovery")).toBe("gold");
+    expect(momentTone("breakthrough")).toBe("gold");
+    expect(momentTone("decision")).toBe("teal");
+    expect(momentTone("pivot")).toBe("violet");
+    expect(momentTone("confirmation")).toBe("moss");
+    expect(momentTone("struggle")).toBe("red");
+    expect(momentTone("implementation")).toBeUndefined();
+    expect(momentTone(null)).toBeUndefined();
   });
 });

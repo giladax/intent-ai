@@ -19,6 +19,23 @@
   --j-moss: oklch(0.52 0.09 150);
   --j-moss-soft: oklch(0.52 0.09 150 / 0.1);
   --j-consult: oklch(0.5 0.09 250);
+  --j-consult-soft: oklch(0.5 0.09 250 / 0.1);
+
+  /* ── The inkwell — semantic accents (delight pass) ──────────────────
+     Six inks, one pen. Same lightness/chroma family as red & moss so the
+     page stays paper-first; each hue owns a meaning across the app:
+       red     — struggle, misses, contradiction (already the margin ink)
+       moss    — verification, outcomes, learnings (already the approve ink)
+       consult — the Brain consulted (MCP), already the correspondence ink
+       gold    — discovery, realization, breakthrough, observations noticed
+       violet  — pivots, transitions, refactors (direction changes)
+       teal    — decisions, commitments, proposals (direction chosen)      */
+  --j-gold: oklch(0.62 0.13 78);
+  --j-gold-soft: oklch(0.62 0.13 78 / 0.12);
+  --j-violet: oklch(0.5 0.11 305);
+  --j-violet-soft: oklch(0.5 0.11 305 / 0.1);
+  --j-teal: oklch(0.52 0.09 210);
+  --j-teal-soft: oklch(0.52 0.09 210 / 0.1);
   --j-serif: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
   --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
@@ -59,6 +76,13 @@
   --j-moss: oklch(0.72 0.1 150);
   --j-moss-soft: oklch(0.72 0.1 150 / 0.14);
   --j-consult: oklch(0.72 0.09 250);
+  --j-consult-soft: oklch(0.72 0.09 250 / 0.14);
+  --j-gold: oklch(0.8 0.13 85);
+  --j-gold-soft: oklch(0.8 0.13 85 / 0.16);
+  --j-violet: oklch(0.74 0.11 305);
+  --j-violet-soft: oklch(0.74 0.11 305 / 0.14);
+  --j-teal: oklch(0.76 0.09 210);
+  --j-teal-soft: oklch(0.76 0.09 210 / 0.14);
 }
 
 /* ── Editorial primitives (shared across pages) ───────────────────── */
@@ -132,10 +156,18 @@
   padding: 0.85rem 0.6rem;
   border-bottom: 1px solid var(--j-hairline);
   cursor: pointer;
-  transition: background 0.15s ease;
+  border-radius: 6px 6px 0 0;
+  transition: background 0.15s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s ease;
 }
 .ink-ledger-row:hover {
   background: color-mix(in oklch, var(--j-paper-raise) 80%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px -10px oklch(0.2 0.02 60 / 0.55);
+}
+.ink-ledger-row:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 .ink-ledger-title {
   font-family: var(--j-serif);
@@ -207,6 +239,8 @@
   transition: all 0.15s ease;
 }
 .ink-stamp:disabled { opacity: 0.4; cursor: default; }
+/* stamping is a physical act — the button gives under the hand */
+.ink-stamp:active:not(:disabled) { transform: translateY(1px) scale(0.97); }
 .ink-stamp--approve { color: var(--j-moss); border-color: color-mix(in oklch, var(--j-moss) 50%, transparent); }
 .ink-stamp--approve:hover:not(:disabled) { background: var(--j-moss); border-color: var(--j-moss); color: var(--j-paper); }
 .ink-stamp--reject { color: var(--j-faint); border-color: var(--j-hairline); }
@@ -232,6 +266,10 @@ button.ink-tag { cursor: pointer; }
 button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); background: var(--j-wash); }
 .ink-tag--red { color: var(--j-red); border-color: color-mix(in oklch, var(--j-red) 45%, transparent); }
 .ink-tag--moss { color: var(--j-moss); border-color: color-mix(in oklch, var(--j-moss) 45%, transparent); }
+.ink-tag--gold { color: var(--j-gold); border-color: color-mix(in oklch, var(--j-gold) 50%, transparent); }
+.ink-tag--violet { color: var(--j-violet); border-color: color-mix(in oklch, var(--j-violet) 45%, transparent); }
+.ink-tag--teal { color: var(--j-teal); border-color: color-mix(in oklch, var(--j-teal) 45%, transparent); }
+.ink-tag--consult { color: var(--j-consult); border-color: color-mix(in oklch, var(--j-consult) 45%, transparent); }
 
 /* serif prose (understanding text) */
 .ink-prose {
@@ -311,22 +349,37 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   gap: 1.25rem;
 }
 .ink-mast-section {
+  position: relative;
   font-family: var(--j-mono);
   font-size: 0.635rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--j-faint);
   padding: 0.15rem 0 0.25rem;
-  border-bottom: 1px solid transparent;
   cursor: pointer;
   background: transparent;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease;
   white-space: nowrap;
 }
 .ink-mast-section:hover { color: var(--j-ink); }
+/* the folio underline draws itself in — a pen stroke, left to right */
+.ink-mast-section::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--j-ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
 .ink-mast-section[data-active="true"] {
   color: var(--j-ink);
-  border-bottom-color: var(--j-ink);
+}
+.ink-mast-section[data-active="true"]::after {
+  transform: scaleX(1);
 }
 .ink-mast-count {
   font-family: var(--j-mono);
@@ -360,8 +413,66 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   animation: ink-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(min(var(--i, 0), 12) * 40ms);
 }
+
+/* section turn — each masthead section enters like a fresh page */
+@keyframes ink-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ink-page {
+  animation: ink-page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Ask the Brain — the masthead's standing invitation */
+.ink-ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid var(--j-hairline);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  color: var(--j-ink-soft);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease,
+    transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+}
+.ink-ask:hover {
+  color: var(--j-consult);
+  border-color: color-mix(in oklch, var(--j-consult) 50%, transparent);
+  box-shadow: 0 0 0 3px var(--j-consult-soft);
+}
+/* the satisfying press — it gives, then springs back */
+.ink-ask:active { transform: scale(0.94); }
+.ink-ask[data-open="true"] {
+  background: var(--j-ink);
+  border-color: var(--j-ink);
+  color: var(--j-paper);
+  box-shadow: none;
+}
+
+/* the streak, warm when it's earned (≥3 active days in a row) */
+.ink-streak--warm {
+  color: var(--j-gold);
+  text-shadow: 0 0 10px color-mix(in oklch, var(--j-gold) 55%, transparent);
+  animation: ink-streak-kindle 0.9s ease 0.6s both;
+}
+@keyframes ink-streak-kindle {
+  from { text-shadow: 0 0 0 transparent; }
+  to { text-shadow: 0 0 10px color-mix(in oklch, var(--j-gold) 55%, transparent); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ink-rise { animation: none; }
+  .ink-rise, .ink-page, .ink-streak--warm { animation: none; }
+  .ink-ledger-row, .ink-ask, .ink-stamp { transition: none; }
+  .ink-ledger-row:hover { transform: none; box-shadow: none; }
+  .ink-ask:active, .ink-stamp:active:not(:disabled) { transform: none; }
+  .ink-mast-section::after { transition: none; }
 }
 
 /* ── The Correspondence — chat as evidence board ─────────────────────

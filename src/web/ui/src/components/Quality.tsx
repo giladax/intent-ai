@@ -119,7 +119,18 @@ export function FortnightStrip({
         ))}
       </div>
       <span className="ink-fortnight-caption">
-        {label} — {cadenceCaption(summary.totalEvents, summary.activeDays, summary.streak)}
+        {label} — {summary.totalEvents} event{summary.totalEvents === 1 ? "" : "s"} ·{" "}
+        {summary.activeDays} active day{summary.activeDays === 1 ? "" : "s"}
+        {summary.streak >= 2 && (
+          <>
+            {" · "}
+            {/* a streak of 3+ earns its warmth — gold ink, a quiet kindle */}
+            <span className={summary.streak >= 3 ? "ink-streak--warm" : undefined}>
+              streak {summary.streak}
+              {summary.streak >= 3 && <span aria-hidden="true"> ✦</span>}
+            </span>
+          </>
+        )}
       </span>
     </div>
   );

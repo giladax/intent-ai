@@ -182,7 +182,6 @@ export interface ArchiveEntry {
 }
 
 export interface ArchiveResponse {
-  dir: string;
   /** False when the sessions table couldn't be reached — digested state unknown. */
   dbAvailable: boolean;
   entries: ArchiveEntry[];
