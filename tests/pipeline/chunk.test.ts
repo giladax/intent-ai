@@ -407,6 +407,44 @@ describe("chunkSession", () => {
       expect(withEmptyOpts[i].eventRange).toEqual(withoutOpts[i].eventRange);
     }
   });
+
+  it("hardBreaks: post-break chunk starts EXACTLY at the hard-break causalOrder", () => {
+    // 40 uniformly-timed events with no natural split signals
+    const events = makeEvents(40, { filesAffected: ["src/same.ts"] });
+    const hardBreakOrder = events[19].causalOrder; // causalOrder 19
+    const chunks = chunkSession(events, sessionId, new Set(), { hardBreaks: [hardBreakOrder] });
+
+    // Exactly 2 chunks expected
+    expect(chunks).toHaveLength(2);
+    // The second chunk must start EXACTLY at the hard-break causalOrder
+    expect(chunks[1].eventRange[0]).toBe(hardBreakOrder);
+  });
+
+  it("hardBreaks: a 9-event short session with one hard break produces 2 chunks", () => {
+    // Sessions under SHORT_SESSION_THRESHOLD (10) currently return a single chunk
+    // regardless — hard breaks must override this.
+    const events = makeEvents(9, { filesAffected: ["src/same.ts"] });
+    // Put the break at event index 4 (causalOrder 4)
+    const hardBreakOrder = events[4].causalOrder;
+    const chunks = chunkSession(events, sessionId, new Set(), { hardBreaks: [hardBreakOrder] });
+
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0].eventRange).toEqual([0, 3]);
+    expect(chunks[1].eventRange[0]).toBe(hardBreakOrder);
+  });
+
+  it("hardBreaks: a tiny post-break chunk is NOT merged backward across the boundary", () => {
+    // Build: 20 events, hard break at index 18 → first chunk has 18 events,
+    // second chunk has only 2 events (< MIN_CHUNK_SIZE=8). Without protection
+    // the tiny second chunk would merge backward into chunk 1.
+    const events = makeEvents(20, { filesAffected: ["src/same.ts"] });
+    const hardBreakOrder = events[18].causalOrder; // causalOrder 18
+    const chunks = chunkSession(events, sessionId, new Set(), { hardBreaks: [hardBreakOrder] });
+
+    // Must still be 2 chunks — the boundary must NOT be dissolved
+    expect(chunks).toHaveLength(2);
+    expect(chunks[1].eventRange[0]).toBe(hardBreakOrder);
+  });
 });
 
 describe("detectTopicShifts", () => {

@@ -300,6 +300,68 @@ describe("buildSessionEvents", () => {
     expect(transitionEvent!.timestamp).toEqual(sessionEndedAt);
   });
 
+  it("moment with empty occurredAt string emits with a valid Date (NaN guard)", () => {
+    const moment: SessionMoment = {
+      id: "m-nan-empty",
+      chunkId: "c1",
+      type: "discovery",
+      statement: "Something happened",
+      significance: "low",
+      agency: "ai",
+      confidence: "low",
+      topicFingerprint: "test",
+      relatedMomentIds: [],
+      evidence: [],
+      occurredAt: "",
+    };
+
+    const events = buildSessionEvents({
+      ...sessionContext,
+      moments: [moment],
+      transitions: [],
+      outcomes: [],
+      narrative: makeNarrative(),
+    });
+
+    const momentEvent = events.find((e) => e.sourceType === "moment");
+    expect(momentEvent).toBeDefined();
+    // Must NOT throw and must be a valid Date
+    expect(momentEvent!.timestamp).toBeInstanceOf(Date);
+    expect(Number.isNaN(momentEvent!.timestamp.getTime())).toBe(false);
+    // Calling toISOString() must not throw
+    expect(() => momentEvent!.timestamp.toISOString()).not.toThrow();
+  });
+
+  it("moment with garbage occurredAt string emits with a valid Date (NaN guard)", () => {
+    const moment: SessionMoment = {
+      id: "m-nan-garbage",
+      chunkId: "c1",
+      type: "struggle",
+      statement: "Something broke",
+      significance: "high",
+      agency: "ai",
+      confidence: "medium",
+      topicFingerprint: "test",
+      relatedMomentIds: [],
+      evidence: [],
+      occurredAt: "garbage-not-a-date",
+    };
+
+    const events = buildSessionEvents({
+      ...sessionContext,
+      moments: [moment],
+      transitions: [],
+      outcomes: [],
+      narrative: makeNarrative(),
+    });
+
+    const momentEvent = events.find((e) => e.sourceType === "moment");
+    expect(momentEvent).toBeDefined();
+    expect(momentEvent!.timestamp).toBeInstanceOf(Date);
+    expect(Number.isNaN(momentEvent!.timestamp.getTime())).toBe(false);
+    expect(() => momentEvent!.timestamp.toISOString()).not.toThrow();
+  });
+
   it("narrative/transition/outcome timestamps fall back to new Date() when sessionEndedAt not provided", () => {
     const before = Date.now();
 

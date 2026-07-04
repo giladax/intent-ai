@@ -50,10 +50,12 @@ export function buildSessionEvents(input: SessionEventInput): ActivityEvent[] {
     ...ctx,
   });
 
-  // Moment events — stamp with occurredAt when available, else new Date()
+  // Moment events — stamp with occurredAt when available, else new Date().
+  // Guard against malformed strings: new Date("garbage") yields Invalid Date
+  // whose .toISOString() throws — fall back to new Date() in that case.
   for (const moment of input.moments) {
-    const momentTs =
-      moment.occurredAt != null ? new Date(moment.occurredAt) : new Date();
+    const parsed = moment.occurredAt != null ? new Date(moment.occurredAt) : null;
+    const momentTs = parsed != null && !Number.isNaN(parsed.getTime()) ? parsed : new Date();
     events.push({
       timestamp: momentTs,
       category: moment.type,

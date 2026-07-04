@@ -311,9 +311,11 @@ export async function getSessionEndedAt(sessionId: string): Promise<Date | null>
  */
 export async function deleteSessionDigest(sessionId: string): Promise<void> {
   const sql = getClient();
-  await sql`DELETE FROM activity_events WHERE session_id = ${sessionId}`;
-  await sql`DELETE FROM feature_sessions WHERE session_id = ${sessionId}`;
-  await sql`DELETE FROM sessions WHERE id = ${sessionId}`;
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM activity_events WHERE session_id = ${sessionId}`;
+    await tx`DELETE FROM feature_sessions WHERE session_id = ${sessionId}`;
+    await tx`DELETE FROM sessions WHERE id = ${sessionId}`;
+  });
 }
 
 export async function getChunkEvents(sessionId: string, chunkId: string): Promise<NormalizedDevEvent[]> {

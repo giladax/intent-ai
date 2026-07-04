@@ -137,17 +137,34 @@ export function chunkSession(
 ): SessionChunk[] {
   if (events.length === 0) return [];
 
-  // Short sessions: one chunk, no splitting
+  const hardBreakOrders = new Set(options?.hardBreaks ?? []);
+
+  // Short sessions: normally one chunk, but still honour hard breaks.
+  // When hard breaks are present we skip the short-circuit and fall through
+  // to the normal path — but only the hard-break splits are applied
+  // (no pause/file-shift heuristics on short sessions).
   if (events.length < SHORT_SESSION_THRESHOLD) {
-    return [buildChunk(events, sessionId, 0, [])];
+    if (hardBreakOrders.size === 0) {
+      return [buildChunk(events, sessionId, 0, [])];
+    }
+    // Short session with hard breaks: only apply the hard-break splits.
+    const splitIndices: number[] = [];
+    for (let i = 1; i < events.length; i++) {
+      if (hardBreakOrders.has(events[i].causalOrder)) {
+        splitIndices.push(i);
+      }
+    }
+    const rawChunks = splitAtIndices(events, splitIndices);
+    const mergedChunks = mergeTinyChunks(rawChunks, hardBreakOrders);
+    const cappedChunks = mergedChunks.flatMap((chunk) => applySizeCap(chunk));
+    return buildChunksWithOverlap(cappedChunks, sessionId);
   }
 
   // Find all split points
   const splitIndices = findSplitPoints(events, topicShiftEventIds);
 
   // Apply hard breaks: find indices where a hard-break causalOrder first appears
-  if (options?.hardBreaks && options.hardBreaks.length > 0) {
-    const hardBreakOrders = new Set(options.hardBreaks);
+  if (hardBreakOrders.size > 0) {
     for (let i = 1; i < events.length; i++) {
       if (hardBreakOrders.has(events[i].causalOrder) && !splitIndices.includes(i)) {
         splitIndices.push(i);
@@ -159,8 +176,8 @@ export function chunkSession(
   // Build chunks from split points
   const rawChunks = splitAtIndices(events, splitIndices);
 
-  // Merge tiny chunks into neighbors
-  const mergedChunks = mergeTinyChunks(rawChunks);
+  // Merge tiny chunks into neighbors, but never across a hard-break boundary
+  const mergedChunks = mergeTinyChunks(rawChunks, hardBreakOrders);
 
   // Apply size cap to oversized chunks
   const cappedChunks = mergedChunks.flatMap((chunk) => applySizeCap(chunk));
@@ -271,17 +288,29 @@ function hasTopicShift(
 /**
  * Merge chunks smaller than MIN_CHUNK_SIZE into their preceding neighbor.
  * If the first chunk is tiny, merge it into the next one.
+ *
+ * Hard-break boundaries are never crossed: a chunk whose first event's
+ * causalOrder is a hard-break MUST NOT be merged backward into its
+ * predecessor.  Such a chunk may still be merged forward (into its
+ * successor) when the successor does not start at a hard-break.
  */
 function mergeTinyChunks(
   chunks: NormalizedDevEvent[][],
+  hardBreakOrders: Set<number> = new Set(),
 ): NormalizedDevEvent[][] {
   if (chunks.length <= 1) return chunks;
+
+  /** Returns true when the chunk starts at a hard-break boundary. */
+  const startsAtHardBreak = (chunk: NormalizedDevEvent[]): boolean =>
+    chunk.length > 0 && hardBreakOrders.has(chunk[0].causalOrder);
 
   const result: NormalizedDevEvent[][] = [chunks[0]];
 
   for (let i = 1; i < chunks.length; i++) {
-    if (chunks[i].length < MIN_CHUNK_SIZE) {
-      // Merge into the previous chunk
+    const isHardBreakChunk = startsAtHardBreak(chunks[i]);
+
+    if (chunks[i].length < MIN_CHUNK_SIZE && !isHardBreakChunk) {
+      // Merge into the previous chunk (backward merge — safe: no hard break here)
       result[result.length - 1] = [
         ...result[result.length - 1],
         ...chunks[i],
@@ -291,8 +320,9 @@ function mergeTinyChunks(
     }
   }
 
-  // If the first chunk ended up tiny (from being the original first), merge forward
-  if (result.length > 1 && result[0].length < MIN_CHUNK_SIZE) {
+  // If the first chunk ended up tiny and does NOT protect a hard-break, merge
+  // it forward into the second chunk.
+  if (result.length > 1 && result[0].length < MIN_CHUNK_SIZE && !startsAtHardBreak(result[1])) {
     result[1] = [...result[0], ...result[1]];
     result.shift();
   }
