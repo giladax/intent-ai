@@ -29,7 +29,7 @@ import type {
   RawDevEvent,
 } from "../adapters/types.js";
 
-interface PipelineResult {
+export interface PipelineResult {
   sessionId: string;
   narrative: SessionNarrative;
   moments: SessionMoment[];
@@ -245,7 +245,7 @@ export async function runPipeline(
 /**
  * Return the maximum timestamp across raw events, or null if none are parseable.
  */
-function latestTimestamp(rawEvents: RawDevEvent[]): Date | null {
+export function latestTimestamp(rawEvents: RawDevEvent[]): Date | null {
   let max: number | null = null;
   for (const e of rawEvents) {
     if (!e.timestamp) continue;
@@ -264,7 +264,7 @@ function latestTimestamp(rawEvents: RawDevEvent[]): Date | null {
  * Returns the stored session id, or null if not found. A DB error is treated
  * as "not digested" so a missing/unreachable database never blocks digestion.
  */
-async function findDigestedSession(
+export async function findDigestedSession(
   sourceHash: string,
 ): Promise<string | null> {
   try {
@@ -284,7 +284,7 @@ async function findDigestedSession(
  * result without re-running the LLM pipeline. Returns null if the stored data
  * is incomplete (e.g. narrative missing) so the caller can re-digest.
  */
-async function loadStoredDigest(
+export async function loadStoredDigest(
   sessionId: string,
 ): Promise<PipelineResult | null> {
   try {

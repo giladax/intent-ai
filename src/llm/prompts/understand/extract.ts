@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { SessionChunk, PipelineDirectives } from "../../../adapters/types.js";
 import { renderChunkEvents } from "../../../pipeline/understand/render-chunk-events.js";
+import { MOMENT_TYPES_TAXONOMY, CONFIDENCE_RUBRIC, AGENCY_RUBRIC } from "../shared-rubrics.js";
 
 // ── Zod Schemas ───────────────────────────────────────────────────────
 
@@ -140,17 +141,7 @@ export function buildExtractPrompt(input: {
 
 A "moment" is a point where something meaningful happened — a decision was made, an insight occurred, direction changed, or a commitment was established. NOT every event is a moment. You are looking for the inflection points.
 
-## Moment Types
-
-- **proposal** — Someone (developer or AI) suggests an approach, architecture, or solution. Use the proposer's actual words.
-- **discovery** — New information surfaces that changes understanding. "Oh, this API doesn't support streaming" or "The tests are actually passing, it was a caching issue."
-- **pivot** — Direction changes. The developer was doing X, now they're doing Y. Must cite what triggered the pivot.
-- **confirmation** — A tentative approach becomes accepted. "Yeah, that looks right" or running tests that pass.
-- **rejection** — An approach is explicitly rejected. "Actually let's not mock the database" or reverting a change.
-- **commitment** — A firm decision that shapes subsequent work. Different from confirmation — this is choosing a path, not validating one.
-- **struggle** — Repeated failed attempts, confusion, or difficulty. Cycles of edit-fail-edit on the same problem.
-- **breakthrough** — A struggle resolves. The thing that wasn't working now works, or the confusion clears.
-- **execution** — Sustained implementation of an already-decided approach. Only flag this for significant scope, not every edit.
+${MOMENT_TYPES_TAXONOMY}
 
 ## Rules
 
@@ -163,19 +154,9 @@ A "moment" is a point where something meaningful happened — a decision was mad
 7. **Opening intent is a moment.** If this is chunk 0, the developer's first substantive message states what they came to do — extract it (usually "commitment" or "proposal", agency "developer").
 8. **Cite the event index.** Every evidence item includes "eventIndex": the [N] number shown on the event you are quoting. Quotes must come from the events shown — never from memory.
 
-## Confidence Rubric
+${CONFIDENCE_RUBRIC}
 
-- **high** — direct quote or tool result in provided events explicitly supports the moment
-- **medium** — inferred from multiple events, never explicitly stated
-- **low** — weak or indirect support
-- **omit / null** — if the moment is undecidable, omit confidence or set it to null
-
-## Agency Rubric
-
-Agency is about who SET THE DIRECTION, not who typed. Executing tools is NOT agency.
-- **developer** — the developer initiated or drove this moment
-- **ai** — the AI proposed it and the developer passively accepted (went along without meaningful engagement)
-- **collaborative** — genuine back-and-forth shaped the outcome
+${AGENCY_RUBRIC}
 
 ${getShapeGuidance(sessionShape)}${directiveGuidance}
 
