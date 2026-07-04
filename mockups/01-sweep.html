@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brain — The Sweep · the quarter at arm's length</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&display=swap" rel="stylesheet" />
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   BRAIN · UI REIMAGINING · MOCKUP 1 of 3 — THE SWEEP (C-level altitude)
+   One continuous surface. Time is space. Altitude is the interaction.
+   Palette: the real --j-* inkwell from src/web/ui/src/app-ink.css.
+   ════════════════════════════════════════════════════════════════════ */
+@view-transition { navigation: auto; }
+
+:root {
+  /* ── the inkwell — copied verbatim from app-ink.css ── */
+  --j-ink: oklch(0.24 0.02 60);
+  --j-ink-soft: oklch(0.45 0.015 60);
+  --j-faint: oklch(0.58 0.012 60);
+  --j-hairline: oklch(0.88 0.012 75);
+  --j-paper: oklch(0.982 0.006 85);
+  --j-paper-raise: oklch(0.995 0.004 90);
+  --j-wash: oklch(0.955 0.01 85);
+  --j-red: oklch(0.55 0.19 30);
+  --j-red-soft: oklch(0.55 0.19 30 / 0.08);
+  --j-moss: oklch(0.52 0.09 150);
+  --j-moss-soft: oklch(0.52 0.09 150 / 0.1);
+  --j-consult: oklch(0.5 0.09 250);
+  --j-consult-soft: oklch(0.5 0.09 250 / 0.1);
+  --j-gold: oklch(0.62 0.13 78);
+  --j-gold-soft: oklch(0.62 0.13 78 / 0.12);
+  --j-violet: oklch(0.5 0.11 305);
+  --j-violet-soft: oklch(0.5 0.11 305 / 0.1);
+  --j-teal: oklch(0.52 0.09 210);
+  --j-teal-soft: oklch(0.52 0.09 210 / 0.1);
+  --j-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+body {
+  font-family: var(--j-serif);
+  background: var(--j-paper);
+  color: var(--j-ink);
+  overflow: hidden;
+  /* paper grain */
+  background-image:
+    radial-gradient(ellipse 90% 60% at 70% -10%, oklch(0.62 0.13 78 / 0.045), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.36 0 0 0 0 0.3 0 0 0 0.025 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.kicker { font-family: var(--j-mono); font-size: 0.625rem; letter-spacing: 0.32em; text-transform: uppercase; color: var(--j-faint); }
+.mono   { font-family: var(--j-mono); }
+
+/* ════════ THE FRAME — spine · surface · margin ════════ */
+.frame {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 264px;
+  grid-template-rows: 56px minmax(0, 1fr) 64px;
+  grid-template-areas:
+    "mast mast mast"
+    "spine surface strands"
+    "margin margin margin";
+  height: 100vh;
+}
+
+/* ── masthead: wordmark · search · THE ALTIMETER ── */
+.mast {
+  grid-area: mast;
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: 0 1.75rem;
+  border-bottom: 1px solid var(--j-hairline);
+  background: color-mix(in oklab, var(--j-paper) 88%, transparent);
+  backdrop-filter: blur(6px);
+  z-index: 10;
+}
+.wordmark { display: flex; align-items: baseline; gap: 0.6rem; }
+.wordmark b { font-weight: 600; font-size: 1.06rem; letter-spacing: -0.01em; }
+.wordmark .kicker { letter-spacing: 0.26em; }
+
+.search {
+  flex: 1; max-width: 34rem;
+  display: flex; align-items: center; gap: 0.55rem;
+  font-family: var(--j-mono); font-size: 0.72rem; color: var(--j-faint);
+  border: 1px solid var(--j-hairline); border-radius: 999px;
+  padding: 0.42rem 0.9rem; background: var(--j-paper-raise);
+}
+.search kbd {
+  margin-left: auto; font-family: var(--j-mono); font-size: 0.62rem;
+  border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0.05rem 0.32rem; color: var(--j-faint);
+}
+
+/* the altimeter — altitude is THE control, not tabs */
+.altimeter { display: flex; align-items: center; gap: 0.2rem; margin-left: auto; }
+.altimeter .stop {
+  font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--j-faint); text-decoration: none; padding: 0.4rem 0.7rem; border-radius: 999px;
+  position: relative; transition: color 0.2s ease, background 0.2s ease;
+}
+.altimeter .stop:hover { color: var(--j-ink); background: var(--j-wash); }
+.altimeter .stop.here { color: var(--j-paper); background: var(--j-ink); }
+.altimeter .tick { width: 14px; height: 1px; background: var(--j-hairline); }
+.review-due {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-family: var(--j-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--j-red); text-decoration: none; padding: 0.35rem 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--j-red) 35%, transparent); border-radius: 999px;
+}
+.review-due .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--j-red); animation: breathe 2.6s ease-in-out infinite; }
+@keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ════════ THE SPINE — all of time, always present ════════ */
+.spine {
+  grid-area: spine;
+  border-right: 1px solid var(--j-hairline);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1.1rem 0; gap: 0;
+  background: linear-gradient(to right, transparent, oklch(0.955 0.01 85 / 0.5));
+}
+.spine .label { writing-mode: vertical-rl; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--j-faint); margin-bottom: 0.9rem; }
+.spine .track { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.spine .month { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-around; }
+.spine .month::before {
+  content: attr(data-m); position: absolute; left: 10px; top: 4px;
+  font-family: var(--j-mono); font-size: 0.55rem; letter-spacing: 0.18em; color: var(--j-faint); text-transform: uppercase;
+}
+.spine .day { width: 26px; height: 3px; border-radius: 2px; background: var(--j-hairline); transform-origin: center; animation: spineIn 0.7s cubic-bezier(0.22,1,0.36,1) backwards; }
+.spine .day.d1 { background: color-mix(in oklab, var(--j-ink) 38%, var(--j-hairline)); width: 32px; }
+.spine .day.d2 { background: color-mix(in oklab, var(--j-ink) 62%, var(--j-hairline)); width: 42px; height: 4px; }
+.spine .day.d3 { background: var(--j-ink); width: 54px; height: 5px; }
+.spine .day.today { background: var(--j-moss); box-shadow: 0 0 10px oklch(0.52 0.09 150 / 0.5); }
+@keyframes spineIn { from { transform: scaleX(0); opacity: 0; } }
+
+/* the viewport lens — where you are in time, at this altitude */
+.spine .lens {
+  position: absolute; left: 6px; right: 6px; top: 0; height: 100%;
+  border: 1px solid color-mix(in oklab, var(--j-ink) 40%, transparent);
+  border-radius: 6px; background: oklch(0.62 0.13 78 / 0.05);
+  pointer-events: none;
+}
+.spine .lens::after {
+  content: "THE QUARTER"; position: absolute; bottom: -1.2rem; left: 50%; transform: translateX(-50%);
+  font-family: var(--j-mono); font-size: 0.5rem; letter-spacing: 0.2em; color: var(--j-faint); white-space: nowrap;
+}
+
+/* ════════ THE SURFACE — weeks as bands, days as skylines ════════ */
+.surface {
+  grid-area: surface;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 1.6rem 3rem 3rem 2.6rem;
+  scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent;
+}
+.surface-head { max-width: 46rem; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
+.surface-head h1 { font-size: 2rem; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; margin: 0.35rem 0 0.4rem; }
+.surface-head .deck { font-style: italic; font-weight: 380; font-size: 1.04rem; line-height: 1.5; color: var(--j-ink-soft); text-wrap: pretty; }
+.rule-double { border-top: 1px solid var(--j-hairline); border-bottom: 1px solid var(--j-hairline); height: 4px; margin: 1.1rem 0 0; }
+
+/* ── the now edge — digestion state lives WHERE the state is ── */
+.now-edge {
+  max-width: 46rem; margin-top: 1.2rem;
+  display: flex; align-items: baseline; gap: 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed color-mix(in oklab, var(--j-moss) 45%, transparent);
+  border-radius: 8px; background: var(--j-moss-soft);
+  animation: rise 0.6s 0.08s cubic-bezier(0.22,1,0.36,1) backwards;
+}
+.now-edge .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--j-moss); align-self: center; animation: breathe 2.6s ease-in-out infinite; }
+.now-edge .k { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--j-moss); }
+.now-edge p { font-style: italic; font-size: 0.93rem; color: var(--j-ink-soft); }
+.now-edge a { color: var(--j-moss); text-decoration: none; border-bottom: 1px solid color-mix(in oklab, var(--j-moss) 40%, transparent); }
+.now-edge .ghost { font-family: var(--j-mono); font-size: 0.66rem; color: var(--j-faint); margin-left: auto; white-space: nowrap; align-self: center; }
+
+/* ── week bands ── */
+.week { max-width: 46rem; margin-top: 2.4rem; animation: rise 0.65s cubic-bezier(0.22,1,0.36,1) backwards; }
+.week:nth-of-type(2) { animation-delay: 0.14s; }
+.week:nth-of-type(3) { animation-delay: 0.22s; }
+.week:nth-of-type(4) { animation-delay: 0.3s; }
+.week:nth-of-type(5) { animation-delay: 0.38s; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+.week-rule { display: flex; align-items: center; gap: 0.75rem; }
+.week-rule .kicker { white-space: nowrap; }
+.week-rule::after { content: ""; height: 1px; flex: 1; background: var(--j-hairline); }
+.week-rule .stat { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.12em; color: var(--j-faint); white-space: nowrap; }
+
+.week h2 {
+  font-size: 1.32rem; font-weight: 500; line-height: 1.32; letter-spacing: -0.005em;
+  margin: 0.7rem 0 0.2rem; max-width: 40rem; text-wrap: balance; cursor: pointer;
+}
+.week h2:hover { color: color-mix(in oklab, var(--j-ink) 75%, var(--j-teal)); }
+.week .byline { font-family: var(--j-mono); font-size: 0.64rem; letter-spacing: 0.1em; color: var(--j-faint); }
+
+/* the skyline — seven days, each a stack of inks; hover = the day speaks */
+.skyline { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; align-items: end; height: 74px; margin-top: 1rem; }
+.sky-day { position: relative; display: flex; flex-direction: column-reverse; gap: 2px; align-items: stretch; height: 100%; justify-content: flex-start; cursor: pointer; text-decoration: none; }
+.sky-day .bar { border-radius: 2px; min-height: 3px; width: min(100%, 38px); margin-inline: auto; transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), filter 0.2s; transform-origin: bottom; animation: grow 0.8s cubic-bezier(0.22,1,0.36,1) backwards; }
+.week:nth-of-type(2) .sky-day .bar { animation-delay: 0.25s; }
+@keyframes grow { from { transform: scaleY(0); } }
+.sky-day:hover .bar { transform: scaleY(1.06); filter: saturate(1.3); }
+.sky-day .d { text-align: center; font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.08em; color: var(--j-faint); order: -1; margin-top: 5px; }
+.sky-day.quiet::before { content: ""; height: 2px; width: min(100%, 38px); margin-inline: auto; background: var(--j-hairline); border-radius: 1px; }
+.sky-day .tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px);
+  background: var(--j-ink); color: var(--j-paper); font-family: var(--j-mono); font-size: 0.62rem;
+  padding: 0.35rem 0.6rem; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity 0.18s, transform 0.18s; z-index: 5;
+}
+.sky-day:hover .tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+.b-ink    { background: color-mix(in oklab, var(--j-ink) 55%, var(--j-hairline)); }
+.b-moss   { background: var(--j-moss); }
+.b-red    { background: var(--j-red); }
+.b-gold   { background: var(--j-gold); }
+.b-violet { background: var(--j-violet); }
+.b-teal   { background: var(--j-teal); }
+.b-consult{ background: var(--j-consult); }
+
+/* margin note — red ink, the editor's voice */
+.margin-note { display: flex; gap: 0.6rem; margin-top: 0.9rem; font-style: italic; font-size: 0.9rem; color: var(--j-red); }
+.margin-note::before { content: "✎"; font-style: normal; }
+
+/* ── a correspondence card, pinned INTO the river ── */
+.corr {
+  max-width: 46rem; margin-top: 2.6rem;
+  border: 1px solid color-mix(in oklab, var(--j-consult) 30%, var(--j-hairline));
+  border-left: 3px solid var(--j-consult);
+  border-radius: 10px; background: var(--j-paper-raise);
+  padding: 1.1rem 1.3rem 1.2rem;
+  box-shadow: 0 10px 30px -18px oklch(0.5 0.09 250 / 0.35);
+  animation: rise 0.65s 0.42s cubic-bezier(0.22,1,0.36,1) backwards;
+}
+.corr .k { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--j-consult); display: flex; gap: 0.7rem; align-items: center; }
+.corr .k::after { content: ""; flex: 1; height: 1px; background: color-mix(in oklab, var(--j-consult) 25%, transparent); }
+.corr .q { font-style: italic; font-size: 1.02rem; margin-top: 0.55rem; color: var(--j-ink); }
+.corr .a { font-size: 0.97rem; line-height: 1.62; margin-top: 0.6rem; color: var(--j-ink-soft); }
+.corr .a b { color: var(--j-ink); font-weight: 550; }
+.cites { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
+.cite {
+  font-family: var(--j-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-decoration: none;
+  color: var(--j-consult); border: 1px solid color-mix(in oklab, var(--j-consult) 30%, transparent);
+  border-radius: 999px; padding: 0.22rem 0.6rem; transition: background 0.15s;
+}
+.cite:hover { background: var(--j-consult-soft); }
+.cite .h { color: var(--j-faint); }
+
+/* ════════ THE STRANDS — six features, one glance ════════ */
+.strands {
+  grid-area: strands;
+  border-left: 1px solid var(--j-hairline);
+  padding: 1.4rem 1.3rem; overflow-y: auto;
+  background: linear-gradient(to left, transparent, oklch(0.955 0.01 85 / 0.35));
+}
+.strands .kicker { display: block; margin-bottom: 1.1rem; }
+.strand { display: block; text-decoration: none; color: inherit; padding: 0.7rem 0.5rem 0.75rem; border-radius: 8px; border-bottom: 1px solid var(--j-hairline); transition: background 0.16s; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
+.strand:nth-child(2){animation-delay:0.1s}.strand:nth-child(3){animation-delay:0.16s}.strand:nth-child(4){animation-delay:0.22s}.strand:nth-child(5){animation-delay:0.28s}.strand:nth-child(6){animation-delay:0.34s}.strand:nth-child(7){animation-delay:0.4s}
+.strand:hover { background: var(--j-wash); }
+.strand .name { font-size: 0.9rem; font-weight: 500; line-height: 1.3; }
+.strand .meta { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.3rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.mom-rising  { color: var(--j-gold); }
+.mom-steady  { color: var(--j-teal); }
+.mom-cooling { color: var(--j-faint); }
+.strand svg { display: block; width: 100%; height: 22px; margin-top: 0.45rem; }
+.strand svg path { fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 300; stroke-dashoffset: 300; animation: draw 1.4s 0.5s cubic-bezier(0.4,0,0.2,1) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.strand .align { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem; font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.align.ok  { color: var(--j-moss); }
+.align.na  { color: var(--j-faint); }
+.align .sq { width: 7px; height: 7px; border-radius: 2px; background: currentColor; opacity: 0.85; }
+
+/* ════════ THE MARGIN — Ask the Brain lives on the surface ════════ */
+.margin {
+  grid-area: margin;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0 1.75rem;
+  border-top: 1px solid var(--j-hairline);
+  background: color-mix(in oklab, var(--j-paper) 90%, transparent);
+  backdrop-filter: blur(6px);
+}
+.margin .quill { color: var(--j-consult); font-size: 1rem; }
+.margin input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: var(--j-serif); font-style: italic; font-size: 1rem; color: var(--j-ink);
+}
+.margin input::placeholder { color: var(--j-faint); }
+.margin .hint { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); white-space: nowrap; }
+.margin .hint b { color: var(--j-consult); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .strand svg path { stroke-dashoffset: 0; }
+}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- masthead: search is the front door; the ALTIMETER is the only nav -->
+  <header class="mast">
+    <div class="wordmark"><span style="color:var(--j-consult)">✒</span> <b>intent-ai</b> <span class="kicker">the brain</span></div>
+    <div class="search">⌕ search the river — anything, any time <kbd>/</kbd></div>
+    <nav class="altimeter" aria-label="altitude">
+      <a class="stop here" href="01-sweep.html" title="the quarter, at arm's length">Sweep</a>
+      <span class="tick"></span>
+      <a class="stop" href="02-reach.html" title="the day, within reach">Reach</a>
+      <span class="tick"></span>
+      <a class="stop" href="03-grain.html" title="the hour, in evidence">Grain</a>
+    </nav>
+    <a class="review-due" href="02-reach.html"><span class="dot"></span> 2 awaiting your ink</a>
+  </header>
+
+  <!-- the spine: all of time, always. click a month to travel; the lens is your viewport -->
+  <aside class="spine" aria-label="all of time">
+    <span class="label">The spine — May → today</span>
+    <div class="track">
+      <div class="lens" style="top:34%; height:64%"></div>
+      <div class="month" data-m="May">
+        <span class="day" style="animation-delay:.05s"></span><span class="day" style="animation-delay:.08s"></span><span class="day d1" style="animation-delay:.11s"></span><span class="day" style="animation-delay:.14s"></span>
+      </div>
+      <div class="month" data-m="Jun">
+        <span class="day d1" style="animation-delay:.17s"></span><span class="day d2" style="animation-delay:.2s"></span><span class="day d1" style="animation-delay:.23s"></span><span class="day d2" style="animation-delay:.26s"></span><span class="day d1" style="animation-delay:.29s"></span>
+      </div>
+      <div class="month" data-m="Jul">
+        <span class="day d2" style="animation-delay:.32s"></span><span class="day d3" style="animation-delay:.35s"></span><span class="day d3 today" style="animation-delay:.38s"></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- the surface at SWEEP: weeks are bands, days are skylines, headlines are earned -->
+  <main class="surface">
+    <div class="surface-head">
+      <span class="kicker">The repo, narrated · altitude I — the quarter at arm's length</span>
+      <h1>What the Brain understands</h1>
+      <p class="deck">Nine sessions read closely; six Features hold their understanding; evidence 68% anchored to the transcript. The river below is every week that mattered — press a week to descend into its days.</p>
+      <div class="rule-double"></div>
+    </div>
+
+    <!-- the now edge: digestion status lives at the top of time, not in chrome -->
+    <div class="now-edge">
+      <span class="pulse"></span>
+      <div>
+        <span class="k">Now — the press listens</span>
+        <p>The journal is current. One session is <a href="03-grain.html">still being written</a> — it joins the river when it goes quiet. <span style="color:var(--j-faint)">Press runs every 30 min · <a href="#" style="color:var(--j-faint)">schedule</a></span></p>
+      </div>
+      <span class="ghost">☉ streak 2 · 418 events this fortnight</span>
+    </div>
+
+    <!-- week bands, newest first -->
+    <section class="week">
+      <div class="week-rule"><span class="kicker">This week · Jun 29 — Jul 4</span><span class="stat">3 sessions · 214 events · 2 to review</span></div>
+      <h2>The pipeline earned its trust: fidelity audited, rewritten, and re-measured — then six Features were seeded from the re-digested corpus.</h2>
+      <span class="byline">gilad · claude × 3 sittings · the Brain itself</span>
+      <div class="skyline">
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">29</span><span class="tip">Mon — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">30</span><span class="tip">Tue — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">1</span><span class="tip">Wed — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">2</span><span class="tip">Thu — quiet</span></a>
+        <a class="sky-day" href="02-reach.html">
+          <span class="d">3</span>
+          <span class="bar b-ink" style="height:30%"></span><span class="bar b-red" style="height:9%"></span><span class="bar b-violet" style="height:16%"></span><span class="bar b-gold" style="height:11%"></span>
+          <span class="tip">Fri Jul 3 — 3 sessions · adversarial review → fidelity audit</span>
+        </a>
+        <a class="sky-day" href="02-reach.html">
+          <span class="d">4</span>
+          <span class="bar b-ink" style="height:22%"></span><span class="bar b-moss" style="height:18%"></span><span class="bar b-gold" style="height:14%"></span><span class="bar b-teal" style="height:8%"></span>
+          <span class="tip">Sat Jul 4 — corpus re-digested · 6 Features seeded</span>
+        </a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">5</span><span class="tip">Sun</span></a>
+      </div>
+      <p class="margin-note">Struggle ran hot Friday night — the audit found fabricated evidence before the rewrite cured it. Red is information, not decoration.</p>
+    </section>
+
+    <section class="week">
+      <div class="week-rule"><span class="kicker">Jun 22 — 28</span><span class="stat">2 sessions · 96 events</span></div>
+      <h2>The event backbone became the product's spine, and the PRD pinned the river as the substrate.</h2>
+      <span class="byline">gilad · claude × 2 sittings</span>
+      <div class="skyline">
+        <a class="sky-day" href="02-reach.html">
+          <span class="d">22</span>
+          <span class="bar b-ink" style="height:18%"></span><span class="bar b-teal" style="height:12%"></span><span class="bar b-gold" style="height:7%"></span>
+          <span class="tip">Mon Jun 22 — emitEvents pattern discovered</span>
+        </a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">23</span><span class="tip">Tue — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">24</span><span class="tip">Wed — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">25</span><span class="tip">Thu — quiet</span></a>
+        <a class="sky-day" href="02-reach.html">
+          <span class="d">26</span>
+          <span class="bar b-ink" style="height:26%"></span><span class="bar b-teal" style="height:16%"></span><span class="bar b-violet" style="height:8%"></span>
+          <span class="tip">Fri Jun 26 — "too broad" → committed to the PRD</span>
+        </a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">27</span><span class="tip">Sat — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">28</span><span class="tip">Sun — quiet</span></a>
+      </div>
+    </section>
+
+    <!-- a question asked FROM this altitude, answered INTO the river -->
+    <article class="corr">
+      <span class="k">The correspondence · you &amp; the Brain · pinned Jul 4</span>
+      <p class="q">"What actually moved this fortnight — and what stalled?"</p>
+      <p class="a"><b>Three things moved:</b> digest fidelity went from unaudited to measured (recall 9/9 on re-digested sessions), the Topic subsystem was excised in favor of Feature lenses, and six Features now hold Brain-derived understanding. <b>One thing stalled:</b> the measurement harness — the PRD calls it "the proof, not a demo" — has had zero commits since its v1 was invalidated.</p>
+      <div class="cites">
+        <a class="cite" href="03-grain.html"><span class="h">jul 3 ·</span> fidelity audit session</a>
+        <a class="cite" href="02-reach.html"><span class="h">jul 4 ·</span> feature seeding × 6</a>
+        <a class="cite" href="02-reach.html"><span class="h">jun 28 ·</span> harness v1 invalidated</a>
+      </div>
+    </article>
+
+    <section class="week">
+      <div class="week-rule"><span class="kicker">Jun 15 — 21</span><span class="stat">3 sessions · 71 events</span></div>
+      <h2>A learning layer arrived fully formed: sessions become scaffolds, and the categorized events table was born.</h2>
+      <span class="byline">gilad · claude × 3 sittings</span>
+      <div class="skyline">
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">15</span><span class="tip">Mon — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">16</span><span class="tip">Tue — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">17</span><span class="tip">Wed — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">18</span><span class="tip">Thu — quiet</span></a>
+        <a class="sky-day" href="02-reach.html">
+          <span class="d">19</span>
+          <span class="bar b-ink" style="height:24%"></span><span class="bar b-gold" style="height:13%"></span><span class="bar b-teal" style="height:9%"></span><span class="bar b-violet" style="height:6%"></span>
+          <span class="tip">Fri Jun 19 — 3 sittings · learning-layer vision</span>
+        </a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">20</span><span class="tip">Sat — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">21</span><span class="tip">Sun — quiet</span></a>
+      </div>
+    </section>
+
+    <section class="week">
+      <div class="week-rule"><span class="kicker">Jun 1 — 7</span><span class="stat">1 session · 37 events</span></div>
+      <h2>First dogfood — Brain read its own sessions to drive the development of its learning layer.</h2>
+      <span class="byline">gilad · claude · 1 sitting</span>
+      <div class="skyline">
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">1</span><span class="tip">Mon — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">2</span><span class="tip">Tue — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">3</span><span class="tip">Wed — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">4</span><span class="tip">Thu — quiet</span></a>
+        <a class="sky-day" href="02-reach.html">
+          <span class="d">5</span>
+          <span class="bar b-ink" style="height:16%"></span><span class="bar b-consult" style="height:8%"></span>
+          <span class="tip">Fri Jun 5 — dogfood: Brain reads Brain</span>
+        </a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">6</span><span class="tip">Sat — quiet</span></a>
+        <a class="sky-day quiet" href="02-reach.html"><span class="d">7</span><span class="tip">Sun — quiet</span></a>
+      </div>
+    </section>
+  </main>
+
+  <!-- the strands: six features, momentum earned from real event windows -->
+  <aside class="strands" aria-label="feature lenses">
+    <span class="kicker">The lenses — six features</span>
+
+    <a class="strand" href="02-reach.html">
+      <div class="name">Digest Pipeline &amp; Understanding Stage</div>
+      <div class="meta"><span class="mom-rising">↗ rising</span><span style="color:var(--j-faint)">41 → 118 ev</span></div>
+      <svg viewBox="0 0 200 22" preserveAspectRatio="none"><path d="M0,18 C30,17 45,15 70,14 S120,10 150,7 S185,4 200,3" stroke="var(--j-gold)"/></svg>
+      <span class="align ok"><span class="sq"></span> aligned with intent · jul 4</span>
+    </a>
+
+    <a class="strand" href="02-reach.html">
+      <div class="name">Dashboard UI &amp; Journal</div>
+      <div class="meta"><span class="mom-rising">↗ rising</span><span style="color:var(--j-faint)">28 → 74 ev</span></div>
+      <svg viewBox="0 0 200 22" preserveAspectRatio="none"><path d="M0,19 C40,18 60,16 90,13 S150,8 200,5" stroke="var(--j-gold)"/></svg>
+      <span class="align ok"><span class="sq"></span> aligned with intent · jul 4</span>
+    </a>
+
+    <a class="strand" href="02-reach.html">
+      <div class="name">MCP Server &amp; Brain Query Layer</div>
+      <div class="meta"><span class="mom-steady">→ steady</span><span style="color:var(--j-faint)">19 → 21 ev</span></div>
+      <svg viewBox="0 0 200 22" preserveAspectRatio="none"><path d="M0,12 C40,11 80,12 120,11 S170,11 200,10" stroke="var(--j-teal)"/></svg>
+      <span class="align na"><span class="sq"></span> intent unmet — MVP owed</span>
+    </a>
+
+    <a class="strand" href="02-reach.html">
+      <div class="name">Activity Event Backbone</div>
+      <div class="meta"><span class="mom-steady">→ steady</span><span style="color:var(--j-faint)">33 → 30 ev</span></div>
+      <svg viewBox="0 0 200 22" preserveAspectRatio="none"><path d="M0,10 C40,9 80,11 120,10 S170,12 200,11" stroke="var(--j-teal)"/></svg>
+      <span class="align ok"><span class="sq"></span> aligned with intent · jun 26</span>
+    </a>
+
+    <a class="strand" href="02-reach.html">
+      <div class="name">Storage Schema &amp; Migrations</div>
+      <div class="meta"><span class="mom-cooling">↘ cooling</span><span style="color:var(--j-faint)">26 → 9 ev</span></div>
+      <svg viewBox="0 0 200 22" preserveAspectRatio="none"><path d="M0,6 C40,7 80,9 120,13 S170,16 200,17" stroke="var(--j-faint)"/></svg>
+      <span class="align na"><span class="sq"></span> topic tables await migration</span>
+    </a>
+
+    <a class="strand" href="02-reach.html">
+      <div class="name">Agentic Team Loop &amp; Orchestration</div>
+      <div class="meta"><span class="mom-cooling">↘ quiet</span><span style="color:var(--j-faint)">12 → 2 ev</span></div>
+      <svg viewBox="0 0 200 22" preserveAspectRatio="none"><path d="M0,5 C40,7 80,11 120,15 S170,18 200,19" stroke="var(--j-faint)"/></svg>
+      <span class="align na"><span class="sq"></span> silence is information</span>
+    </a>
+  </aside>
+
+  <!-- Ask the Brain: not a dock. A margin that answers into the river. -->
+  <footer class="margin">
+    <span class="quill">✒</span>
+    <input type="text" placeholder="Ask the Brain anything — its answer pins into the river, with its evidence threaded…" />
+    <span class="hint">answers cite the river · <b>⌘J</b></span>
+  </footer>
+
+</div>
+</body>
+</html>
