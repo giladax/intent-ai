@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { defineTool, toLangChainTools } from "../../src/agents/core/tool.js";
+import { defineTool, toLangChainTools, invokeToolContained } from "../../src/agents/core/tool.js";
 
 // ── defineTool ──────────────────────────────────────────────────────────────
 
@@ -80,36 +80,29 @@ describe("toLangChainTools", () => {
     expect(result).toContain("10");
   });
 
-  it("returns TOOL_ERROR string when input fails Zod parse, does not throw", async () => {
+  it("exposes the real ZodObject schema so .bindTools() sees correct parameter names", () => {
+    // This is the schema-exposure regression test: proves the model would see
+    // the actual parameter definitions, not a permissive passthrough.
     const def = defineTool({
-      name: "strict_tool",
-      description: "Requires a number.",
-      schema: z.object({ value: z.number() }),
-      execute: async ({ value }) => value,
+      name: "schema_exposure_tool",
+      description: "Tool with a known schema.",
+      schema: z.object({ n: z.number(), label: z.string() }),
+      execute: async ({ n }) => n,
     });
 
     const [lcTool] = toLangChainTools([def]);
-    // Pass bad input — string instead of number
-    const result = await lcTool.invoke({ value: "not-a-number" } as unknown as { value: number });
-    expect(typeof result).toBe("string");
-    expect(result).toMatch(/^TOOL_ERROR:/);
-  });
 
-  it("returns TOOL_ERROR string when execute() throws, does not throw into caller", async () => {
-    const def = defineTool({
-      name: "exploding_tool",
-      description: "Always throws.",
-      schema: z.object({ x: z.string() }),
-      execute: async () => {
-        throw new Error("kaboom");
-      },
-    });
+    // The schema property on the LangChain tool must be the real ZodObject,
+    // not a ZodRecord passthrough.
+    const schema = (lcTool as unknown as { schema: unknown }).schema;
+    expect(schema).toBeDefined();
+    expect((schema as { constructor: { name: string } }).constructor.name).toBe("ZodObject");
 
-    const [lcTool] = toLangChainTools([def]);
-    const result = await lcTool.invoke({ x: "anything" });
-    expect(typeof result).toBe("string");
-    expect(result).toMatch(/^TOOL_ERROR:/);
-    expect(result).toContain("kaboom");
+    // shape must contain the actual parameter names
+    const shape = (schema as { shape?: Record<string, unknown> }).shape;
+    expect(shape).toBeDefined();
+    expect("n" in (shape ?? {})).toBe(true);
+    expect("label" in (shape ?? {})).toBe(true);
   });
 
   it("preserves tool name and description on the LangChain tool", () => {
@@ -134,5 +127,65 @@ describe("toLangChainTools", () => {
     expect(lcTools).toHaveLength(2);
     expect(lcTools[0].name).toBe("tool_a");
     expect(lcTools[1].name).toBe("tool_b");
+  });
+});
+
+// ── invokeToolContained ─────────────────────────────────────────────────────
+
+describe("invokeToolContained", () => {
+  it("returns the tool's string result for valid input", async () => {
+    const def = defineTool({
+      name: "greet_tool",
+      description: "Returns a greeting.",
+      schema: z.object({ name: z.string() }),
+      execute: async ({ name }) => `Hello, ${name}!`,
+    });
+    const [lcTool] = toLangChainTools([def]);
+    const result = await invokeToolContained(lcTool, { name: "World" });
+    expect(result).toBe("Hello, World!");
+  });
+
+  it("returns TOOL_ERROR when schema validation fails, does not throw", async () => {
+    const def = defineTool({
+      name: "strict_number_tool",
+      description: "Requires a number.",
+      schema: z.object({ value: z.number() }),
+      execute: async ({ value }) => value,
+    });
+    const [lcTool] = toLangChainTools([def]);
+    // Pass string instead of number — should trigger schema validation failure
+    const result = await invokeToolContained(lcTool, { value: "not-a-number" });
+    expect(typeof result).toBe("string");
+    expect(result).toMatch(/^TOOL_ERROR:/);
+  });
+
+  it("returns TOOL_ERROR when execute() throws, does not throw into caller", async () => {
+    const def = defineTool({
+      name: "exploding_contained_tool",
+      description: "Always throws.",
+      schema: z.object({ x: z.string() }),
+      execute: async () => {
+        throw new Error("contained-kaboom");
+      },
+    });
+    const [lcTool] = toLangChainTools([def]);
+    const result = await invokeToolContained(lcTool, { x: "anything" });
+    expect(typeof result).toBe("string");
+    expect(result).toMatch(/^TOOL_ERROR:/);
+    expect(result).toContain("contained-kaboom");
+  });
+
+  it("JSON.stringifies object results", async () => {
+    const def = defineTool({
+      name: "object_result_tool",
+      description: "Returns an object.",
+      schema: z.object({}),
+      execute: async () => ({ key: "value", count: 42 }),
+    });
+    const [lcTool] = toLangChainTools([def]);
+    const result = await invokeToolContained(lcTool, {});
+    expect(typeof result).toBe("string");
+    const parsed = JSON.parse(result);
+    expect(parsed).toEqual({ key: "value", count: 42 });
   });
 });

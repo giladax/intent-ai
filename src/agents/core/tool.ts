@@ -26,53 +26,53 @@ export function defineTool<I, O>(def: AgentToolDef<I, O>): AgentToolDef<I, O> {
 }
 
 /**
- * A passthrough schema used as the LangChain-facing schema.
- * We pass any object through to LangChain without validation at the boundary,
- * then apply the real AgentToolDef schema inside the tool body.
- * This lets us contain Zod parse errors as tool-result strings rather than
- * letting LangChain throw a ToolInputParsingException into the graph.
- */
-const passthroughSchema = z.record(z.string(), z.unknown());
-
-/**
  * Converts AgentToolDef array to LangChain StructuredToolInterface array.
  *
- * Error containment:
- * - Zod parse failure → returns "TOOL_ERROR: <message>" string (never throws)
- * - execute() throw   → returns "TOOL_ERROR: <message>" string (never throws)
+ * Each tool is built with the REAL def.schema so that .bindTools() exposes
+ * the correct JSON schema (parameter names, types) to the model.
  *
- * The graph loop sees a tool-result message and continues normally.
+ * Error containment is NOT provided here — use invokeToolContained() in the
+ * graph's execute_tools node instead of calling lcTool.invoke() directly.
  */
 export function toLangChainTools(defs: AgentToolDef[]): StructuredToolInterface[] {
   return defs.map((def) => {
     return tool(
-      async (input: Record<string, unknown>): Promise<string> => {
-        // Apply the real schema — Zod v4 safeParseAsync
-        const parsed = await def.schema.safeParseAsync(input);
-        if (!parsed.success) {
-          // Zod v4 error: use .message or prettify if available
-          const err = parsed.error;
-          const msg = err?.message ?? String(err);
-          return `TOOL_ERROR: ${msg}`;
-        }
-
-        // execute with contained errors
-        try {
-          const result = await def.execute(parsed.data);
-          if (typeof result === "string") return result;
-          return JSON.stringify(result);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          return `TOOL_ERROR: ${msg}`;
-        }
+      async (input: unknown): Promise<string> => {
+        const result = await def.execute(input as never);
+        if (typeof result === "string") return result;
+        return JSON.stringify(result);
       },
       {
         name: def.name,
         description: def.description,
-        // Use the passthrough schema at the LangChain boundary so parse errors
-        // are never thrown by LangChain before reaching our handler.
-        schema: passthroughSchema,
+        // Use the real schema so .bindTools() sends correct input_schema to the model.
+        schema: def.schema as z.ZodObject<z.ZodRawShape>,
       }
     ) as unknown as StructuredToolInterface;
   });
+}
+
+/**
+ * Invokes a LangChain tool with full error containment.
+ *
+ * This is the function the graph's execute_tools node should call instead of
+ * lcTool.invoke() directly. It catches:
+ *   - LangChain's ToolInputParsingException (schema mismatch before the handler runs)
+ *   - Any exception thrown by execute()
+ *   - Non-string results are JSON.stringified
+ *
+ * Never throws. Returns either the tool's string output or "TOOL_ERROR: <message>".
+ */
+export async function invokeToolContained(
+  t: StructuredToolInterface,
+  input: unknown
+): Promise<string> {
+  try {
+    const result = await t.invoke(input as never);
+    if (typeof result === "string") return result;
+    return JSON.stringify(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `TOOL_ERROR: ${msg}`;
+  }
 }
