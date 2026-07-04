@@ -68,6 +68,7 @@ export function buildSessionEvents(input: SessionEventInput): ActivityEvent[] {
         arcId: moment.arcId,
         arcRole: moment.arcRole,
         chunkId: moment.chunkId,
+        verification: moment.verification ?? null,
       },
       sourceType: "moment",
       sourceId: moment.id,

@@ -256,6 +256,47 @@ describe("applyWeaveDecisions", () => {
     expect(single).toBeDefined();
   });
 
+  it("multi-id keep: non-primary ids fall through to implicit keep — no moment is lost (I1 regression)", () => {
+    // LLM emits a "keep" with 3 ids. Before the fix, ids [1] and [2] were
+    // claimed but then only [0] was emitted — [1] and [2] vanished silently.
+    // After the fix, only the primary is claimed so [1] and [2] fall through
+    // to the implicit-keep safety net and appear in the output.
+    const decisions: WeaveDecision[] = [
+      {
+        action: "keep",
+        momentIds: ["c0-m0", "c0-m1", "c1-m0"], // primary + 2 extra
+        arcId: "arc-multi",
+        arcRole: "origin",
+        relatedTo: [],
+      },
+    ];
+
+    const result = applyWeaveDecisions(decisions, extracted, chunks);
+
+    // All 3 moments must be present in the output
+    expect(result).toHaveLength(3);
+
+    // Primary moment carries the decision's arcId
+    const primary = result.find((r) =>
+      r.evidence.some((e) => (e as EvidenceAnchor).quote === "anchor-0a"),
+    )!;
+    expect(primary).toBeDefined();
+    expect(primary.arcId).toBe("arc-multi");
+
+    // Non-primary moments survive via implicit keep (arcId = "general")
+    const implicit1 = result.find((r) =>
+      r.evidence.some((e) => (e as EvidenceAnchor).quote === "anchor-1a"),
+    )!;
+    expect(implicit1).toBeDefined();
+    expect(implicit1.arcId).toBe("general");
+
+    const implicit2 = result.find((r) =>
+      r.evidence.some((e) => (e as EvidenceAnchor).quote === "anchor-2a"),
+    )!;
+    expect(implicit2).toBeDefined();
+    expect(implicit2.arcId).toBe("general");
+  });
+
   it("arcRole: 'development' mapped to 'escalation' on SessionMoment", () => {
     const decisions: WeaveDecision[] = [
       { action: "keep", momentIds: ["c0-m0"], arcId: "arc-1", arcRole: "development", relatedTo: [] },

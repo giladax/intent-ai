@@ -62,7 +62,7 @@ export async function storeSessionDigest(data: {
   outcomes: AcceptedOutcome[];
   narrative: SessionNarrative;
   sittings?: Sitting[];
-}): Promise<void> {
+}): Promise<{ stored: boolean }> {
   const sql = getClient();
 
   // 1. session — ON CONFLICT (source_hash) DO NOTHING guards against concurrent
@@ -77,7 +77,7 @@ export async function storeSessionDigest(data: {
     process.stderr.write(
       "⚠ concurrent digest detected — another digest of this session landed first; discarding this run's write\n",
     );
-    return;
+    return { stored: false };
   }
 
   // 2. normalized_events — batched insert; build causalOrder→uuid map for evidence resolution
@@ -195,6 +195,8 @@ export async function storeSessionDigest(data: {
     await sql`INSERT INTO narrative_arcs (id, narrative_id, arc_id, title, summary, resolution, moment_ids)
       VALUES (${randomUUID()}, ${narrativeUuid}, ${arc.arcId}, ${arc.title}, ${arc.summary}, ${arc.resolution}, ${arc.momentIds})`;
   }
+
+  return { stored: true };
 }
 
 // ── Read Queries ────────────────────────────────────────────────────

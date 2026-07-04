@@ -91,7 +91,15 @@ export function applyWeaveDecisions(
     const primaryId = knownIds[0];
     const primaryMoment = extractedById.get(primaryId)!;
 
-    for (const id of knownIds) claimedIds.add(id);
+    // For "keep": claim only the primary id. Any additional ids in a multi-id
+    // keep decision are left unclaimed so they fall through to the implicit-keep
+    // safety net below — consistent with the "never drop except explicit drop"
+    // rule. For "merge" (and single-id merge treated as keep): claim all ids.
+    if (action === "keep") {
+      claimedIds.add(primaryId);
+    } else {
+      for (const id of knownIds) claimedIds.add(id);
+    }
 
     if (action === "keep" || knownIds.length === 1) {
       // keep or single-id merge

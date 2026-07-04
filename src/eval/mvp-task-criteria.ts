@@ -131,7 +131,7 @@ export const task4MomentWorktree: TaskCriteria = {
   correctFiles: [
     "src/adapters/types.ts",
     "src/llm/prompts/*.ts",
-    "src/pipeline/moments.ts",
+    "src/pipeline/understand/extract.ts",
   ],
   constraints: [
     {

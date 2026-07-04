@@ -31,8 +31,8 @@ export interface UnderstandResult {
 // ── buildDigestHeader ─────────────────────────────────────────────────
 //
 // Build the per-chunk context header string passed to extractChunk as
-// digestHeader. Mirrors the buildContextHeader logic in prompts/moments.ts —
-// ~200-400 tokens of prior-chunk context so the extractor knows where it sits.
+// digestHeader. Provides ~200-400 tokens of prior-chunk context so the
+// extractor knows where it sits in the session.
 
 function buildDigestHeader(
   chunkIndex: number,

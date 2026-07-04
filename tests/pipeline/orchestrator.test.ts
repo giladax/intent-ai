@@ -61,6 +61,7 @@ import { classifySession } from "../../src/pipeline/classify.js";
 import { understand } from "../../src/pipeline/understand/index.js";
 import {
   storeSessionDigest,
+  emitEvents,
   getSessionNarrative,
   getSessionMoments,
   getSessionTransitions,
@@ -83,6 +84,7 @@ const mockedParse = vi.mocked(parseClaudeCodeLog);
 const mockedClassify = vi.mocked(classifySession);
 const mockedUnderstand = vi.mocked(understand);
 const mockedStore = vi.mocked(storeSessionDigest);
+const mockedEmitEvents = vi.mocked(emitEvents);
 const mockedGetNarrative = vi.mocked(getSessionNarrative);
 const mockedGetMoments = vi.mocked(getSessionMoments);
 const mockedGetTransitions = vi.mocked(getSessionTransitions);
@@ -198,7 +200,7 @@ describe("runPipeline", () => {
     mockedParse.mockResolvedValue(fakeRawEvents);
     mockedClassify.mockResolvedValue("narrative");
     mockedUnderstand.mockResolvedValue({ ...fakeUnderstandResult, narrative: { ...fakeNarrative } });
-    mockedStore.mockResolvedValue(undefined);
+    mockedStore.mockResolvedValue({ stored: true });
     mockedGetSessionEndedAt.mockResolvedValue(null);
   });
 
@@ -245,6 +247,33 @@ describe("runPipeline", () => {
     // Pipeline should still return results
     expect(result.narrative.summary).toBe("Developer added a Redis caching layer");
     expect(result.moments).toEqual(fakeMoments);
+  });
+
+  it("store failure → emitEvents is NOT called (I2 regression: no phantom events)", async () => {
+    mockedStore.mockRejectedValue(new Error("DB unavailable"));
+
+    await runPipeline("/fake/log.jsonl");
+
+    // With store failure, digestStored = false → emitEvents must be skipped
+    expect(mockedEmitEvents).not.toHaveBeenCalled();
+  });
+
+  it("store conflict (stored: false) → emitEvents is NOT called (I2 regression)", async () => {
+    // Simulates the losing run in a concurrent digest: storeSessionDigest resolves
+    // but returns { stored: false } (the ON CONFLICT DO NOTHING path).
+    mockedStore.mockResolvedValue({ stored: false });
+
+    await runPipeline("/fake/log.jsonl");
+
+    expect(mockedEmitEvents).not.toHaveBeenCalled();
+  });
+
+  it("successful store → emitEvents IS called", async () => {
+    mockedStore.mockResolvedValue({ stored: true });
+
+    await runPipeline("/fake/log.jsonl");
+
+    expect(mockedEmitEvents).toHaveBeenCalledTimes(1);
   });
 
   it("stores session digest with correct data", async () => {

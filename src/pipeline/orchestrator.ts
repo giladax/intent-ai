@@ -113,6 +113,13 @@ export async function runPipeline(
         ? `  → --force flag set; deleting stored digest for ${existingId} and re-digesting.`
         : `  → Session log has grown (stored endedAt: ${storedEndedAt?.toISOString()}, new max: ${maxTs?.toISOString()}); re-digesting.`;
       log(reason);
+      // TRADE-OFF (I3): delete-before-pipeline means an LLM failure mid-re-digest
+      // leaves the session absent from the DB until the next digest run succeeds.
+      // Recovery path: the raw log is archived unconditionally above (archiveRawSession),
+      // and LLM failures throw loudly, so the next `digest` run will detect no stored
+      // session and re-digest from scratch. Permanently lost data is not possible since
+      // the source log is preserved. The preferred fix (compute-then-replace in one tx)
+      // is deferred; tracked as I3 in .superpowers/sdd/final-branch-review.md.
       await deleteSessionDigest(existingId);
       // fall through to full pipeline
     }
@@ -171,8 +178,9 @@ export async function runPipeline(
   const startedAt = timestamps.length > 0 ? new Date(Math.min(...timestamps.map((d) => d.getTime()))) : null;
   const endedAt = timestamps.length > 0 ? new Date(Math.max(...timestamps.map((d) => d.getTime()))) : null;
 
+  let digestStored = false;
   try {
-    await storeSessionDigest({
+    const storeResult = await storeSessionDigest({
       sessionId,
       sourceType: "claude-code",
       sourcePath: logPath,
@@ -189,6 +197,7 @@ export async function runPipeline(
       narrative,
       sittings,
     });
+    digestStored = storeResult.stored;
   } catch (err) {
     log(
       `  ⚠ Database write failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -196,24 +205,30 @@ export async function runPipeline(
     log("  Pipeline results are still available, just not persisted.");
   }
 
-  // 11. Emit activity events
-  try {
-    const gitCtx = getGitContext(logPath);
-    const activityEvents = buildSessionEvents({
-      sessionId,
-      repo: gitCtx.repo,
-      branch: gitCtx.branch,
-      worktree: gitCtx.worktree,
-      moments: sessionMoments,
-      transitions,
-      outcomes,
-      narrative,
-      sessionEndedAt: endedAt,
-    });
-    await emitEvents(activityEvents);
-    log(`  → Emitted ${activityEvents.length} activity events`);
-  } catch (err) {
-    log(`  ⚠ Failed to emit activity events: ${err instanceof Error ? err.message : String(err)}`);
+  // 11. Emit activity events — only when the digest was actually stored.
+  // Skipping on store failure/conflict prevents activity_events rows from
+  // referencing a sessionId with no corresponding sessions row (phantom events).
+  if (!digestStored) {
+    log("  ⚠ Skipping activity-event emission: digest was not stored (store failure or concurrency conflict).");
+  } else {
+    try {
+      const gitCtx = getGitContext(logPath);
+      const activityEvents = buildSessionEvents({
+        sessionId,
+        repo: gitCtx.repo,
+        branch: gitCtx.branch,
+        worktree: gitCtx.worktree,
+        moments: sessionMoments,
+        transitions,
+        outcomes,
+        narrative,
+        sessionEndedAt: endedAt,
+      });
+      await emitEvents(activityEvents);
+      log(`  → Emitted ${activityEvents.length} activity events`);
+    } catch (err) {
+      log(`  ⚠ Failed to emit activity events: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   return {

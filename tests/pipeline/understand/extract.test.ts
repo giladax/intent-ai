@@ -244,6 +244,57 @@ describe("validateAnchors", () => {
     expect(out[0].evidence[0].eventIndex).toBe(5);
   });
 
+  it("multi-match non-re-anchor: quote found in 2+ events stays anchored: false, index unchanged (RW3 M2)", () => {
+    // LLM cites eventIndex 9, which is out-of-range (range [7,8]) and not present
+    // in chunk.events. The quote "shared text" appears in BOTH events 7 and 8.
+    // Because matchingEvents.length === 2 (not 1), re-anchor must NOT fire.
+    // Result: anchored: false, eventIndex: null (9 is out of range so citedInRange = false).
+    const events = [
+      ev(7, "intent", "shared text in both events here"),
+      ev(8, "proposal", "shared text in both events here too"),
+    ];
+    const chunk = makeChunk(0, events, [7, 8]);
+    const moments: ParsedMoment[] = [makeMoment({
+      // LLM cites out-of-range index 9; quote matches 2 events → no re-anchor
+      evidence: [{ quote: "shared text in both", eventIndex: 9, sourceType: "user" }],
+    })];
+
+    const out = validateAnchors(moments, chunk);
+
+    expect(out[0].evidence[0].anchored).toBe(false);
+    // eventIndex must be null because 9 is out of range (citedInRange = false)
+    expect(out[0].evidence[0].eventIndex).toBeNull();
+  });
+
+  it("string eventIndex coercion: numeric string '12' → 12, garbage → null (RW3 M2)", () => {
+    // ExtractEvidenceSchema has a z.union that transforms string → number or null.
+    // validateAnchors receives the already-parsed output, so we test the two branches
+    // of the typeof-check path: string "12" was already coerced to 12 by Zod;
+    // here we verify the validator handles a non-number rawIndex (simulating Zod
+    // returning null for garbage) by passing null directly as eventIndex.
+    const events = [
+      ev(12, "intent", "use postgres"),
+    ];
+    const chunk = makeChunk(0, events, [12, 12]);
+
+    // Case 1: eventIndex is already a number (Zod coerced "12" → 12)
+    const momentsNumeric: ParsedMoment[] = [makeMoment({
+      evidence: [{ quote: "use postgres", eventIndex: 12, sourceType: "user" }],
+    })];
+    const outNumeric = validateAnchors(momentsNumeric, chunk);
+    expect(outNumeric[0].evidence[0].anchored).toBe(true);
+    expect(outNumeric[0].evidence[0].eventIndex).toBe(12);
+
+    // Case 2: eventIndex is null (Zod returned null for garbage input)
+    const momentsNull: ParsedMoment[] = [makeMoment({
+      evidence: [{ quote: "some text", eventIndex: null, sourceType: "user" }],
+    })];
+    const outNull = validateAnchors(momentsNull, chunk);
+    // null index → citedEvent is undefined → no anchor possible → anchored: false
+    expect(outNull[0].evidence[0].anchored).toBe(false);
+    expect(outNull[0].evidence[0].eventIndex).toBeNull();
+  });
+
   it("never drops moments — all input moments produce output moments", () => {
     const events = [ev(7, "intent", "some text")];
     const chunk = makeChunk(0, events, [7, 7]);

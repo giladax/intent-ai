@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { SessionChunk, PipelineDirectives } from "../../../adapters/types.js";
+import { renderChunkEvents } from "../../../pipeline/understand/render-chunk-events.js";
 
 // ── Zod Schemas ───────────────────────────────────────────────────────
 
@@ -214,7 +215,7 @@ Return ONLY a JSON object:
   userParts.push(
     `## Events (${chunk.events.length} total):`,
     "",
-    renderChunkEventsForPrompt(chunk.events),
+    renderChunkEvents(chunk.events),
     "",
     "Extract the meaningful moments from this chunk. Return JSON only.",
   );
@@ -224,54 +225,3 @@ Return ONLY a JSON object:
   return { system, user };
 }
 
-/**
- * Render events for the prompt — same logic as renderChunkEvents but kept
- * local so the prompt builder is self-contained.
- */
-function renderChunkEventsForPrompt(events: Array<{
-  causalOrder: number;
-  category: string;
-  actor: string;
-  content: { summary: string; detail: string; filesAffected?: string[] };
-}>): string {
-  return events
-    .map((e) => {
-      const co = e.causalOrder;
-      const detail = e.content.detail;
-      const summary = e.content.summary;
-      const files = e.content.filesAffected ?? [];
-
-      switch (e.category) {
-        case "intent":
-          return `[${co}] DEV: ${detail}`;
-
-        case "proposal":
-          return `[${co}] AI: ${detail}`;
-
-        case "reflection":
-          return `[${co}] AI: ${detail}`;
-
-        case "action": {
-          const fileStr = files.length > 0 ? files.join(", ") : summary;
-          const detailSnippet = detail.slice(0, 200);
-          return `[${co}] AI/ACTION(${fileStr}): ${detailSnippet}`;
-        }
-
-        case "result": {
-          const lower = detail.toLowerCase();
-          const isError =
-            lower.includes("error") ||
-            lower.includes("fail") ||
-            lower.includes("err!");
-          if (isError) {
-            return `[${co}] RESULT(error): ${detail.slice(0, 300)}`;
-          }
-          return `[${co}] RESULT: ${summary.slice(0, 120)}`;
-        }
-
-        default:
-          return `[${co}] ${e.actor.toUpperCase()}: ${detail}`;
-      }
-    })
-    .join("\n");
-}

@@ -91,7 +91,7 @@ describe("storeSessionDigest — ON CONFLICT source_hash", () => {
   });
 
   it("resolves without throwing when the session INSERT conflicts", async () => {
-    await expect(storeSessionDigest(minimalDigest)).resolves.toBeUndefined();
+    await expect(storeSessionDigest(minimalDigest)).resolves.toEqual({ stored: false });
   });
 
   it("makes exactly one SQL call (the session INSERT) when source_hash conflicts", async () => {
