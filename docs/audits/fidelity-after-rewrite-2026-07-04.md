@@ -254,3 +254,20 @@ Not re-digested (log unchanged, no --force). All baseline defects (evidenceReal 
 - No `quote='no evidence provided'` rows in any re-digested session
 - sittings table populated: 7 sittings for 20f5efec, 1 each for 5b31a1bb and d73d5190
 - occurred_at populated on all moments in re-digested sessions (non-null span confirmed)
+
+## Addendum: 20f5efec duplicate-row incident and verified clean numbers
+
+The two digest runs this doc's agent launched overlapped, and both passed the idempotency
+check (it runs before the multi-minute pipeline; no unique constraint on `source_hash`).
+Two complete digests landed: one healthy (64 moments, the numbers reported above), one
+degraded by the contention (33 moments, 0% anchored — likely rate-limited mid-run).
+Cleanup initially kept the wrong row. A clean `--force` re-digest replaced it; verified
+single-row numbers, which supersede the 20f5efec figures above:
+
+- 71 moments · evidenceReal 100% · **anchored 84.5%** · 28 chunks · occurredSpan 623min
+- recall **9/9** · precision violations **0** · tail covered (2min system-only noise)
+- calibration: still saturated (67 high / 3 medium / 1 low) — A5 failure confirmed on a
+  third independent run; transitions+outcomes now {high:14, medium:2} (informative, no default)
+
+The race is tracked for a fix (unique index on `sessions.source_hash` + deterministic
+lookup in run-fidelity); until then, avoid concurrent digests of the same log.
