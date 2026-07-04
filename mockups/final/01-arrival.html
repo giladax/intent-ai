@@ -10,6 +10,9 @@
   Left: the Correspondence — the brain speaks first, citations attached.
   Right: the Exhibit — the Standing Brief; the speech and the brief are one object.
   Five-second test: "is the org moving on what was decided?" answered without a click.
+  Chat-first: the composer is a floating glass instrument astride the pane seam —
+  omnipresent at every scroll and exhibit state; ⌘K summons it. It is the product's
+  mouth: answers land in the correspondence; the glass never becomes a panel.
   Palette: the real --j-* inkwell, verbatim. Motion: earned rules only.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -82,7 +85,7 @@ a { color: inherit; }
 .corr-head { display: flex; align-items: baseline; gap: 0.7rem; padding: 0.85rem 1.5rem 0.7rem; border-bottom: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent); }
 .corr-head .kicker { color: var(--j-consult); letter-spacing: 0.26em; }
 .corr-head .note { margin-left: auto; font-style: italic; font-size: 0.78rem; color: var(--j-faint); }
-.thread { flex: 1; min-height: 0; overflow-y: auto; padding: 1.3rem 1.5rem 1.2rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; }
+.thread { flex: 1; min-height: 0; overflow-y: auto; padding: 1.3rem 1.5rem 7rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; } /* bottom clearance — the glass composer floats over this edge */
 
 .daymark { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
 .daymark::before, .daymark::after { content: ""; flex: 1; height: 1px; background: var(--j-hairline); }
@@ -141,20 +144,49 @@ a { color: inherit; }
 .teach { font-style: italic; font-size: 0.86rem; color: var(--j-faint); text-align: center; padding: 0.3rem 1rem 0; animation: rise 0.8s cubic-bezier(0.22,1,0.36,1) backwards; }
 .teach b { font-style: normal; font-weight: 500; color: var(--j-ink-soft); }
 
-/* the composer — the front door. searching and asking are the same act. */
-.composer {
-  border-top: 1px solid var(--j-hairline); padding: 0.85rem 1.5rem;
-  display: flex; align-items: center; gap: 0.75rem;
-  background: color-mix(in oklab, var(--j-paper-raise) 80%, transparent);
+/* ═══ the floating glass composer — the front door, made physical ═══
+   Chat-first: it seats in neither pane. It hovers astride the seam, because a
+   question writes to both — the answer lands in the correspondence, the evidence
+   reorganizes the exhibit. Warm frosted glass over paper — blur high, tint low,
+   hairline ink border, paper-white inset highlight — never neon. ⌘K summons. */
+.glass-dock {
+  position: fixed; z-index: 40; left: max(390px, 41vw); bottom: 1.35rem;
+  transform: translateX(-50%); width: min(660px, calc(100vw - 3rem));
+  display: flex; flex-direction: column; gap: 0.5rem;
+  animation: glassIn 0.9s cubic-bezier(0.22,1,0.36,1) 0.45s backwards;
 }
-.composer .nib { color: var(--j-consult); font-size: 1rem; }
-.composer input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--j-serif); font-style: italic; font-size: 0.98rem; color: var(--j-ink); }
-.composer input::placeholder { color: var(--j-faint); }
-.composer .scope { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.22rem 0.6rem; white-space: nowrap; }
-.composer kbd { font-family: var(--j-mono); font-size: 0.6rem; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0.05rem 0.35rem; background: var(--j-paper); }
+@keyframes glassIn { from { opacity: 0; transform: translate(-50%, 16px); } }
+.glass {
+  display: flex; align-items: center; gap: 0.7rem; padding: 0.78rem 0.95rem 0.78rem 1.1rem;
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--j-paper-raise) 58%, transparent);
+  backdrop-filter: blur(20px) saturate(1.12); -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  border: 1px solid color-mix(in oklab, var(--j-ink) 14%, transparent);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.55), 0 1px 2px oklch(0.24 0.02 60 / 0.05),
+    0 24px 50px -20px oklch(0.24 0.02 60 / 0.32);
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease, border-color 0.35s ease;
+}
+.glass:focus-within {
+  transform: translateY(-3px); /* the gentle rise — attention is physical */
+  border-color: color-mix(in oklab, var(--j-consult) 42%, transparent);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.6), 0 0 0 4px var(--j-consult-soft),
+    0 2px 4px oklch(0.24 0.02 60 / 0.05), 0 30px 62px -22px oklch(0.24 0.02 60 / 0.36);
+}
+.glass .nib { color: var(--j-consult); font-size: 1.05rem; flex: none; }
+.glass .field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.45rem; }
+.glass .ghost { width: 1.5px; height: 1.1em; border-radius: 1px; background: var(--j-consult); flex: none; animation: breathe 2.2s ease-in-out infinite; } /* the breathing caret — alive before it's touched */
+.glass.awake .ghost, .glass.filled .ghost { display: none; }
+.glass .inwrap { position: relative; flex: 1; min-width: 0; display: flex; }
+.glass input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--j-serif); font-style: italic; font-size: 1.02rem; color: var(--j-ink); caret-color: var(--j-consult); }
+.glass .ph { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--j-faint); font-style: italic; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.4s ease, transform 0.4s ease; }
+.glass .ph.swap { opacity: 0; transform: translateY(calc(-50% + 7px)); }
+.glass.awake .ph, .glass.filled .ph { opacity: 0; }
+.glass .scope { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.22rem 0.6rem; white-space: nowrap; flex: none; }
+.glass kbd { font-family: var(--j-mono); font-size: 0.6rem; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0.08rem 0.4rem; background: color-mix(in oklab, var(--j-paper) 75%, transparent); flex: none; }
+.glass-sub { text-align: center; font-family: var(--j-mono); font-size: 0.52rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--j-faint); }
 
 /* ═══ THE EXHIBIT — what the conversation controls ═══ */
-.exhibit { min-height: 0; overflow-y: auto; padding: 1.4rem 2.4rem 3rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; }
+.exhibit { min-height: 0; overflow-y: auto; padding: 1.4rem 2.4rem 8rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; } /* bottom clearance for the floating glass */
 .ex-head { display: flex; align-items: baseline; gap: 0.9rem; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
 .ex-head .kicker { color: var(--j-ink-soft); letter-spacing: 0.28em; }
 .ex-head .note { margin-left: auto; font-style: italic; font-size: 0.8rem; color: var(--j-faint); }
@@ -258,6 +290,7 @@ a { color: inherit; }
   .body { grid-template-columns: 1fr; grid-template-rows: minmax(0,1fr) minmax(0,1fr); }
   .spine { display: none; }
   .statband, .ledger { grid-template-columns: repeat(2, 1fr); }
+  .glass-dock { left: 50%; width: calc(100vw - 2rem); }
 }
 </style>
 </head>
@@ -313,14 +346,7 @@ a { color: inherit; }
           </div>
         </article>
 
-        <p class="teach" style="animation-delay:0.7s">Select anything in the exhibit and the brain will speak to it — or ask below. <b>Same act.</b></p>
-      </div>
-
-      <div class="composer">
-        <span class="nib">✒</span>
-        <input type="text" placeholder="Ask, or search — the same act. Answers pin into the river, evidence threaded…" aria-label="ask the brain" />
-        <span class="scope">scope · whole repo</span>
-        <kbd>⌘J</kbd>
+        <p class="teach" style="animation-delay:0.7s">Select anything in the exhibit and the brain will speak to it — or ask in the glass. <b>Same act.</b></p>
       </div>
     </section>
 
@@ -413,6 +439,23 @@ a { color: inherit; }
   </div>
 </div>
 
+<!-- ═══ the floating glass composer — chat-first, astride the seam, never a panel ═══ -->
+<div class="glass-dock">
+  <div class="glass" id="glass">
+    <span class="nib">✒</span>
+    <div class="field">
+      <span class="ghost" aria-hidden="true"></span>
+      <span class="inwrap">
+        <input type="text" aria-label="ask the brain — asking and searching are the same act" />
+        <span class="ph" id="ph">Ask — &ldquo;what changed since I left?&rdquo;</span>
+      </span>
+    </div>
+    <span class="scope">scope · whole repo</span>
+    <kbd>⌘K</kbd>
+  </div>
+  <div class="glass-sub">ask · search · command — the same act. answers land in the correspondence, evidence threaded</div>
+</div>
+
 <script>
 /* the fortnight river — shaped like the real corpus: quiet early week, violent jul 2–4 */
 (function river() {
@@ -463,6 +506,32 @@ document.querySelectorAll("[data-gate] .stamp.yes").forEach(b => {
     gate.closest(".msg").querySelector(".gk").style.color = "var(--j-moss)";
   });
 });
+
+/* ★ the floating glass composer — breathing when idle, cycling its invitations, ⌘K-summonable */
+(function glass() {
+  const g = document.getElementById("glass"),
+        input = g.querySelector("input"),
+        ph = document.getElementById("ph");
+  const PHS = [
+    "Ask — “what changed since I left?”",
+    "Search — “fidelity audit, july 3”",
+    "Command — “approve the raw-session gate”",
+  ];
+  let i = 0;
+  input.addEventListener("focus", () => g.classList.add("awake"));
+  input.addEventListener("blur", () => g.classList.remove("awake"));
+  input.addEventListener("input", () => g.classList.toggle("filled", !!input.value));
+  addEventListener("keydown", e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); input.focus(); }
+  });
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    setInterval(() => {
+      if (g.classList.contains("awake") || input.value) return;
+      ph.classList.add("swap");
+      setTimeout(() => { i = (i + 1) % PHS.length; ph.textContent = PHS[i]; ph.classList.remove("swap"); }, 420);
+    }, 6000);
+  }
+})();
 
 /* walkthrough keys */
 addEventListener("keydown", e => { if (e.key === "]") location.href = "02-selection.html"; });

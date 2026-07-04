@@ -418,3 +418,39 @@ seam in each direction — gold for selection→speech, consult for question→e
 (fortnight / fortnight / one sitting). (4) All motion follows the earned rules:
 rise-once entrances, skyline growth ≤30ms stagger, breathe only on now/gate dots,
 seal drawn not awarded, `prefers-reduced-motion` silences everything.
+
+### Owner refinement — the chat-first floating glass composer (2026-07-05, second pass)
+
+The owner's one note on the approved shape, verbatim: *"what about the chat first?
+always floating maybe glass chat input or something that would suit us."* Executed
+in place across all three mockups:
+
+- **The composer left the pane.** Execution decision (1) above is reversed: the
+  correspondence no longer seats its pen at its foot. The composer is now a
+  **floating glass instrument astride the pane seam** — fixed, omnipresent at every
+  scroll position and exhibit state. Placement rationale: a question writes to
+  *both* panes (the answer lands in the correspondence, the evidence reorganizes
+  the exhibit), so the mouth belongs to neither pane alone. The panes still never
+  cover each other; the glass hovers *above* the desk, and both panes keep bottom
+  clearance so nothing is ever trapped beneath it. The floating input never becomes
+  a panel — replies land in the correspondence with the drawn-thread handshake as
+  before.
+- **Glass in the ink language, not neon.** Warm frosted paper-glass:
+  `backdrop-filter: blur(20px) saturate(1.12)` over a 58%-opaque `--j-paper-raise`
+  tint, hairline ink border, paper-white inset highlight, deep warm ink shadow.
+  Alive at rest: a consult-blue **breathing caret** before first touch; on focus the
+  glass **rises 3px** and takes a quiet consult halo; the placeholder **cycles**
+  ask / search / command examples (6s, fade-and-rise, paused while composing or
+  filled). `⌘K` summons it from anywhere (shown as the kbd affordance, replacing
+  §2's `⌘J`, aligning with command-bar muscle memory); Esc-free — it never overlays.
+- **Coherent per walkthrough state.** Arrival: inviting — the glass enters with the
+  brain's first words, cycling *"Ask — 'what changed since I left?'"*, scope pill
+  `whole repo`, and a one-line sub-caption (*ask · search · command — the same
+  act*); the eye lands on the hero sentence and the glass before anything else.
+  Selection: Maya's selection rides **inside the input as a removable gold chip**
+  (`digest pipeline ×` — click restores whole-repo scope). Receipts: Ori's
+  just-asked question hangs above the glass as a quiet **echo pill** (*you asked ·
+  14:03 — "Says who?…" · answered · 4 hops*), scope pinned to the constraint.
+- Everything else holds: two panes never occluding, four exhibits, threads across
+  the seam, the six inks, physical stamps, earned motion, and the three five-second
+  tests. Screenshots re-taken to `mockups/final/shots/` (1440×900, Playwright).

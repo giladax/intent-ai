@@ -11,6 +11,8 @@
   and the Exhibit became the four-hop provenance trail (kept whole from GRAIN),
   with the raw transcript line open and highlighted on arrival. No hiking.
   A consult-blue thread draws from the answer to the trail: the view is the answer's exhibit.
+  Chat-first: the composer is floating glass astride the seam; his just-asked question
+  hangs above it as an echo. ⌘K summons; the glass never becomes a panel.
   Five-second test: the transcript line behind the constraint is on screen, cold.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -73,7 +75,7 @@ a { color: inherit; }
 .corr-head { display: flex; align-items: baseline; gap: 0.7rem; padding: 0.85rem 1.5rem 0.7rem; border-bottom: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent); }
 .corr-head .kicker { color: var(--j-consult); letter-spacing: 0.26em; }
 .corr-head .note { margin-left: auto; font-style: italic; font-size: 0.78rem; color: var(--j-faint); }
-.thread { flex: 1; min-height: 0; overflow-y: auto; padding: 1.3rem 1.5rem 1.2rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; }
+.thread { flex: 1; min-height: 0; overflow-y: auto; padding: 1.3rem 1.5rem 8rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; } /* bottom clearance — the glass composer (and its echo) float over this edge */
 
 .daymark { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
 .daymark::before, .daymark::after { content: ""; flex: 1; height: 1px; background: var(--j-hairline); }
@@ -121,15 +123,56 @@ a { color: inherit; }
 
 .teach { font-style: italic; font-size: 0.86rem; color: var(--j-faint); text-align: center; padding: 0.3rem 1rem 0; animation: rise 0.8s cubic-bezier(0.22,1,0.36,1) backwards; }
 
-.composer { border-top: 1px solid var(--j-hairline); padding: 0.85rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; background: color-mix(in oklab, var(--j-paper-raise) 80%, transparent); }
-.composer .nib { color: var(--j-consult); font-size: 1rem; }
-.composer input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--j-serif); font-style: italic; font-size: 0.98rem; color: var(--j-ink); }
-.composer input::placeholder { color: var(--j-faint); }
-.composer .scope { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-consult); border: 1px solid color-mix(in oklab, var(--j-consult) 35%, transparent); background: var(--j-consult-soft); border-radius: 999px; padding: 0.22rem 0.6rem; white-space: nowrap; }
-.composer kbd { font-family: var(--j-mono); font-size: 0.6rem; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0.05rem 0.35rem; background: var(--j-paper); }
+/* ═══ the floating glass composer — chat-first, astride the seam ═══
+   Warm frosted glass over paper; the just-asked question hangs above it as an echo.
+   ⌘K summons; the glass never becomes a panel — answers land in the correspondence. */
+.glass-dock {
+  position: fixed; z-index: 40; left: max(390px, 41vw); bottom: 1.35rem;
+  transform: translateX(-50%); width: min(660px, calc(100vw - 3rem));
+  display: flex; flex-direction: column; gap: 0.5rem;
+  animation: glassIn 0.9s cubic-bezier(0.22,1,0.36,1) 0.45s backwards;
+}
+@keyframes glassIn { from { opacity: 0; transform: translate(-50%, 16px); } }
+.glass-echo {
+  align-self: center; max-width: 100%; display: inline-flex; align-items: center; gap: 0.65rem;
+  font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--j-faint);
+  background: color-mix(in oklab, var(--j-paper-raise) 68%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.3rem 0.85rem;
+  box-shadow: 0 10px 30px -18px oklch(0.24 0.02 60 / 0.25); white-space: nowrap;
+}
+.glass-echo q { font-family: var(--j-serif); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 0.82rem; color: var(--j-ink-soft); overflow: hidden; text-overflow: ellipsis; }
+.glass-echo .ok { color: var(--j-consult); }
+.glass {
+  display: flex; align-items: center; gap: 0.7rem; padding: 0.78rem 0.95rem 0.78rem 1.1rem;
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--j-paper-raise) 58%, transparent);
+  backdrop-filter: blur(20px) saturate(1.12); -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  border: 1px solid color-mix(in oklab, var(--j-ink) 14%, transparent);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.55), 0 1px 2px oklch(0.24 0.02 60 / 0.05),
+    0 24px 50px -20px oklch(0.24 0.02 60 / 0.32);
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease, border-color 0.35s ease;
+}
+.glass:focus-within {
+  transform: translateY(-3px); /* the gentle rise — attention is physical */
+  border-color: color-mix(in oklab, var(--j-consult) 42%, transparent);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.6), 0 0 0 4px var(--j-consult-soft),
+    0 2px 4px oklch(0.24 0.02 60 / 0.05), 0 30px 62px -22px oklch(0.24 0.02 60 / 0.36);
+}
+.glass .nib { color: var(--j-consult); font-size: 1.05rem; flex: none; }
+.glass .field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.45rem; }
+.glass .ghost { width: 1.5px; height: 1.1em; border-radius: 1px; background: var(--j-consult); flex: none; animation: breathe 2.2s ease-in-out infinite; } /* the breathing caret — alive before it's touched */
+.glass.awake .ghost, .glass.filled .ghost { display: none; }
+.glass .inwrap { position: relative; flex: 1; min-width: 0; display: flex; }
+.glass input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--j-serif); font-style: italic; font-size: 1.02rem; color: var(--j-ink); caret-color: var(--j-consult); }
+.glass .ph { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--j-faint); font-style: italic; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.4s ease, transform 0.4s ease; }
+.glass .ph.swap { opacity: 0; transform: translateY(calc(-50% + 7px)); }
+.glass.awake .ph, .glass.filled .ph { opacity: 0; }
+.glass .scope { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-consult); border: 1px solid color-mix(in oklab, var(--j-consult) 35%, transparent); background: var(--j-consult-soft); border-radius: 999px; padding: 0.22rem 0.6rem; white-space: nowrap; flex: none; }
+.glass kbd { font-family: var(--j-mono); font-size: 0.6rem; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0.08rem 0.4rem; background: color-mix(in oklab, var(--j-paper) 75%, transparent); flex: none; }
 
 /* ═══ the Exhibit: the Trail — GRAIN's centerpiece, kept whole ═══ */
-.exhibit { min-height: 0; overflow-y: auto; padding: 1.1rem 2.4rem 3rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; }
+.exhibit { min-height: 0; overflow-y: auto; padding: 1.1rem 2.4rem 9rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; } /* bottom clearance for the floating glass */
 .ex-head { display: flex; align-items: baseline; gap: 0.9rem; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
 .ex-head .kicker { color: var(--j-consult); letter-spacing: 0.28em; }
 .ex-head .note { margin-left: auto; font-style: italic; font-size: 0.8rem; color: var(--j-faint); }
@@ -216,6 +259,7 @@ a { color: inherit; }
 @media (max-width: 1080px) {
   .body { grid-template-columns: 1fr; grid-template-rows: minmax(0,1fr) minmax(0,1fr); }
   .spine, #handshake { display: none; }
+  .glass-dock { left: 50%; width: calc(100vw - 2rem); }
 }
 </style>
 </head>
@@ -283,13 +327,6 @@ a { color: inherit; }
         </article>
 
         <p class="teach" style="animation-delay:0.8s">Hover a citation — the exhibit lights its hop. The view <b style="font-style:normal;font-weight:500;color:var(--j-ink-soft)">is</b> the answer.</p>
-      </div>
-
-      <div class="composer">
-        <span class="nib">✒</span>
-        <input type="text" placeholder="Dispute it, or dig further — this question is already an event in the river…" aria-label="ask the brain" />
-        <span class="scope">⇄ scope · constraint 8f22c1</span>
-        <kbd>⌘J</kbd>
       </div>
     </section>
 
@@ -378,6 +415,23 @@ a { color: inherit; }
   </div>
 </div>
 
+<!-- ═══ the floating glass composer — the just-asked question hangs above it as an echo ═══ -->
+<div class="glass-dock">
+  <div class="glass-echo"><span>you asked · 14:03</span><q>&ldquo;Says who? Show me where it comes from.&rdquo;</q><span class="ok">⇄ answered · 4 hops</span></div>
+  <div class="glass" id="glass">
+    <span class="nib">✒</span>
+    <div class="field">
+      <span class="ghost" aria-hidden="true"></span>
+      <span class="inwrap">
+        <input type="text" aria-label="ask the brain — scoped to this constraint" />
+        <span class="ph" id="ph">Dispute it, or dig further — the question is already an event…</span>
+      </span>
+    </div>
+    <span class="scope">⇄ scope · constraint 8f22c1</span>
+    <kbd>⌘K</kbd>
+  </div>
+</div>
+
 <!-- the handshake thread overlay -->
 <svg id="handshake" aria-hidden="true"></svg>
 
@@ -429,6 +483,32 @@ document.querySelectorAll("[data-hop]").forEach(c => {
     setTimeout(() => hop().classList.remove("lit"), 1600);
   });
 });
+
+/* ★ the floating glass composer — breathing, cycling, ⌘K-summonable */
+(function glass() {
+  const g = document.getElementById("glass"),
+        input = g.querySelector("input"),
+        ph = document.getElementById("ph");
+  const PHS = [
+    "Dispute it, or dig further — the question is already an event…",
+    "Ask — “who else touched this constraint?”",
+    "Search — “confidence saturation”",
+  ];
+  let i = 0;
+  input.addEventListener("focus", () => g.classList.add("awake"));
+  input.addEventListener("blur", () => g.classList.remove("awake"));
+  input.addEventListener("input", () => g.classList.toggle("filled", !!input.value));
+  addEventListener("keydown", e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); input.focus(); }
+  });
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    setInterval(() => {
+      if (g.classList.contains("awake") || input.value) return;
+      ph.classList.add("swap");
+      setTimeout(() => { i = (i + 1) % PHS.length; ph.textContent = PHS[i]; ph.classList.remove("swap"); }, 420);
+    }, 6000);
+  }
+})();
 
 addEventListener("keydown", e => {
   if (e.key === "[") location.href = "02-selection.html";
