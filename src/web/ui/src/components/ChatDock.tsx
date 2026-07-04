@@ -25,15 +25,20 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [autoDismissed, setAutoDismissed] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Scroll the dock's own pane, never ancestors — scrollIntoView walked up
+  // and shoved the page sideways while the dock was parked off-canvas.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  // preventScroll: focusing the composer mid-slide must not scroll the
+  // content area to "reveal" a textarea that is still translating in.
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (open) inputRef.current?.focus({ preventScroll: true });
   }, [open]);
 
   // A navigation change brings the auto item back after a dismissal.
@@ -75,7 +80,7 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
       appendToLast(`The Brain couldn't answer: ${err instanceof Error ? err.message : String(err)}`, true);
     } finally {
       setStreaming(false);
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -133,7 +138,7 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
       </div>
 
       {/* the conversation */}
-      <div className="chat-dock-scroll">
+      <div className="chat-dock-scroll" ref={scrollRef}>
         {messages.length === 0 && (
           <p className="chat-dock-empty">
             Everything on the page can join this conversation — hover any entry and
@@ -145,7 +150,6 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
             {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
           </div>
         ))}
-        <div ref={endRef} />
       </div>
 
       {/* live-session prompt suggestions, when the daemon is watching */}

@@ -75,6 +75,17 @@ export function TalkLayer() {
         toggleDock();
         return;
       }
+      // Esc closes the dock even from its own composer — the input autofocuses
+      // on open, so gating Esc behind isTyping made the dock un-closable by key.
+      if (e.key === "Escape") {
+        if (open) {
+          e.preventDefault();
+          closeDock();
+        } else if (!isTyping(e.target)) {
+          setFocused(null);
+        }
+        return;
+      }
       if (isTyping(e.target)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
@@ -104,10 +115,6 @@ export function TalkLayer() {
           e.preventDefault();
           toggleDock();
           break;
-        case "Escape":
-          if (open) closeDock();
-          else setFocused(null);
-          break;
       }
     };
     window.addEventListener("keydown", onKey);
@@ -117,7 +124,11 @@ export function TalkLayer() {
   // Hover affordance — a small "talk" tab pinned to the element's top-right.
   useEffect(() => {
     const onOver = (e: MouseEvent) => {
-      const el = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-talk]") ?? null;
+      const target = e.target as HTMLElement | null;
+      // The affordance floats outside its [data-talk] element — hovering the
+      // button itself must not clear the very state that shows it (flicker).
+      if (target?.closest(".talk-affordance")) return;
+      const el = target?.closest<HTMLElement>("[data-talk]") ?? null;
       if (!el) {
         setHovered((prev) => (prev ? null : prev));
         return;

@@ -287,7 +287,10 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem 1.5rem;
-  max-width: 42rem; /* aligns with the max-w-2xl page column */
+  /* One folio line. 42rem (the page column) could not seat the wordmark,
+     four sections AND the intake/ask-brain controls — they wrapped onto a
+     floating second row. The ribbon spans wide; the page column stays 42rem. */
+  max-width: 72rem;
   margin: 0 auto;
   padding: 0.65rem 2rem;
 }
@@ -366,7 +369,10 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
    a paper sheet sliding over the page, stitched with a red thread.    */
 
 .chat-dock {
-  position: fixed;
+  /* Absolute within the content area (below the masthead), not fixed over
+     the whole viewport — the sheet must never bury the masthead controls
+     that toggle it ("current" intake, Ask the Brain). */
+  position: absolute;
   top: 0;
   right: 0;
   bottom: 0;

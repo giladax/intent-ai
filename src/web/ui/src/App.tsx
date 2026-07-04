@@ -200,7 +200,14 @@ function AppShell() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden">
+      {/* Content area — the Correspondence slides in under the masthead,
+          so the masthead controls (intake, Ask the Brain) stay reachable.
+          overflow-clip (not hidden): the parked dock overflows to the right,
+          and clip forbids the programmatic ancestor-scroll that focus() would
+          otherwise trigger — which dragged the whole page sideways. min-h-0:
+          unlike hidden, clip keeps the flex item's automatic min-height, so
+          without it the area grows to content height and scrolling dies. */}
+      <div className="relative min-h-0 flex-1 overflow-clip">
         <div className="h-full overflow-y-auto">
           {view === "journal" ? (
             <JournalPage
@@ -241,10 +248,11 @@ function AppShell() {
             <FeaturesPage repoId={selectedProject?.id ?? null} onFeatureClick={handleFeatureSelect} />
           )}
         </div>
+
+        {/* Always-live conversational layer — a sheet over the page, under the masthead */}
+        <ChatDock liveState={liveState} />
       </div>
 
-      {/* Always-live conversational layer */}
-      <ChatDock liveState={liveState} />
       <TalkLayer />
     </div>
   );
