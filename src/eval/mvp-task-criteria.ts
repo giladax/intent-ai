@@ -6,7 +6,7 @@
  * encodes a real feature in this repo plus the ONE discriminating constraint
  * that feature-aware context is supposed to surface "at the right moment."
  *
- * Shape mirrors tests/eval/session-criteria.ts: a typed, hand-authored
+ * Shape mirrors tests/eval/fidelity-criteria.ts: a typed, hand-authored
  * ground-truth object the scorer reads — never generated.
  *
  *   goal          — what the coding agent is asked to do
