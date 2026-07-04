@@ -1,8 +1,9 @@
 # UI Reimagining — Escaping the POC Bones; Altitude as the Core Interaction
 
-> 2026-07-04 · concept phase · branch `feat/repo-brain`
+> 2026-07-04 · concept phase · branch `feat/repo-brain` · **round 2, 2026-07-05**
 > Mockups: [`mockups/01-sweep.html`](../../../mockups/01-sweep.html) · [`mockups/02-reach.html`](../../../mockups/02-reach.html) · [`mockups/03-grain.html`](../../../mockups/03-grain.html) (self-contained; open in any browser; screenshots in `mockups/shots/`)
 > Owner's mandate, verbatim: *"beautiful, a bit gamified but still servable for top-down C-level review to engineer lens of a developer. All share same brain… I want animation and for it to step out of the box and understand the current UI was built on top of a POC UI, and we are still bound to its traits."*
+> **Round 2 supersedes the round-1 execution** (the altitude *model* stands; the visual execution was rejected — see §4). The mockups and `mockups/shots/` now show the round-2 hierarchy.
 
 ---
 
@@ -100,7 +101,7 @@ That is what "all share same brain" looks like structurally.
   Changing altitude re-renders *the same span of river* at a different semantic
   resolution — it is zoom, not tab-switch. Keyboard: `[` ascend, `]` descend; scroll
   with `⌥` steps altitude; clicking any object descends *into* it (anchored zoom).
-- **The margin** (bottom, always present): one italic input line. See §6.
+- **The margin** (bottom, always present): one italic input line. See §7.
 - **The gate badge** (masthead, red): count of observations awaiting ink; clicking it
   travels to the *nearest pending gate on the river* — not to a queue page.
 
@@ -168,7 +169,51 @@ C-level sees once and finally understands what the product is. (Kills T4.)
 
 ---
 
-## 4. Gamification — earned, never awarded
+## 4. Visual hierarchy — round 2 · "b2b saas, top level first" (supersedes the round-1 execution)
+
+Owner's round-1 verdict, verbatim: *"Its still a bit nerdy and a bit hard to find the
+meat. its flat with a lot of words. its overwhelming. this is b2b saas, top level
+first."* The critique lands on the execution, not the model: round 1 set everything —
+signals, evidence, chrome — in prose at nearly the same weight. The altitude model
+survives untouched; round 2 replaces the typography-only execution with these rules:
+
+1. **Hero-first: the answer before the evidence.** Every altitude opens with its
+   numbers. SWEEP leads with a hero band of four instantly-legible signals — momentum
+   (`418 ↗ +64%`), alignment (`4/6` aligned, `2 owed intent`), needs-you (`2`, red,
+   breathing), evidence anchored (`68% ↗ +9pts`) — each with a trend delta. REACH and
+   GRAIN open with stat-chip bars (`418 events · 4 sittings · 62% anchored · 2 gates`).
+   A C-level answers "healthy or not / what moved / what needs me" in five seconds
+   without reading a sentence.
+2. **One hero number beats ten labels.** The type scale is steep and unambiguous:
+   2.7rem tabular numerals over 0.56rem mono kickers. If two things share a size, they
+   share an importance. Round 1's single-weight walls of serif are gone.
+3. **Cards, not reading columns.** Anything meant to be scanned is a card in a grid
+   with breathing room: the SWEEP feature grid (3×2 — name, alignment badge, event
+   count + delta, spark-strand, one-line status), REACH episodes as cards on the
+   thread, the GRAIN trail as a framed centerpiece. Reading columns exist only where
+   reading is the task.
+4. **Progressive disclosure — words earn their place.** Every round-1 sentence became
+   a number, a mark, or moved behind `<details>`/hover: narrative gists, observation
+   evidence, dossier understanding paragraphs, the Brain's answers. Cut ~80% of
+   visible words at SWEEP; nothing deleted, everything deferred one click.
+5. **Color is signal, never decoration.** The six-ink palette now marks *state* —
+   alignment badges (moss = aligned, gold = intent owed, red = attention, faint =
+   quiet), delta chips (moss up, red warn), the gate's red left edge — instead of
+   tinting body text. Red appears only where something needs a human.
+6. **"Needs you" is a place, not a search.** The SWEEP rail is a short actionable
+   stack — observation gates with Approve/Reject stamps inline, stalls with a single
+   link — never a feed. The masthead badge points at it.
+7. **Density is altitude-dependent.** SWEEP is ruthless (the earned weekly headline is
+   the only full sentence on the surface); REACH is scannable; GRAIN stays dense on
+   purpose — but its focal spine, the numbered four-hop provenance trail, is
+   unmistakable, and everything secondary folds.
+
+What round 1 got right and round 2 keeps: the frame, the spine, the altimeter, the
+inkwell, motion-as-meaning (§6), real-corpus-shaped data, `prefers-reduced-motion`
+discipline. What it got wrong: flat weight, prose-as-interface, everything shown at
+once.
+
+## 5. Gamification — earned, never awarded
 
 No points, no badges, no confetti. The game is *legibility of momentum*:
 
@@ -184,7 +229,7 @@ No points, no badges, no confetti. The game is *legibility of momentum*:
   shipping something big *changes the sentence the whole company reads*. That is the
   entire reward loop, and it's real.
 
-## 5. Motion language — motion encodes meaning, or it doesn't move
+## 6. Motion language — motion encodes meaning, or it doesn't move
 
 | Motion | Meaning it encodes |
 |---|---|
@@ -200,7 +245,7 @@ Rules: every animation runs **once** (only "breathe" loops, and it's the point);
 everything settles ≤400ms except deliberate thread-draws; `prefers-reduced-motion`
 silences all of it (mockups comply); no motion on data the user is trying to read.
 
-## 6. Ask the Brain — a native inhabitant
+## 7. Ask the Brain — a native inhabitant
 
 - **The margin is always there.** One italic line at the surface's bottom edge:
   *"Ask the Brain anything — its answer pins into the river, with its evidence
@@ -220,7 +265,7 @@ silences all of it (mockups comply); no motion on data the user is trying to rea
 - **History is the river.** "Where did my chat go?" is never a question; it went where
   everything goes.
 
-## 7. What survives from today's three passes
+## 8. What survives from today's three passes
 
 - **The entire `--j-*` inkwell** — verbatim (the mockups copy it token-for-token),
   including the six-ink semantic mapping and light/dark variants. The palette is right;
@@ -239,7 +284,7 @@ What does *not* survive: the four section tabs, the Review and Sessions pages as
 destinations, the Digest page as a hidden fifth section, the chip-and-dock pair, and
 the one-column-fits-all measure.
 
-## 8. Phased implementation plan
+## 9. Phased implementation plan
 
 **Phase 1 — resolve the buttons by giving their questions homes (ship this week; no
 rewrite).** All inside the existing React shell:
@@ -283,7 +328,7 @@ reported issue *at the concept level*, not the pixel level.
 
 ---
 
-## 9. Why this is the product
+## 10. Why this is the product
 
 The PRD's four commitments — river as substrate, time as the only axis, Features as
 lenses, evidence over assertion — are all *spatial* claims. The POC shell translated
