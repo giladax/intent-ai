@@ -7,6 +7,9 @@ import type { SessionMoment, EvidenceAnchor } from "../../adapters/types.js";
 // regardless of rubric — no information content).
 //
 // Rules (in priority order):
+//   low    = verification === "contradicted" — tool evidence disproved the
+//            claim; a contradicted moment is never high, even if the
+//            developer said it (saying ≠ being true)
 //   high   = verification === "supported"
 //            OR ≥1 evidence with anchored===true AND sourceType==="user"
 //   medium = ≥1 evidence with anchored===true (but none are user-sourced,
@@ -16,6 +19,12 @@ import type { SessionMoment, EvidenceAnchor } from "../../adapters/types.js";
 export function deriveConfidence(
   moment: SessionMoment,
 ): "high" | "medium" | "low" {
+  // Contradicted claims are capped at low regardless of evidence — the
+  // anchored quote proves the developer said it, not that it was true.
+  if (moment.verification === "contradicted") {
+    return "low";
+  }
+
   // "supported" verification always yields high
   if (moment.verification === "supported") {
     return "high";

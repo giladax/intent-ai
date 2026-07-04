@@ -122,6 +122,18 @@ describe("deriveConfidence", () => {
     expect(deriveConfidence(m)).toBe("low");
   });
 
+  it("verification 'contradicted' caps at low even with anchored USER evidence — saying it doesn't make it true", () => {
+    // the developer said "I committed the fix" (anchored user quote) but tool
+    // events contradict it — must be low, never high
+    const m = makeMoment({
+      verification: "contradicted",
+      evidence: [
+        makeAnchor(true, "user"),
+      ] as unknown as SessionMoment["evidence"],
+    });
+    expect(deriveConfidence(m)).toBe("low");
+  });
+
   it("verification 'unverified' does not trigger high — falls through to evidence rules", () => {
     // unverified + anchored ai → medium
     const m = makeMoment({
