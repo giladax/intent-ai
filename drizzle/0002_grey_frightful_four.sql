@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "sessions_source_hash_unique" ON "sessions" USING btree ("source_hash") WHERE source_hash IS NOT NULL;

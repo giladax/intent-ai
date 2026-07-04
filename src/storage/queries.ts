@@ -65,10 +65,20 @@ export async function storeSessionDigest(data: {
 }): Promise<void> {
   const sql = getClient();
 
-  // 1. session
-  await sql`INSERT INTO sessions (id, source_type, source_path, source_hash, session_shape, started_at, ended_at, created_at)
+  // 1. session — ON CONFLICT (source_hash) DO NOTHING guards against concurrent
+  //    digest runs of the same session file. The index is partial (source_hash IS NOT NULL)
+  //    so NULL-hash rows are unaffected. Check .count to detect the conflict case.
+  const sessionResult = await sql`INSERT INTO sessions (id, source_type, source_path, source_hash, session_shape, started_at, ended_at, created_at)
     VALUES (${data.sessionId}, ${data.sourceType}, ${data.sourcePath}, ${data.sourceHash ?? null}, ${data.sessionShape},
-            ${data.startedAt?.toISOString() ?? null}, ${data.endedAt?.toISOString() ?? null}, NOW())`;
+            ${data.startedAt?.toISOString() ?? null}, ${data.endedAt?.toISOString() ?? null}, NOW())
+    ON CONFLICT (source_hash) WHERE source_hash IS NOT NULL DO NOTHING`;
+
+  if (sessionResult.count === 0) {
+    process.stderr.write(
+      "⚠ concurrent digest detected — another digest of this session landed first; discarding this run's write\n",
+    );
+    return;
+  }
 
   // 2. normalized_events — batched insert; build causalOrder→uuid map for evidence resolution
   const idByCausalOrder = new Map<number, string>();

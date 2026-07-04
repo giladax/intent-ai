@@ -8,7 +8,9 @@ import {
   jsonb,
   pgEnum,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ── Enums ──────────────────────────────────────────────────────────────
 
@@ -85,7 +87,12 @@ export const sessions = pgTable("sessions", {
   startedAt: timestamp("started_at", { withTimezone: true }),
   endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  // Partial unique index: only enforces uniqueness when source_hash IS NOT NULL.
+  // This prevents concurrent digest runs from inserting duplicate session rows
+  // for the same source file. NULL source_hash rows are excluded (legacy/no-hash rows).
+  uniqueIndex("sessions_source_hash_unique").on(t.sourceHash).where(sql`source_hash IS NOT NULL`),
+]);
 
 // ── Feature Sessions (join table) ─────────────────────────────────────
 

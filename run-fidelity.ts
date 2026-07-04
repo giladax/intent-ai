@@ -30,7 +30,7 @@ function rawLastEventAt(logPath: string): Date | null {
 
 const sql = getClient();
 for (const c of fidelityCriteria) {
-  const sess = await sql`SELECT id, ended_at FROM sessions WHERE source_hash = ${c.ccSessionId} LIMIT 1`;
+  const sess = await sql`SELECT id, ended_at FROM sessions WHERE source_hash = ${c.ccSessionId} ORDER BY created_at DESC LIMIT 1`;
   if (sess.length === 0) { console.log(`\n## ${c.label}\n  NOT DIGESTED — skipping`); continue; }
   const sessionId = sess[0].id as string;
 

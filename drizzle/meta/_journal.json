@@ -15,6 +15,13 @@
       "when": 1783123377838,
       "tag": "0001_nifty_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783156905508,
+      "tag": "0002_grey_frightful_four",
+      "breakpoints": true
     }
   ]
 }
