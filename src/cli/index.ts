@@ -105,6 +105,47 @@ program
   });
 
 program
+  .command("seed-features")
+  .description("Seed Features from the digested corpus (one-shot bootstrap; 1 Sonnet call)")
+  .option("--dry-run", "Show validated proposals without writing")
+  .action(async (opts: { dryRun?: boolean }) => {
+    try {
+      const { seedFeatures } = await import("../pipeline/seed-features.js");
+      const result = await seedFeatures({ dryRun: opts.dryRun });
+      for (const { featureId, feature } of result.seeded) {
+        process.stdout.write(`\n# ${feature.name} [${featureId}]\n`);
+        process.stdout.write(`globs: ${feature.fileGlobs.join(", ")}\n`);
+        process.stdout.write(`sessions: ${feature.supportingSessionIds.map((s) => s.slice(0, 8)).join(", ")}\n`);
+        process.stdout.write(`${feature.currentUnderstanding}\n`);
+      }
+      process.stdout.write(
+        `\n${result.dryRun ? "[dry-run] " : ""}${result.seeded.length} feature(s) accepted, ${result.rejected.length} rejected.\n`,
+      );
+      const { closeDb } = await import("../storage/connection.js");
+      await closeDb();
+    } catch (err) {
+      process.stderr.write(`Error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command("feature-context <fileOrTask>")
+  .description("Print the Brain's served Feature context for a file path or task description")
+  .action(async (fileOrTask: string) => {
+    try {
+      const { featureContext } = await import("../mcp/context.js");
+      const result = await featureContext(fileOrTask);
+      process.stdout.write(result.text + "\n");
+      const { closeDb } = await import("../storage/connection.js");
+      await closeDb();
+    } catch (err) {
+      process.stderr.write(`Error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
+  });
+
+program
   .command("observe-events")
   .description("Run observation layer over recent activity events")
   .option("--since <date>", "Observe events since date")
