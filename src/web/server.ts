@@ -997,10 +997,11 @@ export async function startWebServer(port: number): Promise<void> {
     const meta = (event?.metadata ?? {}) as Record<string, unknown>;
     const sourceId = (event?.source_id as string | null) ?? "";
 
-    // (b)(c) supporting moments. Digest-time emission stamps pipeline-local
-    // ids into source_id, so resolution goes id-then-statement (both indexed
-    // by session): moments by statement; transitions/outcomes via their join
-    // tables after resolving the parent row the same way.
+    // (b)(c) supporting moments. Statement-matching is the live path; the id
+    // match is reserved for digestion-v2, which will emit DB uuids into
+    // source_id. Both are indexed by session for fast resolution of
+    // moments by statement; transitions/outcomes via their join tables
+    // after resolving the parent row the same way.
     if (momentRows.length === 0 && sessionId) {
       if (kind === "moment") {
         momentRows = await safe(
@@ -1015,13 +1016,22 @@ export async function startWebServer(port: number): Promise<void> {
         const from = typeof meta.from === "string" ? meta.from : "";
         const to = typeof meta.to === "string" ? meta.to : "";
         momentRows = await safe(
-          () =>
-            sql`SELECT DISTINCT m.* FROM transitions t
+          () => {
+            // Guard the from/to equality clause — only include when at least one is non-empty
+            if (from === "" && to === "") {
+              return sql`SELECT DISTINCT m.* FROM transitions t
+                  JOIN transition_moments tm ON tm.transition_id = t.id
+                  JOIN moments m ON m.id = tm.moment_id
+                  WHERE t.session_id = ${sessionId}
+                    AND t.id::text = ${sourceId}` as any;
+            }
+            return sql`SELECT DISTINCT m.* FROM transitions t
                 JOIN transition_moments tm ON tm.transition_id = t.id
                 JOIN moments m ON m.id = tm.moment_id
                 WHERE t.session_id = ${sessionId}
                   AND (t.id::text = ${sourceId}
-                       OR (t.from_statement = ${from} AND t.to_statement = ${to}))` as any,
+                       OR (t.from_statement = ${from} AND t.to_statement = ${to}))` as any;
+          },
           [] as any[],
         );
       } else if (kind === "outcome") {

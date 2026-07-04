@@ -184,7 +184,7 @@ export const moments = pgTable("moments", {
   // ── Understanding-stage provenance fields (additive, nullable) ──────
   occurredAt: timestamp("occurred_at", { withTimezone: true }),
   verification: text("verification"),
-});
+}, (t) => [index("idx_moments_session_id").on(t.sessionId)]);
 
 // ── Moment Evidence ────────────────────────────────────────────────────
 
@@ -200,7 +200,7 @@ export const momentEvidence = pgTable("moment_evidence", {
   ),
   sourceType: text("source_type"),
   quoteType: text("quote_type"),
-});
+}, (t) => [index("idx_moment_evidence_moment_id").on(t.momentId)]);
 
 // ── Moment Relations ───────────────────────────────────────────────────
 
@@ -226,7 +226,7 @@ export const transitions = pgTable("transitions", {
   reason: text("reason"),
   arcId: text("arc_id"),
   confidence: text("confidence"),
-});
+}, (t) => [index("idx_transitions_session_id").on(t.sessionId)]);
 
 // ── Transition Moments (join table) ────────────────────────────────────
 
@@ -248,7 +248,7 @@ export const outcomes = pgTable("outcomes", {
     .references(() => sessions.id, { onDelete: "cascade" }),
   statement: text("statement").notNull(),
   confidence: text("confidence"),
-});
+}, (t) => [index("idx_outcomes_session_id").on(t.sessionId)]);
 
 // ── Outcome Moments (join table) ───────────────────────────────────────
 
