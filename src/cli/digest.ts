@@ -19,7 +19,8 @@ export function registerDigestCommand(program: Command): void {
     .description("Ingest conversation logs and produce session digests")
     .option("--last <n>", "Process N most recent sessions", parseInt)
     .option("--dry-run", "Run deterministic pipeline only (no LLM calls), print stats")
-    .action(async (path: string | undefined, opts: { last?: number; dryRun?: boolean }) => {
+    .option("--force", "Re-digest even if already stored (deletes stored digest first)")
+    .action(async (path: string | undefined, opts: { last?: number; dryRun?: boolean; force?: boolean }) => {
       try {
         if (opts.dryRun) {
           await runDryRun(path, opts.last);
@@ -30,7 +31,7 @@ export function registerDigestCommand(program: Command): void {
 
         for (const logPath of paths) {
           try {
-            const result = await runPipeline(logPath);
+            const result = await runPipeline(logPath, { force: opts.force });
             printDigest(result);
             if (paths.length > 1) {
               console.log("\n" + "─".repeat(60) + "\n");

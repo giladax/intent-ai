@@ -15,6 +15,8 @@ export interface SessionEventInput {
   transitions: IntentTransition[];
   outcomes: AcceptedOutcome[];
   narrative: SessionNarrative;
+  /** Timestamp to use for narrative/transition/outcome events. Falls back to new Date(). */
+  sessionEndedAt?: Date | null;
 }
 
 export function buildSessionEvents(input: SessionEventInput): ActivityEvent[] {
@@ -26,9 +28,12 @@ export function buildSessionEvents(input: SessionEventInput): ActivityEvent[] {
     worktree: input.worktree,
   };
 
+  // Fallback timestamp for session-level events (narrative, transitions, outcomes)
+  const sessionTs = input.sessionEndedAt ?? new Date();
+
   // Session summary event
   events.push({
-    timestamp: new Date(),
+    timestamp: sessionTs,
     category: input.narrative.sessionShape,
     tags: [],
     actor: "system",
@@ -45,10 +50,12 @@ export function buildSessionEvents(input: SessionEventInput): ActivityEvent[] {
     ...ctx,
   });
 
-  // Moment events
+  // Moment events — stamp with occurredAt when available, else new Date()
   for (const moment of input.moments) {
+    const momentTs =
+      moment.occurredAt != null ? new Date(moment.occurredAt) : new Date();
     events.push({
-      timestamp: new Date(),
+      timestamp: momentTs,
       category: moment.type,
       tags: [moment.topicFingerprint, moment.significance, moment.confidence].filter(Boolean) as string[],
       actor: moment.agency,
@@ -66,10 +73,10 @@ export function buildSessionEvents(input: SessionEventInput): ActivityEvent[] {
     });
   }
 
-  // Transition events
+  // Transition events — stamp with sessionEndedAt
   for (const transition of input.transitions) {
     events.push({
-      timestamp: new Date(),
+      timestamp: sessionTs,
       category: "transition",
       tags: [],
       actor: "collaborative",
@@ -87,10 +94,10 @@ export function buildSessionEvents(input: SessionEventInput): ActivityEvent[] {
     });
   }
 
-  // Outcome events
+  // Outcome events — stamp with sessionEndedAt
   for (const outcome of input.outcomes) {
     events.push({
-      timestamp: new Date(),
+      timestamp: sessionTs,
       category: "outcome",
       tags: [],
       actor: "collaborative",

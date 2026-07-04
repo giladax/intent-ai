@@ -288,6 +288,34 @@ export async function getMostRecentSession(): Promise<{ id: string; shape: strin
   return { id: rows[0].id, shape: rows[0].session_shape };
 }
 
+/**
+ * Return the stored session endedAt timestamp, or null if the session doesn't
+ * exist or the column is NULL.
+ */
+export async function getSessionEndedAt(sessionId: string): Promise<Date | null> {
+  const sql = getClient();
+  const rows = await sql`SELECT ended_at FROM sessions WHERE id = ${sessionId} LIMIT 1`;
+  if (rows.length === 0) return null;
+  const raw = rows[0].ended_at;
+  if (!raw) return null;
+  return new Date(raw as string);
+}
+
+/**
+ * Delete all stored data for a session so it can be re-digested cleanly.
+ *
+ * Deletion order matters due to FK constraints:
+ *   1. activity_events (no FK to sessions)
+ *   2. feature_sessions (FK to sessions without ON DELETE CASCADE)
+ *   3. sessions (cascades the rest: normalized_events, chunks, moments, etc.)
+ */
+export async function deleteSessionDigest(sessionId: string): Promise<void> {
+  const sql = getClient();
+  await sql`DELETE FROM activity_events WHERE session_id = ${sessionId}`;
+  await sql`DELETE FROM feature_sessions WHERE session_id = ${sessionId}`;
+  await sql`DELETE FROM sessions WHERE id = ${sessionId}`;
+}
+
 export async function getChunkEvents(sessionId: string, chunkId: string): Promise<NormalizedDevEvent[]> {
   const sql = getClient();
   const chunkRows = await sql`SELECT event_range_start, event_range_end FROM chunks WHERE id = ${chunkId}`;

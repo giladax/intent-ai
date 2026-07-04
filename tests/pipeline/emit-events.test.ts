@@ -192,4 +192,143 @@ describe("buildSessionEvents", () => {
     expect(events).toHaveLength(1);
     expect(events[0].sourceType).toBe("narrative");
   });
+
+  // ── Timestamp / occurredAt / sessionEndedAt tests ──────────────────
+
+  it("moment event timestamp uses occurredAt when present", () => {
+    const occurredAt = "2026-05-20T09:15:00.000Z";
+    const moment: SessionMoment = {
+      id: "m-ts",
+      chunkId: "c1",
+      type: "discovery",
+      statement: "Found something",
+      significance: "medium",
+      agency: "ai",
+      confidence: "medium",
+      topicFingerprint: "auth",
+      relatedMomentIds: [],
+      evidence: [],
+      occurredAt,
+    };
+
+    const events = buildSessionEvents({
+      ...sessionContext,
+      moments: [moment],
+      transitions: [],
+      outcomes: [],
+      narrative: makeNarrative(),
+    });
+
+    const momentEvent = events.find((e) => e.sourceType === "moment");
+    expect(momentEvent).toBeDefined();
+    expect(momentEvent!.timestamp).toEqual(new Date(occurredAt));
+  });
+
+  it("moment event timestamp falls back to new Date() when occurredAt is absent", () => {
+    const before = Date.now();
+    const moment: SessionMoment = {
+      id: "m-nots",
+      chunkId: "c1",
+      type: "discovery",
+      statement: "Found something else",
+      significance: "medium",
+      agency: "ai",
+      confidence: "medium",
+      topicFingerprint: "auth",
+      relatedMomentIds: [],
+      evidence: [],
+      // occurredAt deliberately omitted
+    };
+
+    const events = buildSessionEvents({
+      ...sessionContext,
+      moments: [moment],
+      transitions: [],
+      outcomes: [],
+      narrative: makeNarrative(),
+    });
+
+    const momentEvent = events.find((e) => e.sourceType === "moment");
+    expect(momentEvent).toBeDefined();
+    const after = Date.now();
+    expect(momentEvent!.timestamp.getTime()).toBeGreaterThanOrEqual(before);
+    expect(momentEvent!.timestamp.getTime()).toBeLessThanOrEqual(after);
+  });
+
+  it("narrative event uses sessionEndedAt when provided", () => {
+    const sessionEndedAt = new Date("2026-05-20T11:00:00.000Z");
+
+    const events = buildSessionEvents({
+      ...sessionContext,
+      moments: [],
+      transitions: [],
+      outcomes: [],
+      narrative: makeNarrative(),
+      sessionEndedAt,
+    });
+
+    const narrativeEvent = events.find((e) => e.sourceType === "narrative");
+    expect(narrativeEvent).toBeDefined();
+    expect(narrativeEvent!.timestamp).toEqual(sessionEndedAt);
+  });
+
+  it("transition event uses sessionEndedAt when provided", () => {
+    const sessionEndedAt = new Date("2026-05-20T11:00:00.000Z");
+    const transitions: IntentTransition[] = [
+      {
+        id: "t-ts",
+        sessionId: "s1",
+        fromStatement: "A",
+        toStatement: "B",
+        reason: "reasons",
+        originMomentIds: [],
+        confidence: "medium",
+      },
+    ];
+
+    const events = buildSessionEvents({
+      ...sessionContext,
+      moments: [],
+      transitions,
+      outcomes: [],
+      narrative: makeNarrative(),
+      sessionEndedAt,
+    });
+
+    const transitionEvent = events.find((e) => e.sourceType === "transition");
+    expect(transitionEvent).toBeDefined();
+    expect(transitionEvent!.timestamp).toEqual(sessionEndedAt);
+  });
+
+  it("narrative/transition/outcome timestamps fall back to new Date() when sessionEndedAt not provided", () => {
+    const before = Date.now();
+
+    const transitions: IntentTransition[] = [
+      {
+        id: "t-fb",
+        sessionId: "s1",
+        fromStatement: "A",
+        toStatement: "B",
+        reason: "reasons",
+        originMomentIds: [],
+        confidence: "medium",
+      },
+    ];
+
+    const events = buildSessionEvents({
+      ...sessionContext,
+      moments: [],
+      transitions,
+      outcomes: [],
+      narrative: makeNarrative(),
+      // sessionEndedAt omitted
+    });
+
+    const after = Date.now();
+
+    for (const e of events) {
+      expect(e.timestamp.getTime()).toBeGreaterThanOrEqual(before);
+      expect(e.timestamp.getTime()).toBeLessThanOrEqual(after);
+    }
+  });
 });

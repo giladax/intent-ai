@@ -123,11 +123,17 @@ For each message id, decide whether it marks an explicit shift to a new topic/ta
  * Deterministic — no LLM calls. Topic-shift split signals are supplied as a
  * precomputed set of event IDs (see `detectTopicShifts`); when omitted, only
  * pause and file-cluster-shift signals are used.
+ *
+ * The optional `options.hardBreaks` array lists causalOrder values that MUST
+ * start a new chunk (e.g. sitting boundaries). Hard-break splits are applied
+ * after the normal split-point detection but before tiny-chunk merging, so
+ * they always win. Omitting options preserves byte-identical behavior.
  */
 export function chunkSession(
   events: NormalizedDevEvent[],
   sessionId: string,
   topicShiftEventIds: Set<string> = new Set(),
+  options?: { hardBreaks?: number[] },
 ): SessionChunk[] {
   if (events.length === 0) return [];
 
@@ -138,6 +144,17 @@ export function chunkSession(
 
   // Find all split points
   const splitIndices = findSplitPoints(events, topicShiftEventIds);
+
+  // Apply hard breaks: find indices where a hard-break causalOrder first appears
+  if (options?.hardBreaks && options.hardBreaks.length > 0) {
+    const hardBreakOrders = new Set(options.hardBreaks);
+    for (let i = 1; i < events.length; i++) {
+      if (hardBreakOrders.has(events[i].causalOrder) && !splitIndices.includes(i)) {
+        splitIndices.push(i);
+      }
+    }
+    splitIndices.sort((a, b) => a - b);
+  }
 
   // Build chunks from split points
   const rawChunks = splitAtIndices(events, splitIndices);

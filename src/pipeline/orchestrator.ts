@@ -8,11 +8,8 @@ import { getClient } from "../storage/connection.js";
 import { normalize } from "./normalize.js";
 import { analyzeInteractions } from "./analyze.js";
 import { classifySession } from "./classify.js";
-import { chunkSession, detectTopicShifts } from "./chunk.js";
-import { detectMomentsWithOrganism } from "../eval/organism.js";
-import { DEFAULT_ORGANISM } from "./default-organism.js";
-import { detectTransitionsAndOutcomes } from "./transitions.js";
-import { generateNarrative } from "./narrative.js";
+import { detectTopicShifts } from "./chunk.js";
+import { understand } from "./understand/index.js";
 import { buildSessionEvents } from "./emit-events.js";
 import {
   storeSessionDigest,
@@ -21,12 +18,15 @@ import {
   getSessionMoments,
   getSessionTransitions,
   getSessionOutcomes,
+  getSessionEndedAt,
+  deleteSessionDigest,
 } from "../storage/queries.js";
 import type {
   SessionNarrative,
   SessionMoment,
   IntentTransition,
   AcceptedOutcome,
+  RawDevEvent,
 } from "../adapters/types.js";
 
 interface PipelineResult {
@@ -77,27 +77,46 @@ function getGitContext(sourcePath: string): { repo?: string; branch?: string; wo
   }
 }
 
-export async function runPipeline(logPath: string): Promise<PipelineResult> {
-  // 0. Idempotency — skip paths already digested (keyed on the CC session UUID
-  //    from the filename). Re-digesting the same path returns the stored digest
-  //    instead of re-running the LLM pipeline, so `digest` is idempotent and a
-  //    batch run (`--last N`) never aborts on an already-processed session.
+export async function runPipeline(
+  logPath: string,
+  opts?: { force?: boolean },
+): Promise<PipelineResult> {
+  // 0. Archive the raw log unconditionally — including on the already-digested
+  //    path, so a resumed session's grown log keeps refreshing the archive even
+  //    though its digest is stale (the known tail-loss hole stays re-derivable).
   const ccSessionId = basename(logPath, ".jsonl");
-  // Archive the raw log unconditionally — including on the already-digested
-  // path, so a resumed session's grown log keeps refreshing the archive even
-  // though its digest is stale (the known tail-loss hole stays re-derivable).
   archiveRawSession(logPath, ccSessionId);
-  const existingId = await findDigestedSession(ccSessionId);
-  if (existingId) {
-    log(`  ⚠ Session already digested (${existingId}). Returning stored digest.`);
-    const stored = await loadStoredDigest(existingId);
-    if (stored) return stored;
-    log("  ⚠ Stored digest incomplete; re-digesting.");
-  }
 
-  // 1. Parse
+  // 1. Parse first so we can compare timestamps for grown-log detection.
   log("[1/10] Parsing CC log...");
   const rawEvents = await parseClaudeCodeLog(logPath);
+
+  // 0b. Idempotency + grown-log detection.
+  //     Parse FIRST (above) so we can compare the raw-event max timestamp
+  //     against the stored endedAt.
+  const existingId = await findDigestedSession(ccSessionId);
+  if (existingId) {
+    const storedEndedAt = await getSessionEndedAt(existingId);
+    const maxTs = latestTimestamp(rawEvents);
+    const grown =
+      storedEndedAt != null &&
+      maxTs != null &&
+      maxTs.getTime() > storedEndedAt.getTime() + 60_000;
+
+    if (!grown && !opts?.force) {
+      log(`  ⚠ Session already digested (${existingId}). Returning stored digest.`);
+      const stored = await loadStoredDigest(existingId);
+      if (stored) return stored;
+      log("  ⚠ Stored digest incomplete; re-digesting.");
+    } else {
+      const reason = opts?.force
+        ? `  → --force flag set; deleting stored digest for ${existingId} and re-digesting.`
+        : `  → Session log has grown (stored endedAt: ${storedEndedAt?.toISOString()}, new max: ${maxTs?.toISOString()}); re-digesting.`;
+      log(reason);
+      await deleteSessionDigest(existingId);
+      // fall through to full pipeline
+    }
+  }
 
   // 2. Generate sessionId
   const sessionId = crypto.randomUUID();
@@ -109,52 +128,37 @@ export async function runPipeline(logPath: string): Promise<PipelineResult> {
   // Large session warning
   if (normalizedEvents.length > 300) {
     const estimatedChunks = Math.ceil(normalizedEvents.length / 60);
-    const estimatedLlmCalls = estimatedChunks + 3; // pass1 per chunk + classify + pass2 + transitions + narrative
+    const estimatedLlmCalls = estimatedChunks + 3;
     log(
       `  ⚠ Large session: ${normalizedEvents.length} events, ~${estimatedChunks} chunks, ~${estimatedLlmCalls} LLM calls`,
     );
   }
 
-  // 4-5-6. Analyze + Classify + Topic-shift detection in parallel
-  //        (all depend only on normalizedEvents). Chunking consumes the
-  //        topic-shift signal, so it runs right after.
+  // 4-5. Analyze + Classify + Topic-shift detection in parallel
   log("[3/10] Analyzing + classifying + detecting topic shifts (parallel)...");
   const [directives, sessionShape, topicShiftIds] = await Promise.all([
     analyzeInteractions(normalizedEvents),
     classifySession(normalizedEvents),
     detectTopicShifts(normalizedEvents),
   ]);
-  const sessionChunks = chunkSession(normalizedEvents, sessionId, topicShiftIds);
-  log(`  Shape: ${sessionShape}, ${sessionChunks.length} chunks, ${directives.exchangeSummary.totalExchanges} exchanges`);
+  log(`  Shape: ${sessionShape}, ${directives.exchangeSummary.totalExchanges} exchanges`);
 
-  // 7. Detect moments using the promoted default organism (Gen 0 winner)
+  // 6-9. Understand stage: sittings → chunk → extract → weave → verify →
+  //      transitions → narrative (all in understand())
   log("[6/10] Detecting moments (pass 1)...");
   log("[7/10] Detecting moments (pass 2)...");
-  const sessionMoments = await detectMomentsWithOrganism(
-    DEFAULT_ORGANISM,
-    rawEvents,
-    sessionChunks,
-    sessionShape,
-    normalizedEvents,
-  );
-
-  // 8. Transitions + outcomes
   log("[8/10] Detecting transitions & outcomes...");
-  const { transitions, outcomes } = await detectTransitionsAndOutcomes(
-    sessionMoments,
-    sessionId,
-    sessionChunks,
-  );
-
-  // 9. Narrative
   log("[9/10] Generating narrative...");
-  const narrative = await generateNarrative(
-    sessionMoments,
-    transitions,
-    outcomes,
+  const result = await understand(
+    normalizedEvents,
+    sessionId,
     sessionShape,
+    directives,
+    topicShiftIds,
   );
+  const { sittings, chunks: sessionChunks, moments: sessionMoments, transitions, outcomes, narrative } = result;
   narrative.sessionId = sessionId;
+  log(`  Chunks: ${sessionChunks.length}, Moments: ${sessionMoments.length}`);
 
   // 10. Store
   log("[10/10] Storing to database...");
@@ -183,6 +187,7 @@ export async function runPipeline(logPath: string): Promise<PipelineResult> {
       transitions,
       outcomes,
       narrative,
+      sittings,
     });
   } catch (err) {
     log(
@@ -203,6 +208,7 @@ export async function runPipeline(logPath: string): Promise<PipelineResult> {
       transitions,
       outcomes,
       narrative,
+      sessionEndedAt: endedAt,
     });
     await emitEvents(activityEvents);
     log(`  → Emitted ${activityEvents.length} activity events`);
@@ -217,6 +223,23 @@ export async function runPipeline(logPath: string): Promise<PipelineResult> {
     transitions,
     outcomes,
   };
+}
+
+// ── latestTimestamp ───────────────────────────────────────────────────
+
+/**
+ * Return the maximum timestamp across raw events, or null if none are parseable.
+ */
+function latestTimestamp(rawEvents: RawDevEvent[]): Date | null {
+  let max: number | null = null;
+  for (const e of rawEvents) {
+    if (!e.timestamp) continue;
+    const ms = Date.parse(e.timestamp);
+    if (!isNaN(ms) && (max === null || ms > max)) {
+      max = ms;
+    }
+  }
+  return max !== null ? new Date(max) : null;
 }
 
 // ── Idempotency Helpers ──────────────────────────────────────────────

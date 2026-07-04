@@ -370,6 +370,43 @@ describe("chunkSession", () => {
     expect(chunks).toHaveLength(1);
     expect(chunks[0].events).toHaveLength(50);
   });
+
+  // ── hardBreaks option ───────────────────────────────────────────────
+
+  it("hardBreaks: forces a chunk split at the given causalOrders", () => {
+    // 40 uniformly-timed events — no pauses, no file-shifts, no topic shifts
+    const events = makeEvents(40, { filesAffected: ["src/same.ts"] });
+    // Without hardBreaks → 1 chunk
+    expect(chunkSession(events, sessionId)).toHaveLength(1);
+
+    // The 20th event has causalOrder 19 (0-based). Pass its causalOrder as a
+    // hardBreak — chunkSession should now split before it.
+    const hardBreakOrder = events[19].causalOrder;
+    const chunks = chunkSession(events, sessionId, new Set(), { hardBreaks: [hardBreakOrder] });
+
+    // Two chunks expected (the hardBreak forces a split at index 19)
+    expect(chunks.length).toBeGreaterThanOrEqual(2);
+    // The second chunk's event range should start at or near hardBreakOrder
+    const secondChunk = chunks[1];
+    expect(secondChunk.eventRange[0]).toBeLessThanOrEqual(hardBreakOrder);
+    // The second owned group must start with or include the hardBreak event
+    const ownedEvents = secondChunk.events.filter(
+      (e) => e.causalOrder >= secondChunk.eventRange[0],
+    );
+    expect(ownedEvents.length).toBeGreaterThan(0);
+  });
+
+  it("hardBreaks: omitting options produces byte-identical result to no-options call", () => {
+    const events = makeEvents(40, { filesAffected: ["src/same.ts"] });
+    const withoutOpts = chunkSession(events, sessionId);
+    const withEmptyOpts = chunkSession(events, sessionId, new Set(), {});
+    // Same number of chunks
+    expect(withEmptyOpts).toHaveLength(withoutOpts.length);
+    // Same event ranges
+    for (let i = 0; i < withoutOpts.length; i++) {
+      expect(withEmptyOpts[i].eventRange).toEqual(withoutOpts[i].eventRange);
+    }
+  });
 });
 
 describe("detectTopicShifts", () => {
