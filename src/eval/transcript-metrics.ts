@@ -17,6 +17,23 @@ import type { RawDevEvent } from "../adapters/types.js";
 
 // ── Tool taxonomy ────────────────────────────────────────────────────
 
+/**
+ * Brain MCP READ tools (measurement-v2 §3.5, fixes F3): the treatment arm's
+ * brain consults are information-gathering and MUST cost ETC like a Grep
+ * does — otherwise ETC measures which tool namespace explored, not how much
+ * exploration happened. Write tools (report/rate/propose) are not
+ * information-gathering and are excluded.
+ */
+export const BRAIN_READ_TOOLS = new Set<string>([
+  "mcp__intent-brain__brain_enter",
+  "mcp__intent-brain__brain_search",
+  "mcp__intent-brain__brain_feature_context",
+  "mcp__intent-brain__brain_file_context",
+  "mcp__intent-brain__brain_overview",
+  "mcp__intent-brain__brain_get",
+  "mcp__intent-brain__brain_traverse",
+]);
+
 /** Tools that count as exploration (information-gathering, no mutation). */
 export const EXPLORATORY_TOOLS = new Set<string>([
   "Read",
@@ -27,6 +44,7 @@ export const EXPLORATORY_TOOLS = new Set<string>([
   "WebFetch",
   "ListMcpResourcesTool",
   "ReadMcpResourceTool",
+  ...BRAIN_READ_TOOLS,
 ]);
 
 /** Tools that mutate a file (the edit we measure ETC against). */
@@ -108,6 +126,70 @@ export async function extractToolCallsFromFile(
 ): Promise<ToolCall[]> {
   const rawEvents = await parseClaudeCodeLog(filePath);
   return extractToolCalls(rawEvents);
+}
+
+// ── Tokens-to-completion (measurement-v2 §3.5 co-primary) ────────────
+
+export interface TokenTotals {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  /** input + output (the co-primary metric; cache reads reported separately) */
+  total: number;
+}
+
+/**
+ * Sum API usage across the transcript's assistant messages. Catches "the
+ * served context is huge" — a 30% ETC win at 2x tokens is not a win.
+ *
+ * The adapter emits several RawDevEvents per assistant message (one per
+ * content block) all sharing the same `raw` message object, so usage is
+ * deduped by raw-object identity before summing.
+ */
+export function extractTokenTotals(rawEvents: RawDevEvent[]): TokenTotals {
+  const seen = new Set<unknown>();
+  const totals: TokenTotals = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    total: 0,
+  };
+
+  for (const ev of rawEvents) {
+    if (seen.has(ev.raw)) continue;
+    seen.add(ev.raw);
+
+    const message = (ev.raw as { message?: unknown }).message as
+      | { usage?: unknown }
+      | undefined;
+    const usage = message?.usage as
+      | {
+          input_tokens?: number;
+          output_tokens?: number;
+          cache_read_input_tokens?: number;
+          cache_creation_input_tokens?: number;
+        }
+      | undefined;
+    if (!usage) continue;
+
+    totals.inputTokens += usage.input_tokens ?? 0;
+    totals.outputTokens += usage.output_tokens ?? 0;
+    totals.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
+    totals.cacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
+  }
+
+  totals.total = totals.inputTokens + totals.outputTokens;
+  return totals;
+}
+
+/** Parse a JSONL transcript file and total its token usage. */
+export async function extractTokenTotalsFromFile(
+  filePath: string,
+): Promise<TokenTotals> {
+  const rawEvents = await parseClaudeCodeLog(filePath);
+  return extractTokenTotals(rawEvents);
 }
 
 // ── File-path glob matching (structural) ─────────────────────────────

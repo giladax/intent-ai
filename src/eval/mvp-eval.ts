@@ -14,17 +14,19 @@
  * the harness mechanics can be unit-tested without any live A/B run.
  */
 
-import type { TaskCriteria } from "./mvp-task-criteria.js";
+import type { TaskCriteria, TreatmentStratum } from "./mvp-task-criteria.js";
 import {
   computeETC,
   extractToolCallsFromFile,
+  extractTokenTotalsFromFile,
   type EtcResult,
+  type TokenTotals,
 } from "./transcript-metrics.js";
 import {
-  judgeConstraints,
-  countViolations,
+  judgeConstraintsMajority,
   judgeTaskCorrectness,
 } from "./mvp-judge.js";
+import { checkConstraint } from "./cvr-checks.js";
 
 export type Arm = "baseline" | "treatment";
 
@@ -70,12 +72,26 @@ export interface SessionScore {
   violations: number;
   success: boolean;
   etcDetail: EtcResult;
+  /** per-constraint provenance of each violation verdict */
+  constraintOutcomes?: ConstraintOutcome[];
+  /** tokens-to-completion (co-primary; measurement-v2 §3.5) */
+  tokens?: TokenTotals;
+}
+
+export interface ConstraintOutcome {
+  constraintId: string;
+  violated: boolean;
+  /** "deterministic" = structural check decided; "judge" = Haiku majority */
+  decidedBy: "deterministic" | "judge";
 }
 
 /**
- * Score a single recorded session: deterministic ETC + Haiku CVR/correctness.
- * Task success = reached a correct edit AND tsc passed AND targeted test
- * passed AND the correctness judge agrees.
+ * Score a single recorded session (measurement-v2):
+ *  - ETC: deterministic, brain reads costed symmetrically (fixes F3)
+ *  - tokens: deterministic from transcript usage records
+ *  - CVR: deterministic structural check first; Haiku MAJORITY (3 votes)
+ *    only for constraints the structural check can't decide (fixes F4)
+ *  - success: reached correct edit AND tsc AND targeted test AND judge.
  */
 export async function scoreSession(
   task: TaskCriteria,
@@ -83,9 +99,35 @@ export async function scoreSession(
 ): Promise<SessionScore> {
   const toolCalls = await extractToolCallsFromFile(input.transcriptPath);
   const etcDetail = computeETC(toolCalls, task.correctFiles);
+  const tokens = await extractTokenTotalsFromFile(input.transcriptPath);
 
-  const constraintJudgement = await judgeConstraints(task, input.diff);
-  const violations = countViolations(task, constraintJudgement);
+  // CVR: deterministic first, judge majority for the undecidable remainder.
+  const outcomes: ConstraintOutcome[] = [];
+  const undecided = new Set<string>();
+  for (const c of task.constraints) {
+    const det = checkConstraint(c.id, input.diff);
+    if (det === "unknown") {
+      undecided.add(c.id);
+    } else {
+      outcomes.push({
+        constraintId: c.id,
+        violated: det === "violated",
+        decidedBy: "deterministic",
+      });
+    }
+  }
+  if (undecided.size > 0) {
+    const judgement = await judgeConstraintsMajority(task, input.diff);
+    for (const v of judgement.verdicts) {
+      if (!undecided.has(v.constraintId)) continue;
+      outcomes.push({
+        constraintId: v.constraintId,
+        violated: v.violated,
+        decidedBy: "judge",
+      });
+    }
+  }
+  const violations = outcomes.filter((o) => o.violated).length;
 
   const correctness = await judgeTaskCorrectness(task, input.diff);
 
@@ -104,6 +146,8 @@ export async function scoreSession(
     violations,
     success,
     etcDetail,
+    constraintOutcomes: outcomes,
+    tokens,
   };
 }
 
@@ -121,6 +165,8 @@ export interface TaskArmStats {
   cvrTotal: number;
   successCount: number;
   successRate: number;
+  /** median tokens-to-completion, when transcripts carried usage; else null */
+  tokensMedian: number | null;
 }
 
 export interface ArmTotals {
@@ -154,6 +200,9 @@ export function aggregate(scores: SessionScore[]): TaskArmStats[] {
     const [taskId, arm] = key.split("::") as [string, Arm];
     const etcValues = list.map((s) => s.etc);
     const successCount = list.filter((s) => s.success).length;
+    const tokenValues = list
+      .map((s) => s.tokens?.total)
+      .filter((t): t is number => typeof t === "number" && t > 0);
     stats.push({
       taskId,
       arm,
@@ -165,6 +214,7 @@ export function aggregate(scores: SessionScore[]): TaskArmStats[] {
       cvrTotal: list.reduce((sum, s) => sum + s.violations, 0),
       successCount,
       successRate: list.length ? successCount / list.length : 0,
+      tokensMedian: tokenValues.length ? median(tokenValues) : null,
     });
   }
   return stats;
@@ -311,5 +361,75 @@ export function evaluatePassBar(stats: TaskArmStats[]): PassBarResult {
     treatmentSuccessTotal: treatTotals.successCount,
     pass,
     killSwitch: { triggered: reasons.length > 0, reasons },
+  };
+}
+
+// ── Stratified analysis (Day-2 review binding condition) ─────────────
+//
+// Tasks are PRE-STRATIFIED by expected treatment coverage: "strong" tasks
+// resolve to a seeded Feature whose served constraints carry the
+// discriminating rule; "weak" tasks resolve to no Feature (candidate-list
+// flow — the coverage-boundary control). Averaging across strata would let
+// a weak task's null effect dilute (or a fluke inflate) the strong-stratum
+// signal, so the pass bar and kill switch are evaluated on the STRONG
+// stratum only; the weak stratum is reported alongside, never gated on.
+
+/** Pre-registered token criterion (measurement-v2 §3.9). */
+export const TOKEN_BAR = {
+  /** treatment pooled-median tokens must be <= this multiple of baseline */
+  maxTokenRatio: 1.15,
+  /** kill if treatment tokens exceed this multiple of baseline */
+  killTokenRatio: 1.5,
+} as const;
+
+export interface StratifiedPassBarResult {
+  /** pass bar + kill switch over the strong stratum only */
+  strong: PassBarResult;
+  strongTaskIds: string[];
+  /** weak stratum: reported for the coverage story, never gated on */
+  weak: PassBarResult | null;
+  weakTaskIds: string[];
+  /** pooled-median token ratio (treatment/baseline) over the strong stratum */
+  tokenRatio: number | null;
+  /** null when no token data was captured */
+  tokenCriterionMet: boolean | null;
+  tokenKillTriggered: boolean | null;
+}
+
+export function evaluateStratifiedPassBar(
+  stats: TaskArmStats[],
+  strata: Map<string, TreatmentStratum>,
+): StratifiedPassBarResult {
+  const strongStats = stats.filter((s) => strata.get(s.taskId) === "strong");
+  const weakStats = stats.filter((s) => strata.get(s.taskId) === "weak");
+
+  const strong = evaluatePassBar(strongStats);
+  const weak = weakStats.length > 0 ? evaluatePassBar(weakStats) : null;
+
+  // Token criterion over the strong stratum (informational until every
+  // transcript carries usage; enforced when present).
+  const pooled = (arm: Arm): number | null => {
+    const vals = strongStats
+      .filter((s) => s.arm === arm && s.tokensMedian != null)
+      .map((s) => s.tokensMedian as number);
+    return vals.length ? median(vals) : null;
+  };
+  const baseTokens = pooled("baseline");
+  const treatTokens = pooled("treatment");
+  const tokenRatio =
+    baseTokens != null && treatTokens != null && baseTokens > 0
+      ? treatTokens / baseTokens
+      : null;
+
+  return {
+    strong,
+    strongTaskIds: [...new Set(strongStats.map((s) => s.taskId))].sort(),
+    weak,
+    weakTaskIds: [...new Set(weakStats.map((s) => s.taskId))].sort(),
+    tokenRatio,
+    tokenCriterionMet:
+      tokenRatio == null ? null : tokenRatio <= TOKEN_BAR.maxTokenRatio,
+    tokenKillTriggered:
+      tokenRatio == null ? null : tokenRatio > TOKEN_BAR.killTokenRatio,
   };
 }

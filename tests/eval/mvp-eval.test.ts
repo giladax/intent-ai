@@ -194,3 +194,64 @@ describe("evaluatePassBar — kill switches", () => {
     expect(v.pass).toBe(false);
   });
 });
+
+// ── stratified pass bar (Day-2 review binding condition) ─────────────
+
+describe("evaluateStratifiedPassBar", () => {
+  it("gates on the strong stratum only; weak reported separately", async () => {
+    const { evaluateStratifiedPassBar } = await import("../../src/eval/mvp-eval.js");
+    const strata = new Map(
+      mvpTasks.map((t) => [t.id, t.treatmentStratum] as const),
+    );
+    const scores: SessionScore[] = [];
+    for (const task of mvpTasks) {
+      for (let run = 1; run <= 3; run++) {
+        scores.push(score(task.id, "baseline", run, 10, run === 1 ? 1 : 0, true));
+        // treatment wins on strong tasks, does NOTHING on the weak task —
+        // exactly the expected coverage boundary
+        const treatEtc = task.treatmentStratum === "strong" ? 3 : 10;
+        scores.push(score(task.id, "treatment", run, treatEtc, 0, true));
+      }
+    }
+    const v = evaluateStratifiedPassBar(aggregate(scores), strata);
+
+    // strong stratum passes even though the weak task moved 0%
+    expect(v.strongTaskIds).toHaveLength(4);
+    expect(v.weakTaskIds).toEqual(["task-5"]);
+    expect(v.strong.etcCriterionMet).toBe(true);
+    expect(v.strong.pass).toBe(true);
+    expect(v.strong.killSwitch.triggered).toBe(false);
+
+    // an UNstratified evaluation of the same scores would have been dragged
+    // by the weak task's null effect — that dilution is what stratification
+    // removes; the weak result stays visible
+    expect(v.weak).not.toBeNull();
+    expect(v.weak!.etcImprovedTasks).toHaveLength(0);
+  });
+
+  it("token ratio is null when no usage was captured, computed when present", async () => {
+    const { evaluateStratifiedPassBar, TOKEN_BAR } = await import("../../src/eval/mvp-eval.js");
+    const strata = new Map(
+      mvpTasks.map((t) => [t.id, t.treatmentStratum] as const),
+    );
+    const noTokens = evaluateStratifiedPassBar(aggregate(shipScores()), strata);
+    expect(noTokens.tokenRatio).toBeNull();
+    expect(noTokens.tokenCriterionMet).toBeNull();
+
+    const withTokens: SessionScore[] = shipScores().map((s) => ({
+      ...s,
+      tokens: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
+        total: s.arm === "baseline" ? 1000 : 1100, // ratio 1.1 <= 1.15
+      },
+    }));
+    const v = evaluateStratifiedPassBar(aggregate(withTokens), strata);
+    expect(v.tokenRatio).toBeCloseTo(1.1);
+    expect(v.tokenCriterionMet).toBe(true);
+    expect(v.tokenKillTriggered).toBe(false);
+    expect(TOKEN_BAR.maxTokenRatio).toBe(1.15);
+  });
+});

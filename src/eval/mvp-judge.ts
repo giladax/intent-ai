@@ -87,6 +87,54 @@ export function countViolations(
   return violations;
 }
 
+/**
+ * Majority-of-N constraint judging (measurement-v2 §3.5, fixes F4).
+ *
+ * v1 hung CVR on ONE Haiku call; one false positive killed a true pass.
+ * v2 runs the constraint judge `votes` times in parallel and takes the
+ * per-constraint majority: a constraint is violated iff a strict majority
+ * of votes says so. Used only for constraints the deterministic structural
+ * check (cvr-checks.ts) could not decide.
+ */
+export async function judgeConstraintsMajority(
+  task: TaskCriteria,
+  diff: string,
+  votes = 3,
+): Promise<ConstraintJudgement> {
+  const rounds = await Promise.all(
+    Array.from({ length: votes }, () => judgeConstraints(task, diff)),
+  );
+  return majorityJudgement(task, rounds);
+}
+
+/** Pure: fold N judgement rounds into a per-constraint majority verdict. */
+export function majorityJudgement(
+  task: TaskCriteria,
+  rounds: ConstraintJudgement[],
+): ConstraintJudgement {
+  const verdicts: ConstraintVerdict[] = [];
+  for (const c of task.constraints) {
+    let violatedVotes = 0;
+    const reasons: string[] = [];
+    for (const round of rounds) {
+      const v = round.verdicts.find((x) => x.constraintId === c.id);
+      if (v?.violated) {
+        violatedVotes++;
+        if (v.reasoning) reasons.push(v.reasoning);
+      }
+    }
+    const violated = violatedVotes > rounds.length / 2;
+    verdicts.push({
+      constraintId: c.id,
+      violated,
+      reasoning: violated
+        ? `majority ${violatedVotes}/${rounds.length}: ${reasons[0] ?? ""}`
+        : `votes ${violatedVotes}/${rounds.length} below majority`,
+    });
+  }
+  return { verdicts };
+}
+
 // ── Correctness judge ────────────────────────────────────────────────
 
 export const CorrectnessJudgementSchema = z

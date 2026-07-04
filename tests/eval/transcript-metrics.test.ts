@@ -205,3 +205,86 @@ describe("extractToolCallsFromFile (real fixture)", () => {
     expect(r.etc).toBeLessThanOrEqual(r.totalExploratory);
   });
 });
+
+// ── ETC v2: brain reads cost exploration (fixes F3) ──────────────────
+
+describe("ETC v2 — symmetric exploration accounting", () => {
+  it("brain MCP read tools count toward ETC like Grep does", async () => {
+    const { BRAIN_READ_TOOLS } = await import(
+      "../../src/eval/transcript-metrics.js"
+    );
+    for (const tool of BRAIN_READ_TOOLS) {
+      expect(EXPLORATORY_TOOLS.has(tool), `${tool} must be exploratory`).toBe(true);
+    }
+
+    const calls: ToolCall[] = [
+      tc(0, "mcp__intent-brain__brain_enter"),
+      tc(1, "mcp__intent-brain__brain_feature_context"),
+      tc(2, "Edit", "/repo/src/mcp/server.ts"),
+    ];
+    const result = computeETC(calls, ["src/mcp/server.ts"]);
+    expect(result.etc).toBe(2); // both brain reads paid for
+    expect(result.reachedCorrectEdit).toBe(true);
+  });
+
+  it("brain WRITE tools do not count as exploration", () => {
+    const writes = [
+      "mcp__intent-brain__brain_report_observation",
+      "mcp__intent-brain__brain_report_unknown",
+      "mcp__intent-brain__brain_rate_context",
+      "mcp__intent-brain__brain_propose_knowledge_delta",
+    ];
+    for (const tool of writes) {
+      expect(EXPLORATORY_TOOLS.has(tool), `${tool} must not be exploratory`).toBe(false);
+    }
+  });
+});
+
+// ── Tokens-to-completion ─────────────────────────────────────────────
+
+describe("extractTokenTotals", () => {
+  it("sums usage across assistant messages, deduping per raw message", async () => {
+    const { extractTokenTotals } = await import(
+      "../../src/eval/transcript-metrics.js"
+    );
+    const sharedRaw = {
+      message: {
+        usage: {
+          input_tokens: 100,
+          output_tokens: 50,
+          cache_read_input_tokens: 1000,
+          cache_creation_input_tokens: 20,
+        },
+        content: [],
+      },
+    };
+    const events: RawDevEvent[] = [
+      // two events from the SAME assistant message (text + tool blocks)
+      { id: "u1-text-0", source: "claude-code", timestamp: "t", type: "ai_response", raw: sharedRaw },
+      { id: "u1-tool-1", source: "claude-code", timestamp: "t", type: "tool_call", raw: sharedRaw },
+      // a second message
+      {
+        id: "u2-text-0",
+        source: "claude-code",
+        timestamp: "t",
+        type: "ai_response",
+        raw: { message: { usage: { input_tokens: 10, output_tokens: 5 }, content: [] } },
+      },
+      // a user message with no usage
+      { id: "u3", source: "claude-code", timestamp: "t", type: "conversation_turn", raw: { message: {} } },
+    ];
+    const totals = extractTokenTotals(events);
+    expect(totals.inputTokens).toBe(110);
+    expect(totals.outputTokens).toBe(55);
+    expect(totals.cacheReadTokens).toBe(1000);
+    expect(totals.cacheCreationTokens).toBe(20);
+    expect(totals.total).toBe(165);
+  });
+
+  it("returns zeros for an empty transcript", async () => {
+    const { extractTokenTotals } = await import(
+      "../../src/eval/transcript-metrics.js"
+    );
+    expect(extractTokenTotals([]).total).toBe(0);
+  });
+});
