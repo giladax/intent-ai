@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brain — Reach · one feature at a time</title>
+<!--
+  VARIANT C · calm luxury / radical focus
+  REACH is a reading, not a dashboard: one feature, one thread, one decision.
+  Moving between features crossfades the whole surface — nothing stacks.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..600;1,6..72,200..600&display=swap" rel="stylesheet" />
+<style>
+@view-transition { navigation: auto; }
+:root {
+  --j-ink: oklch(0.24 0.02 60);
+  --j-ink-soft: oklch(0.45 0.015 60);
+  --j-faint: oklch(0.58 0.012 60);
+  --j-hairline: oklch(0.88 0.012 75);
+  --j-paper: oklch(0.982 0.006 85);
+  --j-paper-raise: oklch(0.995 0.004 90);
+  --j-wash: oklch(0.955 0.01 85);
+  --j-red: oklch(0.55 0.19 30);
+  --j-red-soft: oklch(0.55 0.19 30 / 0.08);
+  --j-moss: oklch(0.52 0.09 150);
+  --j-moss-soft: oklch(0.52 0.09 150 / 0.1);
+  --j-consult: oklch(0.5 0.09 250);
+  --j-consult-soft: oklch(0.5 0.09 250 / 0.1);
+  --j-gold: oklch(0.62 0.13 78);
+  --j-gold-soft: oklch(0.62 0.13 78 / 0.12);
+  --j-violet: oklch(0.5 0.11 305);
+  --j-violet-soft: oklch(0.5 0.11 305 / 0.1);
+  --j-teal: oklch(0.52 0.09 210);
+  --j-teal-soft: oklch(0.52 0.09 210 / 0.1);
+  --j-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--j-serif);
+  background:
+    radial-gradient(1100px 460px at 50% -8%, var(--j-paper-raise), transparent 70%),
+    var(--j-paper);
+  color: var(--j-ink); font-optical-sizing: auto; min-height: 100vh;
+  transition: opacity 0.34s ease, transform 0.34s ease;
+}
+body.departing { opacity: 0; transform: scale(0.988); }
+.kicker { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--j-faint); }
+
+/* masthead + spine + margin — the permanent frame, identical to Sweep */
+.masthead {
+  position: fixed; inset: 0 0 auto 0; z-index: 10;
+  display: flex; align-items: center; gap: 1.4rem;
+  padding: 1.05rem 2.4rem 1.05rem 5.4rem;
+  background: color-mix(in oklab, var(--j-paper) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent);
+}
+.wordmark { font-style: italic; font-weight: 500; font-size: 1.05rem; text-decoration: none; }
+.wordmark .dot { color: var(--j-gold); }
+.search { font-family: var(--j-mono); font-size: 0.66rem; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.42rem 1.05rem; background: var(--j-paper-raise); min-width: 15rem; display: flex; justify-content: space-between; gap: 2rem; cursor: text; }
+.search kbd { font-family: inherit; border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0 0.3rem; font-size: 0.58rem; }
+.altimeter { margin-left: auto; display: flex; align-items: center; gap: 0.15rem; }
+.altimeter .stop { font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--j-faint); text-decoration: none; padding: 0.42rem 0.85rem; border-radius: 999px; transition: color 0.25s ease, background 0.25s ease; }
+.altimeter .stop:hover { color: var(--j-ink); background: var(--j-wash); }
+.altimeter .stop.here { color: var(--j-paper); background: var(--j-ink); }
+.altimeter .tick { width: 12px; height: 1px; background: var(--j-hairline); }
+.now-chip { display: flex; align-items: center; gap: 0.55rem; font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--j-moss); }
+.now-chip .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--j-moss); animation: breathe 2.6s ease-in-out infinite; }
+@keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.28; } }
+
+.spine { position: fixed; inset: 0 auto 0 0; width: 56px; z-index: 9; display: flex; flex-direction: column; align-items: center; padding: 5.2rem 0 4.6rem; border-right: 1px solid color-mix(in oklab, var(--j-hairline) 60%, transparent); }
+.spine .label { writing-mode: vertical-rl; font-family: var(--j-mono); font-size: 0.52rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--j-faint); margin-bottom: 1.1rem; }
+.spine .days { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; align-items: center; }
+.spine .day { height: 2px; border-radius: 2px; background: var(--j-hairline); }
+.spine .w0 { width: 10px; } .spine .w1 { width: 16px; background: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); }
+.spine .w2 { width: 24px; background: color-mix(in oklab, var(--j-ink) 55%, var(--j-hairline)); }
+.spine .w3 { width: 32px; height: 3px; background: color-mix(in oklab, var(--j-ink) 80%, var(--j-hairline)); }
+.spine .today { width: 32px; height: 3px; background: var(--j-moss); box-shadow: 0 0 8px oklch(0.52 0.09 150 / 0.45); }
+.spine .lens { position: absolute; bottom: 4.4rem; left: 8px; right: 8px; height: 52px; border: 1px solid color-mix(in oklab, var(--j-ink) 32%, transparent); border-radius: 6px; }
+
+.margin { position: fixed; inset: auto 0 0 56px; z-index: 10; padding: 0.95rem 2.4rem; background: color-mix(in oklab, var(--j-paper) 86%, transparent); backdrop-filter: blur(10px); border-top: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent); display: flex; align-items: baseline; gap: 1rem; }
+.margin .nib { color: var(--j-consult); font-size: 0.9rem; }
+.margin .ask { flex: 1; font-style: italic; font-weight: 340; font-size: 0.98rem; color: var(--j-faint); cursor: text; }
+.margin .scope { font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.22rem 0.65rem; }
+
+/* ——— the reading ——— */
+main { padding: 8.6rem 3rem 8.5rem 56px; }
+.reading { max-width: 44rem; margin: 0 auto; transition: opacity 0.28s ease, transform 0.28s ease; }
+.reading.turning { opacity: 0; transform: translateY(10px); }
+
+.pager { display: flex; align-items: center; justify-content: center; gap: 1.4rem; animation: rise 0.8s cubic-bezier(0.22,1,0.36,1) 0.05s backwards; }
+.pager button {
+  font: inherit; font-size: 1.05rem; color: var(--j-faint); background: var(--j-paper-raise);
+  border: 1px solid var(--j-hairline); border-radius: 999px; width: 2.4rem; height: 2.4rem;
+  cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.pager button:hover { color: var(--j-ink); border-color: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); transform: translateY(-1px); }
+.pager .count { font-style: italic; font-weight: 340; font-size: 0.95rem; color: var(--j-faint); min-width: 11rem; text-align: center; }
+
+.feature-head { text-align: center; margin-top: 2.6rem; }
+.feature-head .kicker { animation: rise 0.8s cubic-bezier(0.22,1,0.36,1) 0.14s backwards; }
+h1 { margin: 1.1rem 0 0; font-size: clamp(2.6rem, 5.4vw, 4.2rem); font-weight: 240; line-height: 1.06; letter-spacing: -0.012em; text-wrap: balance; animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) 0.22s backwards; }
+.alignment { margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 0.6rem; font-family: var(--j-mono); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; padding: 0.42rem 1rem; border-radius: 999px; animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) 0.32s backwards; }
+.alignment.ok { color: var(--j-moss); background: var(--j-moss-soft); }
+.alignment.watch { color: var(--j-gold); background: var(--j-gold-soft); }
+.alignment.unmet { color: var(--j-red); background: var(--j-red-soft); }
+.alignment.quiet { color: var(--j-faint); background: var(--j-wash); }
+.gist { margin: 1.7rem auto 0; max-width: 32rem; font-style: italic; font-weight: 340; font-size: 1.12rem; line-height: 1.62; color: var(--j-ink-soft); text-align: center; animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) 0.4s backwards; }
+
+/* the thread — episodes, one per breath */
+.thread { margin-top: 4.2rem; position: relative; padding-left: 2.1rem; }
+.thread::before { content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 1px; background: var(--j-hairline); transform-origin: top; animation: growY 1.1s cubic-bezier(0.4,0,0.2,1) 0.5s backwards; }
+@keyframes growY { from { transform: scaleY(0); } }
+.episode { position: relative; padding: 0 0 2.7rem; animation: rise 0.85s cubic-bezier(0.22,1,0.36,1) backwards; }
+.episode:nth-child(1) { animation-delay: 0.55s; } .episode:nth-child(2) { animation-delay: 0.68s; }
+.episode:nth-child(3) { animation-delay: 0.81s; } .episode:nth-child(4) { animation-delay: 0.94s; }
+.episode:nth-child(5) { animation-delay: 1.07s; }
+.episode .dot { position: absolute; left: -2.1rem; top: 0.42rem; width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid; background: var(--j-paper); }
+.episode.gold .dot { border-color: var(--j-gold); box-shadow: inset 0 0 0 3px var(--j-gold-soft); }
+.episode.moss .dot { border-color: var(--j-moss); background: var(--j-moss); box-shadow: 0 0 0 3px var(--j-moss-soft); }
+.episode.teal .dot { border-color: var(--j-teal); }
+.episode.violet .dot { border-color: var(--j-violet); }
+.episode.red .dot { border-color: var(--j-red); }
+.episode.consult .dot { border-color: var(--j-consult); }
+.episode .when { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--j-faint); }
+.episode .line { margin: 0.5rem 0 0; font-size: 1.28rem; line-height: 1.46; font-weight: 380; text-wrap: pretty; }
+.episode .line a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--j-hairline); transition: border-color 0.2s ease; }
+.episode .line a:hover { border-color: var(--j-ink-soft); }
+.episode .tail { margin-top: 0.55rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--j-faint); }
+.episode .tail .tag { color: inherit; }
+.episode.gold .tail .tag { color: var(--j-gold); } .episode.moss .tail .tag { color: var(--j-moss); }
+.episode.teal .tail .tag { color: var(--j-teal); } .episode.violet .tail .tag { color: var(--j-violet); }
+.episode.red .tail .tag { color: var(--j-red); } .episode.consult .tail .tag { color: var(--j-consult); }
+
+/* a gate, inline — the decision lives where it happened */
+.gate { border: 1px solid color-mix(in oklab, var(--j-red) 26%, var(--j-hairline)); background: var(--j-paper-raise); border-radius: 14px; padding: 1.35rem 1.5rem 1.2rem; margin-top: 0.9rem; box-shadow: 0 10px 30px oklch(0.24 0.02 60 / 0.05); }
+.gate .gk { font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--j-red); display: flex; align-items: center; gap: 0.5rem; }
+.gate .gk .dot2 { width: 5px; height: 5px; border-radius: 50%; background: var(--j-red); animation: breathe 2.6s ease-in-out infinite; }
+.gate p { margin: 0.7rem 0 0; font-size: 1.08rem; line-height: 1.5; font-weight: 380; }
+.gate .stamps { margin-top: 1rem; display: flex; gap: 0.6rem; }
+.gate .stamp { font-family: var(--j-mono); font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; border: 1px solid var(--j-hairline); background: var(--j-paper); border-radius: 999px; padding: 0.4rem 0.95rem; cursor: pointer; transition: all 0.2s ease; color: var(--j-ink-soft); }
+.gate .stamp:active { transform: translateY(1px); }
+.gate .stamp.yes:hover { color: var(--j-moss); border-color: var(--j-moss); background: var(--j-moss-soft); }
+.gate .stamp.no:hover { color: var(--j-red); border-color: var(--j-red); background: var(--j-red-soft); }
+.gate .stamp.edit:hover { color: var(--j-teal); border-color: var(--j-teal); background: var(--j-teal-soft); }
+.gate.inked { border-color: color-mix(in oklab, var(--j-moss) 34%, var(--j-hairline)); }
+.gate.inked .gk { color: var(--j-moss); } .gate.inked .gk .dot2 { animation: none; background: var(--j-moss); }
+.gate .inked-note { display: none; font-style: italic; color: var(--j-moss); font-size: 0.95rem; margin-top: 1rem; }
+.gate.inked .stamps { display: none; } .gate.inked .inked-note { display: block; animation: rise 0.5s ease; }
+
+/* descend hint */
+.descend { margin-top: 1.4rem; text-align: center; animation: rise 1s ease 1.2s backwards; }
+.descend a { font-style: italic; font-size: 0.95rem; color: var(--j-faint); text-decoration: none; border-bottom: 1px solid var(--j-hairline); transition: color 0.2s ease, border-color 0.2s ease; }
+.descend a:hover { color: var(--j-ink); border-color: var(--j-ink-soft); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 900px) { .spine { display: none; } main, .margin { padding-left: 2rem; } }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="wordmark" href="01-sweep.html">Brain<span class="dot">.</span></a>
+  <div class="search"><span>search the record…</span><kbd>⌘K</kbd></div>
+  <nav class="altimeter" aria-label="altitude">
+    <a class="stop" href="01-sweep.html">Sweep</a><span class="tick"></span>
+    <a class="stop here" href="02-reach.html" aria-current="page">Reach</a><span class="tick"></span>
+    <a class="stop" href="03-grain.html">Grain</a>
+  </nav>
+  <div class="now-chip"><span class="pulse"></span>digesting session 9</div>
+</header>
+
+<aside class="spine" aria-label="all history">
+  <span class="label">apr — jul</span>
+  <div class="days">
+    <span class="day w0"></span><span class="day w0"></span><span class="day w1"></span><span class="day w0"></span>
+    <span class="day w1"></span><span class="day w2"></span><span class="day w0"></span><span class="day w1"></span>
+    <span class="day w2"></span><span class="day w1"></span><span class="day w0"></span><span class="day w2"></span>
+    <span class="day w3"></span><span class="day w1"></span><span class="day w2"></span><span class="day w3"></span>
+    <span class="day w2"></span><span class="day w3"></span><span class="day today"></span>
+  </div>
+  <span class="lens" title="the reach holds this week"></span>
+</aside>
+
+<main>
+  <article class="reading" id="reading">
+    <nav class="pager" aria-label="one feature at a time">
+      <button id="prev" aria-label="previous feature">←</button>
+      <span class="count" id="count">first of six features</span>
+      <button id="next" aria-label="next feature">→</button>
+    </nav>
+
+    <header class="feature-head">
+      <span class="kicker" id="fkicker">feature · lens over the river</span>
+      <h1 id="fname">Digest Pipeline</h1>
+      <span class="alignment ok" id="falign"><span id="falignmark">✓</span><span id="faligntext">aligned with intent · verified jul 4</span></span>
+      <p class="gist" id="fgist"></p>
+    </header>
+
+    <section class="thread" id="thread" aria-label="the thread"></section>
+
+    <p class="descend"><a href="03-grain.html">descend to the grain — pull any claim to its raw line ↓</a></p>
+  </article>
+</main>
+
+<footer class="margin">
+  <span class="nib">✒</span>
+  <span class="ask">Ask the Brain about this feature — its answer pins into the river…</span>
+  <span class="scope" id="scopechip">lens · digest pipeline</span>
+  <span class="scope">⌘J</span>
+</footer>
+
+<script>
+const FEATURES = [
+  {
+    slug: "digest-pipeline", name: "Digest Pipeline",
+    align: { cls: "ok", mark: "✓", text: "aligned with intent · verified jul 4" },
+    gist: "Sessions become memory here. Nine digests this fortnight; fidelity was named a precondition, and the pipeline now keeps its receipts.",
+    ordinal: "first",
+    episodes: [
+      { ink: "moss", when: "jul 4 · session 9 · gilad", line: "Raw sessions now archive to <a href='03-grain.html'>.intent/</a> before digestion — fidelity named as a precondition.", tail: ["verified", "12 moments", "anchored 96%"] },
+      { ink: "gate" },
+      { ink: "teal", when: "jul 3 · session 8 · gilad", line: "The press runs nightly at 02:00 — digestion became a schedule, not a chore.", tail: ["decision", "schedule shipped"] },
+      { ink: "gold", when: "jul 2 · session 6 · claude + gilad", line: "Two-pass moment extraction cut hallucinated transitions by half.", tail: ["discovery", "eval gen-0 · +11 fitness"] },
+      { ink: "red", when: "jul 1 · session 5 · claude", line: "A retry storm traced to unbounded Sonnet concurrency — capped at four, calm restored.", tail: ["struggle → resolved", "41 min"] }
+    ],
+    gate: { text: "Observed: every digest now writes its raw session to <em>.intent/raw-sessions/</em> before the pipeline touches it. Approve into Digest Pipeline understanding?", meta: "session 9 · today" }
+  },
+  {
+    slug: "activity-event-backbone", name: "Activity Event Backbone",
+    align: { cls: "ok", mark: "✓", text: "aligned with intent · rising 41 → 118" },
+    gist: "The river itself. Every significant thing — moment, mutation, observation — lands here as one searchable stream. It nearly tripled this fortnight.",
+    ordinal: "second",
+    episodes: [
+      { ink: "gold", when: "jul 4 · session 9 · claude", line: "The observation layer noticed its first cross-session pattern — struggle clusters on Friday nights.", tail: ["discovery", "observe-events"] },
+      { ink: "moss", when: "jul 3 · session 8 · gilad", line: "Freeform categories held under load — no taxonomy was needed, and none was missed.", tail: ["verified", "118 events"] },
+      { ink: "teal", when: "jul 1 · session 5 · gilad", line: "Convention sealed: emitEvents always wraps in try/catch — a digest must survive a dead database.", tail: ["decision", "queries.ts"] },
+      { ink: "consult", when: "jun 29 · session 4 · agent", line: "An agent consulted the backbone mid-session and shipped without re-deriving context.", tail: ["consult · hit", "1.8s answer"] }
+    ]
+  },
+  {
+    slug: "mcp-server", name: "MCP Server",
+    align: { cls: "watch", mark: "◔", text: "aligned · watch consult latency" },
+    gist: "The serving surface. Eight Feature-keyed tools; any agent that speaks MCP can borrow the org's memory mid-session.",
+    ordinal: "third",
+    episodes: [
+      { ink: "gold", when: "jul 4 · session 8 · claude", line: "Pre-composed feature context brings consult answers to 1.8 seconds.", tail: ["discovery", "brain_feature_context"] },
+      { ink: "violet", when: "jul 4 · session 7 · gilad", line: "The Topic ontology was excised — Feature is the only lens the server speaks now.", tail: ["pivot", "prd v0.3.1 · f1"] },
+      { ink: "moss", when: "jun 30 · session 4 · gilad", line: "All eight tools stable across a full dogfood week — zero schema drift.", tail: ["verified", "stdio transport"] }
+    ]
+  },
+  {
+    slug: "storage", name: "Storage",
+    align: { cls: "quiet", mark: "·", text: "quiet — silence is information" },
+    gist: "Postgres on 5433, Drizzle over it. It asks for nothing this week, which is exactly what you want from a foundation.",
+    ordinal: "fourth",
+    episodes: [
+      { ink: "moss", when: "jun 27 · session 3 · gilad", line: "Migration squash landed clean — the schema now reads like a document, not a history.", tail: ["verified", "drizzle"] },
+      { ink: "teal", when: "jun 21 · session 2 · gilad", line: "Port 5433 chosen so the brain never elbows a local Postgres.", tail: ["decision", "docker compose"] }
+    ]
+  },
+  {
+    slug: "dashboard-ui", name: "Dashboard UI",
+    align: { cls: "unmet", mark: "✕", text: "intent unmet — reimagining owed" },
+    gist: "The human window. The owner called round one nerdy, flat, overwhelming — three variants now compete to replace the POC bones.",
+    ordinal: "fifth",
+    episodes: [
+      { ink: "violet", when: "jul 4 · session 9 · gilad", line: "Three competing mockup variants commissioned — altitude model approved, skin contested.", tail: ["pivot", "design competition"] },
+      { ink: "red", when: "jul 4 · session 9 · gilad", line: "Round one rejected: &ldquo;hard to find the meat — this is b2b saas, top level first.&rdquo;", tail: ["struggle", "verbatim"] },
+      { ink: "teal", when: "jul 3 · session 7 · gilad", line: "Journal-first shell landed; the Correspondence learned to live in the river.", tail: ["decision", "web ui"] }
+    ]
+  },
+  {
+    slug: "team-loop", name: "Team Loop",
+    align: { cls: "watch", mark: "◔", text: "drifting — a gotcha keeps recurring" },
+    gist: "How agents and humans hand work to each other. One worktree gotcha keeps resurfacing; the convention is written but not yet muscle memory.",
+    ordinal: "sixth",
+    episodes: [
+      { ink: "red", when: "jul 2 · session 6 · claude", line: "A worktree branched from a stale ancestor again — an hour lost to a phantom merge conflict.", tail: ["struggle", "recurring ×3"] },
+      { ink: "teal", when: "jul 2 · session 6 · gilad", line: "Convention adopted: reset to HEAD at agent start; verify the base before merge.", tail: ["decision", "memory noted"] }
+    ]
+  }
+];
+
+let idx = 0;
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+if (params.get("feature")) {
+  const i = FEATURES.findIndex(f => f.slug === params.get("feature"));
+  if (i >= 0) idx = i;
+}
+
+function episodeHTML(e, f) {
+  if (e.ink === "gate") {
+    return `<div class="episode red"><span class="dot"></span>
+      <span class="when">awaiting your ink · ${f.gate.meta}</span>
+      <div class="gate" id="gate">
+        <span class="gk"><span class="dot2"></span>observation · one gate open</span>
+        <p>${f.gate.text}</p>
+        <div class="stamps">
+          <button class="stamp yes" onclick="ink(this)">✓ approve</button>
+          <button class="stamp no">✕ reject</button>
+          <button class="stamp edit">✎ edit first</button>
+        </div>
+        <p class="inked-note">Approved — the understanding absorbed it. The chain closed quietly.</p>
+      </div></div>`;
+  }
+  return `<div class="episode ${e.ink}"><span class="dot"></span>
+    <span class="when">${e.when}</span>
+    <p class="line">${e.line}</p>
+    <p class="tail"><span class="tag">${e.tail[0]}</span>${e.tail.slice(1).map(t => " · " + t).join("")}</p>
+  </div>`;
+}
+
+function render() {
+  const f = FEATURES[idx];
+  $("fname").textContent = f.name;
+  $("fgist").textContent = f.gist;
+  $("count").textContent = `${f.ordinal} of six features`;
+  const a = $("falign");
+  a.className = "alignment " + f.align.cls;
+  $("falignmark").textContent = f.align.mark;
+  $("faligntext").textContent = f.align.text;
+  $("thread").innerHTML = f.episodes.map(e => episodeHTML(e, f)).join("");
+  $("scopechip").textContent = "lens · " + f.name.toLowerCase();
+  history.replaceState(null, "", "?feature=" + f.slug);
+}
+
+function turn(d) {
+  const r = $("reading");
+  r.classList.add("turning");
+  setTimeout(() => { idx = (idx + d + FEATURES.length) % FEATURES.length; render(); r.classList.remove("turning"); }, 280);
+}
+function ink(btn) {
+  const g = btn.closest(".gate");
+  g.classList.add("inked");
+  g.querySelector(".gk").innerHTML = '<span class="dot2"></span>inked · by gilad · just now';
+}
+
+$("prev").addEventListener("click", () => turn(-1));
+$("next").addEventListener("click", () => turn(1));
+addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft") turn(-1);
+  if (e.key === "ArrowRight") turn(1);
+  if (e.key === "[") { document.body.classList.add("departing"); setTimeout(() => location.href = "01-sweep.html", 300); }
+  if (e.key === "]") { document.body.classList.add("departing"); setTimeout(() => location.href = "03-grain.html", 300); }
+});
+render();
+</script>
+</body>
+</html>

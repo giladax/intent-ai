@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brain — Sweep · the verdict</title>
+<!--
+  VARIANT C · calm luxury / radical focus
+  One verdict, one number, three cards. Everything else waits.
+  Palette: the real --j-* inkwell, verbatim. Ink is accent; serenity is the base.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..600;1,6..72,200..600&display=swap" rel="stylesheet" />
+<style>
+@view-transition { navigation: auto; }
+:root {
+  --j-ink: oklch(0.24 0.02 60);
+  --j-ink-soft: oklch(0.45 0.015 60);
+  --j-faint: oklch(0.58 0.012 60);
+  --j-hairline: oklch(0.88 0.012 75);
+  --j-paper: oklch(0.982 0.006 85);
+  --j-paper-raise: oklch(0.995 0.004 90);
+  --j-wash: oklch(0.955 0.01 85);
+  --j-red: oklch(0.55 0.19 30);
+  --j-red-soft: oklch(0.55 0.19 30 / 0.08);
+  --j-moss: oklch(0.52 0.09 150);
+  --j-moss-soft: oklch(0.52 0.09 150 / 0.1);
+  --j-consult: oklch(0.5 0.09 250);
+  --j-consult-soft: oklch(0.5 0.09 250 / 0.1);
+  --j-gold: oklch(0.62 0.13 78);
+  --j-gold-soft: oklch(0.62 0.13 78 / 0.12);
+  --j-violet: oklch(0.5 0.11 305);
+  --j-violet-soft: oklch(0.5 0.11 305 / 0.1);
+  --j-teal: oklch(0.52 0.09 210);
+  --j-teal-soft: oklch(0.52 0.09 210 / 0.1);
+  --j-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--j-serif);
+  background:
+    radial-gradient(1200px 500px at 50% -10%, var(--j-paper-raise), transparent 70%),
+    var(--j-paper);
+  color: var(--j-ink);
+  font-optical-sizing: auto;
+  min-height: 100vh;
+  transition: opacity 0.34s ease, transform 0.34s ease;
+}
+body.departing { opacity: 0; transform: scale(0.988); }
+a { color: inherit; }
+.kicker { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--j-faint); }
+
+/* ——— masthead: a whisper ——— */
+.masthead {
+  position: fixed; inset: 0 0 auto 0; z-index: 10;
+  display: flex; align-items: center; gap: 1.4rem;
+  padding: 1.05rem 2.4rem 1.05rem 5.4rem;
+  background: color-mix(in oklab, var(--j-paper) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent);
+}
+.wordmark { font-style: italic; font-weight: 500; font-size: 1.05rem; letter-spacing: 0.01em; text-decoration: none; }
+.wordmark .dot { color: var(--j-gold); }
+.search {
+  font-family: var(--j-mono); font-size: 0.66rem; color: var(--j-faint);
+  border: 1px solid var(--j-hairline); border-radius: 999px;
+  padding: 0.42rem 1.05rem; background: var(--j-paper-raise); min-width: 15rem;
+  display: flex; justify-content: space-between; gap: 2rem; cursor: text;
+  transition: border-color 0.25s ease;
+}
+.search:hover { border-color: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); }
+.search kbd { font-family: inherit; border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0 0.3rem; font-size: 0.58rem; }
+.altimeter { margin-left: auto; display: flex; align-items: center; gap: 0.15rem; }
+.altimeter .stop {
+  font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--j-faint); text-decoration: none; padding: 0.42rem 0.85rem; border-radius: 999px;
+  transition: color 0.25s ease, background 0.25s ease;
+}
+.altimeter .stop:hover { color: var(--j-ink); background: var(--j-wash); }
+.altimeter .stop.here { color: var(--j-paper); background: var(--j-ink); }
+.altimeter .tick { width: 12px; height: 1px; background: var(--j-hairline); }
+.now-chip {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--j-moss);
+}
+.now-chip .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--j-moss); animation: breathe 2.6s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.28; } }
+
+/* ——— the spine: all of history, whisper-thin ——— */
+.spine {
+  position: fixed; inset: 0 auto 0 0; width: 56px; z-index: 9;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 5.2rem 0 4.6rem;
+  border-right: 1px solid color-mix(in oklab, var(--j-hairline) 60%, transparent);
+}
+.spine .label { writing-mode: vertical-rl; font-family: var(--j-mono); font-size: 0.52rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--j-faint); margin-bottom: 1.1rem; }
+.spine .days { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; align-items: center; }
+.spine .day { height: 2px; border-radius: 2px; background: var(--j-hairline); animation: spineIn 0.8s cubic-bezier(0.22,1,0.36,1) backwards; cursor: pointer; transition: transform 0.2s ease; }
+.spine .day:hover { transform: scaleX(1.4); }
+.spine .w0 { width: 10px; } .spine .w1 { width: 16px; background: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); }
+.spine .w2 { width: 24px; background: color-mix(in oklab, var(--j-ink) 55%, var(--j-hairline)); }
+.spine .w3 { width: 32px; height: 3px; background: color-mix(in oklab, var(--j-ink) 80%, var(--j-hairline)); }
+.spine .today { width: 32px; height: 3px; background: var(--j-moss); box-shadow: 0 0 8px oklch(0.52 0.09 150 / 0.45); }
+.spine .lens {
+  position: absolute; bottom: 4.4rem; left: 8px; right: 8px; height: 128px;
+  border: 1px solid color-mix(in oklab, var(--j-ink) 32%, transparent); border-radius: 6px;
+}
+@keyframes spineIn { from { opacity: 0; transform: scaleX(0); } }
+
+/* ——— the verdict ——— */
+main { padding: 7.4rem 3rem 8rem 56px; }
+.verdict { max-width: 60rem; margin: 0 auto; text-align: center; }
+.verdict .kicker { animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) 0.1s backwards; }
+h1 {
+  margin: 1.1rem 0 0;
+  font-size: clamp(3.2rem, 6.6vw, 5.1rem);
+  line-height: 1.04; font-weight: 240; letter-spacing: -0.015em;
+  text-wrap: balance;
+  animation: rise 1s cubic-bezier(0.22,1,0.36,1) 0.22s backwards;
+}
+h1 em { font-style: italic; font-weight: 300; }
+.deck {
+  margin: 1.3rem auto 0; max-width: 36rem;
+  font-style: italic; font-weight: 340; font-size: 1.12rem; line-height: 1.58; color: var(--j-ink-soft);
+  animation: rise 1s cubic-bezier(0.22,1,0.36,1) 0.38s backwards;
+}
+.deck .who { color: var(--j-red); }
+
+/* hero metric — one number, flanked by silence */
+.metric { display: flex; align-items: center; justify-content: center; gap: 2.6rem; margin-top: 2.1rem; animation: rise 1s cubic-bezier(0.22,1,0.36,1) 0.54s backwards; }
+.metric .flank { width: 8rem; height: 1px; background: linear-gradient(to right, transparent, var(--j-hairline)); }
+.metric .flank.r { background: linear-gradient(to left, transparent, var(--j-hairline)); }
+.metric .core { text-align: center; }
+.metric .n { font-size: 4.4rem; font-weight: 200; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: oldstyle-nums; }
+.metric .n sup { font-size: 1.3rem; font-weight: 300; color: var(--j-faint); vertical-align: 2rem; margin-left: 0.15rem; }
+.metric .l { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--j-faint); margin-top: 0.55rem; }
+.metric .d { font-family: var(--j-mono); font-size: 0.62rem; color: var(--j-moss); margin-top: 0.35rem; }
+
+/* ——— three calm cards. no more. ——— */
+.triptych {
+  max-width: 66rem; margin: 3rem auto 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6rem;
+}
+.card {
+  position: relative; display: block; text-decoration: none;
+  background: var(--j-paper-raise);
+  border: 1px solid var(--j-hairline); border-radius: 16px;
+  padding: 1.9rem 1.8rem 1.7rem;
+  box-shadow: 0 1px 2px oklch(0.24 0.02 60 / 0.03), 0 12px 34px oklch(0.24 0.02 60 / 0.04);
+  transition: transform 0.3s cubic-bezier(0.22,1,0.36,1), box-shadow 0.3s ease, border-color 0.3s ease;
+  animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) backwards;
+  cursor: pointer;
+}
+.card:nth-child(1) { animation-delay: 0.72s; }
+.card:nth-child(2) { animation-delay: 0.82s; }
+.card:nth-child(3) { animation-delay: 0.92s; }
+.card:hover { transform: translateY(-3px); border-color: color-mix(in oklab, var(--j-ink) 22%, var(--j-hairline)); box-shadow: 0 2px 4px oklch(0.24 0.02 60 / 0.04), 0 22px 48px oklch(0.24 0.02 60 / 0.07); }
+.card .rule { height: 2px; width: 2.2rem; border-radius: 2px; margin-bottom: 1.15rem; }
+.card.momentum .rule { background: var(--j-gold); }
+.card.needs .rule { background: var(--j-red); }
+.card.learning .rule { background: var(--j-moss); }
+.card .kicker { display: block; }
+.card p { margin: 0.95rem 0 0; font-size: 1.22rem; line-height: 1.42; font-weight: 380; text-wrap: pretty; }
+.card p em { font-weight: 340; }
+.card .meta { margin-top: 1.25rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--j-faint); display: flex; align-items: center; gap: 0.6rem; }
+.card .go { position: absolute; top: 1.5rem; right: 1.5rem; font-family: var(--j-mono); font-size: 0.72rem; color: var(--j-faint); opacity: 0; transform: translateX(-4px); transition: opacity 0.25s ease, transform 0.25s ease; }
+.card:hover .go { opacity: 1; transform: none; }
+
+/* the strand spark — momentum drawn, not stated */
+.strand { margin-top: 1.2rem; height: 34px; }
+.strand path { fill: none; stroke: var(--j-gold); stroke-width: 1.6; stroke-linecap: round;
+  stroke-dasharray: 220; stroke-dashoffset: 220; animation: draw 1.5s cubic-bezier(0.4,0,0.2,1) 1.15s forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.streak {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--j-gold); background: var(--j-gold-soft); border-radius: 999px; padding: 0.28rem 0.7rem;
+  animation: kindle 3.4s ease-in-out infinite;
+}
+@keyframes kindle { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 16px 0 oklch(0.62 0.13 78 / 0.28); } }
+.gatepill { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-red); background: var(--j-red-soft); border-radius: 999px; padding: 0.28rem 0.7rem; }
+.gatepill .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--j-red); animation: breathe 2.6s ease-in-out infinite; }
+.check { color: var(--j-moss); }
+
+/* ——— everything else waits ——— */
+.rest { max-width: 60rem; margin: 3.4rem auto 0; text-align: center; animation: rise 1s ease 1.15s backwards; }
+.rest .stats { font-family: var(--j-mono); font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--j-faint); }
+.rest .stats b { color: var(--j-ink-soft); font-weight: 500; }
+.rest .hint { margin-top: 0.8rem; font-style: italic; font-size: 0.92rem; color: var(--j-faint); }
+.rest .hint kbd { font-family: var(--j-mono); font-style: normal; font-size: 0.66rem; border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0.05rem 0.35rem; background: var(--j-paper-raise); }
+
+/* ——— the margin: ask, always ——— */
+.margin {
+  position: fixed; inset: auto 0 0 56px; z-index: 10;
+  padding: 0.95rem 2.4rem;
+  background: color-mix(in oklab, var(--j-paper) 86%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent);
+  display: flex; align-items: baseline; gap: 1rem;
+}
+.margin .nib { color: var(--j-consult); font-size: 0.9rem; }
+.margin .ask { flex: 1; font-style: italic; font-weight: 340; font-size: 0.98rem; color: var(--j-faint); cursor: text; }
+.margin .scope { font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.22rem 0.65rem; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .strand path { stroke-dashoffset: 0; }
+}
+@media (max-width: 900px) { .triptych { grid-template-columns: 1fr; max-width: 30rem; } .spine { display: none; } main, .margin { padding-left: 2rem; } }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="wordmark" href="01-sweep.html">Brain<span class="dot">.</span></a>
+  <div class="search"><span>search the record…</span><kbd>⌘K</kbd></div>
+  <nav class="altimeter" aria-label="altitude">
+    <a class="stop here" href="01-sweep.html" aria-current="page">Sweep</a><span class="tick"></span>
+    <a class="stop" href="02-reach.html">Reach</a><span class="tick"></span>
+    <a class="stop" href="03-grain.html">Grain</a>
+  </nav>
+  <div class="now-chip"><span class="pulse"></span>digesting session 9</div>
+</header>
+
+<aside class="spine" aria-label="all history">
+  <span class="label">apr — jul</span>
+  <div class="days">
+    <span class="day w0" style="animation-delay:.05s"></span><span class="day w0" style="animation-delay:.08s"></span>
+    <span class="day w1" style="animation-delay:.11s"></span><span class="day w0" style="animation-delay:.14s"></span>
+    <span class="day w1" style="animation-delay:.17s"></span><span class="day w2" style="animation-delay:.2s"></span>
+    <span class="day w0" style="animation-delay:.23s"></span><span class="day w1" style="animation-delay:.26s"></span>
+    <span class="day w2" style="animation-delay:.29s"></span><span class="day w1" style="animation-delay:.32s"></span>
+    <span class="day w0" style="animation-delay:.35s"></span><span class="day w2" style="animation-delay:.38s"></span>
+    <span class="day w3" style="animation-delay:.41s"></span><span class="day w1" style="animation-delay:.44s"></span>
+    <span class="day w2" style="animation-delay:.47s"></span><span class="day w3" style="animation-delay:.5s"></span>
+    <span class="day w2" style="animation-delay:.53s"></span><span class="day w3" style="animation-delay:.56s"></span>
+    <span class="day today" style="animation-delay:.6s"></span>
+  </div>
+  <span class="lens" title="the sweep holds these weeks"></span>
+</aside>
+
+<main>
+  <section class="verdict">
+    <span class="kicker">intent-ai · the week of july 4</span>
+    <h1>Aligned, and <em>moving.</em></h1>
+    <p class="deck">Five of six features hold to their intent. Nine sessions this fortnight, each one anchored to its evidence. <span class="who">One decision waits for you.</span></p>
+
+    <div class="metric" aria-label="alignment health 91 of 100, up four this week">
+      <span class="flank"></span>
+      <div class="core">
+        <div class="n">91<sup>/100</sup></div>
+        <div class="l">alignment health</div>
+        <div class="d">▲ 4 this week</div>
+      </div>
+      <span class="flank r"></span>
+    </div>
+  </section>
+
+  <section class="triptych" aria-label="what matters now">
+    <a class="card momentum" href="02-reach.html?feature=activity-event-backbone" data-focus>
+      <span class="rule"></span>
+      <span class="kicker">momentum</span>
+      <span class="go">→</span>
+      <p><em>Activity Event Backbone</em> is the warmest strand — events nearly tripled this fortnight.</p>
+      <svg class="strand" viewBox="0 0 200 34" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2 30 C 30 29, 48 27, 70 24 S 118 18, 146 11 S 184 4, 198 3" />
+      </svg>
+      <span class="meta"><span class="streak">✦ six-day streak</span> 41 → 118 ev</span>
+    </a>
+
+    <a class="card needs" href="02-reach.html?feature=digest-pipeline" data-focus>
+      <span class="rule"></span>
+      <span class="kicker">needs you</span>
+      <span class="go">→</span>
+      <p>One observation awaits your ink — <em>raw sessions now archive before digestion.</em> Approve it into Digest Pipeline?</p>
+      <span class="meta"><span class="gatepill"><span class="dot"></span>1 gate open</span> session 9 · today</span>
+    </a>
+
+    <a class="card learning" href="03-grain.html" data-focus>
+      <span class="rule"></span>
+      <span class="kicker">freshest learning</span>
+      <span class="go">→</span>
+      <p>Consults answer in <em>1.8 seconds</em> when feature context is pre-composed.</p>
+      <span class="meta"><span class="check">✓ verified</span> session 8 · jul 4 · 4 of 4 hops anchored</span>
+    </a>
+  </section>
+
+  <section class="rest">
+    <p class="stats"><b>9</b> sessions · <b>6</b> features · <b>312</b> events — all of it beneath this page</p>
+    <p class="hint">press <kbd>]</kbd> to descend — the surface follows your attention, one subject at a time</p>
+  </section>
+</main>
+
+<footer class="margin">
+  <span class="nib">✒</span>
+  <span class="ask">Ask the Brain anything — its answer pins into the river, evidence threaded…</span>
+  <span class="scope">scope · whole repo</span>
+  <span class="scope">⌘J</span>
+</footer>
+
+<script>
+// focus flow: the whole surface departs toward the chosen subject — nothing stacks.
+document.querySelectorAll('[data-focus]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    document.body.classList.add('departing');
+    setTimeout(() => { location.href = el.getAttribute('href'); }, 300);
+  });
+});
+addEventListener('keydown', e => {
+  if (e.key === ']') { document.body.classList.add('departing'); setTimeout(() => location.href = '02-reach.html', 300); }
+});
+</script>
+</body>
+</html>
