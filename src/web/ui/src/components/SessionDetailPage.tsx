@@ -2,9 +2,10 @@
 // masthead header, moments as a ledger of glyphs, the narrative as the deck.
 // The event stream keeps its chunk-window hints (digestion inspection).
 import { useState, useEffect } from "react";
-import { fetchSessionDetail, fetchSessionEventsWithWindows } from "../api";
-import type { SessionDetail, SessionEventsWithWindows, EventWithWindows, EventWindow, SessionSitting } from "../types";
+import { fetchSessionDetail, fetchSessionEventsWithWindows, fetchStatsOverview } from "../api";
+import type { SessionDetail, SessionEventsWithWindows, EventWithWindows, EventWindow, SessionSitting, SessionQuality } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProvenanceRing } from "./Quality";
 import { ArrowLeft } from "lucide-react";
 
 interface Props {
@@ -50,6 +51,7 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [eventsWithWindows, setEventsWithWindows] = useState<SessionEventsWithWindows | null>(null);
+  const [quality, setQuality] = useState<SessionQuality | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -60,6 +62,10 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
     fetchSessionEventsWithWindows(sessionId)
       .then(setEventsWithWindows)
       .catch(() => setEventsWithWindows(null));
+    // digest fidelity — provenance quality for this session (fail-safe chrome)
+    fetchStatsOverview()
+      .then((s) => setQuality(s.sessions.find((q) => q.sessionId === sessionId) ?? null))
+      .catch(() => setQuality(null));
   }, [sessionId]);
 
   if (loading) {
@@ -111,6 +117,29 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
         <div className="ink-rule-double ink-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
         {narrative?.summary && (
           <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>{narrative.summary}</p>
+        )}
+
+        {/* digest fidelity — how firmly this digest is pinned to its transcript */}
+        {quality && quality.quotes > 0 && (
+          <div className="ink-fidelity ink-rise mt-5" style={{ "--i": 2 } as React.CSSProperties}>
+            <span className="ink-fidelity-item" title={`${quality.anchored} of ${quality.quotes} evidence quotes anchored to the transcript`}>
+              <ProvenanceRing pct={quality.anchoredPct} size={15} />
+              <span className="ink-fig">{quality.anchoredPct}%</span> anchored · {quality.anchored}/{quality.quotes} quotes
+            </span>
+            {quality.supported > 0 && (
+              <span className="ink-fidelity-item" data-tone="moss" title="Moments the understanding pass verified as supported by the code">
+                <span className="ink-fig">{quality.supported}</span> supported
+              </span>
+            )}
+            {quality.contradicted > 0 && (
+              <span className="ink-fidelity-item" data-tone="red" title="Moments the understanding pass found contradicted — read these closely">
+                <span className="ink-fig">{quality.contradicted}</span> contradicted
+              </span>
+            )}
+            <span className="ink-fidelity-item" title="Moments extracted from this session">
+              <span className="ink-fig">{quality.moments}</span> moments
+            </span>
+          </div>
         )}
       </header>
 

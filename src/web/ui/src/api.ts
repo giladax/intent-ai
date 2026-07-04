@@ -11,6 +11,7 @@ import type {
   ChatMessage,
   JournalResponse,
   JournalParams,
+  StatsOverview,
 } from "./types";
 
 const BASE = "";
@@ -122,6 +123,11 @@ export const fetchSessionEventsWithWindows = (id: string) =>
 
 // Local session archive — .intent/raw-sessions joined against the sessions table
 export const fetchArchive = () => json<ArchiveResponse>("/api/archive");
+
+// Stats overview — the altitude layer (cadence, provenance quality, momentum).
+// Fail-safe by contract: the server answers the empty shape rather than 500.
+export const fetchStatsOverview = (repoId?: string) =>
+  json<StatsOverview>(repoId ? `/api/stats/overview?repoId=${repoId}` : "/api/stats/overview");
 
 // Digest — the intake and its press schedule (cron elapse settings)
 export interface DigestSchedule {

@@ -35,6 +35,13 @@ import {
   readRawSessionArchive,
   type DigestedSessionRef,
 } from "./archive.js";
+import {
+  buildStatsOverview,
+  emptyStatsOverview,
+  type CadenceDayRow,
+  type SessionQualityRow,
+  type FeatureMomentumRow,
+} from "./stats.js";
 
 // Journal §7.3: the human's gate actions become timeline events. Failure-safe —
 // a lost event never fails the review action itself.
@@ -825,6 +832,87 @@ export async function startWebServer(port: number): Promise<void> {
       dbAvailable = false;
     }
     res.json({ dir, dbAvailable, entries: joinArchive(files, sessions) });
+  });
+
+  // ── Stats overview — the altitude layer ───────────────────────────
+  // One cheap, read-only aggregate that lets every page read at C-level:
+  // event cadence (fortnight strip), per-session provenance quality
+  // (anchored evidence %, verification), feature momentum. Fail-safe: a DB
+  // outage serves the empty shape, never a 500 — chrome must not break
+  // the page it decorates. Cadence is repo-agnostic like /api/journal.
+
+  app.get("/api/stats/overview", async (req, res) => {
+    const windowDays = 14;
+    try {
+      const sql = getClient();
+      const repoId = req.query.repoId as string | undefined;
+      const [proj] = repoId ? await sql`SELECT path FROM projects WHERE id = ${repoId}` : [null];
+      const pathSlug = proj ? (proj.path as string).replace(/\//g, "-") : null;
+
+      const [cadence, quality, momentum] = await Promise.all([
+        sql`
+          SELECT to_char("timestamp", 'YYYY-MM-DD') AS day, COUNT(*)::int AS events
+          FROM activity_events
+          WHERE "timestamp" >= now() - make_interval(days => ${windowDays})
+          GROUP BY 1`,
+        pathSlug
+          ? sql`
+            SELECT s.id AS session_id,
+                   COUNT(DISTINCT m.id)::int AS moments,
+                   COUNT(e.id)::int AS quotes,
+                   COUNT(e.source_event_id)::int AS anchored,
+                   COUNT(DISTINCT m.id) FILTER (WHERE m.verification = 'supported')::int AS supported,
+                   COUNT(DISTINCT m.id) FILTER (WHERE m.verification = 'contradicted')::int AS contradicted
+            FROM sessions s
+            LEFT JOIN moments m ON m.session_id = s.id
+            LEFT JOIN moment_evidence e ON e.moment_id = m.id
+            WHERE s.source_path LIKE ${"%" + pathSlug + "%"}
+            GROUP BY s.id`
+          : sql`
+            SELECT s.id AS session_id,
+                   COUNT(DISTINCT m.id)::int AS moments,
+                   COUNT(e.id)::int AS quotes,
+                   COUNT(e.source_event_id)::int AS anchored,
+                   COUNT(DISTINCT m.id) FILTER (WHERE m.verification = 'supported')::int AS supported,
+                   COUNT(DISTINCT m.id) FILTER (WHERE m.verification = 'contradicted')::int AS contradicted
+            FROM sessions s
+            LEFT JOIN moments m ON m.session_id = s.id
+            LEFT JOIN moment_evidence e ON e.moment_id = m.id
+            GROUP BY s.id`,
+        sql`
+          SELECT feature_id,
+                 COUNT(*) FILTER (WHERE "timestamp" >= now() - make_interval(days => ${windowDays}))::int AS recent_events,
+                 COUNT(*) FILTER (WHERE "timestamp" < now() - make_interval(days => ${windowDays})
+                              AND "timestamp" >= now() - make_interval(days => ${windowDays * 2}))::int AS prior_events,
+                 MAX("timestamp") AS last_activity
+          FROM activity_events
+          WHERE feature_id IS NOT NULL
+          GROUP BY feature_id`,
+      ]);
+
+      const cadenceRows: CadenceDayRow[] = cadence.map((r: any) => ({
+        day: r.day as string,
+        events: Number(r.events) || 0,
+      }));
+      const sessionRows: SessionQualityRow[] = quality.map((r: any) => ({
+        sessionId: r.session_id as string,
+        moments: Number(r.moments) || 0,
+        quotes: Number(r.quotes) || 0,
+        anchored: Number(r.anchored) || 0,
+        supported: Number(r.supported) || 0,
+        contradicted: Number(r.contradicted) || 0,
+      }));
+      const featureRows: FeatureMomentumRow[] = momentum.map((r: any) => ({
+        featureId: r.feature_id as string,
+        recentEvents: Number(r.recent_events) || 0,
+        priorEvents: Number(r.prior_events) || 0,
+        lastActivity: r.last_activity ? new Date(r.last_activity as string).toISOString() : null,
+      }));
+
+      res.json(buildStatsOverview({ cadenceRows, sessionRows, featureRows, windowDays }));
+    } catch {
+      res.json(emptyStatsOverview(windowDays));
+    }
   });
 
   // ── Moment Events Drill-down ──────────────────────────────────────

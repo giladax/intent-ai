@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import type { Session, ArchiveResponse } from "../types";
-import { fetchArchive } from "../api";
+import type { Session, ArchiveResponse, StatsOverview, SessionQuality } from "../types";
+import { fetchArchive, fetchStatsOverview } from "../api";
 import type { LiveState } from "../api";
+import { ProvenanceChip } from "./Quality";
 import { RefreshCw, Archive } from "lucide-react";
 
 interface Props {
+  repoId: string | null;
   sessions: Session[];
   undigestedCount: number;
   liveState: LiveState | null;
@@ -19,12 +21,23 @@ function formatSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onSessionClick }: Props) {
+export function SessionsPage({ repoId, sessions, undigestedCount, liveState, onSync, onSessionClick }: Props) {
   const [archive, setArchive] = useState<ArchiveResponse | null>(null);
+  const [stats, setStats] = useState<StatsOverview | null>(null);
 
   useEffect(() => {
     fetchArchive().then(setArchive).catch(() => setArchive(null));
   }, []);
+
+  // provenance quality per session — the altitude layer (fail-safe chrome)
+  useEffect(() => {
+    fetchStatsOverview(repoId ?? undefined).then(setStats).catch(() => setStats(null));
+  }, [repoId]);
+
+  const qualityBySession = new Map<string, SessionQuality>(
+    (stats?.sessions ?? []).map((q) => [q.sessionId, q]),
+  );
+  const record = stats?.record ?? null;
   const sorted = [...sessions].sort((a, b) => {
     const da = a.started_at ? new Date(a.started_at).getTime() : 0;
     const db = b.started_at ? new Date(b.started_at).getTime() : 0;
@@ -52,6 +65,18 @@ export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onS
         <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>
           <span style={{ fontStyle: "normal", fontWeight: 600, color: "var(--j-ink)" }}>{sessions.length}</span>{" "}
           session{sessions.length === 1 ? "" : "s"} digested
+          {record?.anchoredPct != null && (
+            <>
+              {"; evidence "}
+              <span
+                style={{ fontStyle: "normal", fontWeight: 600, color: "var(--j-ink)" }}
+                title={`${record.anchored} of ${record.quotes} evidence quotes anchored to their transcripts`}
+              >
+                {record.anchoredPct}% anchored
+              </span>
+              {" across the record"}
+            </>
+          )}
           {undigestedCount > 0 && (
             <>
               {"; "}
@@ -100,9 +125,13 @@ export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onS
                   {s.narrative_summary?.split(/[.!?\n]/)[0] || "No narrative"}
                 </span>
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2.5">
                 {s.session_shape && <span className="ink-tag">{s.session_shape}</span>}
                 <span className="ink-ledger-meta">{s.moment_count} moments</span>
+                {(() => {
+                  const q = qualityBySession.get(s.id);
+                  return q ? <ProvenanceChip pct={q.anchoredPct} quotes={q.quotes} anchored={q.anchored} /> : null;
+                })()}
               </span>
             </button>
           ))}

@@ -2,14 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "@fontsource-variable/newsreader";
 import "@fontsource-variable/newsreader/wght-italic.css";
 import "./journal.css";
-import { fetchJournal, approveObservation, rejectObservation } from "../api";
+import { fetchJournal, fetchStatsOverview, approveObservation, rejectObservation } from "../api";
 import type {
   Feature,
   JournalResponse,
   JournalEpisode,
   JournalBeat,
   JournalPendingItem,
+  StatsOverview,
 } from "../types";
+import { FortnightStrip } from "./Quality";
 import {
   groupByDay,
   showUnreadLine,
@@ -322,6 +324,7 @@ function Entry({
 // ── Page ──────────────────────────────────────────────────────────────
 export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, onReviewClick }: Props) {
   const [data, setData] = useState<JournalResponse | null>(null);
+  const [stats, setStats] = useState<StatsOverview | null>(null);
   const [error, setError] = useState(false);
   const [clause, setClause] = useState<ClauseFilter | null>(null);
   const [actor, setActor] = useState<string | null>(null);
@@ -354,6 +357,11 @@ export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, 
   useEffect(() => {
     load();
   }, [load]);
+
+  // the altitude layer — cadence for the fortnight strip (fail-safe chrome)
+  useEffect(() => {
+    fetchStatsOverview(repoId ?? undefined).then(setStats).catch(() => setStats(null));
+  }, [repoId]);
 
   // capture the previous read-cursor once, then advance it to newest
   useEffect(() => {
@@ -440,6 +448,12 @@ export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, 
           <h1 className="j-masthead-title j-rise mt-2" style={{ "--i": 1 } as React.CSSProperties}>
             Journal
           </h1>
+          {/* the fortnight — cadence at C-level altitude, every bar a real day */}
+          {stats && stats.cadenceSummary.totalEvents > 0 && (
+            <div className="j-rise mt-3" style={{ "--i": 1 } as React.CSSProperties}>
+              <FortnightStrip cadence={stats.cadence} summary={stats.cadenceSummary} />
+            </div>
+          )}
           <div className="j-rule-double j-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
           <div className="j-rise mt-5" style={{ "--i": 2 } as React.CSSProperties}>
             <Pulse pulse={data.pulse} clause={clause} onClause={setClause} onReview={onReviewClick} />

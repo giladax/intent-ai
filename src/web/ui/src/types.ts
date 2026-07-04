@@ -256,3 +256,53 @@ export interface JournalParams {
   featureId?: string;
   limit?: number;
 }
+
+// ── Stats overview (the altitude layer) ──────────────────────────────
+// Mirrors GET /api/stats/overview (src/web/stats.ts) exactly.
+export interface CadenceDay {
+  day: string;
+  events: number;
+}
+
+export interface CadenceSummary {
+  totalEvents: number;
+  activeDays: number;
+  streak: number;
+}
+
+export interface SessionQuality {
+  sessionId: string;
+  moments: number;
+  quotes: number;
+  anchored: number;
+  supported: number;
+  contradicted: number;
+  /** 0–100, null when the session has no evidence quotes. */
+  anchoredPct: number | null;
+}
+
+export type MomentumTrend = "rising" | "steady" | "cooling" | "quiet";
+
+export interface FeatureMomentum {
+  featureId: string;
+  recentEvents: number;
+  priorEvents: number;
+  lastActivity: string | null;
+  trend: MomentumTrend;
+}
+
+export interface StatsOverview {
+  cadence: CadenceDay[];
+  cadenceSummary: CadenceSummary;
+  sessions: SessionQuality[];
+  record: {
+    sessions: number;
+    moments: number;
+    quotes: number;
+    anchored: number;
+    anchoredPct: number | null;
+    supported: number;
+    contradicted: number;
+  };
+  features: FeatureMomentum[];
+}

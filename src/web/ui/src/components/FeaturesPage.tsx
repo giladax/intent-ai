@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchFeatures, createFeature } from "../api";
-import type { Feature } from "../types";
+import { fetchFeatures, createFeature, fetchStatsOverview } from "../api";
+import type { Feature, FeatureMomentum } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MomentumMark } from "./Quality";
+import { relDay } from "./quality-util";
 import { Plus } from "lucide-react";
 
 interface Props {
@@ -11,9 +13,17 @@ interface Props {
 
 export function FeaturesPage({ repoId, onFeatureClick }: Props) {
   const [features, setFeatures] = useState<Feature[] | null>(null);
+  const [momentum, setMomentum] = useState<Map<string, FeatureMomentum>>(new Map());
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // feature motion — the altitude layer (fail-safe chrome)
+  useEffect(() => {
+    fetchStatsOverview(repoId ?? undefined)
+      .then((s) => setMomentum(new Map(s.features.map((f) => [f.featureId, f]))))
+      .catch(() => setMomentum(new Map()));
+  }, [repoId]);
 
   const load = useCallback(() => {
     if (!repoId) {
@@ -118,8 +128,21 @@ export function FeaturesPage({ repoId, onFeatureClick }: Props) {
                 <div className="ink-ledger-title">{f.name}</div>
                 {f.description && <div className="ink-ledger-sub mt-0.5">{f.description}</div>}
               </div>
-              <span className="ink-ledger-meta">
-                {f.session_count ?? 0} session{(f.session_count ?? 0) === 1 ? "" : "s"}
+              <span className="flex items-center gap-2.5">
+                {(() => {
+                  const m = momentum.get(f.id);
+                  if (!m) return null;
+                  const when = relDay(m.lastActivity);
+                  return (
+                    <MomentumMark
+                      trend={m.trend}
+                      detail={`${m.recentEvents} events this fortnight vs ${m.priorEvents} the one before${when ? ` · last active ${when}` : ""}`}
+                    />
+                  );
+                })()}
+                <span className="ink-ledger-meta">
+                  {f.session_count ?? 0} session{(f.session_count ?? 0) === 1 ? "" : "s"}
+                </span>
               </span>
             </button>
           ))}

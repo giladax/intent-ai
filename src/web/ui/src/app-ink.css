@@ -706,6 +706,113 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   animation: note-exit 0.4s ease 0.55s both;
 }
 
+/* ── The altitude layer — quality affordances (rings, strips, marks) ──
+   Gamified only insofar as data becomes legible at a glance; every mark
+   is a real figure with a tooltip that says exactly what it measures.  */
+
+/* provenance ring + figure (ledger rows, fidelity strips) */
+.ink-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+.ink-provenance-fig {
+  font-family: var(--j-mono);
+  font-size: 0.635rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.ink-ring { flex-shrink: 0; display: block; }
+.ink-ring-arc {
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ink-ring-arc { transition: none; }
+}
+
+/* the fortnight strip — cadence as a row of ink bars */
+.ink-fortnight {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.9rem;
+  min-width: 0;
+}
+.ink-fortnight-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+.ink-fortnight-bar {
+  width: 5px;
+  border-radius: 1px 1px 0 0;
+  background: color-mix(in oklch, var(--j-ink) 52%, transparent);
+  transform-origin: bottom;
+  animation: ink-bar-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ink-fortnight-bar[data-zero="true"] {
+  background: var(--j-hairline);
+}
+.ink-fortnight-bar:last-child:not([data-zero="true"]) {
+  background: var(--j-moss); /* today, alive */
+}
+@keyframes ink-bar-rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ink-fortnight-bar { animation: none; }
+}
+.ink-fortnight-caption {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  white-space: nowrap;
+  padding-bottom: 1px;
+}
+
+/* momentum mark — a feature's motion */
+.ink-momentum {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* fidelity strip — the session's provenance ledger, chip by chip */
+.ink-fidelity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.1rem;
+  border-top: 1px solid var(--j-hairline);
+  border-bottom: 1px solid var(--j-hairline);
+  padding: 0.55rem 0.15rem;
+}
+.ink-fidelity-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  white-space: nowrap;
+}
+.ink-fidelity-item .ink-fig {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--j-ink);
+}
+.ink-fidelity-item[data-tone="moss"] .ink-fig { color: var(--j-moss); }
+.ink-fidelity-item[data-tone="red"] .ink-fig { color: var(--j-red); }
+
 /* the intake — masthead chip, quiet until sessions wait */
 .ink-intake {
   display: inline-flex;

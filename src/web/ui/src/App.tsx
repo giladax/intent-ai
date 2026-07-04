@@ -227,6 +227,7 @@ function AppShell() {
             <SessionDetailPage sessionId={selectedSessionId} onBack={() => goTo("sessions")} />
           ) : view === "sessions" ? (
             <SessionsPage
+              repoId={selectedProject?.id ?? null}
               sessions={sessions}
               undigestedCount={undigestedCount}
               liveState={liveState}
