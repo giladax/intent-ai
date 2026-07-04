@@ -13,6 +13,8 @@
   Her gate waits inline, stamps attached — review is not a place.
   Chat-first: the composer is floating glass astride the seam; her selection rides
   inside it as a removable gold chip. ⌘K summons; the glass never becomes a panel.
+  ESSENCE PASS: nobody reads. Dossier entries are marks — name, signal, delta;
+  sentences live behind <details> and hover. The brain's replies are 1–2 lines + chips.
   Five-second test: what changed on her features + what awaits her ink, within one selection.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -118,6 +120,15 @@ a { color: inherit; }
 .stamp.edit:hover { background: var(--j-wash); }
 .inked { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-moss); background: var(--j-moss-soft); border-radius: 999px; padding: 0.3rem 0.75rem; margin-top: 0.8rem; animation: rise 0.4s cubic-bezier(0.22,1,0.36,1); }
 
+/* ═══ essence: prose is opt-in ═══ */
+details.more { margin-top: 0.65rem; }
+details.more summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.2rem 0.6rem; transition: color 0.2s ease, border-color 0.2s ease; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "⋯"; letter-spacing: 0; }
+details.more[open] summary::before { content: "×"; }
+details.more summary:hover { color: var(--j-ink-soft); border-color: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); }
+details.more p { margin-top: 0.55rem; font-size: 0.92rem; line-height: 1.55; font-style: italic; color: var(--j-ink-soft); animation: rise 0.4s cubic-bezier(0.22,1,0.36,1); }
+
 /* ★ the utterance the selection produced — the handshake's left hand */
 .msg.spoken .bubble { border-color: color-mix(in oklab, var(--j-gold) 45%, var(--j-hairline)); border-left: 3px solid var(--j-gold); }
 .msg.spoken .mk .why { color: oklch(0.5 0.13 78); }
@@ -216,7 +227,8 @@ a { color: inherit; }
 .con:last-child { border-bottom: 1px solid var(--j-hairline); }
 .con .c { font-size: 0.98rem; line-height: 1.5; }
 .con .c code { font-family: var(--j-mono); font-size: 0.82em; background: var(--j-wash); border-radius: 4px; padding: 0.05rem 0.3rem; }
-.con .src { grid-column: 1; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.06em; color: var(--j-faint); display: flex; align-items: center; gap: 0.4rem; }
+.con .src { display: none; grid-column: 1; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.06em; color: var(--j-faint); align-items: center; gap: 0.4rem; animation: rise 0.3s cubic-bezier(0.22,1,0.36,1); } /* essence: the source appears under the hand */
+.con:hover .src, .con:focus-within .src { display: flex; }
 .con .src::before { content: "◉"; color: var(--j-moss); font-size: 0.55rem; }
 .con .src a { color: var(--j-consult); text-decoration: none; }
 .con .served { grid-column: 2; grid-row: 1 / span 2; font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--j-faint); align-self: center; text-align: right; }
@@ -277,10 +289,9 @@ a { color: inherit; }
 
   <header class="mast">
     <a class="wordmark" href="01-arrival.html">Brain<span class="dot">.</span></a>
-    <span class="tag">the correspondence &amp; the exhibit</span>
-    <span class="now-whisper"><span class="pulse"></span>digesting session 9</span>
+    <span class="now-whisper"><span class="pulse"></span>digesting s9</span>
     <a class="gate-badge" href="#gate"><span class="dot"></span>2 wait</a>
-    <a class="walk" href="03-receipts.html">walkthrough 2/3 · next →</a>
+    <a class="walk" href="03-receipts.html">2/3 →</a>
   </header>
 
   <div class="body">
@@ -289,41 +300,46 @@ a { color: inherit; }
     <section class="corr" aria-label="the correspondence">
       <div class="corr-head">
         <span class="kicker">The Correspondence</span>
-        <span class="note">bound to what you select</span>
       </div>
 
       <div class="thread" id="thread">
-        <div class="daymark"><span>sunday · july 5 · 09:02 · you were last here tuesday</span></div>
+        <div class="daymark"><span>jul 5 · 09:02 · since tue</span></div>
 
-        <!-- the since-you-were-away brief -->
+        <!-- the since-you-were-away brief — a verdict, then chips -->
         <article class="msg" style="animation-delay:0.1s">
-          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>since tuesday, on your features</span><span class="t">09:02</span></div>
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="t">09:02</span></div>
           <div class="bubble">
-            <p><b>Digest Pipeline</b> was re-audited and re-measured — the corpus is clean. <b>Dashboard UI</b>'s three-variant mockup round was rejected; the direction reset to two panes. <b>Two observations await your ink</b> — the first is attached below.</p>
+            <p><b>Digest Pipeline</b> clean; <b>Dashboard UI</b> reset. <b>Two gates wait.</b></p>
             <div class="cites">
-              <a class="cite" href="03-receipts.html"><span class="h">audit ·</span> session 7 · jul 3</a>
-              <a class="cite" href="03-receipts.html"><span class="h">re-digest ·</span> session 8 · jul 4</a>
-              <a class="cite" href="#"><span class="h">review ·</span> cpo verdict · jul 5</a>
+              <a class="cite" href="03-receipts.html"><span class="h">audit ·</span> s7</a>
+              <a class="cite" href="03-receipts.html"><span class="h">re-digest ·</span> s8</a>
+              <a class="cite" href="#"><span class="h">review ·</span> jul 5</a>
             </div>
+            <details class="more"><summary>brief</summary>
+              <p>Digest Pipeline was re-audited and re-measured — the corpus is clean. Dashboard UI's three-variant mockup round was rejected; the direction reset to two panes. Two observations await your ink.</p>
+            </details>
           </div>
         </article>
 
         <!-- what her ink already built — the correspondence remembers -->
         <article class="msg record" style="animation-delay:0.25s">
-          <div class="mk"><span class="nib">✓</span><span class="who">the record</span><span>your last stamp became a constraint</span><span class="t">jul 2</span></div>
+          <div class="mk"><span class="nib">✓</span><span class="who">the record</span><span class="t">jul 2</span></div>
           <div class="bubble">
-            <p>&ldquo;Event emission must never fail the parent operation&rdquo; — approved jul 2, served to 3 agents since.</p>
-            <span class="stamped">✓ inked · you · jul 2</span>
+            <p>&ldquo;Emission never fails the parent&rdquo;</p>
+            <span class="stamped">✓ you · jul 2 · 3×</span>
           </div>
         </article>
 
         <!-- the gate, asked in conversation -->
         <article class="msg gate" id="gate" style="animation-delay:0.4s">
-          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>asks for your ink · 1 of 2</span><span class="t">09:02</span></div>
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="t">09:02</span></div>
           <div class="bubble">
-            <span class="gk"><span class="dot"></span>gate · observation awaits ink</span>
-            <p class="gq">&ldquo;Raw sessions now archive to <code style="font-family:var(--j-mono);font-size:0.85em">.intent/</code> before digestion — every digest stays re-derivable after the 30-day purge.&rdquo; Fold into <b>Digest Pipeline</b>?</p>
-            <div class="gev"><span class="m">confidence 0.94</span><span>observe-events run 14</span><span>born session 9 · jul 4</span></div>
+            <span class="gk"><span class="dot"></span>gate · 1 of 2</span>
+            <p class="gq">Archive raw sessions to <code style="font-family:var(--j-mono);font-size:0.85em">.intent/</code> — into <b>Digest Pipeline</b>?</p>
+            <div class="gev"><span class="m">0.94</span><span>s9 · jul 4</span></div>
+            <details class="more"><summary>observation</summary>
+              <p>&ldquo;Raw sessions now archive to .intent/ before digestion — every digest stays re-derivable after the 30-day purge.&rdquo; Born observe-events run 14, session 9.</p>
+            </details>
             <div class="stamps" data-gate>
               <button class="stamp yes">✓ approve</button>
               <button class="stamp no">✕ reject</button>
@@ -332,28 +348,27 @@ a { color: inherit; }
           </div>
         </article>
 
-        <div class="daymark" style="animation-delay:0.55s"><span>you selected · digest pipeline · 09:04</span></div>
+        <div class="daymark" style="animation-delay:0.55s"><span>selected · digest pipeline · 09:04</span></div>
 
-        <!-- ★ the utterance her selection produced -->
+        <!-- ★ the utterance her selection produced — three marks, not three paragraphs -->
         <article class="msg spoken" id="utterance" style="animation-delay:0.7s">
-          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="why">spoken to your selection — unprompted</span><span class="t">09:04</span></div>
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="why">unprompted</span><span class="t">09:04</span></div>
           <div class="bubble">
-            <span class="sk">digest pipeline · the three lines</span>
+            <span class="sk">digest pipeline</span>
             <div class="row">
               <span class="rk">is now</span>
-              <p>Deterministic parse, then LLM enrichment — fidelity-audited jul 3, and the whole corpus re-digested clean jul 4. <a class="anchor-mark" href="03-receipts.html">s:8a41</a></p>
+              <p>Parse → enrich; corpus clean jul 4. <a class="anchor-mark" href="03-receipts.html">s:8a41</a></p>
             </div>
             <div class="row">
               <span class="rk">changed</span>
-              <p>118 events across five sittings; the audit found 101 fabricated evidence quotes and cured them with a two-phase read. <a class="anchor-mark" href="03-receipts.html">s:3c91</a></p>
+              <p>118 ev · 101 fabricated quotes cured. <a class="anchor-mark" href="03-receipts.html">s:3c91</a></p>
             </div>
             <div class="row needs">
               <span class="rk">needs you</span>
-              <p>The raw-session archive observation, above — its evidence is on the right.</p>
+              <p>The gate, above ↑</p>
             </div>
             <div class="cites">
-              <a class="cite" href="03-receipts.html"><span class="h">trail ·</span> pull any claim to its line</a>
-              <a class="cite" href="#gate"><span class="h">gate ·</span> the ask, above ↑</a>
+              <a class="cite" href="03-receipts.html"><span class="h">trail ·</span> →</a>
             </div>
           </div>
         </article>
@@ -364,59 +379,62 @@ a { color: inherit; }
     <main class="exhibit" aria-label="the exhibit — a feature dossier">
       <div class="ex-head">
         <span class="kicker">Exhibit · The Dossier</span>
-        <span class="note">rendered because you selected it — nothing was navigated</span>
+        <span class="note">you selected it</span>
       </div>
 
       <div class="dossier">
         <!-- ★ the selected object -->
         <header class="d-head selected" id="selected">
-          <span class="sel-tag">selected · the brain is speaking to this</span>
+          <span class="sel-tag">selected</span>
           <div class="frow">
             <h1>Digest Pipeline</h1>
-            <span class="fbadge">holds to intent</span>
-            <span class="lens-note">lens over the river · jun 21 — jul 5</span>
+            <span class="fbadge">holds</span>
+            <span class="lens-note">jun 21 — jul 5</span>
           </div>
           <div class="d-stats">
-            <span class="chipstat"><b>118</b><span>ev / 14d</span></span>
+            <span class="chipstat"><b>118</b><span>ev</span></span>
             <span class="chipstat ok"><b>68%</b><span>anchored</span></span>
             <span class="chipstat"><b>41</b><span>moments</span></span>
             <span class="chipstat"><b>3</b><span>constraints</span></span>
-            <span class="chipstat hot"><b>1</b><span>gate open</span></span>
+            <span class="chipstat hot"><b>1</b><span>gate</span></span>
           </div>
         </header>
 
         <section class="d-sec">
-          <div class="sk"><h2>Current understanding</h2><span class="hint">citation-gated — unmarked prose does not ship</span></div>
-          <p class="und">A deterministic parse feeds LLM enrichment — classify, chunk, analyze — and <b>every claim that survives carries its anchor</b>. The fidelity audit of jul 3 found fabricated evidence quotes in 101 of 102 moments <a class="anchor-mark" href="03-receipts.html">s:3c91</a>; the cure was a two-phase deliberative read, and the corpus was re-digested clean the next day <a class="anchor-mark" href="03-receipts.html">s:8a41</a>. Confidence is now <b>derived in code, never asked of the model</b> <a class="anchor-mark" href="03-receipts.html">s:8f22</a>.</p>
+          <div class="sk"><h2>Understanding</h2><span class="hint">citation-gated</span></div>
+          <p class="und"><b>Every claim carries its anchor.</b> <a class="anchor-mark" href="03-receipts.html">s:3c91</a> <a class="anchor-mark" href="03-receipts.html">s:8a41</a> <a class="anchor-mark" href="03-receipts.html">s:8f22</a></p>
+          <details class="more"><summary>full</summary>
+            <p>A deterministic parse feeds LLM enrichment — classify, chunk, analyze. The fidelity audit of jul 3 found fabricated evidence quotes in 101 of 102 moments; the cure was a two-phase deliberative read, and the corpus was re-digested clean the next day. Confidence is now derived in code, never asked of the model.</p>
+          </details>
         </section>
 
         <section class="d-sec">
-          <div class="sk"><h2>Constraints, with sources</h2><span class="hint">each traces to a sitting — pull to verify</span></div>
+          <div class="sk"><h2>Constraints</h2><span class="hint">hover</span></div>
           <div class="con">
-            <div class="c">Event emission must never fail the parent operation — every <code>emitEvents</code> wraps in try/catch.</div>
-            <span class="served">served 3× this week</span>
-            <div class="src">from <a href="03-receipts.html">session 6 · jul 2 · 23:41</a> · inked jul 2</div>
+            <div class="c">Emission never fails the parent</div>
+            <span class="served">3×</span>
+            <div class="src">from <a href="03-receipts.html">s6 · jul 2 · 23:41</a> · inked jul 2 · every <code>emitEvents</code> wraps in try/catch</div>
           </div>
           <div class="con">
-            <div class="c">Confidence derives in code — anchored + supported → high; it structurally cannot saturate.</div>
-            <span class="served">served 2× this week</span>
-            <div class="src">from <a href="03-receipts.html">session 7 · jul 4 · 01:12</a> · inked jul 4</div>
+            <div class="c">Confidence derives in code — cannot saturate</div>
+            <span class="served">2×</span>
+            <div class="src">from <a href="03-receipts.html">s7 · jul 4 · 01:12</a> · inked jul 4 · anchored + supported → high</div>
           </div>
           <div class="con">
-            <div class="c">Zod schemas stay lenient — <code>.optional().default()</code> everywhere; strictness lives in evals.</div>
-            <span class="served">served 1× this week</span>
-            <div class="src">from <a href="03-receipts.html">session 4 · jun 26 · 14:12</a> · inked jun 27</div>
+            <div class="c">Zod stays lenient</div>
+            <span class="served">1×</span>
+            <div class="src">from <a href="03-receipts.html">s4 · jun 26 · 14:12</a> · inked jun 27 · <code>.optional().default()</code>; strictness lives in evals</div>
           </div>
         </section>
 
         <section class="d-sec">
-          <div class="sk"><h2>Known unknowns</h2><span class="hint">honest gaps — the brain says so</span></div>
-          <div class="unk">Does chunk overlap above 15% still double-count moments in long sittings?</div>
-          <div class="unk">Sonnet cost per full re-digest remains unmeasured.</div>
+          <div class="sk"><h2>Unknowns</h2></div>
+          <div class="unk">Chunk overlap &gt;15% — double-counting?</div>
+          <div class="unk">Re-digest cost unmeasured.</div>
         </section>
 
         <section class="d-sec">
-          <div class="sk"><h2>Warm files</h2><span class="hint">touch-counts, this fortnight</span></div>
+          <div class="sk"><h2>Files</h2></div>
           <p class="files">
             <b>src/pipeline/orchestrator.ts</b> <i>×9</i> &nbsp;·&nbsp; <b>src/pipeline/emit-events.ts</b> <i>×7</i><br />
             <b>src/llm/prompts/moments.ts</b> <i>×5</i> &nbsp;·&nbsp; <b>src/adapters/types.ts</b> <i>×4</i>
@@ -424,16 +442,16 @@ a { color: inherit; }
         </section>
 
         <section class="d-sec">
-          <div class="sk"><h2>Its slice of river</h2><span class="hint">the same fortnight, through this lens</span></div>
+          <div class="sk"><h2>Its river</h2></div>
           <div class="slice" id="slice">
             <span class="sl">jun 21 →</span>
             <span class="wire"></span>
           </div>
-          <div class="slice-labels"><span>jun 21</span><span>jun 28</span><span>jul 2</span><span>jul 5 ●</span></div>
+          <div class="slice-labels"><span>jun 21</span><span>28</span><span>jul 2</span><span>5 ●</span></div>
         </section>
 
         <div class="exhibit-foot">
-          <p class="next">next in the walkthrough: <a href="03-receipts.html">an engineer asks &ldquo;says who?&rdquo; — the receipts →</a></p>
+          <p class="next"><a href="03-receipts.html">next: receipts →</a></p>
         </div>
       </div>
     </main>
@@ -458,7 +476,7 @@ a { color: inherit; }
       <span class="ghost" aria-hidden="true"></span>
       <span class="inwrap">
         <input type="text" aria-label="ask the brain — scoped to your selection" />
-        <span class="ph" id="ph">Ask about this feature — the selection rides along…</span>
+        <span class="ph" id="ph">Ask — the selection rides along…</span>
       </span>
     </div>
     <kbd>⌘K</kbd>
@@ -554,9 +572,9 @@ document.querySelectorAll("[data-gate] .stamp.yes").forEach(b => {
         ph = document.getElementById("ph"),
         chip = document.getElementById("scopechip");
   const PHS = [
-    "Ask about this feature — the selection rides along…",
-    "Search its sittings — “fidelity audit”",
-    "Command — “stamp the waiting gate”",
+    "Ask — the selection rides along…",
+    "Search — “fidelity audit”",
+    "Command — “stamp the gate”",
   ];
   let i = 0;
   input.addEventListener("focus", () => g.classList.add("awake"));

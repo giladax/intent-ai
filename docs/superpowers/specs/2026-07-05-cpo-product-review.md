@@ -454,3 +454,39 @@ in place across all three mockups:
 - Everything else holds: two panes never occluding, four exhibits, threads across
   the seam, the six inks, physical stamps, earned motion, and the three five-second
   tests. Screenshots re-taken to `mockups/final/shots/` (1440×900, Playwright).
+
+### Execution note — glass rescue + essence pass (2026-07-05, third pass)
+
+Two operations, two commits:
+
+1. **Glass rescue.** The chat-first floating glass composer described above had been
+   built and screenshotted but never committed (the working agent stalled after the
+   shots). Verified all three mockups render with the glass astride the seam
+   (breathing caret, ⌘K, scope chip on 02, echo pill on 03) and committed the work
+   as-is — no repairs needed.
+
+2. **Essence pass.** Owner critique, verbatim: *"i feel we are missing the essence.
+   nobody reads so much. should be cleaner, more on demand. the presentation with
+   cards is very descriptive by default."* Applied the essence principle
+   (`2026-07-05-essence-principle.md`) to all three finals: **the brain answers, it
+   doesn't present.** Cards/dossier entries/hops default to name + one signal + one
+   delta — no sentences. Prose is opt-in: feature-card lines appear on hover,
+   constraint sources appear on hover, moment quotes appear on hover, and full
+   briefs/observations/understanding paragraphs sit behind `<details>` clasps (⋯).
+   The brain's correspondence replies are now 1–2 short sentences + citation chips
+   (Ori's "Says who?" answer went from a 47-word paragraph to two clauses and four
+   hop chips). The raw transcript line stays whole — it IS the receipt.
+
+   Ruthless word audit (visible words, rendered `innerText` at 1440×900 — closed
+   `<details>` excluded):
+
+   | Mockup | Before | After | Reduction |
+   |---|---|---|---|
+   | `01-arrival.html` | 508 | 201 | −60.4% |
+   | `02-selection.html` | 602 | 239 | −60.3% |
+   | `03-receipts.html` | 552 | 220 | −60.1% |
+
+   The five-second tests still pass — faster, since the verdict, the marks, and the
+   one red thing are nearly all that remains. Kept intact: two panes, floating glass
+   composer, four exhibits, seam threads, six inks, stamps, earned motion.
+   Screenshots re-taken to `mockups/final/shots/` (1440×900, Playwright).

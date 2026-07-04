@@ -13,6 +13,8 @@
   Chat-first: the composer is a floating glass instrument astride the pane seam —
   omnipresent at every scroll and exhibit state; ⌘K summons it. It is the product's
   mouth: answers land in the correspondence; the glass never becomes a panel.
+  ESSENCE PASS: nobody reads. The brain answers; it doesn't present. Default =
+  a verdict + a few marks; every sentence is opt-in (<details>, hover-reveal).
   Palette: the real --j-* inkwell, verbatim. Motion: earned rules only.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -141,8 +143,14 @@ a { color: inherit; }
 .stamp.edit:hover { background: var(--j-wash); }
 .inked { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-moss); background: var(--j-moss-soft); border-radius: 999px; padding: 0.3rem 0.75rem; margin-top: 0.8rem; animation: rise 0.4s cubic-bezier(0.22,1,0.36,1); }
 
-.teach { font-style: italic; font-size: 0.86rem; color: var(--j-faint); text-align: center; padding: 0.3rem 1rem 0; animation: rise 0.8s cubic-bezier(0.22,1,0.36,1) backwards; }
-.teach b { font-style: normal; font-weight: 500; color: var(--j-ink-soft); }
+/* ═══ essence: prose is opt-in ═══ a quiet mono clasp; open it and the sentence exists */
+details.more { margin-top: 0.65rem; }
+details.more summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.2rem 0.6rem; transition: color 0.2s ease, border-color 0.2s ease; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "⋯"; letter-spacing: 0; }
+details.more[open] summary::before { content: "×"; }
+details.more summary:hover { color: var(--j-ink-soft); border-color: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); }
+details.more p { margin-top: 0.55rem; font-size: 0.92rem; line-height: 1.55; font-style: italic; color: var(--j-ink-soft); animation: rise 0.4s cubic-bezier(0.22,1,0.36,1); }
 
 /* ═══ the floating glass composer — the front door, made physical ═══
    Chat-first: it seats in neither pane. It hovers astride the seam, because a
@@ -248,8 +256,9 @@ a { color: inherit; }
 .fbadge.holds { color: var(--j-moss); background: var(--j-moss-soft); }
 .fbadge.drift { color: var(--j-red); background: var(--j-red-soft); }
 .fbadge.owed { color: oklch(0.5 0.13 78); background: var(--j-gold-soft); }
-.feat .fline { font-style: italic; font-size: 0.82rem; line-height: 1.42; color: var(--j-ink-soft); margin-top: 0.4rem; min-height: 2.3rem; }
-.feat .fmeta { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.08em; color: var(--j-faint); margin-top: 0.4rem; }
+.feat .fline { display: none; font-style: italic; font-size: 0.82rem; line-height: 1.42; color: var(--j-ink-soft); margin-top: 0.4rem; animation: rise 0.3s cubic-bezier(0.22,1,0.36,1); } /* essence: the sentence exists only under the hand */
+.feat:hover .fline, .feat:focus-visible .fline { display: block; }
+.feat .fmeta { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.08em; color: var(--j-faint); margin-top: 0.45rem; }
 .feat .go { position: absolute; top: 0.85rem; right: 0.9rem; font-family: var(--j-mono); font-size: 0.62rem; color: var(--j-faint); opacity: 0; transform: translateX(-4px); transition: opacity 0.22s ease, transform 0.22s ease; }
 .feat:hover .go { opacity: 1; transform: none; }
 
@@ -299,10 +308,9 @@ a { color: inherit; }
 
   <header class="mast">
     <a class="wordmark" href="01-arrival.html">Brain<span class="dot">.</span></a>
-    <span class="tag">the correspondence &amp; the exhibit</span>
-    <span class="now-whisper"><span class="pulse"></span>digesting session 9</span>
+    <span class="now-whisper"><span class="pulse"></span>digesting s9</span>
     <a class="gate-badge" href="02-selection.html"><span class="dot"></span>1 waits</a>
-    <a class="walk" href="02-selection.html">walkthrough 1/3 · next →</a>
+    <a class="walk" href="02-selection.html">1/3 →</a>
   </header>
 
   <div class="body">
@@ -311,42 +319,44 @@ a { color: inherit; }
     <section class="corr" aria-label="the correspondence — a living conversation with the org's memory">
       <div class="corr-head">
         <span class="kicker">The Correspondence</span>
-        <span class="note">always present — it speaks first</span>
       </div>
 
       <div class="thread">
-        <div class="daymark"><span>sunday · july 5 · 08:12 · you were last here jun 28</span></div>
+        <div class="daymark"><span>jul 5 · 08:12 · away since jun 28</span></div>
 
-        <!-- the brain speaks first: the standing brief, as speech, with citations -->
+        <!-- the brain speaks first: a verdict, then chips. the sentences are opt-in -->
         <article class="msg hero" style="animation-delay:0.15s">
-          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>on your arrival · the standing brief</span><span class="t">08:12</span></div>
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="t">08:12</span></div>
           <div class="bubble">
-            <p class="lead"><b>Aligned, and moving.</b> Four of six features hold to their intent; the measurement pilot ran and came back clean; 68% of served claims now trace to a transcript line — up nine points since your last visit. <b class="who-red">One decision waits for you.</b></p>
+            <p class="lead"><b>Aligned, and moving.</b> <b class="who-red">One decision waits.</b></p>
             <div class="cites">
-              <a class="cite" href="03-receipts.html"><span class="h">pilot ·</span> session 9 · jul 4</a>
-              <a class="cite" href="03-receipts.html"><span class="h">anchoring ·</span> 87 / 128 claims</a>
-              <a class="cite" href="02-selection.html"><span class="h">intent ·</span> 4 of 6 hold</a>
+              <a class="cite" href="03-receipts.html"><span class="h">pilot ·</span> clean · s9</a>
+              <a class="cite" href="03-receipts.html"><span class="h">anchored ·</span> 68% ▲9</a>
+              <a class="cite" href="02-selection.html"><span class="h">intent ·</span> 4/6</a>
             </div>
+            <details class="more"><summary>brief</summary>
+              <p>Four of six features hold to their intent; the measurement pilot ran and came back clean; 68% of served claims now trace to a transcript line — up nine points since your last visit.</p>
+            </details>
           </div>
         </article>
 
         <!-- the one decision, asked in conversation — the stamps are right here -->
         <article class="msg gate" style="animation-delay:0.4s">
-          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>asks for your ink</span><span class="t">08:12</span></div>
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="t">08:12</span></div>
           <div class="bubble">
-            <span class="gk"><span class="dot"></span>gate · the most consequential one</span>
-            <p class="gq">&ldquo;Raw sessions now archive to <span style="font-family:var(--j-mono);font-size:0.85em">.intent/</span> before digestion — every digest stays re-derivable after the 30-day purge.&rdquo; Approve into <b>Digest Pipeline</b>?</p>
-            <div class="gev"><span class="m">confidence 0.94</span><span>observe-events run 14</span><span>born session 9 · jul 4</span></div>
+            <span class="gk"><span class="dot"></span>gate</span>
+            <p class="gq">Archive raw sessions to <span style="font-family:var(--j-mono);font-size:0.85em">.intent/</span> — into <b>Digest Pipeline</b>?</p>
+            <div class="gev"><span class="m">0.94</span><span>s9 · jul 4</span></div>
+            <details class="more"><summary>observation</summary>
+              <p>&ldquo;Raw sessions now archive to .intent/ before digestion — every digest stays re-derivable after the 30-day purge.&rdquo; Born observe-events run 14, session 9.</p>
+            </details>
             <div class="stamps" data-gate>
               <button class="stamp yes">✓ approve</button>
               <button class="stamp no">✕ reject</button>
-              <button class="stamp edit">✎ edit</button>
               <a class="stamp edit" href="02-selection.html" style="text-decoration:none">→ evidence</a>
             </div>
           </div>
         </article>
-
-        <p class="teach" style="animation-delay:0.7s">Select anything in the exhibit and the brain will speak to it — or ask in the glass. <b>Same act.</b></p>
       </div>
     </section>
 
@@ -354,68 +364,66 @@ a { color: inherit; }
     <main class="exhibit" aria-label="the exhibit — the standing brief">
       <div class="ex-head">
         <span class="kicker">Exhibit · The Standing Brief</span>
-        <span class="note">the speech and the brief are one object — composed at digest time, jul 4 · 23:58</span>
+        <span class="note">composed jul 4 · 23:58</span>
       </div>
 
       <section class="verdict">
-        <span class="kicker">intent-ai · the week of july 4</span>
+        <span class="kicker">intent-ai · week of jul 4</span>
         <h1>Aligned, and <em>moving.</em></h1>
-        <p class="deck">Four of six features hold to their intent. Nine sittings this fortnight, each anchored to its evidence. <span class="who">One decision waits for you.</span></p>
       </section>
 
       <section class="statband" aria-label="the four signals">
-        <div class="stat ok"><div class="n">4<sub>/6</sub></div><div class="l">features hold to intent</div><div class="d">1 drifting · 1 owed</div></div>
-        <div class="stat ok"><div class="n">68%</div><div class="l">served claims anchored</div><div class="d">▲ 9 pts this fortnight</div></div>
-        <div class="stat"><div class="n">✓</div><div class="l">measurement pilot</div><div class="d">ran clean · session 9 · jul 4</div></div>
-        <div class="stat hot"><div class="n">1</div><div class="l">waits for your ink</div><div class="d"><span class="dot"></span>raw-session archive</div></div>
+        <div class="stat ok"><div class="n">4<sub>/6</sub></div><div class="l">hold to intent</div><div class="d">1 drifting · 1 owed</div></div>
+        <div class="stat ok"><div class="n">68%</div><div class="l">anchored</div><div class="d">▲ 9 pts</div></div>
+        <div class="stat"><div class="n">✓</div><div class="l">pilot</div><div class="d">clean · s9</div></div>
+        <div class="stat hot"><div class="n">1</div><div class="l">waits</div><div class="d"><span class="dot"></span>archive</div></div>
       </section>
 
       <div class="sec-rule">
-        <h2>The six features, against what was decided</h2>
-        <span class="hint">select one — the brain speaks to it</span>
+        <h2>Six features</h2>
+        <span class="hint">select →</span>
       </div>
       <section class="ledger" aria-label="feature ledger">
         <a class="feat" href="02-selection.html" style="--ink: var(--j-gold)">
           <span class="go">→</span>
           <div class="frow"><span class="fdot"></span><span class="fname">Digest Pipeline</span><span class="fbadge holds">holds</span></div>
           <p class="fline">Fidelity-audited jul 3; the corpus re-digested clean jul 4.</p>
-          <div class="fmeta">118 ev · 5 sittings · 68% anchored</div>
+          <div class="fmeta">118 ev · ▲</div>
         </a>
         <a class="feat" href="02-selection.html" style="--ink: var(--j-teal)">
           <span class="go">→</span>
           <div class="frow"><span class="fdot"></span><span class="fname">Event Backbone</span><span class="fbadge holds">holds</span></div>
           <p class="fline">Every source emits; consults and comments join the river.</p>
-          <div class="fmeta">64 ev · 3 sittings · 74% anchored</div>
+          <div class="fmeta">64 ev · ▲</div>
         </a>
         <a class="feat" href="02-selection.html" style="--ink: var(--j-consult)">
           <span class="go">→</span>
           <div class="frow"><span class="fdot"></span><span class="fname">MCP Server</span><span class="fbadge holds">holds</span></div>
           <p class="fline">Eight tools serving; consults answer in 1.8s pre-composed.</p>
-          <div class="fmeta">43 ev · 2 sittings · 71% anchored</div>
+          <div class="fmeta">43 ev · ▲</div>
         </a>
         <a class="feat" href="02-selection.html" style="--ink: var(--j-moss)">
           <span class="go">→</span>
           <div class="frow"><span class="fdot"></span><span class="fname">Eval Harness</span><span class="fbadge holds">holds</span></div>
           <p class="fline">Repaired, then the pilot ran — ETC/CVR loop is live.</p>
-          <div class="fmeta">51 ev · 2 sittings · 66% anchored</div>
+          <div class="fmeta">51 ev · ▲</div>
         </a>
         <a class="feat" href="02-selection.html" style="--ink: var(--j-violet)">
           <span class="go">→</span>
           <div class="frow"><span class="fdot"></span><span class="fname">Dashboard UI</span><span class="fbadge drift">drifting</span></div>
           <p class="fline">Three mockup rounds rejected; direction reset to two panes.</p>
-          <div class="fmeta">96 ev · 4 sittings · 61% anchored</div>
+          <div class="fmeta">96 ev · ▼</div>
         </a>
         <a class="feat" href="02-selection.html" style="--ink: var(--j-faint)">
           <span class="go">→</span>
           <div class="frow"><span class="fdot"></span><span class="fname">Storage &amp; Schema</span><span class="fbadge owed">intent owed</span></div>
           <p class="fline">Quiet three weeks; the migration decision has no implementation.</p>
-          <div class="fmeta">22 ev · 1 sitting · —</div>
+          <div class="fmeta">22 ev · —</div>
         </a>
       </section>
 
       <div class="sec-rule" style="animation-delay:1.15s">
-        <h2>The fortnight, as it happened</h2>
-        <span class="hint">a stretch of river · time runs left to right</span>
+        <h2>The fortnight</h2>
       </div>
       <section class="river-strip" aria-label="the fortnight of activity">
         <div class="riverbed" id="riverbed"></div>
@@ -423,8 +431,8 @@ a { color: inherit; }
       </section>
 
       <div class="exhibit-foot">
-        <p class="stats"><b>9</b> sittings · <b>6</b> features · <b>418</b> events — all of it beneath this brief</p>
-        <p class="next">next in the walkthrough: <a href="02-selection.html">a product lead selects a feature — the handshake →</a></p>
+        <p class="stats"><b>9</b> sittings · <b>418</b> events</p>
+        <p class="next"><a href="02-selection.html">next: selection →</a></p>
       </div>
     </main>
 
@@ -447,13 +455,12 @@ a { color: inherit; }
       <span class="ghost" aria-hidden="true"></span>
       <span class="inwrap">
         <input type="text" aria-label="ask the brain — asking and searching are the same act" />
-        <span class="ph" id="ph">Ask — &ldquo;what changed since I left?&rdquo;</span>
+        <span class="ph" id="ph">Ask — &ldquo;what changed?&rdquo;</span>
       </span>
     </div>
     <span class="scope">scope · whole repo</span>
     <kbd>⌘K</kbd>
   </div>
-  <div class="glass-sub">ask · search · command — the same act. answers land in the correspondence, evidence threaded</div>
 </div>
 
 <script>
@@ -513,7 +520,7 @@ document.querySelectorAll("[data-gate] .stamp.yes").forEach(b => {
         input = g.querySelector("input"),
         ph = document.getElementById("ph");
   const PHS = [
-    "Ask — “what changed since I left?”",
+    "Ask — “what changed?”",
     "Search — “fidelity audit, july 3”",
     "Command — “approve the raw-session gate”",
   ];

@@ -13,6 +13,8 @@
   A consult-blue thread draws from the answer to the trail: the view is the answer's exhibit.
   Chat-first: the composer is floating glass astride the seam; his just-asked question
   hangs above it as an echo. ⌘K summons; the glass never becomes a panel.
+  ESSENCE PASS: nobody reads. Hops are marks — a kicker, a clause, a foot of ids;
+  the raw line stays whole (it IS the receipt). Replies are 1–2 lines + chips.
   Five-second test: the transcript line behind the constraint is on screen, cold.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -123,6 +125,15 @@ a { color: inherit; }
 
 .teach { font-style: italic; font-size: 0.86rem; color: var(--j-faint); text-align: center; padding: 0.3rem 1rem 0; animation: rise 0.8s cubic-bezier(0.22,1,0.36,1) backwards; }
 
+/* ═══ essence: prose is opt-in ═══ */
+details.more { margin-top: 0.65rem; }
+details.more summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 999px; padding: 0.2rem 0.6rem; transition: color 0.2s ease, border-color 0.2s ease; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "⋯"; letter-spacing: 0; }
+details.more[open] summary::before { content: "×"; }
+details.more summary:hover { color: var(--j-ink-soft); border-color: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); }
+details.more p { margin-top: 0.55rem; font-size: 0.9rem; line-height: 1.55; font-style: italic; color: var(--j-ink-soft); animation: rise 0.4s cubic-bezier(0.22,1,0.36,1); }
+
 /* ═══ the floating glass composer — chat-first, astride the seam ═══
    Warm frosted glass over paper; the just-asked question hangs above it as an echo.
    ⌘K summons; the glass never becomes a panel — answers land in the correspondence. */
@@ -202,7 +213,8 @@ a { color: inherit; }
 .hop .hbody p code { font-family: var(--j-mono); font-size: 0.82em; background: var(--j-wash); border-radius: 4px; padding: 0.05rem 0.3rem; }
 .hop .foot { margin-top: 0.55rem; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--j-faint); display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; }
 .hop .foot .m { color: var(--j-moss); }
-.hop blockquote { margin-top: 0.5rem; padding-left: 0.9rem; border-left: 2px solid var(--j-gold); font-style: italic; font-weight: 340; color: var(--j-ink-soft); font-size: 0.95rem; line-height: 1.5; }
+.hop blockquote { display: none; margin-top: 0.5rem; padding-left: 0.9rem; border-left: 2px solid var(--j-gold); font-style: italic; font-weight: 340; color: var(--j-ink-soft); font-size: 0.95rem; line-height: 1.5; animation: rise 0.3s cubic-bezier(0.22,1,0.36,1); } /* essence: the quote appears under the hand */
+.hop:hover blockquote, .hop.lit blockquote { display: block; }
 .hop.h1 .kicker, .hop.h1 .node { color: var(--j-teal); } .hop.h1 .node { border-color: var(--j-teal); box-shadow: 0 0 0 4px var(--j-teal-soft); }
 .hop.h2 .kicker { color: oklch(0.5 0.13 78); } .hop.h2 .node { color: oklch(0.5 0.13 78); border-color: var(--j-gold); box-shadow: 0 0 0 4px var(--j-gold-soft); }
 .hop.h3 .kicker, .hop.h3 .node { color: var(--j-red); } .hop.h3 .node { border-color: var(--j-red); box-shadow: 0 0 0 4px var(--j-red-soft); }
@@ -268,10 +280,9 @@ a { color: inherit; }
 
   <header class="mast">
     <a class="wordmark" href="01-arrival.html">Brain<span class="dot">.</span></a>
-    <span class="tag">the correspondence &amp; the exhibit</span>
-    <span class="now-whisper"><span class="pulse"></span>digesting session 9</span>
+    <span class="now-whisper"><span class="pulse"></span>digesting s9</span>
     <a class="gate-badge" href="02-selection.html"><span class="dot"></span>2 wait</a>
-    <a class="walk" href="01-arrival.html">walkthrough 3/3 · back to arrival →</a>
+    <a class="walk" href="01-arrival.html">3/3 ↺</a>
   </header>
 
   <div class="body">
@@ -280,53 +291,54 @@ a { color: inherit; }
     <section class="corr" aria-label="the correspondence">
       <div class="corr-head">
         <span class="kicker">The Correspondence</span>
-        <span class="note">agents write here too</span>
       </div>
 
       <div class="thread" id="thread">
-        <div class="daymark"><span>sunday · july 5 · 14:02 · you arrived from code</span></div>
+        <div class="daymark"><span>jul 5 · 14:02 · from code</span></div>
 
         <!-- his agent's consult, legible in the same correspondence -->
         <article class="msg agent" style="animation-delay:0.1s">
-          <div class="mk"><span class="nib">⚙</span><span class="who">your agent</span><span>consulted via brain_enter</span><span class="t">14:02</span></div>
+          <div class="mk"><span class="nib">⚙</span><span class="who">your agent</span><span class="t">14:02</span></div>
           <div class="bubble">
-            <p>Entering <code>src/pipeline/emit-events.ts</code> — was told: <em>&ldquo;Confidence must be derived in code — anchored + supported → high; it structurally cannot saturate.&rdquo;</em></p>
-            <div class="served"><span>consult:enter · event c7e402</span><span>rated helpful</span></div>
+            <p>brain_enter · <code>emit-events.ts</code> → 1 constraint</p>
+            <div class="served"><span>c7e402</span><span>rated helpful</span></div>
+            <details class="more"><summary>served</summary>
+              <p>&ldquo;Confidence must be derived in code — anchored + supported → high; it structurally cannot saturate.&rdquo;</p>
+            </details>
           </div>
         </article>
 
         <!-- the brain's opener, scoped to where he landed -->
         <article class="msg" style="animation-delay:0.25s">
-          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>on your arrival · scoped to your file</span><span class="t">14:02</span></div>
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="t">14:02</span></div>
           <div class="bubble">
-            <p>You're in <code>emit-events.ts</code> — governed by <b>Digest Pipeline</b>. One constraint applies here; it was born in Friday night's sitting, which ended mid-struggle. Ask, and I'll pull the thread.</p>
+            <p>One constraint governs here — born mid-struggle. Ask.</p>
           </div>
         </article>
 
         <!-- ori pushes back — he will not obey a rule he cannot trace -->
         <article class="msg you" style="animation-delay:0.4s">
-          <div class="mk"><span class="who">ori</span><span>asks</span><span class="t">14:03</span></div>
+          <div class="mk"><span class="who">ori</span><span class="t">14:03</span></div>
           <div class="bubble">
-            <p>Says who? Show me where &ldquo;confidence derives in code&rdquo; actually comes from.</p>
+            <p>Says who?</p>
           </div>
         </article>
 
-        <!-- ★ the answer that reorganized the exhibit -->
+        <!-- ★ the answer that reorganized the exhibit — two sentences, four chips -->
         <article class="msg answer" id="answer" style="animation-delay:0.55s">
-          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>answers — and composes the exhibit</span><span class="t">14:03</span></div>
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="t">14:03</span></div>
           <div class="bubble">
-            <span class="rk">the exhibit is now this answer's receipts</span>
-            <p>Because the model's own grades collapsed: <b>17 of 17 moments rated &ldquo;high&rdquo;</b> on a real session. The fix that survived derives confidence from anchoring + verification — <b>it structurally cannot saturate</b>. Four hops, each anchored; the raw line is at the bottom, already open.</p>
+            <span class="rk">the exhibit answers</span>
+            <p><b>17/17 rated &ldquo;high&rdquo;</b> — the model graded itself. The fix derives confidence in code.</p>
             <div class="cites">
-              <a class="cite c1" href="#hop1" data-hop="hop1"><span class="h">①</span> served constraint</a>
-              <a class="cite c2" href="#hop2" data-hop="hop2"><span class="h">②</span> inked observation</a>
-              <a class="cite c3" href="#hop3" data-hop="hop3"><span class="h">③</span> moment #41 · 01:12</a>
-              <a class="cite c4" href="#hop4" data-hop="hop4"><span class="h">④</span> transcript · 8f22c1</a>
+              <a class="cite c1" href="#hop1" data-hop="hop1"><span class="h">①</span> constraint</a>
+              <a class="cite c2" href="#hop2" data-hop="hop2"><span class="h">②</span> observation</a>
+              <a class="cite c3" href="#hop3" data-hop="hop3"><span class="h">③</span> moment 41</a>
+              <a class="cite c4" href="#hop4" data-hop="hop4"><span class="h">④</span> transcript</a>
             </div>
           </div>
         </article>
 
-        <p class="teach" style="animation-delay:0.8s">Hover a citation — the exhibit lights its hop. The view <b style="font-style:normal;font-weight:500;color:var(--j-ink-soft)">is</b> the answer.</p>
       </div>
     </section>
 
@@ -334,14 +346,14 @@ a { color: inherit; }
     <main class="exhibit" aria-label="the exhibit — the provenance trail">
       <div class="ex-head">
         <span class="kicker">Exhibit · The Trail</span>
-        <span class="note">reorganized by your question — 14:03</span>
+        <span class="note">composed 14:03</span>
       </div>
 
       <article class="dossier">
         <header class="dossier-head">
-          <span class="kicker">provenance · digest pipeline · pulled to its raw line</span>
+          <span class="kicker">provenance · digest pipeline</span>
           <h1>&ldquo;Confidence must be <em>derived in code</em> — it structurally cannot saturate.&rdquo;</h1>
-          <p class="sub"><b>4 hops</b> · born fri jul 3, 23:14 — sat 03:20 · <b>the sitting that ended mid-struggle</b></p>
+          <p class="sub"><b>4 hops</b> · jul 3 · <b>mid-struggle</b></p>
         </header>
 
         <section class="trail" aria-label="the provenance trail">
@@ -349,42 +361,40 @@ a { color: inherit; }
 
           <div class="hop h1" id="hop1">
             <span class="node">1</span>
-            <div class="hk"><span class="kicker">served constraint</span><span class="whn">what agents are told · → 2 agents this week</span></div>
+            <div class="hk"><span class="kicker">served constraint</span><span class="whn">→ 2 agents</span></div>
             <div class="hbody">
-              <p>Confidence must be derived in code — anchored + supported → high; never ask the model to grade its own conviction.</p>
-              <div class="foot"><span class="m">served via brain_enter · brain_feature_context</span><span>rated helpful · 2 agents</span></div>
+              <p>Never ask the model to grade itself.</p>
+              <div class="foot"><span class="m">brain_enter</span><span>2× helpful</span></div>
             </div>
           </div>
 
           <div class="hop h2" id="hop2">
             <span class="node">2</span>
-            <div class="hk"><span class="kicker">approved observation</span><span class="whn">how the brain learned it · jul 4 · 14:56</span></div>
+            <div class="hk"><span class="kicker">approved observation</span><span class="whn">jul 4 · 14:56</span></div>
             <div class="hbody">
-              <p>Confidence scores from the model saturate — every calibration fix that survived derived confidence in code.</p>
-              <div class="foot"><span class="stamped">✓ inked · gilad · jul 4</span><span>confidence 0.94</span><span>observe-events run 14</span></div>
+              <p>Model-graded confidence saturates.</p>
+              <div class="foot"><span class="stamped">✓ gilad · jul 4</span><span>0.94</span></div>
             </div>
           </div>
 
           <div class="hop h3" id="hop3">
             <span class="node">3</span>
-            <div class="hk"><span class="kicker">moment #41 · struggle → realization</span><span class="whn">where it was noticed · sat jul 4 · 01:12</span></div>
+            <div class="hk"><span class="kicker">moment #41 · struggle→realization</span><span class="whn">jul 4 · 01:12</span></div>
             <div class="hbody">
-              <p>The developer discovered every moment carried <code>confidence: high</code> — the judge cannot grade its own conviction.</p>
+              <p>Every moment carried <code>confidence: high</code>.</p>
               <blockquote>&ldquo;calibration has to live outside the model.&rdquo;</blockquote>
-              <div class="foot"><span>session 7 · moment 41 of 76</span><span class="m">◉ anchored · event 8f22c1</span></div>
+              <div class="foot"><span>s7 · m41/76</span><span class="m">◉ 8f22c1</span></div>
             </div>
           </div>
 
           <div class="hop h4" id="hop4">
             <span class="node">¶</span>
-            <div class="hk"><span class="kicker">raw transcript</span><span class="whn">the line itself — nothing above this is asserted; it is quoted</span></div>
+            <div class="hk"><span class="kicker">raw transcript</span><span class="whn">verbatim</span></div>
             <div class="hbody">
-              <p class="note-line">Open on your arrival. This is the line the constraint stands on.</p>
-              <div class="raw">2041  "All 17 moments in this session were rated confidence:
-2042  high — <mark class="arrive">the distribution has collapsed</mark>. Prompt wording
-2043  won't fix this; <mark>confidence needs to be computed from
+              <div class="raw">2042  "<mark class="arrive">the distribution has collapsed</mark> —
+2043  <mark>confidence needs to be computed from
 2044  anchoring + verification</mark>, not asked for."</div>
-              <div class="foot"><span>.intent/raw-sessions/2026-07-03-session-7.jsonl · lines 2041–2044</span><span class="m">view raw ↗</span></div>
+              <div class="foot"><span>.intent/raw-sessions/2026-07-03-s7.jsonl · 2042–44</span><span class="m">raw ↗</span></div>
             </div>
           </div>
 
@@ -393,13 +403,13 @@ a { color: inherit; }
               <circle cx="26" cy="26" r="24" />
               <path d="M15 27 L23 34 L38 18" />
             </svg>
-            <p class="verdict">The chain closed — every hop anchored. No faith required.</p>
-            <p class="fid"><b>4 / 4</b> hops · anchored <b>96%</b> · supported <b>14</b> · contradicted <b>1</b></p>
+            <p class="verdict">The chain closed.</p>
+            <p class="fid"><b>4/4</b> anchored · <b>96%</b> · +<b>14</b> −<b>1</b></p>
           </div>
         </section>
 
         <div class="exhibit-foot">
-          <p class="next">end of the walkthrough — <a href="01-arrival.html">return to the arrival, where the brain speaks first ↺</a></p>
+          <p class="next"><a href="01-arrival.html">↺ arrival</a></p>
         </div>
       </article>
     </main>
@@ -417,17 +427,17 @@ a { color: inherit; }
 
 <!-- ═══ the floating glass composer — the just-asked question hangs above it as an echo ═══ -->
 <div class="glass-dock">
-  <div class="glass-echo"><span>you asked · 14:03</span><q>&ldquo;Says who? Show me where it comes from.&rdquo;</q><span class="ok">⇄ answered · 4 hops</span></div>
+  <div class="glass-echo"><span>you · 14:03</span><q>&ldquo;Says who?&rdquo;</q><span class="ok">⇄ 4 hops</span></div>
   <div class="glass" id="glass">
     <span class="nib">✒</span>
     <div class="field">
       <span class="ghost" aria-hidden="true"></span>
       <span class="inwrap">
         <input type="text" aria-label="ask the brain — scoped to this constraint" />
-        <span class="ph" id="ph">Dispute it, or dig further — the question is already an event…</span>
+        <span class="ph" id="ph">Dispute, or dig…</span>
       </span>
     </div>
-    <span class="scope">⇄ scope · constraint 8f22c1</span>
+    <span class="scope">⇄ scope · 8f22c1</span>
     <kbd>⌘K</kbd>
   </div>
 </div>
@@ -458,7 +468,7 @@ function drawHandshake() {
     <path id="hs" d="M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" />
     <circle cx="${x1}" cy="${y1}" r="3.4" />
     <circle cx="${x2}" cy="${y2}" r="3.4" />
-    <text x="${mx}" y="${Math.min(y1, y2) - 10}" text-anchor="middle">the question composed this view</text>`;
+    <text x="${mx}" y="${Math.min(y1, y2) - 10}" text-anchor="middle">question → exhibit</text>`;
   const p = svg.querySelector("#hs"), L = p.getTotalLength();
   p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -490,8 +500,8 @@ document.querySelectorAll("[data-hop]").forEach(c => {
         input = g.querySelector("input"),
         ph = document.getElementById("ph");
   const PHS = [
-    "Dispute it, or dig further — the question is already an event…",
-    "Ask — “who else touched this constraint?”",
+    "Dispute, or dig…",
+    "Ask — “who else touched this?”",
     "Search — “confidence saturation”",
   ];
   let i = 0;
