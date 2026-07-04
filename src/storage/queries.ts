@@ -251,7 +251,7 @@ export async function getSessionTransitions(sessionId: string): Promise<IntentTr
     reason: t.reason ?? "",
     originMomentIds: [],
     arcId: t.arc_id,
-    confidence: t.confidence ?? "medium",
+    confidence: t.confidence ?? null,
   }));
 }
 
@@ -264,7 +264,7 @@ export async function getSessionOutcomes(sessionId: string): Promise<AcceptedOut
     statement: o.statement,
     supportingMomentIds: [],
     supportingFiles: [],
-    confidence: o.confidence ?? "medium",
+    confidence: o.confidence ?? null,
   }));
 }
 

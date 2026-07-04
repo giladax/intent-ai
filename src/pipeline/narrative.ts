@@ -4,6 +4,7 @@ import type {
   AcceptedOutcome,
   SessionShape,
   SessionNarrative,
+  Sitting,
 } from "../adapters/types.js";
 import { callSonnet } from "../llm/client.js";
 import {
@@ -19,13 +20,16 @@ import type {
 
 /**
  * Generate a narrative summary of a session from its moments,
- * transitions, and outcomes.
+ * transitions, and outcomes. `sittings` defaults to [] so existing
+ * callers compile without change; the orchestrator will pass real
+ * sittings in a subsequent task.
  */
 export async function generateNarrative(
   moments: SessionMoment[],
   transitions: IntentTransition[],
   outcomes: AcceptedOutcome[],
   sessionShape: SessionShape,
+  sittings: Sitting[] = [],
 ): Promise<SessionNarrative> {
   const shapeObj: PromptSessionShape = { shape: sessionShape };
 
@@ -49,6 +53,8 @@ export async function generateNarrative(
       const num = parseInt(id.replace("moment-", ""), 10);
       return isNaN(num) ? 0 : num;
     }),
+    verification: m.verification ?? undefined,
+    occurredAt: m.occurredAt ?? undefined,
   }));
 
   const promptTransitions: PromptTransition[] = transitions.map((t) => ({
@@ -78,6 +84,7 @@ export async function generateNarrative(
     transitions: promptTransitions,
     outcomes: promptOutcomes,
     sessionShape: shapeObj,
+    sittings,
   });
 
   const result = await callSonnet(system, user, SessionNarrativeSchema);

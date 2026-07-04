@@ -52,6 +52,8 @@ const Pass2MomentSchema = Pass1MomentSchema.passthrough().extend({
   arcId: z.string().optional().default("general"),
   arcRole: z.enum(["origin", "development", "turning_point", "resolution"]).optional().default("development"),
   relatedMomentIds: z.array(z.number()).optional().default([]),
+  verification: z.enum(["supported", "contradicted", "unverified"]).nullable().optional(),
+  occurredAt: z.string().nullable().optional(),
 });
 
 export const Pass2OutputSchema = z.object({

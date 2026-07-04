@@ -2,6 +2,15 @@ import { z } from "zod";
 import type { Pass2Moment } from "./moments.js";
 import type { SessionShape } from "./classify.js";
 
+// ── Confidence Rubric (canonical) ────────────────────────────────────
+// "confidence" reflects evidential support, not enthusiasm:
+//   "high":   a direct quote or tool result in the provided events explicitly
+//             supports the statement (a test passed, a commit was made, the
+//             developer said it).
+//   "medium": inferred from multiple events but never explicitly stated.
+//   "low":    plausible reading with weak or indirect support.
+//   null:     omit if you cannot decide.
+
 // ── Zod Schemas ──────────────────────────────────────────────────────
 
 const IntentTransitionSchema = z.object({
@@ -13,7 +22,7 @@ const IntentTransitionSchema = z.object({
   triggeringMomentIndices: z.array(z.number()).optional().default([]),
   momentIndices: z.array(z.number()).optional(), // alternative name
   arcId: z.string().optional().default("general"),
-  confidence: z.enum(["high", "medium", "low"]).optional().default("medium"),
+  confidence: z.enum(["high", "medium", "low"]).nullable().optional().transform((v) => v ?? null),
 }).transform((t) => ({
   fromStatement: t.fromStatement || t.from || "",
   toStatement: t.toStatement || t.to || "",
@@ -29,7 +38,7 @@ const AcceptedOutcomeSchema = z.object({
   momentIndices: z.array(z.number()).optional(), // alternative name
   filesAffected: z.array(z.string()).optional().default([]),
   files: z.array(z.string()).optional(), // alternative name
-  confidence: z.enum(["high", "medium", "low"]).optional().default("medium"),
+  confidence: z.enum(["high", "medium", "low"]).nullable().optional().transform((v) => v ?? null),
 }).transform((o) => ({
   statement: o.statement,
   supportingMomentIndices: o.supportingMomentIndices.length > 0 ? o.supportingMomentIndices : (o.momentIndices ?? []),
@@ -96,7 +105,37 @@ Each outcome should:
 
 If the session was purely exploratory with no concrete outputs, return an empty outcomes array.
 
-Respond with ONLY a JSON object: { "transitions": [...], "outcomes": [...] }`;
+## Confidence
+
+"confidence" reflects evidential support, not enthusiasm:
+- "high": a direct quote or tool result in the provided events explicitly supports the statement (a test passed, a commit was made, the developer said it).
+- "medium": inferred from multiple events but never explicitly stated.
+- "low": plausible reading with weak or indirect support.
+If you cannot decide, omit the field entirely (it will be recorded as null).
+
+## Output Shape
+
+Respond with ONLY a JSON object of this exact shape:
+{
+  "transitions": [
+    {
+      "fromStatement": "...",
+      "toStatement": "...",
+      "reason": "...",
+      "triggeringMomentIndices": [0, 1],
+      "arcId": "...",
+      "confidence": "high" | "medium" | "low"
+    }
+  ],
+  "outcomes": [
+    {
+      "statement": "...",
+      "supportingMomentIndices": [0, 2],
+      "filesAffected": ["src/foo.ts"],
+      "confidence": "high" | "medium" | "low"
+    }
+  ]
+}`;
 
   const user = `## Session Shape: ${sessionShape.shape}
 
@@ -104,10 +143,13 @@ Respond with ONLY a JSON object: { "transitions": [...], "outcomes": [...] }`;
 
 ${moments
   .map(
-    (m, i) => `${i}. [${m.type}] (arc: ${m.arcId}, role: ${m.arcRole}) ${m.statement}
-   agency=${m.agency} confidence=${m.confidence}
+    (m, i) => {
+      const verif = m.verification ? ` verification=${m.verification}` : "";
+      return `${i}. [${m.type}] (arc: ${m.arcId}, role: ${m.arcRole}) ${m.statement}
+   agency=${m.agency} confidence=${m.confidence}${verif}
    topic=${m.topicFingerprint}
-   evidence: ${m.evidence.map((e) => `"${e.quote.slice(0, 100)}"`).join("; ")}`,
+   evidence: ${m.evidence.map((e) => `"${e.quote.slice(0, 100)}"`).join("; ")}`;
+    },
   )
   .join("\n\n")}
 

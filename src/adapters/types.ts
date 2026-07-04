@@ -148,7 +148,7 @@ export interface IntentTransition {
   reason: string;
   originMomentIds: string[];
   arcId?: string;
-  confidence: "high" | "medium" | "low";
+  confidence: "high" | "medium" | "low" | null;
 }
 
 export interface AcceptedOutcome {
@@ -157,7 +157,7 @@ export interface AcceptedOutcome {
   statement: string;
   supportingMomentIds: string[];
   supportingFiles: string[];
-  confidence: "high" | "medium" | "low";
+  confidence: "high" | "medium" | "low" | null;
 }
 
 // ── Narrative ───────────────────────────────────────────────────────

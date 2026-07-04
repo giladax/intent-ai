@@ -40,6 +40,8 @@ export async function detectTransitionsAndOutcomes(
       const num = parseInt(id.replace("moment-", ""), 10);
       return isNaN(num) ? 0 : num;
     }),
+    verification: m.verification ?? undefined,
+    occurredAt: m.occurredAt ?? undefined,
   }));
 
   // Collect all files from chunks

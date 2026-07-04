@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Pass2Moment } from "./moments.js";
 import type { IntentTransition, AcceptedOutcome } from "./transitions.js";
 import type { SessionShape } from "./classify.js";
+import type { Sitting } from "../../adapters/types.js";
 
 // ── Zod Schemas ──────────────────────────────────────────────────────
 
@@ -33,18 +34,35 @@ export interface NarrativeInput {
   transitions: IntentTransition[];
   outcomes: AcceptedOutcome[];
   sessionShape: SessionShape;
+  sittings?: Sitting[];
 }
 
 // ── Prompt Builder ───────────────────────────────────────────────────
+
+// ── Sitting Rendering Helper ─────────────────────────────────────────
+
+function renderGap(prevEndedAt: string, nextStartedAt: string): string {
+  const gapMs = new Date(nextStartedAt).getTime() - new Date(prevEndedAt).getTime();
+  const gapHours = gapMs / (1000 * 60 * 60);
+  if (gapHours >= 24) {
+    const days = gapHours / 24;
+    return `after a ${days.toFixed(1)}-day gap`;
+  }
+  return `after a ${gapHours.toFixed(1)}-hour gap`;
+}
 
 export function buildNarrativePrompt(input: NarrativeInput): {
   system: string;
   user: string;
 } {
-  const { moments, transitions, outcomes, sessionShape } = input;
+  const { moments, transitions, outcomes, sessionShape, sittings = [] } = input;
+
+  const sittingInstruction = sittings.length > 1
+    ? `\nThis session happened in the sittings listed above. Progression entries must respect sitting boundaries — never narrate work from different sittings as one continuous flow; name the break ("after a two-day gap, ...").\n`
+    : "";
 
   const system = `You are a technical narrator for developer coding sessions. You synthesize moments, transitions, and outcomes into a concise narrative that captures what actually happened.
-
+${sittingInstruction}
 ## Tone
 
 - **Observational** — You report what happened, not what should have happened. You're a historian, not a coach.
@@ -78,14 +96,25 @@ Approaches that were tried and rejected, or directions that were considered but 
 
 Respond with ONLY a JSON object matching the schema above.`;
 
+  // Build sittings section
+  const sittingsSection = sittings.length > 0
+    ? `## Sittings (${sittings.length}):\n${sittings.map((s, idx) => {
+        const gapNote = idx > 0 ? `, ${renderGap(sittings[idx - 1].endedAt, s.startedAt)}` : "";
+        const start = s.startedAt.slice(0, 16).replace("T", " ");
+        const end = s.endedAt.slice(0, 16).replace("T", " ");
+        return `Sitting ${idx + 1}: ${start} → ${end} (events ${s.eventRange[0]}–${s.eventRange[1]})${gapNote}`;
+      }).join("\n")}\n\n`
+    : "";
+
   const user = `## Session Shape: ${sessionShape.shape}
 
-## Moments (${moments.length}):
+${sittingsSection}## Moments (${moments.length}):
 ${moments
   .map(
     (m, i) => {
       const topEvidence = m.evidence.slice(0, 2).map(e => `"${e.quote.slice(0, 100)}"`).join("; ");
-      return `${i}. [${m.type}] (arc: ${m.arcId}, ${m.arcRole}) agency=${m.agency}
+      const timeNote = m.occurredAt ? ` at ${m.occurredAt.slice(0, 16).replace("T", " ")}` : "";
+      return `${i}. [${m.type}] (arc: ${m.arcId}, ${m.arcRole}) agency=${m.agency}${timeNote}
    ${m.statement}
    significance: ${m.significance}${topEvidence ? `\n   evidence: ${topEvidence}` : ""}`;
     },
