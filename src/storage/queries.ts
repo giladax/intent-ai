@@ -17,7 +17,24 @@ import type {
   SessionNarrative,
   SessionShape,
   ActivityEvent,
+  Sitting,
+  EvidenceAnchor,
 } from "../adapters/types.js";
+
+// ── Pure helper: resolve evidence source UUIDs ──────────────────────
+// For each EvidenceAnchor: if anchored=true AND its eventIndex is in the
+// causalOrder→uuid map, return the uuid. Otherwise return null.
+
+export function resolveEvidenceSourceIds(
+  evidence: EvidenceAnchor[],
+  idByCausalOrder: Map<number, string>,
+): (string | null)[] {
+  return evidence.map((e) => {
+    if (!e.anchored) return null;
+    if (e.eventIndex == null) return null;
+    return idByCausalOrder.get(e.eventIndex) ?? null;
+  });
+}
 
 function batchArray<T>(arr: T[], size: number): T[][] {
   const batches: T[][] = [];
@@ -44,6 +61,7 @@ export async function storeSessionDigest(data: {
   transitions: IntentTransition[];
   outcomes: AcceptedOutcome[];
   narrative: SessionNarrative;
+  sittings?: Sitting[];
 }): Promise<void> {
   const sql = getClient();
 
@@ -52,13 +70,23 @@ export async function storeSessionDigest(data: {
     VALUES (${data.sessionId}, ${data.sourceType}, ${data.sourcePath}, ${data.sourceHash ?? null}, ${data.sessionShape},
             ${data.startedAt?.toISOString() ?? null}, ${data.endedAt?.toISOString() ?? null}, NOW())`;
 
-  // 2. normalized_events (batched, skip raw_events — source JSONL is the truth)
+  // 2. normalized_events — batched insert; build causalOrder→uuid map for evidence resolution
+  const idByCausalOrder = new Map<number, string>();
   for (const batch of batchArray(data.normalizedEvents, 15)) {
     for (const e of batch) {
+      const eventUuid = randomUUID();
+      idByCausalOrder.set(e.causalOrder, eventUuid);
       await sql`INSERT INTO normalized_events (id, session_id, raw_event_id, causal_order, category, actor, summary, detail, files_affected)
-        VALUES (${randomUUID()}, ${data.sessionId}, ${null}, ${e.causalOrder}, ${e.category}, ${e.actor},
+        VALUES (${eventUuid}, ${data.sessionId}, ${null}, ${e.causalOrder}, ${e.category}, ${e.actor},
                 ${e.content.summary}, ${e.content.detail}, ${e.content.filesAffected ?? null})`;
     }
+  }
+
+  // 2b. sittings (optional — empty until understanding-stage orchestrator passes them)
+  for (const s of data.sittings ?? []) {
+    await sql`INSERT INTO sittings (id, session_id, sitting_index, started_at, ended_at, event_range_start, event_range_end)
+      VALUES (${randomUUID()}, ${data.sessionId}, ${s.sittingIndex}, ${s.startedAt}, ${s.endedAt},
+              ${s.eventRange[0]}, ${s.eventRange[1]})`;
   }
 
   // 3. chunks
@@ -76,14 +104,27 @@ export async function storeSessionDigest(data: {
     const uuid = randomUUID();
     momentIdMap.set(m.id, uuid);
     const chunkUuid = chunkIdMap.get(m.chunkId) ?? null;
-    await sql`INSERT INTO moments (id, session_id, chunk_id, type, statement, significance, agency, confidence, topic_fingerprint, arc_id, arc_role)
+    const occurredAt = m.occurredAt ?? null;
+    const verification = m.verification ?? null;
+    await sql`INSERT INTO moments (id, session_id, chunk_id, type, statement, significance, agency, confidence, topic_fingerprint, arc_id, arc_role, occurred_at, verification)
       VALUES (${uuid}, ${data.sessionId}, ${chunkUuid}, ${m.type}, ${m.statement}, ${m.significance},
-              ${m.agency}, ${m.confidence}, ${m.topicFingerprint}, ${m.arcId ?? null}, ${m.arcRole ?? null})`;
+              ${m.agency}, ${m.confidence}, ${m.topicFingerprint}, ${m.arcId ?? null}, ${m.arcRole ?? null},
+              ${occurredAt}, ${verification})`;
 
-    // 5. moment_evidence
-    for (const e of m.evidence) {
-      await sql`INSERT INTO moment_evidence (id, moment_id, quote, source_type, quote_type)
-        VALUES (${randomUUID()}, ${uuid}, ${e.quote}, ${e.sourceType}, ${e.quoteType})`;
+    // 5. moment_evidence — detect anchor-shaped vs legacy evidence
+    for (let i = 0; i < m.evidence.length; i++) {
+      const e = m.evidence[i];
+      let sourceEventId: string | null = null;
+      if ("anchored" in e) {
+        // EvidenceAnchor shape — resolve via causalOrder map
+        const anchor = e as unknown as EvidenceAnchor;
+        const resolved = resolveEvidenceSourceIds([anchor], idByCausalOrder);
+        sourceEventId = resolved[0];
+      }
+      // quoteType may not exist on EvidenceAnchor — cast safely
+      const quoteType = ("quoteType" in e) ? (e as any).quoteType : null;
+      await sql`INSERT INTO moment_evidence (id, moment_id, quote, source_event_id, source_type, quote_type)
+        VALUES (${randomUUID()}, ${uuid}, ${e.quote}, ${sourceEventId}, ${e.sourceType}, ${quoteType})`;
     }
   }
 
@@ -188,6 +229,8 @@ export async function getSessionMoments(sessionId: string): Promise<SessionMomen
     relatedMomentIds: [],
     arcId: m.arc_id,
     arcRole: m.arc_role,
+    occurredAt: (m.occurred_at as string | null) ?? null,
+    verification: (m.verification as "supported" | "contradicted" | "unverified" | null | undefined) ?? null,
     evidence: (evidenceByMoment.get(m.id) ?? []).map((e: any) => ({
       quote: e.quote,
       sourceEventId: e.source_event_id ?? "",

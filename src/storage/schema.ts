@@ -140,6 +140,22 @@ export const chunks = pgTable("chunks", {
   eventRangeEnd: integer("event_range_end").notNull(),
 });
 
+// ── Sittings ───────────────────────────────────────────────────────────
+// A sitting is a contiguous coding session within a session file.
+// Multiple sittings can exist in one session (e.g. morning + afternoon).
+
+export const sittings = pgTable("sittings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionId: uuid("session_id")
+    .notNull()
+    .references(() => sessions.id, { onDelete: "cascade" }),
+  sittingIndex: integer("sitting_index").notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+  endedAt: timestamp("ended_at", { withTimezone: true }).notNull(),
+  eventRangeStart: integer("event_range_start").notNull(),
+  eventRangeEnd: integer("event_range_end").notNull(),
+});
+
 // ── Moments ────────────────────────────────────────────────────────────
 
 export const moments = pgTable("moments", {
@@ -158,6 +174,9 @@ export const moments = pgTable("moments", {
   topicFingerprint: text("topic_fingerprint"),
   arcId: text("arc_id"),
   arcRole: text("arc_role"),
+  // ── Understanding-stage provenance fields (additive, nullable) ──────
+  occurredAt: timestamp("occurred_at", { withTimezone: true }),
+  verification: text("verification"),
 });
 
 // ── Moment Evidence ────────────────────────────────────────────────────
