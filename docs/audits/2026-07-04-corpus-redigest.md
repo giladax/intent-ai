@@ -105,3 +105,11 @@ Sessions digested: 6 fresh digests (3 large: 20f5efec ~1025 events, 4ba051b7 ~82
 ---
 
 Digestion frozen as of this run per the strategic review; unfreeze requires the digestion-v2 decision.
+
+## Amendment: 5b31a1bb remediation
+
+The degenerate 5b31a1bb digest noted above (single-chunk attribution, 0 sittings, uniform
+confidence — produced under a concurrency warning) was replaced by a clean sequential
+`--force` re-digest: 42 moments across 17 chunks, 1 sitting, confidence 24 high / 13
+medium / 5 low. The degradation was run contention, not a pipeline defect. Corpus is
+now uniformly healthy; the freeze stands.
