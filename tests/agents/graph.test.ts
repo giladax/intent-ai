@@ -32,10 +32,14 @@ import { defineTool } from "../../src/agents/core/tool.js";
 // Each call pops the next AIMessage from the queue.
 // bindTools returns `this` (tools ignored — the fake model controls its own
 // output regardless of bound tools).
+//
+// recordedInputs: every BaseMessage[] passed to _generate is appended here,
+// so tests can assert on message structure per call.
 
 class ScriptedFakeChatModel extends BaseChatModel {
   private queue: AIMessage[];
   private callCount = 0;
+  recordedInputs: BaseMessage[][] = [];
 
   constructor(messages: AIMessage[]) {
     super({});
@@ -50,12 +54,12 @@ class ScriptedFakeChatModel extends BaseChatModel {
     return [];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async _generate(
-    _messages: BaseMessage[],
+    messages: BaseMessage[],
     _options: this["ParsedCallOptions"],
     _runManager?: CallbackManagerForLLMRun
   ): Promise<ChatResult> {
+    this.recordedInputs.push([...messages]);
     const idx = this.callCount;
     this.callCount++;
     const msg = this.queue[idx] ?? new AIMessage({ content: "fallback" });
@@ -206,6 +210,26 @@ describe("buildAgentGraph / runAgent", () => {
     expect(result.partial).toBe(false);
     expect(result.output).toEqual({ answer: "repaired" });
     expect(result.stats.repairs).toBe(1);
+
+    // The repair call (index 1) must have received the validation-error text
+    // so the model can correct its output.
+    expect(model.recordedInputs.length).toBeGreaterThanOrEqual(2);
+    const repairCallInputs = model.recordedInputs[1];
+    const repairCallText = repairCallInputs
+      .map((m) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content)))
+      .join("\n");
+    expect(repairCallText).toMatch(/Output validation failed/i);
+
+    // No recorded call should have a SystemMessage at index > 0 — mid-conversation
+    // SystemMessages crash the Anthropic adapter.
+    for (const callInputs of model.recordedInputs) {
+      for (let i = 1; i < callInputs.length; i++) {
+        expect(
+          callInputs[i],
+          `call inputs should not contain a SystemMessage at index ${i}`
+        ).not.toBeInstanceOf(SystemMessage);
+      }
+    }
   });
 
   // (e) 3× invalid → partial: true with rawFinal

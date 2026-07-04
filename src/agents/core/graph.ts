@@ -248,16 +248,20 @@ export function buildAgentGraph(
         };
       }
 
-      // Bounce: append validation errors as a system message so model can repair
+      // Bounce: append validation errors as a human message so model can repair.
+      // Must be HumanMessage — SystemMessage mid-conversation crashes the
+      // Anthropic adapter ("System messages are only permitted as the first
+      // passed message"). budgetExhausted also acts as the finalize-mode sentinel
+      // so call_model skips tool routing and goes straight to finalModel.
       return {
         messages: [
-          new SystemMessage(
+          new HumanMessage(
             `Output validation failed (repair attempt ${state.repairs + 1}/${MAX_REPAIRS}). Errors: ${errors}. Please call the final_output tool again with corrected data.`
           ),
         ],
         repairs: 1,
         output: null,
-        budgetExhausted: true, // force finalize path on next call_model turn
+        budgetExhausted: true, // finalize-mode sentinel: skip tool routing, use finalModel
       };
     }
 
@@ -274,9 +278,11 @@ export function buildAgentGraph(
             output: { __partial: true, __rawFinal: rawFinalStr },
           };
         }
+        // Must be HumanMessage — SystemMessage mid-conversation crashes the
+        // Anthropic adapter. budgetExhausted also acts as finalize-mode sentinel.
         return {
           messages: [
-            new SystemMessage(
+            new HumanMessage(
               `Custom node "${cn.name}" requires repair (attempt ${state.repairs + 1}/${MAX_REPAIRS}): ${bounceMsg}. Please call the final_output tool again with corrected data.`
             ),
           ],
@@ -372,10 +378,14 @@ function budgetGuardNode(_state: AgentState) {
 }
 
 function budgetExhaustedNode(_state: AgentState) {
-  // Mark budget exhausted so call_model uses finalModel on next pass
+  // Mark budget exhausted so call_model uses finalModel on next pass.
+  // Must be HumanMessage — SystemMessage mid-conversation crashes the
+  // Anthropic adapter ("System messages are only permitted as the first
+  // passed message"). budgetExhausted also acts as the finalize-mode sentinel
+  // for repair bounces in finalizeNode, not only literal budget exhaustion.
   return {
     budgetExhausted: true,
-    messages: [new SystemMessage(BUDGET_NUDGE)],
+    messages: [new HumanMessage(BUDGET_NUDGE)],
   };
 }
 
