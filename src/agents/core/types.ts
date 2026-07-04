@@ -17,7 +17,12 @@ export interface AgentToolDef<I = unknown, O = unknown> {
 
 export interface CustomNode {
   name: string;
-  // Implementation details added in Task 3 (graph.ts)
+  /**
+   * Runs after outputSchema validation passes.
+   * Returns null to accept, or repair instructions (string) to bounce back to
+   * the model. Implementation lives in graph.ts.
+   */
+  check: (output: unknown, state: unknown) => Promise<string | null>;
 }
 
 // ── AgentConfig ─────────────────────────────────────────────────────────────
