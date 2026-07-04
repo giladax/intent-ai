@@ -1,113 +1,116 @@
 ---
 name: brain-query
-description: Query the intent-ai brain knowledge graph for codebase context. Use when you need to understand how something works, find relevant files, get step-by-step recipes, or understand why something was built a certain way. Simulates MCP brain tools via REST API.
+description: Query the intent-ai Brain MCP server for feature context. Use when you need to understand how something works, find relevant files, get constraints, or understand why something was built a certain way. The Brain uses an orientation-first, drill-on-demand model.
 ---
 
 # Brain Query Skill
 
-Query the project's accumulated knowledge graph for codebase navigation, patterns, skills, and intent.
+Query the project's accumulated feature knowledge over MCP. The Brain answers in
+two tiers: a terse orientation by default, full depth on demand.
 
-## Prerequisites
+## Orientation-first, drill on demand
 
-The web server must be running: `npx tsx src/cli/index.ts web --port 3456`
+`brain_enter` and `brain_feature_context` return a **terse orientation** (~15 lines):
+- Feature name + id
+- Verdict-grade understanding (2-3 sentences, with citations)
+- Constraints as one-liners (shown in full if ≤3; count + drill hint if >3)
+- **Drill handles**: moment/session counts + truncated ids pointing to drill tools
 
-If the server isn't running, start it in the background before proceeding.
+Read the orientation first. Pull depth only when your task needs it.
 
-## Available Queries
+## Primary entry tools
 
-You have 5 query tools available via the REST API at `http://localhost:3456`:
+### brain_enter (start here)
 
-### 1. Search Brain (free-text)
-Find topics, insights, and patterns matching a query.
-
-```bash
-curl -s "http://localhost:3456/api/brain/search?q=QUERY&repoId=REPO_ID" | head -100
-```
-
-### 2. Get Topic (full details)
-Get complete topic with insights, patterns, skills, and files.
-
-```bash
-curl -s "http://localhost:3456/api/brain/topics/TOPIC_ID/full" | head -100
-```
-
-### 3. Get Skill (step-by-step recipe)
-Get a specific skill/recipe for a common task.
-
-```bash
-curl -s "http://localhost:3456/api/brain/skills/SKILL_ID" | head -100
-```
-
-### 4. Get Files Context
-Get brain context for files you're about to work on.
-
-```bash
-curl -s -X POST http://localhost:3456/api/brain/files-context \
-  -H "Content-Type: application/json" \
-  -d '{"files":["src/pipeline/orchestrator.ts","src/adapters/types.ts"],"repoId":"REPO_ID"}' | head -100
-```
-
-### 5. Ask Intent
-Ask why something was built a certain way. Returns session moments and decisions.
-
-```bash
-curl -s -X POST http://localhost:3456/api/brain/ask-intent \
-  -H "Content-Type: application/json" \
-  -d '{"query":"why was the two-pass moment detection chosen","repoId":"REPO_ID"}' | head -100
-```
-
-## How to Use
-
-When you need codebase context, dispatch a subagent to query the brain:
+Resolve a file or task to its Feature and get an orientation.
 
 ```
-Agent tool:
-  description: "Query brain for [topic]"
-  prompt: |
-    You are a brain query agent. Your job is to query the intent-ai brain REST API
-    and return structured results.
-
-    Query to answer: [THE QUESTION]
-
-    Steps:
-    1. First, find the repo ID:
-       curl -s http://localhost:3456/api/projects | jq '.[0].id'
-
-    2. Search the brain:
-       curl -s "http://localhost:3456/api/brain/search?q=[SEARCH_TERMS]&repoId=[REPO_ID]"
-
-    3. If you find relevant topics, get full details:
-       curl -s "http://localhost:3456/api/brain/topics/[TOPIC_ID]/full"
-
-    4. If the question is about files, use files-context:
-       curl -s -X POST http://localhost:3456/api/brain/files-context \
-         -H "Content-Type: application/json" \
-         -d '{"files":[FILE_PATHS],"repoId":"[REPO_ID]"}'
-
-    5. If the question is "why was X built this way", use ask-intent:
-       curl -s -X POST http://localhost:3456/api/brain/ask-intent \
-         -H "Content-Type: application/json" \
-         -d '{"query":"[QUESTION]","repoId":"[REPO_ID]"}'
-
-    Return a concise summary of what the brain says, including:
-    - Relevant topic names and summaries
-    - Key insights (especially navigation, pitfall, constraint)
-    - Any patterns (requests agents keep making, common struggles)
-    - Any skills/recipes available
-    - File references
+mcp__intent-brain__brain_enter({
+  file: "src/pipeline/emit-events.ts",   // or
+  task: "add a new MCP tool",
+  depth: "orientation"  // default — omit this; pass "full" only if you need everything
+})
 ```
 
-## When to Use This Skill
+Returns: feature name+id, understanding verdict, constraints, drill handles.
+On 0 or >1 matches: candidate list to pick from — never guesses.
 
-- **Before starting work on unfamiliar code**: Query `files-context` for the files you'll touch
-- **When exploring the codebase**: Use `search` to find relevant knowledge areas
-- **When stuck**: Check if there are `struggle` patterns or `pitfall` insights for your area
-- **When following a workflow**: Look for approved `skills` with step-by-step recipes
-- **When you need to understand history**: Use `ask-intent` for decision rationale
+### brain_feature_context (by id)
 
-## Fallback: Offline Mode
+Fetch a Feature's orientation (or full context) when you already have the id.
 
-If the web server isn't running, the brain is also available as markdown files:
-- `.repo/brain.md` — topic index with hierarchy
-- `.repo/topics/*.md` — per-topic knowledge with insights, patterns, skills
-- Use the `intent mcp` command for MCP-native access (reads .repo/ files directly)
+```
+mcp__intent-brain__brain_feature_context({
+  featureId: "abc-123",
+  depth: "orientation"  // default; or "full" for the complete assembled block
+})
+```
+
+## Drill tools (pull only what you need)
+
+### brain_moments — terse moment list
+
+```
+mcp__intent-brain__brain_moments({ featureId: "abc-123" })
+```
+
+Returns: terse moment statements with confidence, verification status, and moment ids.
+No evidence quotes — call `brain_evidence` to pull those.
+
+### brain_evidence — anchored quotes for one moment
+
+```
+mcp__intent-brain__brain_evidence({ momentId: "moment-id-from-brain-moments" })
+```
+
+Returns: verbatim transcript excerpts that ground the claim (the provenance chain).
+Use after `brain_moments` to verify a specific claim before relying on it.
+
+### brain_narrative — one session's arc
+
+```
+mcp__intent-brain__brain_narrative({ sessionId: "session-id-from-orientation" })
+```
+
+Returns: session summary, progression (how intent evolved), key discoveries.
+Use when the session id appears in the orientation drill handles and you want to
+understand what happened in that session.
+
+## Full context (backward compat / when you need everything)
+
+Pass `depth: "full"` to any of the above to get the complete assembled block:
+understanding + all key moments with evidence + sessions + files + agent instructions.
+
+```
+mcp__intent-brain__brain_feature_context({ featureId: "abc-123", depth: "full" })
+```
+
+## Search
+
+```
+mcp__intent-brain__brain_search({ query: "activity events" })
+```
+
+Returns: top-matching Features with ids, for use with `brain_feature_context`.
+
+## Write-back (report what you learn)
+
+After your session, report back to the Brain:
+
+```
+mcp__intent-brain__brain_report_observation({ featureId, summary, kind, sessionId })
+mcp__intent-brain__brain_report_unknown({ featureId, summary, sessionId })
+mcp__intent-brain__brain_rate_context({ featureId, rating, comment, sessionId })
+```
+
+## When to use each tool
+
+| Situation | Tool |
+|-----------|------|
+| Starting work on unfamiliar code | `brain_enter(file: ...)` |
+| Starting work on a task/goal | `brain_enter(task: ...)` |
+| Need the constraints for a feature you already know | `brain_feature_context(featureId)` |
+| Want to verify a specific claim | `brain_moments(featureId)` → `brain_evidence(momentId)` |
+| Need to understand what happened in a session | `brain_narrative(sessionId)` |
+| Need everything (rare — costs context) | any tool with `depth: "full"` |
+| Searching by concept | `brain_search(query)` |

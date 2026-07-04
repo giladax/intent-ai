@@ -21,6 +21,8 @@ import {
   resolveTask,
   formatCandidates,
   formatFeatureContext,
+  type SessionNarrativeSummary,
+  formatSessionNarrative,
 } from "./feature.js";
 
 /**
@@ -36,10 +38,15 @@ export function looksLikeFilePath(input: string): boolean {
 }
 
 /** Load + format one Feature's served context. Null when it doesn't exist. */
-export async function renderFeatureContext(featureId: string): Promise<string | null> {
+export async function renderFeatureContext(
+  featureId: string,
+  depth: "orientation" | "full" = "orientation",
+): Promise<string | null> {
   const ctx = await loadFeatureContext(featureId);
-  return ctx ? formatFeatureContext(ctx) : null;
+  return ctx ? formatFeatureContext(ctx, depth) : null;
 }
+
+export { formatSessionNarrative, type SessionNarrativeSummary };
 
 export interface FeatureContextResult {
   /** the served context block (or candidate list) — model-facing text */

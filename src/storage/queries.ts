@@ -640,6 +640,66 @@ export async function getFeatureMoments(
   }));
 }
 
+// ── Drill tool queries (essence principle — on-demand depth) ───────
+
+export interface MomentBasicRow {
+  id: string;
+  sessionId: string;
+  statement: string;
+  confidence: string | null;
+  verification: string | null;
+  occurredAt: Date | null;
+  quote: string | null;
+}
+
+/** Fetch a single moment by id (for evidence drill). */
+export async function getMomentById(momentId: string): Promise<MomentBasicRow | null> {
+  const sql = getClient();
+  const rows = await sql`
+    SELECT m.id, m.session_id, m.statement, m.confidence, m.verification, m.occurred_at,
+           (SELECT me.quote FROM moment_evidence me
+             WHERE me.moment_id = m.id
+             ORDER BY (me.source_event_id IS NULL), me.id
+             LIMIT 1) AS quote
+    FROM moments m WHERE m.id = ${momentId} LIMIT 1`;
+  if (rows.length === 0) return null;
+  const r = rows[0] as any;
+  return {
+    id: r.id as string,
+    sessionId: r.session_id as string,
+    statement: r.statement as string,
+    confidence: (r.confidence as string | null) ?? null,
+    verification: (r.verification as string | null) ?? null,
+    occurredAt: r.occurred_at ? new Date(r.occurred_at) : null,
+    quote: (r.quote as string | null) ?? null,
+  };
+}
+
+export interface MomentEvidenceRow {
+  id: string;
+  quote: string;
+  sourceType: string;
+  quoteType: string | null;
+  sourceEventId: string | null;
+}
+
+/** All evidence quotes for a moment, ordered by anchor quality. */
+export async function getMomentEvidence(momentId: string): Promise<MomentEvidenceRow[]> {
+  const sql = getClient();
+  const rows = await sql`
+    SELECT id, quote, source_type, quote_type, source_event_id
+    FROM moment_evidence
+    WHERE moment_id = ${momentId}
+    ORDER BY (source_event_id IS NULL), id`;
+  return rows.map((r: any) => ({
+    id: r.id as string,
+    quote: (r.quote as string) ?? "",
+    sourceType: (r.source_type as string) ?? "unknown",
+    quoteType: (r.quote_type as string | null) ?? null,
+    sourceEventId: (r.source_event_id as string | null) ?? null,
+  }));
+}
+
 /** Observations attached to a Feature, filtered by review status. */
 export async function getFeatureObservations(
   featureId: string,

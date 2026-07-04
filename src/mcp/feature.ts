@@ -275,7 +275,66 @@ export function formatCandidates(features: FeatureRecord[], reason: string): str
   return lines.join("\n");
 }
 
-export function formatFeatureContext(ctx: FeatureContextData): string {
+/**
+ * Terse orientation block (~15 lines): verdict-grade understanding, constraints
+ * (if ≤3), and drill handles so the agent can pull depth on demand.
+ * This is the default serve shape — orientation first, drill on demand.
+ */
+export function formatFeatureOrientation(ctx: FeatureContextData): string {
+  const { feature } = ctx;
+  const lines: string[] = [];
+
+  lines.push(`Feature: ${feature.name}  [id: ${feature.id}]`);
+
+  // Verdict-grade understanding: first 2-3 sentences of assembled understanding.
+  const understandingParts: string[] = [];
+  if (feature.currentUnderstanding) understandingParts.push(feature.currentUnderstanding);
+  for (const o of ctx.approvedObservations) understandingParts.push(o.summary);
+  if (understandingParts.length > 0) {
+    const full = understandingParts.join(" ");
+    // Split on sentence boundaries; take first 3 sentences.
+    const sentences = full.match(/[^.!?]+[.!?]+/g) ?? [full];
+    const verdict = sentences.slice(0, 3).join(" ").trim();
+    lines.push(`\nUnderstanding: ${verdict}`);
+  }
+
+  // Constraints earn their tokens — always include if ≤3; skip if >3 (tell agent to drill).
+  if (feature.constraints.length > 0 && feature.constraints.length <= 3) {
+    lines.push(`\nConstraints:`);
+    for (const c of feature.constraints) lines.push(`  · ${c}`);
+  } else if (feature.constraints.length > 3) {
+    lines.push(`\nConstraints: ${feature.constraints.length} — call brain_feature_context("${feature.id}", depth: "full") to see all.`);
+  }
+
+  // Drill handles: counts + ids so the agent can pull exactly what it needs.
+  const keyMoments = selectKeyMoments(ctx.momentCandidates, ctx.relevantFiles);
+  const sessionIds = ctx.relatedSessions.slice(0, 3).map((s) => s.id.slice(0, 8) + "…");
+  const drillParts: string[] = [];
+  if (keyMoments.length > 0) {
+    const momentIds = keyMoments.slice(0, 3).map((m) => m.id.slice(0, 8) + "…").join(", ");
+    drillParts.push(`${keyMoments.length} moment${keyMoments.length === 1 ? "" : "s"} (ids: ${momentIds}) → brain_moments("${feature.id}")`);
+  }
+  if (ctx.relatedSessions.length > 0) {
+    drillParts.push(`${ctx.relatedSessions.length} session${ctx.relatedSessions.length === 1 ? "" : "s"} (s: ${sessionIds.join(", ")}) → brain_narrative(sessionId)`);
+  }
+  if (keyMoments.length > 0) {
+    drillParts.push(`evidence per moment → brain_evidence(momentId)`);
+  }
+  if (drillParts.length > 0) {
+    lines.push(`\nDrill:`);
+    for (const d of drillParts) lines.push(`  · ${d}`);
+  }
+
+  lines.push(`\nFor full context (moments+evidence+sessions+files): brain_feature_context("${feature.id}", depth: "full")`);
+
+  return lines.join("\n");
+}
+
+/**
+ * Full assembled context block — the original rich format.
+ * Returned when depth:"full" is requested (backward compat).
+ */
+export function formatFeatureContextFull(ctx: FeatureContextData): string {
   const { feature } = ctx;
   const parts: string[] = [];
   parts.push(`# Feature: ${feature.name}  [id: ${feature.id}]`);
@@ -334,4 +393,96 @@ export function formatFeatureContext(ctx: FeatureContextData): string {
   parts.push(`\n## Agent Instructions\n\n${buildAgentInstructions(ctx)}`);
 
   return parts.join("\n");
+}
+
+/**
+ * Default entry point: orientation by default, full on demand.
+ * The depth param is the backward-compat escape hatch.
+ */
+export function formatFeatureContext(
+  ctx: FeatureContextData,
+  depth: "orientation" | "full" = "orientation",
+): string {
+  return depth === "full" ? formatFeatureContextFull(ctx) : formatFeatureOrientation(ctx);
+}
+
+// ── Drill tool formatters ────────────────────────────────────────────
+
+/**
+ * Terse moment list for brain_moments: statement + confidence/verification + id.
+ * No evidence quotes — those come from brain_evidence(momentId).
+ */
+export function formatMomentList(moments: FeatureMomentRow[]): string {
+  if (moments.length === 0) return "No moments available for this Feature.";
+  const lines = moments.map((m) => {
+    const conf = m.confidence ?? "?";
+    const verif = m.verification ?? "unverified";
+    const day = m.occurredAt ? m.occurredAt.toISOString().slice(0, 10) : "undated";
+    const hasEvidence = typeof m.quote === "string" && m.quote.trim().length > 0;
+    return `[${m.id.slice(0, 8)}…] [${conf}, ${verif}] ${m.statement} (${day})${hasEvidence ? " · evidence: brain_evidence(\"" + m.id + "\")" : ""}`;
+  });
+  lines.push(`\nUse brain_evidence(momentId) for anchored quotes.`);
+  return lines.join("\n");
+}
+
+/**
+ * Evidence detail for brain_evidence(momentId): the anchored quotes +
+ * transcript refs. Used after brain_moments to pull provenance for a
+ * specific claim.
+ */
+export interface MomentEvidenceItem {
+  quote: string;
+  sourceType: string;
+  quoteType: string | null;
+  sourceEventId: string | null;
+}
+
+export function formatMomentEvidence(
+  momentId: string,
+  statement: string,
+  evidence: MomentEvidenceItem[],
+): string {
+  if (evidence.length === 0) {
+    return `Moment ${momentId.slice(0, 8)}… has no stored evidence quotes.`;
+  }
+  const lines: string[] = [
+    `Moment [${momentId.slice(0, 8)}…]: ${statement}`,
+    ``,
+    `Evidence (${evidence.length} quote${evidence.length === 1 ? "" : "s"}):`,
+  ];
+  for (const e of evidence) {
+    const ref = e.sourceEventId ? ` [event: ${e.sourceEventId.slice(0, 8)}…]` : "";
+    const qt = e.quoteType ? ` (${e.quoteType})` : "";
+    lines.push(`  > "${e.quote.replace(/\s+/g, " ").trim().slice(0, 300)}"${qt} · ${e.sourceType}${ref}`);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Narrative summary for brain_narrative(sessionId): the session's summary +
+ * progression + key discoveries. Compact enough for on-demand reads.
+ */
+export interface SessionNarrativeSummary {
+  sessionId: string;
+  sessionShape: string;
+  summary: string;
+  progression: string[];
+  discoveries: string[];
+}
+
+export function formatSessionNarrative(n: SessionNarrativeSummary): string {
+  const lines: string[] = [
+    `Session ${n.sessionId.slice(0, 8)}… (${n.sessionShape})`,
+    ``,
+    `Summary: ${n.summary}`,
+  ];
+  if (n.progression.length > 0) {
+    lines.push(`\nProgression:`);
+    for (const p of n.progression) lines.push(`  · ${p}`);
+  }
+  if (n.discoveries.length > 0) {
+    lines.push(`\nDiscoveries:`);
+    for (const d of n.discoveries) lines.push(`  · ${d}`);
+  }
+  return lines.join("\n");
 }

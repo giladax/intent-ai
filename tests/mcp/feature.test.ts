@@ -8,6 +8,11 @@ import {
   scoreFeaturesForTask,
   formatCandidates,
   formatFeatureContext,
+  formatFeatureContextFull,
+  formatFeatureOrientation,
+  formatMomentList,
+  formatMomentEvidence,
+  formatSessionNarrative,
   buildAgentInstructions,
   fileMatchesPatterns,
   selectKeyMoments,
@@ -249,8 +254,10 @@ describe("formatting", () => {
     ],
   };
 
-  it("formatFeatureContext includes all sections", () => {
-    const text = formatFeatureContext(ctx);
+  // ── full format (depth:"full" / formatFeatureContextFull) ─────
+
+  it("formatFeatureContext depth:full includes all sections", () => {
+    const text = formatFeatureContext(ctx, "full");
     expect(text).toContain("# Feature: Activity Event Backbone");
     expect(text).toContain("## Current Understanding");
     expect(text).toContain("Chose freeform categories");
@@ -263,8 +270,22 @@ describe("formatting", () => {
     expect(text).toContain("## Agent Instructions");
   });
 
-  it("formatFeatureContext renders key moments with evidence quotes and verification", () => {
-    const text = formatFeatureContext(ctx);
+  it("formatFeatureContextFull includes all sections", () => {
+    const text = formatFeatureContextFull(ctx);
+    expect(text).toContain("# Feature: Activity Event Backbone");
+    expect(text).toContain("## Current Understanding");
+    expect(text).toContain("Chose freeform categories");
+    expect(text).toContain("## Constraints");
+    expect(text).toContain("No enum/CHECK on category");
+    expect(text).toContain("## Relevant Files");
+    expect(text).toContain("## Related Sessions");
+    expect(text).toContain("## Known Unknowns");
+    expect(text).toContain("How to dedupe?");
+    expect(text).toContain("## Agent Instructions");
+  });
+
+  it("formatFeatureContextFull renders key moments with evidence quotes and verification", () => {
+    const text = formatFeatureContextFull(ctx);
     expect(text).toContain("## Key Moments");
     expect(text).toContain("Chose denormalized session context on events");
     expect(text).toContain("high, supported");
@@ -273,10 +294,116 @@ describe("formatting", () => {
     expect(text).not.toContain("moment m-low");
   });
 
-  it("formatFeatureContext omits the Key Moments section when there are no candidates", () => {
-    const text = formatFeatureContext({ ...ctx, momentCandidates: [] });
+  it("formatFeatureContextFull omits the Key Moments section when there are no candidates", () => {
+    const text = formatFeatureContextFull({ ...ctx, momentCandidates: [] });
     expect(text).not.toContain("## Key Moments");
   });
+
+  // ── orientation format (default) ──────────────────────────────
+
+  it("formatFeatureContext defaults to orientation (terse)", () => {
+    const text = formatFeatureContext(ctx);
+    // orientation includes the feature name and id
+    expect(text).toContain("Activity Event Backbone");
+    expect(text).toContain("[id: f1]");
+    // orientation includes the understanding verdict
+    expect(text).toContain("Understanding:");
+    expect(text).toContain("Events are self-contained");
+    // orientation does NOT include the heavy markdown sections
+    expect(text).not.toContain("## Current Understanding");
+    expect(text).not.toContain("## Key Moments");
+    expect(text).not.toContain("## Related Sessions");
+  });
+
+  it("formatFeatureOrientation includes constraints (≤3) and drill handles", () => {
+    const text = formatFeatureOrientation(ctx);
+    // constraints (≤3) are always shown
+    expect(text).toContain("No enum/CHECK on category");
+    expect(text).toContain("emitEvents wrapped in try/catch");
+    // drill handles include moment and session counts
+    expect(text).toContain("brain_moments");
+    expect(text).toContain("brain_narrative");
+    expect(text).toContain("brain_evidence");
+    // ends with the full-context drill hint
+    expect(text).toContain("brain_feature_context");
+  });
+
+  it("formatFeatureOrientation suppresses constraints section when >3 and tells agent to drill", () => {
+    const manyConstraints = {
+      ...ctx,
+      feature: {
+        ...ctx.feature,
+        constraints: ["c1", "c2", "c3", "c4"],
+      },
+    };
+    const text = formatFeatureOrientation(manyConstraints);
+    // individual constraints not listed
+    expect(text).not.toContain("· c1");
+    // count + drill hint present
+    expect(text).toContain("4 —");
+    expect(text).toContain("depth");
+  });
+
+  it("formatFeatureOrientation omits drill handles when no moments or sessions", () => {
+    const empty = { ...ctx, momentCandidates: [], relatedSessions: [] };
+    const text = formatFeatureOrientation(empty);
+    expect(text).not.toContain("brain_moments");
+    expect(text).not.toContain("brain_narrative");
+  });
+
+  // ── drill tool formatters ──────────────────────────────────────
+
+  it("formatMomentList renders terse moment entries with ids", () => {
+    const moments = [
+      momentRow({ id: "aaaa1111-0000-0000-0000-000000000001", statement: "Key decision made" }),
+    ];
+    const text = formatMomentList(moments);
+    expect(text).toContain("Key decision made");
+    expect(text).toContain("brain_evidence");
+    expect(text).toContain("high");
+    expect(text).toContain("supported");
+  });
+
+  it("formatMomentList returns empty message when no moments", () => {
+    expect(formatMomentList([])).toContain("No moments");
+  });
+
+  it("formatMomentEvidence renders quotes with source refs", () => {
+    const evidence = [
+      {
+        quote: "the key quote from the session",
+        sourceType: "human_message",
+        quoteType: "verbatim",
+        sourceEventId: "ev-1234-5678",
+      },
+    ];
+    const text = formatMomentEvidence("m1-id", "Some claim", evidence);
+    expect(text).toContain("Some claim");
+    expect(text).toContain("the key quote from the session");
+    expect(text).toContain("verbatim");
+    expect(text).toContain("human_message");
+  });
+
+  it("formatMomentEvidence handles no-evidence case", () => {
+    const text = formatMomentEvidence("m1-id", "Some claim", []);
+    expect(text).toContain("no stored evidence");
+  });
+
+  it("formatSessionNarrative renders summary and progression", () => {
+    const n = {
+      sessionId: "sess-abc-123",
+      sessionShape: "narrative",
+      summary: "Built the backbone with a unified events table",
+      progression: ["Started with design", "Implemented schema"],
+      discoveries: ["feature_id must stay non-FK"],
+    };
+    const text = formatSessionNarrative(n);
+    expect(text).toContain("Built the backbone");
+    expect(text).toContain("Started with design");
+    expect(text).toContain("feature_id must stay non-FK");
+  });
+
+  // ── unchanged helpers ──────────────────────────────────────────
 
   it("buildAgentInstructions leads with constraints", () => {
     const instr = buildAgentInstructions(ctx);

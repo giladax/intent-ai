@@ -6,6 +6,9 @@ import {
   listFeatures,
   getFeatureById,
   getFeatureFileRows,
+  getFeatureMoments,
+  getMomentById,
+  getMomentEvidence,
   insertObservation,
   type FeatureRecord,
 } from "../storage/queries.js";
@@ -14,8 +17,13 @@ import {
   resolveFeature,
   resolveTask,
   formatCandidates,
+  selectKeyMoments,
+  formatMomentList,
+  formatMomentEvidence,
+  formatSessionNarrative,
 } from "./feature.js";
 import { renderFeatureContext } from "./context.js";
+import { getSessionNarrative } from "../storage/queries.js";
 import {
   buildMcpReadEvent,
   emitMcpReadEvent,
@@ -33,8 +41,11 @@ function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-async function featureContextResponse(featureId: string) {
-  const text = await renderFeatureContext(featureId);
+async function featureContextResponse(
+  featureId: string,
+  depth: "orientation" | "full" = "orientation",
+) {
+  const text = await renderFeatureContext(featureId, depth);
   if (!text) return mcpText(`Feature ${featureId} not found.`);
   return mcpText(text);
 }
@@ -180,27 +191,29 @@ export function createBrainServer(): McpServer {
 
   // ── brain_file_context (re-keyed onto Feature) ────────────────
   // Given a file path, resolve its Feature via the file↔Feature map
-  // (longest-glob-wins) and return the Feature's served context. On 0 or
+  // (longest-glob-wins) and return the Feature's orientation. On 0 or
   // >1 matching Features, returns the candidate list — never guesses.
 
   server.tool(
     "brain_file_context",
-    "Get Brain context for a source file — resolves the file's Feature and returns its current understanding, constraints, and relevant files. Use before editing unfamiliar code.",
+    "Get Brain context for a source file — resolves the file's Feature and returns a terse orientation (understanding verdict, constraints, drill handles). Use before editing unfamiliar code. Pass depth:\"full\" for the complete assembled block.",
     {
       file: z.string().describe("File path (relative or absolute)"),
+      depth: z.enum(["orientation", "full"]).optional().describe("\"orientation\" (default) returns a terse 15-line summary with drill handles; \"full\" returns the complete assembled context block"),
       sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ file, sessionId }) => {
+    async ({ file, depth, sessionId }) => {
       const startedAt = Date.now();
+      const resolvedDepth = depth ?? "orientation";
       try {
         const projectId = await getDefaultProjectId();
         const rows = await getFeatureFileRows(projectId ?? undefined);
         const res = resolveFeature(file, rows);
         if (res.featureId) {
           await emitRead("file-context", startedAt, "hit", `Agent got feature context for ${file}`, {
-            sessionId, featureId: res.featureId, metadata: { file },
+            sessionId, featureId: res.featureId, metadata: { file, depth: resolvedDepth },
           });
-          return await featureContextResponse(res.featureId);
+          return await featureContextResponse(res.featureId, resolvedDepth);
         }
         const outcome: McpOutcome = res.candidateIds.length === 0 ? "miss" : "candidates";
         await emitRead(
@@ -225,19 +238,21 @@ export function createBrainServer(): McpServer {
 
   // ── brain_enter ───────────────────────────────────────────────
   // The primary entry point for agents. Keyed by file OR task/goal.
-  // Resolves to a Feature and returns its served context; on 0 or >1
-  // matches returns the candidate list for the agent to pick.
+  // Resolves to a Feature and returns a terse orientation by default;
+  // depth:"full" returns the original assembled block for backward compat.
 
   server.tool(
     "brain_enter",
-    "Enter the Brain for a file or task. Returns the Feature's current understanding, constraints, relevant files, related sessions, and known unknowns. On 0 or >1 matches, returns the candidate list to pick from — never guesses.",
+    "Enter the Brain for a file or task. Returns a terse orientation: verdict-grade understanding (2-3 sentences), constraints (if ≤3), and drill handles (moment/session counts + ids). Use brain_moments, brain_evidence, brain_narrative to pull depth on demand. Pass depth:\"full\" for the full assembled block. On 0 or >1 matches, returns the candidate list.",
     {
       file: z.string().optional().describe("File path you are about to work on"),
       task: z.string().optional().describe("Task or goal description"),
+      depth: z.enum(["orientation", "full"]).optional().describe("\"orientation\" (default) returns a terse 15-line orientation with drill handles; \"full\" returns the complete assembled context block (understanding+moments+sessions+files)"),
       sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ file, task, sessionId }) => {
+    async ({ file, task, depth, sessionId }) => {
       const startedAt = Date.now();
+      const resolvedDepth = depth ?? "orientation";
       const target = file ? `file ${file}` : task ? `task "${task}"` : "nothing";
       try {
         const projectId = await getDefaultProjectId();
@@ -246,9 +261,9 @@ export function createBrainServer(): McpServer {
           const res = resolveFeature(file, rows);
           if (res.featureId) {
             await emitRead("enter", startedAt, "hit", `Agent entered the Brain for ${target}`, {
-              sessionId, featureId: res.featureId, metadata: { file },
+              sessionId, featureId: res.featureId, metadata: { file, depth: resolvedDepth },
             });
-            return await featureContextResponse(res.featureId);
+            return await featureContextResponse(res.featureId, resolvedDepth);
           }
           const outcome: McpOutcome = res.candidateIds.length === 0 ? "miss" : "candidates";
           await emitRead(
@@ -268,9 +283,9 @@ export function createBrainServer(): McpServer {
           const res = resolveTask(task, features);
           if (res.feature) {
             await emitRead("enter", startedAt, "hit", `Agent entered the Brain for ${target}`, {
-              sessionId, featureId: res.feature.id, metadata: { task },
+              sessionId, featureId: res.feature.id, metadata: { task, depth: resolvedDepth },
             });
-            return await featureContextResponse(res.feature.id);
+            return await featureContextResponse(res.feature.id, resolvedDepth);
           }
           const outcome: McpOutcome = res.candidates.length === 0 ? "miss" : "candidates";
           await emitRead(
@@ -295,18 +310,20 @@ export function createBrainServer(): McpServer {
   );
 
   // ── brain_feature_context ─────────────────────────────────────
-  // Fetch a Feature's served context directly by id (after picking from
-  // a candidate list returned by brain_enter / brain_file_context).
+  // Fetch a Feature's orientation (or full context) directly by id
+  // (after picking from a candidate list returned by brain_enter).
 
   server.tool(
     "brain_feature_context",
-    "Get the served context for a Feature by id: summary, current understanding, constraints, relevant files, related sessions, known unknowns, and agent instructions.",
+    "Get the Brain's context for a Feature by id. Default: terse orientation (verdict, constraints, drill handles). Pass depth:\"full\" for the complete assembled block (understanding + key moments with evidence + sessions + files + agent instructions).",
     {
-      featureId: z.string().describe("Feature id (from a candidate list)"),
+      featureId: z.string().describe("Feature id (from a candidate list or brain_search)"),
+      depth: z.enum(["orientation", "full"]).optional().describe("\"orientation\" (default) returns a terse 15-line orientation with drill handles; \"full\" returns the complete assembled context block"),
       sessionId: z.string().optional().describe("Your session id, for provenance"),
     },
-    async ({ featureId, sessionId }) => {
+    async ({ featureId, depth, sessionId }) => {
       const startedAt = Date.now();
+      const resolvedDepth = depth ?? "orientation";
       try {
         const feature = await getFeatureById(featureId);
         await emitRead(
@@ -314,17 +331,139 @@ export function createBrainServer(): McpServer {
           startedAt,
           feature ? "hit" : "miss",
           feature
-            ? `Agent got context for Feature "${feature.name}"`
+            ? `Agent got context for Feature "${feature.name}" (${resolvedDepth})`
             : `Agent requested Feature ${featureId} — not found`,
-          { sessionId, featureId, metadata: {} },
+          { sessionId, featureId, metadata: { depth: resolvedDepth } },
         );
         if (!feature) return mcpText(`Feature ${featureId} not found.`);
-        return await featureContextResponse(featureId);
+        return await featureContextResponse(featureId, resolvedDepth);
       } catch (err) {
         await emitRead("feature-context", startedAt, "error", `brain_feature_context failed for ${featureId}`, {
           sessionId, featureId, metadata: { error: errMsg(err) },
         });
         return mcpText(`brain_feature_context unavailable: ${errMsg(err)}`);
+      }
+    },
+  );
+
+  // ── brain_moments ─────────────────────────────────────────────
+  // Drill tool: terse moment statements + confidence/verification + moment ids.
+  // No evidence quotes — call brain_evidence(momentId) to pull those.
+
+  server.tool(
+    "brain_moments",
+    "List the key moments for a Feature — terse statements with confidence, verification status, and moment ids. Call brain_evidence(momentId) to pull anchored quotes for any moment.",
+    {
+      featureId: z.string().describe("Feature id"),
+      limit: z.number().int().min(1).max(50).optional().describe("Max moments to return (default 12)"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
+    },
+    async ({ featureId, limit, sessionId }) => {
+      const startedAt = Date.now();
+      try {
+        const feature = await getFeatureById(featureId);
+        if (!feature) {
+          await emitRead("moments", startedAt, "miss", `brain_moments: Feature ${featureId} not found`, { sessionId, featureId });
+          return mcpText(`Feature ${featureId} not found.`);
+        }
+        const candidates = await getFeatureMoments(featureId);
+        // relevantFiles for scoring: pull from feature_files
+        const { loadFeatureContext } = await import("../storage/queries.js");
+        const ctx = await loadFeatureContext(featureId);
+        const patterns = ctx?.relevantFiles ?? [];
+        const moments = selectKeyMoments(candidates, patterns, limit ?? 12);
+        await emitRead(
+          "moments",
+          startedAt,
+          moments.length > 0 ? "hit" : "miss",
+          `Agent listed moments for Feature "${feature.name}" — ${moments.length} returned`,
+          { sessionId, featureId, metadata: { count: moments.length } },
+        );
+        return mcpText(formatMomentList(moments));
+      } catch (err) {
+        await emitRead("moments", startedAt, "error", `brain_moments failed for ${featureId}`, {
+          sessionId, featureId, metadata: { error: errMsg(err) },
+        });
+        return mcpText(`brain_moments unavailable: ${errMsg(err)}`);
+      }
+    },
+  );
+
+  // ── brain_evidence ────────────────────────────────────────────
+  // Drill tool: anchored evidence quotes for one moment.
+  // Use after brain_moments to pull the provenance chain for a specific claim.
+
+  server.tool(
+    "brain_evidence",
+    "Get the anchored evidence quotes for a moment — verbatim transcript excerpts that ground the claim. Call after brain_moments to pull provenance for a specific moment id.",
+    {
+      momentId: z.string().describe("Moment id (from brain_moments output)"),
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
+    },
+    async ({ momentId, sessionId }) => {
+      const startedAt = Date.now();
+      try {
+        const moment = await getMomentById(momentId);
+        if (!moment) {
+          await emitRead("evidence", startedAt, "miss", `brain_evidence: moment ${momentId} not found`, { sessionId });
+          return mcpText(`Moment ${momentId} not found.`);
+        }
+        const evidence = await getMomentEvidence(momentId);
+        await emitRead(
+          "evidence",
+          startedAt,
+          evidence.length > 0 ? "hit" : "miss",
+          `Agent pulled evidence for moment [${momentId.slice(0, 8)}…] — ${evidence.length} quote${evidence.length === 1 ? "" : "s"}`,
+          { sessionId, metadata: { momentId, count: evidence.length } },
+        );
+        return mcpText(formatMomentEvidence(momentId, moment.statement, evidence));
+      } catch (err) {
+        await emitRead("evidence", startedAt, "error", `brain_evidence failed for ${momentId}`, {
+          sessionId, metadata: { momentId, error: errMsg(err) },
+        });
+        return mcpText(`brain_evidence unavailable: ${errMsg(err)}`);
+      }
+    },
+  );
+
+  // ── brain_narrative ───────────────────────────────────────────
+  // Drill tool: session narrative summary/progression for one session.
+  // Use after brain_enter to pull story context for a specific session id.
+
+  server.tool(
+    "brain_narrative",
+    "Get the narrative summary and progression for a session — what happened, key discoveries, how intent evolved. Call after brain_enter or brain_moments to understand a specific session's arc.",
+    {
+      sessionId: z.string().describe("Session id (from orientation drill handles or brain_moments)"),
+      callerSessionId: z.string().optional().describe("Your own session id, for provenance"),
+    },
+    async ({ sessionId, callerSessionId }) => {
+      const startedAt = Date.now();
+      try {
+        const narrative = await getSessionNarrative(sessionId);
+        if (!narrative) {
+          await emitRead("narrative", startedAt, "miss", `brain_narrative: no narrative for session ${sessionId}`, { sessionId: callerSessionId });
+          return mcpText(`No narrative found for session ${sessionId}.`);
+        }
+        await emitRead(
+          "narrative",
+          startedAt,
+          "hit",
+          `Agent pulled narrative for session [${sessionId.slice(0, 8)}…]`,
+          { sessionId: callerSessionId, metadata: { targetSessionId: sessionId } },
+        );
+        return mcpText(formatSessionNarrative({
+          sessionId: narrative.sessionId,
+          sessionShape: narrative.sessionShape,
+          summary: narrative.summary,
+          progression: narrative.progression ?? [],
+          discoveries: narrative.discoveries ?? [],
+        }));
+      } catch (err) {
+        await emitRead("narrative", startedAt, "error", `brain_narrative failed for ${sessionId}`, {
+          sessionId: callerSessionId, metadata: { targetSessionId: sessionId, error: errMsg(err) },
+        });
+        return mcpText(`brain_narrative unavailable: ${errMsg(err)}`);
       }
     },
   );
