@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brain — Selection · the handshake, exhibit → speech</title>
+<!--
+  FINAL ROUND · the Correspondence and the Exhibit · 2 of 3 — SELECTION (Maya, product lead)
+  The hero moment, direction one: selecting evidence makes the brain speak.
+  Maya selected Digest Pipeline in the exhibit — the Dossier renders, and the
+  Correspondence answers it unprompted with a grounded three-line brief.
+  A gold thread draws from the selection to the utterance: selection IS an utterance.
+  Her gate waits inline, stamps attached — review is not a place.
+  Five-second test: what changed on her features + what awaits her ink, within one selection.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..600;1,6..72,200..600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --j-ink: oklch(0.24 0.02 60);
+  --j-ink-soft: oklch(0.45 0.015 60);
+  --j-faint: oklch(0.58 0.012 60);
+  --j-hairline: oklch(0.88 0.012 75);
+  --j-paper: oklch(0.982 0.006 85);
+  --j-paper-raise: oklch(0.995 0.004 90);
+  --j-wash: oklch(0.955 0.01 85);
+  --j-red: oklch(0.55 0.19 30);
+  --j-red-soft: oklch(0.55 0.19 30 / 0.08);
+  --j-moss: oklch(0.52 0.09 150);
+  --j-moss-soft: oklch(0.52 0.09 150 / 0.1);
+  --j-consult: oklch(0.5 0.09 250);
+  --j-consult-soft: oklch(0.5 0.09 250 / 0.1);
+  --j-gold: oklch(0.62 0.13 78);
+  --j-gold-soft: oklch(0.62 0.13 78 / 0.12);
+  --j-violet: oklch(0.5 0.11 305);
+  --j-violet-soft: oklch(0.5 0.11 305 / 0.1);
+  --j-teal: oklch(0.52 0.09 210);
+  --j-teal-soft: oklch(0.52 0.09 210 / 0.1);
+  --j-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --card-shadow: 0 1px 2px oklch(0.24 0.02 60 / 0.03), 0 10px 30px -18px oklch(0.24 0.02 60 / 0.16);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--j-serif); color: var(--j-ink); overflow: hidden; font-optical-sizing: auto;
+  background:
+    radial-gradient(1100px 460px at 68% -8%, var(--j-paper-raise), transparent 70%),
+    var(--j-paper);
+}
+a { color: inherit; }
+.kicker { font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--j-faint); }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.frame { display: grid; grid-template-rows: 54px minmax(0, 1fr); height: 100vh; }
+.mast { display: flex; align-items: center; gap: 1.2rem; padding: 0 1.5rem; border-bottom: 1px solid var(--j-hairline); z-index: 20; background: color-mix(in oklab, var(--j-paper) 86%, transparent); backdrop-filter: blur(8px); }
+.wordmark { font-style: italic; font-weight: 500; font-size: 1.05rem; text-decoration: none; }
+.wordmark .dot { color: var(--j-gold); }
+.mast .tag { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--j-faint); }
+.now-whisper { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--j-moss); }
+.now-whisper .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--j-moss); animation: breathe 2.6s ease-in-out infinite; }
+.gate-badge { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-red); border: 1px solid color-mix(in oklab, var(--j-red) 35%, transparent); background: var(--j-red-soft); border-radius: 999px; padding: 0.28rem 0.7rem; text-decoration: none; }
+.gate-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--j-red); animation: breathe 2.6s ease-in-out infinite; }
+.walk { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); text-decoration: none; transition: color 0.2s ease; }
+.walk:hover { color: var(--j-ink); }
+
+.body { display: grid; grid-template-columns: minmax(390px, 41%) minmax(0, 1fr) 58px; min-height: 0; }
+
+/* ═══ the Correspondence ═══ */
+.corr { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--j-hairline); background: linear-gradient(to right, color-mix(in oklab, var(--j-wash) 55%, transparent), transparent 85%); }
+.corr-head { display: flex; align-items: baseline; gap: 0.7rem; padding: 0.85rem 1.5rem 0.7rem; border-bottom: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent); }
+.corr-head .kicker { color: var(--j-consult); letter-spacing: 0.26em; }
+.corr-head .note { margin-left: auto; font-style: italic; font-size: 0.78rem; color: var(--j-faint); }
+.thread { flex: 1; min-height: 0; overflow-y: auto; padding: 1.3rem 1.5rem 1.2rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; }
+
+.daymark { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
+.daymark::before, .daymark::after { content: ""; flex: 1; height: 1px; background: var(--j-hairline); }
+.daymark span { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--j-faint); white-space: nowrap; }
+
+.msg { margin-bottom: 1.25rem; animation: rise 0.7s cubic-bezier(0.22,1,0.36,1) backwards; }
+.msg .mk { display: flex; align-items: baseline; gap: 0.6rem; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--j-faint); margin-bottom: 0.45rem; }
+.msg .mk .nib { color: var(--j-consult); font-size: 0.85rem; letter-spacing: 0; }
+.msg .mk .who { color: var(--j-ink-soft); }
+.msg .mk .t { margin-left: auto; letter-spacing: 0.08em; }
+.bubble { background: var(--j-paper-raise); border: 1px solid var(--j-hairline); border-left: 3px solid var(--j-ink-soft); border-radius: 4px 14px 14px 4px; padding: 1.05rem 1.2rem 0.95rem; box-shadow: var(--card-shadow); }
+.bubble p { font-size: 1.02rem; line-height: 1.55; font-weight: 380; text-wrap: pretty; }
+.bubble p + p { margin-top: 0.6rem; }
+.bubble b { font-weight: 550; }
+
+.cites { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.85rem; }
+.cite { font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.04em; text-decoration: none; color: var(--j-consult); border: 1px solid color-mix(in oklab, var(--j-consult) 30%, transparent); border-radius: 999px; padding: 0.24rem 0.62rem; transition: background 0.18s ease, transform 0.18s ease; cursor: pointer; }
+.cite:hover { background: var(--j-consult-soft); transform: translateY(-1px); }
+.cite .h { color: var(--j-faint); }
+
+/* a record already inked — the correspondence remembers; warmth is earned */
+.msg.record .bubble { border-left-color: var(--j-moss); background: transparent; box-shadow: none; padding: 0.7rem 1rem 0.65rem; }
+.msg.record .bubble p { font-size: 0.88rem; font-style: italic; color: var(--j-ink-soft); }
+.msg.record .stamped { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-moss); background: var(--j-moss-soft); border-radius: 999px; padding: 0.24rem 0.65rem; margin-top: 0.55rem; }
+
+/* the gate — inline stamps (variant B's popover, re-homed into conversation) */
+.msg.gate .bubble { border-color: color-mix(in oklab, var(--j-red) 40%, var(--j-hairline)); border-left: 3px solid var(--j-red); }
+.msg.gate .gk { font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--j-red); display: flex; align-items: center; gap: 0.5rem; }
+.msg.gate .gk .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--j-red); animation: breathe 2.6s ease-in-out infinite; }
+.msg.gate .gq { font-size: 1.02rem; line-height: 1.5; margin-top: 0.5rem; }
+.msg.gate .gev { font-family: var(--j-mono); font-size: 0.58rem; letter-spacing: 0.06em; color: var(--j-faint); margin-top: 0.55rem; display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+.msg.gate .gev .m { color: var(--j-moss); }
+.stamps { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
+.stamp { font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 8px; padding: 0.38rem 0.75rem; cursor: pointer; background: var(--j-paper); border: 1px solid var(--j-hairline); color: var(--j-ink-soft); transition: transform 0.08s ease, background 0.18s ease, border-color 0.18s ease; }
+.stamp:active { transform: translateY(1px); }
+.stamp.yes { color: var(--j-moss); border-color: color-mix(in oklab, var(--j-moss) 45%, transparent); }
+.stamp.yes:hover { background: var(--j-moss-soft); }
+.stamp.no { color: var(--j-red); border-color: color-mix(in oklab, var(--j-red) 40%, transparent); }
+.stamp.no:hover { background: var(--j-red-soft); }
+.stamp.edit:hover { background: var(--j-wash); }
+.inked { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--j-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-moss); background: var(--j-moss-soft); border-radius: 999px; padding: 0.3rem 0.75rem; margin-top: 0.8rem; animation: rise 0.4s cubic-bezier(0.22,1,0.36,1); }
+
+/* ★ the utterance the selection produced — the handshake's left hand */
+.msg.spoken .bubble { border-color: color-mix(in oklab, var(--j-gold) 45%, var(--j-hairline)); border-left: 3px solid var(--j-gold); }
+.msg.spoken .mk .why { color: oklch(0.5 0.13 78); }
+.msg.spoken .sk { font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.24em; text-transform: uppercase; color: oklch(0.5 0.13 78); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
+.msg.spoken .sk::before { content: "◈"; font-size: 0.7rem; }
+.msg.spoken .row { display: grid; grid-template-columns: 4.6rem 1fr; gap: 0.25rem 0.8rem; padding: 0.35rem 0; }
+.msg.spoken .row + .row { border-top: 1px solid color-mix(in oklab, var(--j-hairline) 60%, transparent); }
+.msg.spoken .row .rk { font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--j-faint); padding-top: 0.35rem; }
+.msg.spoken .row p { font-size: 0.98rem; }
+.msg.spoken .row.needs .rk { color: var(--j-red); }
+
+.composer { border-top: 1px solid var(--j-hairline); padding: 0.85rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; background: color-mix(in oklab, var(--j-paper-raise) 80%, transparent); }
+.composer .nib { color: var(--j-consult); font-size: 1rem; }
+.composer input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--j-serif); font-style: italic; font-size: 0.98rem; color: var(--j-ink); }
+.composer input::placeholder { color: var(--j-faint); }
+.composer .scope { font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.5 0.13 78); border: 1px solid color-mix(in oklab, var(--j-gold) 45%, transparent); background: var(--j-gold-soft); border-radius: 999px; padding: 0.22rem 0.6rem; white-space: nowrap; }
+.composer kbd { font-family: var(--j-mono); font-size: 0.6rem; color: var(--j-faint); border: 1px solid var(--j-hairline); border-radius: 4px; padding: 0.05rem 0.35rem; background: var(--j-paper); }
+
+/* ═══ the Exhibit: the Dossier ═══ */
+.exhibit { min-height: 0; overflow-y: auto; padding: 1.4rem 2.4rem 3rem; scrollbar-width: thin; scrollbar-color: var(--j-hairline) transparent; }
+.ex-head { display: flex; align-items: baseline; gap: 0.9rem; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) backwards; }
+.ex-head .kicker { color: var(--j-ink-soft); letter-spacing: 0.28em; }
+.ex-head .note { margin-left: auto; font-style: italic; font-size: 0.8rem; color: var(--j-faint); }
+
+.dossier { max-width: 46rem; margin: 1.4rem auto 0; }
+
+/* ★ the selected object — the handshake's right hand */
+.d-head {
+  position: relative; background: var(--j-paper-raise); border: 1px solid var(--j-hairline);
+  border-radius: 16px; padding: 1.4rem 1.6rem 1.25rem; box-shadow: var(--card-shadow);
+  animation: rise 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s backwards;
+}
+.d-head.selected { border-color: color-mix(in oklab, var(--j-gold) 60%, var(--j-hairline)); box-shadow: 0 0 0 3px var(--j-gold-soft), var(--card-shadow); }
+.sel-tag { position: absolute; top: -0.72rem; left: 1.3rem; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--j-mono); font-size: 0.52rem; letter-spacing: 0.22em; text-transform: uppercase; color: oklch(0.5 0.13 78); background: var(--j-paper); border: 1px solid color-mix(in oklab, var(--j-gold) 55%, transparent); border-radius: 999px; padding: 0.22rem 0.65rem; }
+.sel-tag::before { content: "◈"; }
+.d-head .frow { display: flex; align-items: baseline; gap: 0.8rem; }
+.d-head h1 { font-size: 2.1rem; font-weight: 280; letter-spacing: -0.01em; }
+.d-head .fbadge { font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--j-moss); background: var(--j-moss-soft); border-radius: 999px; padding: 0.24rem 0.65rem; }
+.d-head .lens-note { margin-left: auto; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--j-faint); }
+.d-stats { display: flex; gap: 0.6rem; margin-top: 1rem; }
+.chipstat { display: inline-flex; align-items: baseline; gap: 0.45rem; border: 1px solid var(--j-hairline); border-radius: 10px; background: var(--j-paper); padding: 0.5rem 0.8rem; }
+.chipstat b { font-size: 1.2rem; font-weight: 450; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.chipstat span { font-family: var(--j-mono); font-size: 0.52rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--j-faint); }
+.chipstat.ok b { color: var(--j-moss); }
+.chipstat.hot b { color: var(--j-red); }
+
+.d-sec { max-width: 46rem; margin-top: 1.6rem; animation: rise 0.7s cubic-bezier(0.22,1,0.36,1) backwards; }
+.d-sec:nth-of-type(2) { animation-delay: 0.2s; } .d-sec:nth-of-type(3) { animation-delay: 0.3s; }
+.d-sec:nth-of-type(4) { animation-delay: 0.4s; } .d-sec:nth-of-type(5) { animation-delay: 0.5s; }
+.d-sec:nth-of-type(6) { animation-delay: 0.6s; }
+.d-sec .sk { display: flex; align-items: baseline; gap: 0.8rem; margin-bottom: 0.7rem; }
+.d-sec .sk h2 { font-size: 0.98rem; font-weight: 520; white-space: nowrap; }
+.d-sec .sk::after { content: ""; flex: 1; height: 1px; background: var(--j-hairline); align-self: center; }
+.d-sec .sk .hint { font-family: var(--j-mono); font-size: 0.52rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); white-space: nowrap; }
+
+.und { font-size: 1.08rem; line-height: 1.62; font-weight: 380; }
+.und b { font-weight: 550; }
+.anchor-mark { font-family: var(--j-mono); font-size: 0.6rem; color: var(--j-consult); text-decoration: none; border: 1px solid color-mix(in oklab, var(--j-consult) 25%, transparent); border-radius: 5px; padding: 0.02rem 0.3rem; margin: 0 0.15rem; white-space: nowrap; transition: background 0.15s ease; }
+.anchor-mark:hover { background: var(--j-consult-soft); }
+
+.con { display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 1rem; padding: 0.65rem 0.2rem; border-top: 1px solid var(--j-hairline); align-items: baseline; }
+.con:last-child { border-bottom: 1px solid var(--j-hairline); }
+.con .c { font-size: 0.98rem; line-height: 1.5; }
+.con .c code { font-family: var(--j-mono); font-size: 0.82em; background: var(--j-wash); border-radius: 4px; padding: 0.05rem 0.3rem; }
+.con .src { grid-column: 1; font-family: var(--j-mono); font-size: 0.56rem; letter-spacing: 0.06em; color: var(--j-faint); display: flex; align-items: center; gap: 0.4rem; }
+.con .src::before { content: "◉"; color: var(--j-moss); font-size: 0.55rem; }
+.con .src a { color: var(--j-consult); text-decoration: none; }
+.con .served { grid-column: 2; grid-row: 1 / span 2; font-family: var(--j-mono); font-size: 0.54rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--j-faint); align-self: center; text-align: right; }
+
+.unk { display: flex; gap: 0.6rem; align-items: baseline; padding: 0.4rem 0.2rem; font-size: 0.95rem; color: var(--j-red); font-style: italic; }
+.unk::before { content: "?"; font-family: var(--j-mono); font-style: normal; font-size: 0.62rem; border: 1px solid color-mix(in oklab, var(--j-red) 45%, transparent); border-radius: 4px; padding: 0 0.32rem; flex: none; }
+
+.files { font-family: var(--j-mono); font-size: 0.68rem; line-height: 2; color: var(--j-ink-soft); }
+.files b { color: var(--j-ink); font-weight: 500; }
+.files i { font-style: normal; color: var(--j-faint); }
+
+/* its slice of river */
+.slice { position: relative; height: 64px; border: 1px solid var(--j-hairline); border-radius: 12px; background: var(--j-paper-raise); box-shadow: var(--card-shadow); overflow: hidden; }
+.slice .wire { position: absolute; left: 3.2rem; right: 1rem; top: 50%; height: 1px; background: var(--j-hairline); }
+.slice .ev { position: absolute; top: 50%; width: 5px; height: 16px; border-radius: 2px; transform: translate(-50%,-50%) scaleY(0); transform-origin: center; animation: pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+@keyframes pop { to { transform: translate(-50%,-50%) scaleY(1); } }
+.slice .sl { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-family: var(--j-mono); font-size: 0.52rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-faint); writing-mode: vertical-rl; }
+.slice .now { position: absolute; top: 8px; bottom: 8px; width: 1px; background: color-mix(in oklab, var(--j-moss) 55%, transparent); }
+.slice .now::after { content: "now"; position: absolute; top: -2px; left: 5px; font-family: var(--j-mono); font-size: 0.5rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--j-moss); }
+.slice-labels { display: flex; justify-content: space-between; margin-top: 0.35rem; font-family: var(--j-mono); font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--j-faint); padding: 0 0.3rem; }
+
+.exhibit-foot { max-width: 46rem; margin: 2.2rem auto 0; text-align: center; animation: rise 0.9s ease 0.8s backwards; }
+.exhibit-foot .next { font-style: italic; font-size: 0.88rem; color: var(--j-faint); }
+.exhibit-foot .next a { color: var(--j-ink-soft); text-decoration: none; border-bottom: 1px solid var(--j-hairline); transition: color 0.2s ease; }
+.exhibit-foot .next a:hover { color: var(--j-ink); }
+
+/* ═══ the spine ═══ */
+.spine { border-left: 1px solid color-mix(in oklab, var(--j-hairline) 70%, transparent); display: flex; flex-direction: column; align-items: center; padding: 0.9rem 0 1rem; position: relative; }
+.spine .label { writing-mode: vertical-rl; font-family: var(--j-mono); font-size: 0.5rem; letter-spacing: 0.32em; text-transform: uppercase; color: var(--j-faint); margin-bottom: 0.9rem; }
+.spine .days { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; align-items: center; }
+.spine .day { height: 2px; border-radius: 2px; background: var(--j-hairline); }
+.spine .w0 { width: 10px; } .spine .w1 { width: 16px; background: color-mix(in oklab, var(--j-ink) 30%, var(--j-hairline)); }
+.spine .w2 { width: 24px; background: color-mix(in oklab, var(--j-ink) 55%, var(--j-hairline)); }
+.spine .w3 { width: 32px; height: 3px; background: color-mix(in oklab, var(--j-ink) 80%, var(--j-hairline)); }
+.spine .today { width: 32px; height: 3px; background: var(--j-moss); box-shadow: 0 0 8px oklch(0.52 0.09 150 / 0.45); }
+.spine .lens { position: absolute; bottom: 2.4rem; left: 8px; right: 8px; height: 138px; border: 1px solid color-mix(in oklab, var(--j-gold) 55%, transparent); background: oklch(0.62 0.13 78 / 0.05); border-radius: 6px; }
+.spine .scrub { font-family: var(--j-mono); font-size: 0.5rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--j-faint); writing-mode: vertical-rl; margin-top: 0.8rem; }
+
+/* ═══ the handshake thread — drawn across the pane seam, once ═══ */
+#handshake { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+#handshake path { fill: none; stroke: var(--j-gold); stroke-width: 1.6; stroke-linecap: round; opacity: 0.85; }
+#handshake circle { fill: var(--j-gold); }
+#handshake text { font-family: var(--j-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; fill: oklch(0.5 0.13 78); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .slice .ev { transform: translate(-50%,-50%) scaleY(1); }
+}
+@media (max-width: 1080px) {
+  .body { grid-template-columns: 1fr; grid-template-rows: minmax(0,1fr) minmax(0,1fr); }
+  .spine, #handshake { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header class="mast">
+    <a class="wordmark" href="01-arrival.html">Brain<span class="dot">.</span></a>
+    <span class="tag">the correspondence &amp; the exhibit</span>
+    <span class="now-whisper"><span class="pulse"></span>digesting session 9</span>
+    <a class="gate-badge" href="#gate"><span class="dot"></span>2 wait</a>
+    <a class="walk" href="03-receipts.html">walkthrough 2/3 · next →</a>
+  </header>
+
+  <div class="body">
+
+    <!-- ═══ the Correspondence ═══ -->
+    <section class="corr" aria-label="the correspondence">
+      <div class="corr-head">
+        <span class="kicker">The Correspondence</span>
+        <span class="note">bound to what you select</span>
+      </div>
+
+      <div class="thread" id="thread">
+        <div class="daymark"><span>sunday · july 5 · 09:02 · you were last here tuesday</span></div>
+
+        <!-- the since-you-were-away brief -->
+        <article class="msg" style="animation-delay:0.1s">
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>since tuesday, on your features</span><span class="t">09:02</span></div>
+          <div class="bubble">
+            <p><b>Digest Pipeline</b> was re-audited and re-measured — the corpus is clean. <b>Dashboard UI</b>'s three-variant mockup round was rejected; the direction reset to two panes. <b>Two observations await your ink</b> — the first is attached below.</p>
+            <div class="cites">
+              <a class="cite" href="03-receipts.html"><span class="h">audit ·</span> session 7 · jul 3</a>
+              <a class="cite" href="03-receipts.html"><span class="h">re-digest ·</span> session 8 · jul 4</a>
+              <a class="cite" href="#"><span class="h">review ·</span> cpo verdict · jul 5</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- what her ink already built — the correspondence remembers -->
+        <article class="msg record" style="animation-delay:0.25s">
+          <div class="mk"><span class="nib">✓</span><span class="who">the record</span><span>your last stamp became a constraint</span><span class="t">jul 2</span></div>
+          <div class="bubble">
+            <p>&ldquo;Event emission must never fail the parent operation&rdquo; — approved jul 2, served to 3 agents since.</p>
+            <span class="stamped">✓ inked · you · jul 2</span>
+          </div>
+        </article>
+
+        <!-- the gate, asked in conversation -->
+        <article class="msg gate" id="gate" style="animation-delay:0.4s">
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span>asks for your ink · 1 of 2</span><span class="t">09:02</span></div>
+          <div class="bubble">
+            <span class="gk"><span class="dot"></span>gate · observation awaits ink</span>
+            <p class="gq">&ldquo;Raw sessions now archive to <code style="font-family:var(--j-mono);font-size:0.85em">.intent/</code> before digestion — every digest stays re-derivable after the 30-day purge.&rdquo; Fold into <b>Digest Pipeline</b>?</p>
+            <div class="gev"><span class="m">confidence 0.94</span><span>observe-events run 14</span><span>born session 9 · jul 4</span></div>
+            <div class="stamps" data-gate>
+              <button class="stamp yes">✓ approve</button>
+              <button class="stamp no">✕ reject</button>
+              <button class="stamp edit">✎ edit</button>
+            </div>
+          </div>
+        </article>
+
+        <div class="daymark" style="animation-delay:0.55s"><span>you selected · digest pipeline · 09:04</span></div>
+
+        <!-- ★ the utterance her selection produced -->
+        <article class="msg spoken" id="utterance" style="animation-delay:0.7s">
+          <div class="mk"><span class="nib">✒</span><span class="who">the brain</span><span class="why">spoken to your selection — unprompted</span><span class="t">09:04</span></div>
+          <div class="bubble">
+            <span class="sk">digest pipeline · the three lines</span>
+            <div class="row">
+              <span class="rk">is now</span>
+              <p>Deterministic parse, then LLM enrichment — fidelity-audited jul 3, and the whole corpus re-digested clean jul 4. <a class="anchor-mark" href="03-receipts.html">s:8a41</a></p>
+            </div>
+            <div class="row">
+              <span class="rk">changed</span>
+              <p>118 events across five sittings; the audit found 101 fabricated evidence quotes and cured them with a two-phase read. <a class="anchor-mark" href="03-receipts.html">s:3c91</a></p>
+            </div>
+            <div class="row needs">
+              <span class="rk">needs you</span>
+              <p>The raw-session archive observation, above — its evidence is on the right.</p>
+            </div>
+            <div class="cites">
+              <a class="cite" href="03-receipts.html"><span class="h">trail ·</span> pull any claim to its line</a>
+              <a class="cite" href="#gate"><span class="h">gate ·</span> the ask, above ↑</a>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="composer">
+        <span class="nib">✒</span>
+        <input type="text" placeholder="Ask about this feature — the selection rides along as scope…" aria-label="ask the brain" />
+        <span class="scope">◈ scope · digest pipeline</span>
+        <kbd>⌘J</kbd>
+      </div>
+    </section>
+
+    <!-- ═══ the Exhibit: the Dossier ═══ -->
+    <main class="exhibit" aria-label="the exhibit — a feature dossier">
+      <div class="ex-head">
+        <span class="kicker">Exhibit · The Dossier</span>
+        <span class="note">rendered because you selected it — nothing was navigated</span>
+      </div>
+
+      <div class="dossier">
+        <!-- ★ the selected object -->
+        <header class="d-head selected" id="selected">
+          <span class="sel-tag">selected · the brain is speaking to this</span>
+          <div class="frow">
+            <h1>Digest Pipeline</h1>
+            <span class="fbadge">holds to intent</span>
+            <span class="lens-note">lens over the river · jun 21 — jul 5</span>
+          </div>
+          <div class="d-stats">
+            <span class="chipstat"><b>118</b><span>ev / 14d</span></span>
+            <span class="chipstat ok"><b>68%</b><span>anchored</span></span>
+            <span class="chipstat"><b>41</b><span>moments</span></span>
+            <span class="chipstat"><b>3</b><span>constraints</span></span>
+            <span class="chipstat hot"><b>1</b><span>gate open</span></span>
+          </div>
+        </header>
+
+        <section class="d-sec">
+          <div class="sk"><h2>Current understanding</h2><span class="hint">citation-gated — unmarked prose does not ship</span></div>
+          <p class="und">A deterministic parse feeds LLM enrichment — classify, chunk, analyze — and <b>every claim that survives carries its anchor</b>. The fidelity audit of jul 3 found fabricated evidence quotes in 101 of 102 moments <a class="anchor-mark" href="03-receipts.html">s:3c91</a>; the cure was a two-phase deliberative read, and the corpus was re-digested clean the next day <a class="anchor-mark" href="03-receipts.html">s:8a41</a>. Confidence is now <b>derived in code, never asked of the model</b> <a class="anchor-mark" href="03-receipts.html">s:8f22</a>.</p>
+        </section>
+
+        <section class="d-sec">
+          <div class="sk"><h2>Constraints, with sources</h2><span class="hint">each traces to a sitting — pull to verify</span></div>
+          <div class="con">
+            <div class="c">Event emission must never fail the parent operation — every <code>emitEvents</code> wraps in try/catch.</div>
+            <span class="served">served 3× this week</span>
+            <div class="src">from <a href="03-receipts.html">session 6 · jul 2 · 23:41</a> · inked jul 2</div>
+          </div>
+          <div class="con">
+            <div class="c">Confidence derives in code — anchored + supported → high; it structurally cannot saturate.</div>
+            <span class="served">served 2× this week</span>
+            <div class="src">from <a href="03-receipts.html">session 7 · jul 4 · 01:12</a> · inked jul 4</div>
+          </div>
+          <div class="con">
+            <div class="c">Zod schemas stay lenient — <code>.optional().default()</code> everywhere; strictness lives in evals.</div>
+            <span class="served">served 1× this week</span>
+            <div class="src">from <a href="03-receipts.html">session 4 · jun 26 · 14:12</a> · inked jun 27</div>
+          </div>
+        </section>
+
+        <section class="d-sec">
+          <div class="sk"><h2>Known unknowns</h2><span class="hint">honest gaps — the brain says so</span></div>
+          <div class="unk">Does chunk overlap above 15% still double-count moments in long sittings?</div>
+          <div class="unk">Sonnet cost per full re-digest remains unmeasured.</div>
+        </section>
+
+        <section class="d-sec">
+          <div class="sk"><h2>Warm files</h2><span class="hint">touch-counts, this fortnight</span></div>
+          <p class="files">
+            <b>src/pipeline/orchestrator.ts</b> <i>×9</i> &nbsp;·&nbsp; <b>src/pipeline/emit-events.ts</b> <i>×7</i><br />
+            <b>src/llm/prompts/moments.ts</b> <i>×5</i> &nbsp;·&nbsp; <b>src/adapters/types.ts</b> <i>×4</i>
+          </p>
+        </section>
+
+        <section class="d-sec">
+          <div class="sk"><h2>Its slice of river</h2><span class="hint">the same fortnight, through this lens</span></div>
+          <div class="slice" id="slice">
+            <span class="sl">jun 21 →</span>
+            <span class="wire"></span>
+          </div>
+          <div class="slice-labels"><span>jun 21</span><span>jun 28</span><span>jul 2</span><span>jul 5 ●</span></div>
+        </section>
+
+        <div class="exhibit-foot">
+          <p class="next">next in the walkthrough: <a href="03-receipts.html">an engineer asks &ldquo;says who?&rdquo; — the receipts →</a></p>
+        </div>
+      </div>
+    </main>
+
+    <!-- ═══ the spine — lens on the dossier's fortnight ═══ -->
+    <aside class="spine" aria-label="the spine — scrub the dossier through time">
+      <span class="label">apr — jul</span>
+      <div class="days" id="spinedays"></div>
+      <span class="lens" title="the dossier reads this fortnight"></span>
+      <span class="scrub">scrub</span>
+    </aside>
+
+  </div>
+</div>
+
+<!-- the handshake thread overlay -->
+<svg id="handshake" aria-hidden="true"></svg>
+
+<script>
+/* spine */
+(function spine() {
+  const w = [0,0,1,0,1,2,0,1,2,1,0,2,3,1,2,3,2,3];
+  document.getElementById("spinedays").innerHTML =
+    w.map(v => `<span class="day w${v}"></span>`).join("") + `<span class="day today"></span>`;
+})();
+
+/* the feature's slice of river — digest pipeline's fortnight */
+(function slice() {
+  const EV = [
+    [0.05,"--j-teal"],[0.18,"--j-gold"],[0.30,"--j-violet"],[0.44,"--j-gold"],
+    [0.60,"--j-gold"],[0.63,"--j-red"],[0.655,"--j-red"],[0.68,"--j-teal"],
+    [0.72,"--j-red"],[0.75,"--j-violet"],[0.78,"--j-gold"],[0.82,"--j-gold"],
+    [0.845,"--j-moss"],[0.865,"--j-moss"],[0.885,"--j-teal"],[0.905,"--j-moss"],[0.925,"--j-gold"],
+  ];
+  const el = document.getElementById("slice");
+  EV.forEach((e, i) => {
+    const s = document.createElement("span");
+    s.className = "ev";
+    s.style.left = `calc(3.2rem + (100% - 4.2rem) * ${e[0]})`;
+    s.style.background = `var(${e[1]})`;
+    s.style.animationDelay = (0.6 + i * 0.025) + "s";
+    el.appendChild(s);
+  });
+  const now = document.createElement("span");
+  now.className = "now";
+  now.style.left = `calc(3.2rem + (100% - 4.2rem) * 0.96)`;
+  el.appendChild(now);
+})();
+
+/* ★ the handshake — one gold thread from the selected exhibit to the utterance it produced */
+function drawHandshake() {
+  const svg = document.getElementById("handshake");
+  const from = document.getElementById("selected");
+  const to = document.getElementById("utterance");
+  if (!from || !to) return;
+  const a = from.getBoundingClientRect(), b = to.getBoundingClientRect();
+  const x1 = a.left, y1 = a.top + 34;              /* the selection's edge */
+  const x2 = b.right + 2, y2 = b.top + 40;         /* the utterance's edge */
+  const mx = (x1 + x2) / 2;
+  svg.setAttribute("viewBox", `0 0 ${innerWidth} ${innerHeight}`);
+  svg.innerHTML = `
+    <path id="hs" d="M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" />
+    <circle cx="${x1}" cy="${y1}" r="3.4" />
+    <circle cx="${x2}" cy="${y2}" r="3.4" />
+    <text x="${mx}" y="${(y1 + y2) / 2 - 8}" text-anchor="middle">selection is an utterance</text>`;
+  const p = svg.querySelector("#hs"), L = p.getTotalLength();
+  p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    p.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }],
+      { duration: 1300, delay: 900, easing: "cubic-bezier(0.4,0,0.2,1)", fill: "forwards" });
+  } else { p.style.strokeDashoffset = 0; }
+}
+addEventListener("load", drawHandshake);
+addEventListener("resize", drawHandshake);
+document.querySelector(".exhibit").addEventListener("scroll", drawHandshake);
+document.getElementById("thread").addEventListener("scroll", drawHandshake);
+
+/* stamp thunk */
+document.querySelectorAll("[data-gate] .stamp.yes").forEach(b => {
+  b.addEventListener("click", () => {
+    const gate = b.closest(".bubble");
+    gate.querySelector(".stamps").outerHTML =
+      `<span class="inked">✓ inked · you · just now — folded into Digest Pipeline</span>`;
+    gate.style.borderLeftColor = "var(--j-moss)";
+    const gk = gate.closest(".msg").querySelector(".gk");
+    gk.innerHTML = "gate · answered"; gk.style.color = "var(--j-moss)";
+    const badge = document.querySelector(".gate-badge");
+    badge.innerHTML = `<span class="dot"></span>1 waits`;
+  });
+});
+
+addEventListener("keydown", e => {
+  if (e.key === "]") location.href = "03-receipts.html";
+  if (e.key === "[") location.href = "01-arrival.html";
+});
+</script>
+</body>
+</html>

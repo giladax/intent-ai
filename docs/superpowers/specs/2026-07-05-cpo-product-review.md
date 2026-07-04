@@ -383,3 +383,38 @@ live-change whispers; the Brief and Trail as designed exhibits; Sessions folds i
 | Variant B | Rejected direction; salvage the inline gate popover only. |
 | Variant C | Source for the Brief's voice and the dossier typography. |
 | ui-reimagining Phase 1 (now edge / margin / spine v0) | **Superseded by §4 above.** |
+
+---
+
+## Final round — the mockups exist (2026-07-05)
+
+The §5 brief was executed as three interlinked standalone mockups in
+[`mockups/final/`](../../../mockups/final/) (screenshots in `mockups/final/shots/`,
+1440×900, Playwright):
+
+- **`01-arrival.html`** — Dana's cold open. The Correspondence speaks first (the
+  standing brief, with citations, plus the one gate asked inline with stamps); the
+  Exhibit renders the Brief — hero sentence, four signals, the six-feature ledger
+  against intent, and the fortnight stretch of river — all above the fold at 1440×900.
+- **`02-selection.html`** — Maya mid-handshake, direction one. Digest Pipeline is
+  selected in the Exhibit (Dossier: understanding with anchor marks, constraints with
+  sources, unknowns, warm files, its slice of river); a **gold thread draws across the
+  pane seam** from the selected header to the unprompted three-line brief it produced
+  (*is now / changed / needs you*), labeled "selection is an utterance." Her gate
+  waits inline with working approve/reject/edit stamps (the thunk answers back).
+- **`03-receipts.html`** — Ori, direction two. His agent's `brain_enter` consult
+  renders in the same correspondence; he asks "says who?"; the answer carries four
+  hop-numbered citations and a **consult-blue thread to the Trail** the question
+  composed — all four hops plus the raw transcript line (hop 4, open, gold-marked)
+  on screen on arrival, seal below.
+
+Execution decisions within the brief: (1) the composer lives at the foot of the
+Correspondence pane rather than the masthead — a correspondence owns its own pen; the
+masthead keeps only wordmark, now-whisper, and gate badge (plus discreet walkthrough
+links, which are mockup chrome, not product navigation). (2) The handshake is drawn
+literally: a once-drawn thread (1.3s, dash-offset, thread-draw rule) across the pane
+seam in each direction — gold for selection→speech, consult for question→exhibit.
+(3) The spine sits at the Exhibit's right edge as its scrubber, lens sized per page
+(fortnight / fortnight / one sitting). (4) All motion follows the earned rules:
+rise-once entrances, skyline growth ≤30ms stagger, breathe only on now/gate dots,
+seal drawn not awarded, `prefers-reduced-motion` silences everything.
