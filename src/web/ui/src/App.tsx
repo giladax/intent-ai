@@ -15,21 +15,10 @@ import { DigestPanel } from "./components/DigestPanel";
 import { fetchProjects, fetchSessions, fetchFeatures, fetchPendingObservations } from "./api";
 import type { LiveState } from "./api";
 import type { Project, Session, Feature } from "./types";
-import { Feather, ChevronDown, MessageSquare, X, Zap, ScrollText, Layers, Stamp, BookOpen } from "lucide-react";
-import {
-  SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
-  SidebarMenu, SidebarMenuItem, SidebarMenuButton,
-  SidebarTrigger, SidebarInset,
-  SidebarGroup, SidebarGroupContent,
-} from "@/components/ui/sidebar";
+import { Feather, ChevronDown, MessageSquare, X, Zap } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 
 type View =
   | "journal"
@@ -39,6 +28,20 @@ type View =
   | "sessions"
   | "session-detail"
   | "digest";
+
+/** Which masthead section a view belongs to — detail views light their parent. */
+type Section = "journal" | "features" | "review" | "sessions";
+function sectionOf(view: View): Section | null {
+  switch (view) {
+    case "journal": return "journal";
+    case "features":
+    case "feature-detail": return "features";
+    case "review": return "review";
+    case "sessions":
+    case "session-detail": return "sessions";
+    default: return null; // the intake stands apart
+  }
+}
 
 export function App() {
   return (
@@ -110,6 +113,13 @@ function AppShell() {
     setView("feature-detail");
   }, []);
 
+  // Section navigation always lands on the section's front page.
+  const goTo = (section: Section) => {
+    if (section === "features") setSelectedFeatureId(null);
+    if (section === "sessions") setSelectedSessionId(null);
+    setView(section);
+  };
+
   const selectedFeatureName = features.find((f) => f.id === selectedFeatureId)?.name;
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
@@ -117,14 +127,7 @@ function AppShell() {
     ? `${selectedSession.started_at ? new Date(selectedSession.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}${selectedSession.session_shape ? " · " + selectedSession.session_shape : ""}`
     : "Session";
 
-  const breadcrumbLabel =
-    view === "digest" ? "Digest" :
-    view === "features" ? "Features" :
-    view === "feature-detail" ? (selectedFeatureName ?? "Feature") :
-    view === "review" ? "Review" :
-    view === "sessions" ? "Sessions" :
-    view === "session-detail" ? selectedSessionLabel :
-    "Journal";
+  const activeSection = sectionOf(view);
 
   // The chat dock follows navigation — whatever you're reading is its context.
   const { setAutoItem } = useChatDock();
@@ -139,182 +142,111 @@ function AppShell() {
   }, [view, selectedFeatureId, selectedFeatureName, selectedSessionId, selectedSessionLabel, setAutoItem]);
 
   return (
-    <SidebarProvider className="ink-app">
-      <Sidebar side="left" collapsible="icon" className="border-r-0">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton className="h-10">
-                    <Feather className="size-4" />
-                    <span className="ink-wordmark">{selectedProject?.name ?? "Brain"}</span>
-                    <ChevronDown className="ml-auto size-3.5 opacity-50" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  {projects.map((p) => (
-                    <DropdownMenuItem key={p.id} onClick={() => handleProjectChange(p)}>
-                      {p.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+    <div className="ink-app flex h-svh flex-col overflow-hidden">
+      {/* The masthead — one ribbon: wordmark, sections, the intake, the Correspondence */}
+      <header className="ink-mast">
+        <div className="ink-mast-inner">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="ink-mast-wordmark" title="Switch project">
+                <Feather className="size-3.5" style={{ color: "var(--j-ink-soft)" }} />
+                <span>{selectedProject?.name ?? "Brain"}</span>
+                <ChevronDown className="size-3 opacity-50" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {projects.map((p) => (
+                <DropdownMenuItem key={p.id} onClick={() => handleProjectChange(p)}>
+                  {p.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {/* The front page */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton isActive={view === "journal"} onClick={() => setView("journal")}>
-                    <BookOpen className="size-4" />
-                    <span className="ink-nav-label">Journal</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                {/* The atlas — lenses over the river */}
-                <SidebarMenuItem className="relative">
-                  <SidebarMenuButton
-                    isActive={view === "features" || view === "feature-detail"}
-                    onClick={() => { setView("features"); setSelectedFeatureId(null); }}
-                  >
-                    <Layers className="size-4" />
-                    <span className="ink-nav-label">Features</span>
-                  </SidebarMenuButton>
-                  <span className="ink-nav-count absolute top-1/2 -translate-y-1/2 right-2">{features.length}</span>
-                </SidebarMenuItem>
-
-                {/* The gate */}
-                <SidebarMenuItem className="relative">
-                  <SidebarMenuButton isActive={view === "review"} onClick={() => setView("review")}>
-                    <Stamp className="size-4" />
-                    <span className="ink-nav-label">Review</span>
-                  </SidebarMenuButton>
-                  {pendingCount > 0 && (
-                    <span className="ink-badge-red absolute top-1/2 -translate-y-1/2 right-2">{pendingCount}</span>
-                  )}
-                </SidebarMenuItem>
-
-                {/* The record */}
-                <SidebarMenuItem className="relative">
-                  <SidebarMenuButton
-                    isActive={view === "sessions" || view === "session-detail"}
-                    onClick={() => setView("sessions")}
-                  >
-                    <ScrollText className="size-4" />
-                    <span className="ink-nav-label">Sessions</span>
-                  </SidebarMenuButton>
-                  <span className="ink-nav-count absolute top-1/2 -translate-y-1/2 right-2">{sessions.length}</span>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-
-        {/* The intake — always reachable; urgent when sessions wait */}
-        {selectedProject && (
-          <SidebarFooter className="p-3">
-            <button
-              className={undigestedCount > 0 ? "ink-intake ink-intake--waiting" : "ink-intake"}
-              onClick={() => setView("digest")}
-            >
-              <Zap className="size-3.5" />
-              <span>{undigestedCount > 0 ? `${undigestedCount} session${undigestedCount === 1 ? "" : "s"} waiting` : "Journal is current"}</span>
+          <nav className="ink-mast-nav">
+            {/* The front page */}
+            <button className="ink-mast-section" data-active={activeSection === "journal"} onClick={() => goTo("journal")}>
+              Journal
             </button>
-          </SidebarFooter>
-        )}
-      </Sidebar>
+            {/* The atlas — lenses over the river */}
+            <button className="ink-mast-section" data-active={activeSection === "features"} onClick={() => goTo("features")}>
+              Features<span className="ink-mast-count">{features.length}</span>
+            </button>
+            {/* The gate */}
+            <button className="ink-mast-section" data-active={activeSection === "review"} onClick={() => goTo("review")}>
+              Review
+              {pendingCount > 0 && <span className="ink-badge-red ml-1.5">{pendingCount}</span>}
+            </button>
+            {/* The record */}
+            <button className="ink-mast-section" data-active={activeSection === "sessions"} onClick={() => goTo("sessions")}>
+              Sessions<span className="ink-mast-count">{sessions.length}</span>
+            </button>
+          </nav>
 
-      <SidebarInset className="h-svh overflow-hidden">
-        <header className="ink-bar sticky top-0 flex h-12 shrink-0 items-center gap-2 z-10">
-          <div className="flex flex-1 items-center gap-2 px-3">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-            <Breadcrumb className="ink-crumb">
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  {view === "session-detail" ? (
-                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("sessions"); setSelectedSessionId(null); }}>
-                      Sessions
-                    </BreadcrumbLink>
-                  ) : view === "feature-detail" ? (
-                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("features"); setSelectedFeatureId(null); }}>
-                      Features
-                    </BreadcrumbLink>
-                  ) : view !== "journal" ? (
-                    <BreadcrumbLink href="#" onClick={(e) => { e.preventDefault(); setView("journal"); }}>
-                      Journal
-                    </BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage>Journal</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
-                {view !== "journal" && (
-                  <>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage className="max-w-[300px] truncate">{breadcrumbLabel}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </>
-                )}
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <AskBrainButton />
-        </header>
-
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto">
-            {view === "journal" ? (
-              <JournalPage
-                repoId={selectedProject?.id ?? null}
-                features={features}
-                onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
-                onFeatureClick={handleFeatureSelect}
-                onReviewClick={() => setView("review")}
-              />
-            ) : view === "digest" && selectedProject ? (
-              <DigestPanel
-                repoId={selectedProject.id}
-                undigestedCount={undigestedCount}
-                onDone={() => { refreshProject(); setView("journal"); }}
-              />
-            ) : view === "session-detail" && selectedSessionId ? (
-              <SessionDetailPage sessionId={selectedSessionId} />
-            ) : view === "sessions" ? (
-              <SessionsPage
-                sessions={sessions}
-                undigestedCount={undigestedCount}
-                liveState={liveState}
-                onSync={() => setView("digest")}
-                onSessionClick={(id) => {
-                  if (id === "live") return;
-                  setSelectedSessionId(id);
-                  setView("session-detail");
-                }}
-              />
-            ) : view === "review" ? (
-              <ReviewQueue repoId={selectedProject?.id ?? null} onFeatureClick={handleFeatureSelect} />
-            ) : view === "feature-detail" && selectedFeatureId ? (
-              <FeatureDetail
-                featureId={selectedFeatureId}
-                onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
-              />
-            ) : (
-              <FeaturesPage repoId={selectedProject?.id ?? null} onFeatureClick={handleFeatureSelect} />
+          <div className="ml-auto flex items-center gap-2">
+            {/* The intake — always reachable; urgent when sessions wait */}
+            {selectedProject && (
+              <button
+                className={undigestedCount > 0 ? "ink-intake ink-intake--waiting" : "ink-intake"}
+                data-active={view === "digest"}
+                onClick={() => setView("digest")}
+              >
+                <Zap className="size-3" />
+                <span>{undigestedCount > 0 ? `${undigestedCount} waiting` : "current"}</span>
+              </button>
             )}
+            <AskBrainButton />
           </div>
         </div>
-      </SidebarInset>
+      </header>
+
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto">
+          {view === "journal" ? (
+            <JournalPage
+              repoId={selectedProject?.id ?? null}
+              features={features}
+              onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
+              onFeatureClick={handleFeatureSelect}
+              onReviewClick={() => setView("review")}
+            />
+          ) : view === "digest" && selectedProject ? (
+            <DigestPanel
+              repoId={selectedProject.id}
+              undigestedCount={undigestedCount}
+              onDone={() => { refreshProject(); setView("journal"); }}
+            />
+          ) : view === "session-detail" && selectedSessionId ? (
+            <SessionDetailPage sessionId={selectedSessionId} onBack={() => goTo("sessions")} />
+          ) : view === "sessions" ? (
+            <SessionsPage
+              sessions={sessions}
+              undigestedCount={undigestedCount}
+              liveState={liveState}
+              onSync={() => setView("digest")}
+              onSessionClick={(id) => {
+                if (id === "live") return;
+                setSelectedSessionId(id);
+                setView("session-detail");
+              }}
+            />
+          ) : view === "review" ? (
+            <ReviewQueue repoId={selectedProject?.id ?? null} onFeatureClick={handleFeatureSelect} />
+          ) : view === "feature-detail" && selectedFeatureId ? (
+            <FeatureDetail
+              featureId={selectedFeatureId}
+              onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
+            />
+          ) : (
+            <FeaturesPage repoId={selectedProject?.id ?? null} onFeatureClick={handleFeatureSelect} />
+          )}
+        </div>
+      </div>
 
       {/* Always-live conversational layer */}
       <ChatDock liveState={liveState} />
       <TalkLayer />
-    </SidebarProvider>
+    </div>
   );
 }
 
@@ -323,7 +255,7 @@ function AskBrainButton() {
   const { open, toggleDock, items } = useChatDock();
   return (
     <button
-      className="mr-3 inline-flex items-center gap-1.5"
+      className="inline-flex items-center gap-1.5"
       style={{
         fontFamily: "var(--j-mono)", fontSize: "0.625rem", letterSpacing: "0.14em",
         textTransform: "uppercase", border: "1px solid var(--j-hairline)", borderRadius: 999,

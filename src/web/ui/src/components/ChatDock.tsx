@@ -15,7 +15,6 @@ const KIND_GLYPH: Record<TalkItem["kind"], string> = {
   episode: "⌁",
   event: "◇",
   observation: "◉",
-  topic: "❖",
   view: "▤",
   note: "✎",
 };

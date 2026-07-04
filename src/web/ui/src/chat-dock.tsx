@@ -7,7 +7,7 @@ import type { ChatMessage } from "./types";
 
 /** A page element pinned into the conversation. */
 export interface TalkItem {
-  kind: "feature" | "session" | "episode" | "event" | "observation" | "topic" | "view" | "note";
+  kind: "feature" | "session" | "episode" | "event" | "observation" | "view" | "note";
   id: string;
   label: string;
   summary?: string;

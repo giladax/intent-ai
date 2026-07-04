@@ -42,15 +42,6 @@
   --ring: var(--j-faint);
   --destructive: var(--j-red);
 
-  --sidebar: oklch(0.962 0.009 85);
-  --sidebar-foreground: var(--j-ink);
-  --sidebar-primary: var(--j-ink);
-  --sidebar-primary-foreground: var(--j-paper);
-  --sidebar-accent: oklch(0.93 0.012 85);
-  --sidebar-accent-foreground: var(--j-ink);
-  --sidebar-border: var(--j-hairline);
-  --sidebar-ring: var(--j-faint);
-
   background: var(--j-paper);
   color: var(--j-ink);
 }
@@ -68,9 +59,6 @@
   --j-moss: oklch(0.72 0.1 150);
   --j-moss-soft: oklch(0.72 0.1 150 / 0.14);
   --j-consult: oklch(0.72 0.09 250);
-
-  --sidebar: oklch(0.165 0.008 55);
-  --sidebar-accent: oklch(0.235 0.012 55);
 }
 
 /* ── Editorial primitives (shared across pages) ───────────────────── */
@@ -284,36 +272,66 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
 .ink-input:focus { border-bottom-color: var(--j-ink-soft); }
 .ink-input::placeholder { color: var(--j-faint); font-style: italic; }
 
-/* app chrome: header bar + sidebar typography */
-.ink-app header.ink-bar {
+/* ── The masthead — one ribbon of sections over the page column ──────
+   Journal-as-product: no sidebar, no breadcrumbs. The river is the front
+   page; sections read like a newspaper's folio line.                   */
+.ink-mast {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   background: var(--j-paper);
   border-bottom: 1px solid var(--j-hairline);
 }
-.ink-app .ink-crumb,
-.ink-app .ink-crumb a,
-.ink-app .ink-crumb span {
-  font-family: var(--j-mono);
-  font-size: 0.655rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+.ink-mast-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  max-width: 42rem; /* aligns with the max-w-2xl page column */
+  margin: 0 auto;
+  padding: 0.65rem 2rem;
 }
-.ink-wordmark {
+.ink-mast-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-family: var(--j-serif);
   font-weight: 550;
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   letter-spacing: 0.01em;
+  color: var(--j-ink);
+  cursor: pointer;
 }
-.ink-nav-label {
+.ink-mast-nav {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+}
+.ink-mast-section {
   font-family: var(--j-mono);
-  font-size: 0.685rem;
-  letter-spacing: 0.14em;
+  font-size: 0.635rem;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  color: var(--j-faint);
+  padding: 0.15rem 0 0.25rem;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
 }
-.ink-nav-count {
+.ink-mast-section:hover { color: var(--j-ink); }
+.ink-mast-section[data-active="true"] {
+  color: var(--j-ink);
+  border-bottom-color: var(--j-ink);
+}
+.ink-mast-count {
   font-family: var(--j-mono);
-  font-size: 0.6rem;
+  font-size: 0.56rem;
   color: var(--j-faint);
   font-variant-numeric: tabular-nums;
+  margin-left: 0.35rem;
+  vertical-align: 0.12em;
 }
 .ink-badge-red {
   font-family: var(--j-mono);
@@ -682,26 +700,26 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   animation: note-exit 0.4s ease 0.55s both;
 }
 
-/* the intake — sidebar footer, quiet until sessions wait */
+/* the intake — masthead chip, quiet until sessions wait */
 .ink-intake {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  width: 100%;
+  gap: 0.35rem;
   font-family: var(--j-mono);
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--j-faint);
   border: 1px solid var(--j-hairline);
-  border-radius: 6px;
-  padding: 0.5rem 0.6rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
   cursor: pointer;
   transition: all 0.15s ease;
   background: transparent;
+  white-space: nowrap;
 }
-.ink-intake:hover { color: var(--j-ink); border-color: var(--j-faint); }
+.ink-intake:hover, .ink-intake[data-active="true"] { color: var(--j-ink); border-color: var(--j-faint); }
 .ink-intake--waiting {
   color: var(--j-red);
   border-color: color-mix(in oklch, var(--j-red) 45%, transparent);

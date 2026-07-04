@@ -166,8 +166,8 @@ export async function fetchLiveState(): Promise<LiveState | null> {
   }
 }
 
-// Chat (streaming). Context can be scoped the legacy way (feature/session/
-// topic ids) or by pinned page elements (contextItems from the chat dock).
+// Chat (streaming). Context can be scoped by feature/session id or by
+// pinned page elements (contextItems from the chat dock).
 export interface ChatContextItem {
   kind: string;
   id: string;
@@ -181,7 +181,6 @@ export async function* streamChat(
   opts: {
     featureId?: string;
     sessionId?: string;
-    topicId?: string;
     contextItems?: ChatContextItem[];
   } = {},
 ): AsyncGenerator<{ type: string; content?: string }> {

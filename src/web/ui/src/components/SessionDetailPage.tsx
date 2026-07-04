@@ -1,27 +1,32 @@
+// The record, read closely — one digested session in the ink language:
+// masthead header, moments as a ledger of glyphs, the narrative as the deck.
+// The event stream keeps its chunk-window hints (digestion inspection).
 import { useState, useEffect } from "react";
 import { fetchSessionDetail, fetchSessionEventsWithWindows } from "../api";
 import type { SessionDetail, SessionEventsWithWindows, EventWithWindows, EventWindow, SessionSitting } from "../types";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft } from "lucide-react";
 
 interface Props {
   sessionId: string;
+  /** Back to the record (the sessions ledger). */
+  onBack?: () => void;
 }
 
-const MOMENT_COLORS: Record<string, string> = {
-  discovery: "bg-emerald-500",
-  decision: "bg-blue-500",
-  commitment: "bg-indigo-500",
-  implementation: "bg-purple-500",
-  struggle: "bg-amber-500",
-  realization: "bg-cyan-500",
-  refactor: "bg-orange-500",
-  pivot: "bg-red-500",
-  proposal: "bg-teal-500",
-  confirmation: "bg-green-500",
-  rejection: "bg-rose-500",
-  transition: "bg-violet-500",
+/** Moment-type glyphs — the beat vocabulary, not a color system. */
+const MOMENT_GLYPH: Record<string, string> = {
+  discovery: "✦",
+  decision: "◆",
+  commitment: "◆",
+  implementation: "·",
+  struggle: "⚠",
+  realization: "✦",
+  refactor: "↻",
+  pivot: "→",
+  proposal: "◇",
+  confirmation: "✓",
+  rejection: "✕",
+  transition: "→",
 };
 
 const CHUNK_COLORS = [
@@ -41,7 +46,7 @@ function formatGap(prev: SessionSitting, curr: SessionSitting): string {
   return `${(ms / 86_400_000).toFixed(1)}d`;
 }
 
-export function SessionDetailPage({ sessionId }: Props) {
+export function SessionDetailPage({ sessionId, onBack }: Props) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [eventsWithWindows, setEventsWithWindows] = useState<SessionEventsWithWindows | null>(null);
@@ -59,23 +64,26 @@ export function SessionDetailPage({ sessionId }: Props) {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
+      <div className="mx-auto max-w-2xl px-8 py-12">
+        <div className="ink-kicker">The record — one session, read closely</div>
+        <Skeleton className="mt-3 h-8 w-48" />
+        <Skeleton className="mt-6 h-20 w-full" />
+        <Skeleton className="mt-3 h-20 w-full" />
       </div>
     );
   }
 
   if (!detail) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-        Session not found
+      <div className="flex h-full items-center justify-center">
+        <p className="ink-deck">This session isn&rsquo;t in the record.</p>
       </div>
     );
   }
 
-  const { narrative, moments, transitions } = detail;
+  const { session, narrative, moments, transitions } = detail;
+  const startedAt = session?.started_at ?? null;
+  const shape = session?.session_shape ?? narrative?.sessionShape ?? null;
 
   const formatDate = (d: string | null) => {
     if (!d) return "";
@@ -85,80 +93,84 @@ export function SessionDetailPage({ sessionId }: Props) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">{formatDate(narrative?.started_at ?? null) || "Session"}</h2>
-          {narrative?.session_shape && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{narrative.session_shape}</Badge>
+    <div className="mx-auto max-w-2xl px-8 pb-24 pt-12">
+      {/* masthead */}
+      <header>
+        <div className="ink-rise flex items-baseline justify-between gap-4" style={{ "--i": 0 } as React.CSSProperties}>
+          <span className="ink-kicker">The record — one session, read closely</span>
+          {onBack && (
+            <button className="ink-stamp ink-stamp--quiet inline-flex items-center gap-1" onClick={onBack}>
+              <ArrowLeft className="size-3" /> All sessions
+            </button>
           )}
         </div>
-      </div>
+        <div className="ink-rise mt-2 flex items-baseline gap-3" style={{ "--i": 1 } as React.CSSProperties}>
+          <h1 className="ink-masthead">{formatDate(startedAt) || "Session"}</h1>
+          {shape && <span className="ink-tag">{shape}</span>}
+        </div>
+        <div className="ink-rule-double ink-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
+        {narrative?.summary && (
+          <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>{narrative.summary}</p>
+        )}
+      </header>
 
-      {/* Narrative */}
-      {narrative?.summary && (
-        <Card className="p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Narrative</h3>
-          <p className="text-sm leading-relaxed">{narrative.summary}</p>
-        </Card>
-      )}
-
-      {/* Moments */}
+      {/* Moments — what the digestion judged significant */}
       {moments && moments.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {moments.length} Moments
-          </h3>
-          <div className="space-y-2">
+        <section className="ink-rise mt-10" style={{ "--i": 3 } as React.CSSProperties}>
+          <h3 className="ink-section">{moments.length} moment{moments.length === 1 ? "" : "s"}</h3>
+          <div className="mt-4">
             {moments.map((m: any, i: number) => (
-              <div key={m.id || i} className="flex gap-3 group">
-                {/* Timeline dot */}
-                <div className="flex flex-col items-center pt-1.5">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${MOMENT_COLORS[m.type] || "bg-muted-foreground"}`} />
-                  {i < moments.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
-                </div>
-                {/* Content */}
-                <div className="flex-1 pb-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{m.type || "moment"}</Badge>
-                    {m.agency && (
-                      <span className="text-[10px] text-muted-foreground">{m.agency}</span>
-                    )}
-                    {m.confidence && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{m.confidence}</Badge>
-                    )}
+              <div
+                key={m.id || i}
+                className="flex gap-3 border-b py-3"
+                style={{ borderColor: "var(--j-hairline)" }}
+              >
+                <span
+                  className="w-4 shrink-0 pt-0.5 text-center"
+                  style={{ fontFamily: "var(--j-mono)", fontSize: "0.75rem", color: "var(--j-faint)" }}
+                >
+                  {MOMENT_GLYPH[m.type] ?? "·"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="ink-tag">{m.type || "moment"}</span>
+                    {m.agency && <span className="ink-ledger-meta">{m.agency}</span>}
+                    {m.confidence && <span className="ink-ledger-meta">{m.confidence}</span>}
                   </div>
-                  <p className="text-sm leading-relaxed">{m.statement}</p>
-                  {m.significance && (
-                    <p className="text-xs text-muted-foreground mt-1">{m.significance}</p>
-                  )}
+                  <p
+                    className="mt-1.5"
+                    style={{ fontFamily: "var(--j-serif)", fontSize: "0.98rem", lineHeight: 1.55, color: "var(--j-ink)", margin: 0, marginTop: "0.35rem" }}
+                  >
+                    {m.statement}
+                  </p>
+                  {m.significance && <p className="ink-ledger-sub mt-1">{m.significance}</p>}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Transitions */}
+      {/* Transitions — where the session changed direction */}
       {transitions && transitions.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Transitions</h3>
-          {transitions.map((t: any, i: number) => (
-            <Card key={i} className="p-3">
-              <p className="text-sm">{t.description || t.summary || JSON.stringify(t)}</p>
-            </Card>
-          ))}
-        </div>
+        <section className="ink-rise mt-10" style={{ "--i": 4 } as React.CSSProperties}>
+          <h3 className="ink-section">Transitions</h3>
+          <div className="mt-4 space-y-3">
+            {transitions.map((t: any, i: number) => (
+              <div key={i} className="ink-note ink-note--plain">
+                <div className="ink-note-label">turn</div>
+                <p className="ink-note-text">{t.description || t.summary || JSON.stringify(t)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* Event Stream with window hints */}
+      {/* Event stream with chunk-window hints — how digestion read the transcript */}
       {eventsWithWindows && eventsWithWindows.events.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Event Stream · {eventsWithWindows.events.length} events
-          </h3>
-          <div>
+        <section className="ink-rise mt-10" style={{ "--i": 5 } as React.CSSProperties}>
+          <h3 className="ink-section">Event stream — {eventsWithWindows.events.length} events</h3>
+          <div className="mt-4">
             {eventsWithWindows.events.map((event: EventWithWindows) => {
               // Determine sitting separator
               const sittingIdx = eventsWithWindows.sittings.findIndex(
@@ -290,7 +302,7 @@ export function SessionDetailPage({ sessionId }: Props) {
               );
             })}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

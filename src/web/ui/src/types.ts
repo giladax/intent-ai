@@ -58,8 +58,6 @@ export interface Session {
   created_at: string;
   narrative_summary: string | null;
   moment_count: number;
-  features: Array<{ featureId: string; role: string }>;
-  topics: Array<{ topicId: string; topicName: string }>;
 }
 
 export interface FeatureSession {

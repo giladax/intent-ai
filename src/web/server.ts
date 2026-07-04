@@ -98,19 +98,6 @@ async function buildPinnedContextSection(item: PinnedItem): Promise<string> {
       const digestStart = prompt.indexOf("## Session Digest");
       return `### Session ${id.slice(0, 8)} (${label})\n${digestStart >= 0 ? prompt.slice(digestStart) : prompt}`;
     }
-    case "topic": {
-      const [t] = await sql`SELECT * FROM topics WHERE id = ${id}`;
-      if (!t) return `### Topic: ${label}\n(topic not found)`;
-      const insights = await sql`
-        SELECT statement, category, confidence FROM insights
-        WHERE topic_id = ${id} AND status = 'active'
-        ORDER BY confidence DESC LIMIT 12`;
-      return [
-        `### Topic: ${t.name}`,
-        t.summary,
-        insights.length ? `**Insights:**\n${insights.map((i: any) => `- [${i.category}] ${i.statement}`).join("\n")}` : "",
-      ].filter(Boolean).join("\n\n");
-    }
     case "observation":
     case "event": {
       const [e] = await sql`SELECT * FROM activity_events WHERE id = ${id}`;
@@ -140,46 +127,29 @@ const __dirname = dirname(__filename);
 
 const SONNET_MODEL = "claude-sonnet-4-6";
 
-// ── In-memory sync job tracking (survives page refresh, not server restart) ──
-interface SyncJob {
+// ── In-memory digest job tracking (survives page refresh, not server restart) ──
+interface DigestJob {
   id: string;
   repoId: string;
-  phase: "discovering" | "digesting" | "selecting" | "proposing" | "reviewing" | "applying" | "done" | "error";
-  sessions?: any[];
-  selectedSessionIds?: string[];
-  proposal?: any;
-  // Cached synthesis result — what was reviewed is exactly what gets applied
-  cachedPlan?: any;
-  cachedSpecs?: any[];
+  phase: "digesting" | "done" | "error";
   digestedCount?: number;
   digestTotal?: number;
   error?: string;
   startedAt: number;
 }
-const syncJobs = new Map<string, SyncJob>();
-const JOB_TTL_MS = 30 * 60 * 1000; // 30 minutes (synthesis is slow)
+const digestJobs = new Map<string, DigestJob>();
 
-function getActiveJob(repoId: string): SyncJob | null {
-  const job = syncJobs.get(repoId);
-  if (!job) return null;
-  if (Date.now() - job.startedAt > JOB_TTL_MS) {
-    syncJobs.delete(repoId);
-    return null;
-  }
-  return job;
-}
-
-function upsertJob(repoId: string, update: Partial<SyncJob>): SyncJob {
-  const existing = syncJobs.get(repoId);
-  const job: SyncJob = {
+function upsertJob(repoId: string, update: Partial<DigestJob>): DigestJob {
+  const existing = digestJobs.get(repoId);
+  const job: DigestJob = {
     id: existing?.id ?? crypto.randomUUID(),
     repoId,
-    phase: "discovering",
+    phase: "digesting",
     startedAt: existing?.startedAt ?? Date.now(),
     ...existing,
     ...update,
   };
-  syncJobs.set(repoId, job);
+  digestJobs.set(repoId, job);
   return job;
 }
 
@@ -787,14 +757,7 @@ export async function startWebServer(port: number): Promise<void> {
         ? await sql`
           SELECT s.id, s.source_type, s.source_path, s.session_shape, s.started_at, s.ended_at, s.created_at,
                  n.summary AS narrative_summary,
-                 (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count,
-                 COALESCE(
-                   (SELECT json_agg(json_build_object('topicId', t.id, 'topicName', t.name))
-                    FROM topic_sessions ts
-                    JOIN topics t ON t.id = ts.topic_id
-                    WHERE ts.session_id = s.id),
-                   '[]'::json
-                 ) AS topics
+                 (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count
           FROM sessions s
           LEFT JOIN narratives n ON n.session_id = s.id
           WHERE s.source_path LIKE ${"%" + pathSlug + "%"}
@@ -802,14 +765,7 @@ export async function startWebServer(port: number): Promise<void> {
         : await sql`
           SELECT s.id, s.source_type, s.source_path, s.session_shape, s.started_at, s.ended_at, s.created_at,
                  n.summary AS narrative_summary,
-                 (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count,
-                 COALESCE(
-                   (SELECT json_agg(json_build_object('topicId', t.id, 'topicName', t.name))
-                    FROM topic_sessions ts
-                    JOIN topics t ON t.id = ts.topic_id
-                    WHERE ts.session_id = s.id),
-                   '[]'::json
-                 ) AS topics
+                 (SELECT COUNT(*) FROM moments m WHERE m.session_id = s.id) AS moment_count
           FROM sessions s
           LEFT JOIN narratives n ON n.session_id = s.id
           ORDER BY s.created_at DESC`;
@@ -997,9 +953,6 @@ ${sessionContexts}
     }
   });
 
-  // ── Brain Sync ─────────────────────────────────────────────────────
-
-  // Sync status — lets the UI recover state after page refresh
   // ── Digest schedule (cron elapse settings) ────────────────────────
   app.get("/api/digest/schedule", (_req, res) => {
     res.json({ ...schedule, lastRun: lastScheduledRun });
@@ -1019,13 +972,6 @@ ${sessionContexts}
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
-  });
-
-  app.get("/api/brain/sync-status", (req, res) => {
-    const repoId = req.query.repoId as string;
-    if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
-    const job = getActiveJob(repoId);
-    res.json(job);
   });
 
   // Discover — count undigested CC logs for this project (digest is Step 0)
