@@ -147,7 +147,7 @@ describe("makeGitTools", () => {
     it("execute returns a string for a valid real repo path (the project itself)", async () => {
       // Use the actual project repo — it must exist in CI and locally
       const result = await tool.execute({
-        repo: "/Users/giladkoch/dev/intent-ai",
+        repo: process.cwd(),
         sinceIso: "2020-01-01T00:00:00Z",
         untilIso: "2099-12-31T23:59:59Z",
       });

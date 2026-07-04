@@ -193,4 +193,32 @@ describe("list_tool_events", () => {
     const text = result as string;
     expect(text.toLowerCase()).toMatch(/no action|no tool|no event/);
   });
+
+  it("caps at 100 tool events per call (returns first 100 when range exceeds cap)", async () => {
+    // Build a large fixture with 150 action events
+    const bigEvents: NormalizedDevEvent[] = Array.from({ length: 150 }, (_, i) =>
+      makeEvent(i + 1, "action", "ai", `Action ${i + 1}`, `action ${i + 1}`),
+    );
+    const bigTools = makeTranscriptTools(bigEvents);
+    const bigList = bigTools.find((t) => t.name === "list_tool_events")!;
+
+    const result = await bigList.execute({ from: 1, to: 150 });
+    const text = result as string;
+    // Should include [100] but not [101]
+    expect(text).toContain("[100]");
+    expect(text).not.toContain("[101]");
+  });
+
+  it("includes a notice when tool events exceed 100", async () => {
+    const bigEvents: NormalizedDevEvent[] = Array.from({ length: 120 }, (_, i) =>
+      makeEvent(i + 1, "action", "ai", `Action ${i + 1}`),
+    );
+    const bigTools = makeTranscriptTools(bigEvents);
+    const bigList = bigTools.find((t) => t.name === "list_tool_events")!;
+
+    const result = await bigList.execute({ from: 1, to: 120 }) as string;
+    // Should mention cap and narrow
+    expect(result.toLowerCase()).toMatch(/capped.*100/);
+    expect(result.toLowerCase()).toMatch(/narrow/);
+  });
 });

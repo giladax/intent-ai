@@ -8,6 +8,7 @@ import { renderChunkEvents } from "../../pipeline/understand/render-chunk-events
 
 const RANGE_CAP = 200;
 const SEARCH_CAP = 50;
+const TOOL_EVENTS_CAP = 100;
 
 // ── buildToolEventLine ───────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ export function makeTranscriptTools(
       "Use this when you need to see what happened between two specific events — " +
       "proposals, actions, and results in context. " +
       "Returns each event prefixed with [N], formatted by category (DEV:/AI: for dialogue, " +
-      "AI/ACTION for edits/commands, RESULT for outcomes). " +
+      "AI/ACTION(files) for edits/commands, RESULT for outcomes). " +
       "Max 200 events per call; if the range exceeds the cap, only the first 200 are returned " +
       "and a notice is appended. Narrow the range if you need finer coverage.",
     schema: z.object({
@@ -182,7 +183,14 @@ export function makeTranscriptTools(
         return `(no action or result events in causal-order range [${from}..${to}])`;
       }
 
-      return toolEvents.map(buildToolEventLine).join("\n");
+      const capped = toolEvents.slice(0, TOOL_EVENTS_CAP);
+      const rendered = capped.map(buildToolEventLine).join("\n");
+      const notice =
+        toolEvents.length > TOOL_EVENTS_CAP
+          ? `\n— capped at ${TOOL_EVENTS_CAP} events (of ${toolEvents.length}); narrow the range`
+          : "";
+
+      return rendered + notice;
     },
   });
 
