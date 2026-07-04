@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { fetchSessionDetail } from "../api";
-import type { SessionDetail } from "../types";
+import { fetchSessionDetail, fetchSessionEventsWithWindows } from "../api";
+import type { SessionDetail, SessionEventsWithWindows, EventWithWindows, EventWindow, SessionSitting } from "../types";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,9 +24,27 @@ const MOMENT_COLORS: Record<string, string> = {
   transition: "bg-violet-500",
 };
 
+const CHUNK_COLORS = [
+  { border: "#6366f1", bg: "#6366f115", badge: "#6366f1" },
+  { border: "#10b981", bg: "#10b98115", badge: "#10b981" },
+  { border: "#f59e0b", bg: "#f59e0b15", badge: "#f59e0b" },
+  { border: "#ef4444", bg: "#ef444415", badge: "#ef4444" },
+  { border: "#8b5cf6", bg: "#8b5cf615", badge: "#8b5cf6" },
+  { border: "#06b6d4", bg: "#06b6d415", badge: "#06b6d4" },
+];
+
+function formatGap(prev: SessionSitting, curr: SessionSitting): string {
+  const ms = new Date(curr.startedAt).getTime() - new Date(prev.endedAt).getTime();
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  if (ms < 3_600_000) return `${(ms / 60_000).toFixed(1)}m`;
+  if (ms < 86_400_000) return `${(ms / 3_600_000).toFixed(1)}h`;
+  return `${(ms / 86_400_000).toFixed(1)}d`;
+}
+
 export function SessionDetailPage({ sessionId }: Props) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [eventsWithWindows, setEventsWithWindows] = useState<SessionEventsWithWindows | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -34,6 +52,9 @@ export function SessionDetailPage({ sessionId }: Props) {
       .then(setDetail)
       .catch(() => setDetail(null))
       .finally(() => setLoading(false));
+    fetchSessionEventsWithWindows(sessionId)
+      .then(setEventsWithWindows)
+      .catch(() => setEventsWithWindows(null));
   }, [sessionId]);
 
   if (loading) {
@@ -128,6 +149,147 @@ export function SessionDetailPage({ sessionId }: Props) {
               <p className="text-sm">{t.description || t.summary || JSON.stringify(t)}</p>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Event Stream with window hints */}
+      {eventsWithWindows && eventsWithWindows.events.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Event Stream · {eventsWithWindows.events.length} events
+          </h3>
+          <div>
+            {eventsWithWindows.events.map((event: EventWithWindows) => {
+              // Determine sitting separator
+              const sittingIdx = eventsWithWindows.sittings.findIndex(
+                (s: SessionSitting) => s.eventRangeStart === event.causalOrder && s.sittingIndex > 0,
+              );
+              const sitting = sittingIdx >= 0 ? eventsWithWindows.sittings[sittingIdx] : null;
+              const prevSitting = sitting ? eventsWithWindows.sittings[sittingIdx - 1] : null;
+
+              // Determine primary chunk color (first window)
+              const primaryChunkIndex = event.windows[0] ?? 0;
+              const chunkColor = CHUNK_COLORS[primaryChunkIndex % CHUNK_COLORS.length];
+
+              // Find chunk metadata for topic hint
+              const chunkMeta: EventWindow | undefined = eventsWithWindows.chunks.find(
+                (c: EventWindow) => c.chunkIndex === primaryChunkIndex,
+              );
+
+              const isOverlap = event.windows.length > 1;
+
+              return (
+                <div key={event.id}>
+                  {/* Sitting separator */}
+                  {sitting && prevSitting && (
+                    <div className="ink-section my-3" style={{ color: "var(--j-faint)" }}>
+                      sitting {sitting.sittingIndex + 1} · after {formatGap(prevSitting, sitting)} gap
+                    </div>
+                  )}
+
+                  {/* Event row */}
+                  <div
+                    style={{
+                      borderLeft: `3px solid ${chunkColor.border}`,
+                      background: isOverlap ? chunkColor.bg : undefined,
+                      paddingLeft: "0.75rem",
+                      paddingTop: "0.35rem",
+                      paddingBottom: "0.35rem",
+                      marginBottom: "2px",
+                    }}
+                  >
+                    {/* Meta row */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.2rem", flexWrap: "wrap" }}>
+                      {/* Chunk badge(s) */}
+                      {isOverlap ? (
+                        <span
+                          style={{
+                            fontFamily: "var(--j-mono)",
+                            fontSize: "0.575rem",
+                            letterSpacing: "0.04em",
+                            color: chunkColor.badge,
+                            border: `1px solid ${chunkColor.border}`,
+                            borderRadius: "3px",
+                            padding: "0 4px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          c{event.windows[0]}·c{event.windows[1]} — overlap
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontFamily: "var(--j-mono)",
+                            fontSize: "0.575rem",
+                            letterSpacing: "0.04em",
+                            color: chunkColor.badge,
+                            border: `1px solid ${chunkColor.border}`,
+                            borderRadius: "3px",
+                            padding: "0 4px",
+                          }}
+                        >
+                          c{primaryChunkIndex}
+                        </span>
+                      )}
+                      {/* Category badge */}
+                      <span
+                        style={{
+                          fontFamily: "var(--j-mono)",
+                          fontSize: "0.575rem",
+                          letterSpacing: "0.04em",
+                          background: "var(--j-wash)",
+                          color: "var(--j-ink-soft)",
+                          borderRadius: "3px",
+                          padding: "0 4px",
+                        }}
+                      >
+                        {event.category}
+                      </span>
+                      {/* Actor + causal order */}
+                      <span
+                        style={{
+                          fontFamily: "var(--j-mono)",
+                          fontSize: "0.575rem",
+                          color: "var(--j-faint)",
+                        }}
+                      >
+                        {event.actor} · #{event.causalOrder}
+                      </span>
+                      {/* Topic hint */}
+                      {chunkMeta?.topicHint && (
+                        <span
+                          style={{
+                            fontFamily: "var(--j-mono)",
+                            fontSize: "0.575rem",
+                            color: "var(--j-faint)",
+                            maxWidth: "200px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={chunkMeta.topicHint}
+                        >
+                          {chunkMeta.topicHint}
+                        </span>
+                      )}
+                    </div>
+                    {/* Summary */}
+                    <p
+                      style={{
+                        fontFamily: "var(--j-serif)",
+                        fontSize: "0.9rem",
+                        lineHeight: "1.5",
+                        color: "var(--j-ink)",
+                        margin: 0,
+                      }}
+                    >
+                      {event.summary}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 # Brain API — Critical Review & v1.1 Contract
 
+> **Historical (superseded 2026-07-04):** This review (2026-07-03) identifies issues with the Topic graph integration and MCP surface. The Topic ontology was excised on 2026-07-04; for current MCP surface, see `docs/specs/2026-07-04-*` (if available) and `src/mcp/`. The structural findings (F3, F4, F5, F6) remain actionable for v1.1 work.
+
 > Status: review accepted, v1.1 contract proposed · Date: 2026-07-03
 > Reviewed: `src/mcp/server.ts`, `src/mcp/feature.ts`, write path in `src/storage/queries.ts` as of `b26c2bf`.
 > Referenced by [`docs/prd.md`](../prd.md) §MCP Surface.

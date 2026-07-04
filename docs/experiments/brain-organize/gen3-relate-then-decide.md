@@ -1,5 +1,7 @@
 # Experiment: Gen 3 — Relate-Then-Decide (KNN + Reinforcement)
 
+> **Historical (superseded 2026-07-04):** This experiment documents work on the chromosome/organism framework, which was archived after the understanding-stage rewrite completed. The findings remain instructive for future optimization work.
+
 ## Phase
 Phase 2 — Chr 3 (Synthesis) variation
 

@@ -142,6 +142,36 @@ export interface SessionDetail {
   }>;
 }
 
+export interface EventWindow {
+  chunkIndex: number;
+  eventRangeStart: number;
+  eventRangeEnd: number;
+  topicHint: string | null;
+}
+
+export interface SessionSitting {
+  sittingIndex: number;
+  eventRangeStart: number;
+  eventRangeEnd: number;
+  startedAt: string;
+  endedAt: string;
+}
+
+export interface EventWithWindows {
+  id: string;
+  causalOrder: number;
+  category: string;
+  actor: string;
+  summary: string;
+  windows: number[];
+}
+
+export interface SessionEventsWithWindows {
+  events: EventWithWindows[];
+  chunks: EventWindow[];
+  sittings: SessionSitting[];
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;

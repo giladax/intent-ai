@@ -1,5 +1,7 @@
 # Understanding-Stage Rewrite Implementation Plan
 
+> **Historical (superseded 2026-07-04):** This plan describes the implementation of the understanding-stage rewrite (completed 2026-07-04). The Gen-0 machinery it deletes (organism.ts, run-gen0.ts, chromosomes/) has been removed from the codebase. See the completed design in `docs/superpowers/specs/2026-07-04-understanding-stage-rewrite-design.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace chunk→moments→transitions→narrative→emit with a provenance-first understanding stage per `docs/superpowers/specs/2026-07-04-understanding-stage-rewrite-design.md`, judged against the captured fidelity baseline.

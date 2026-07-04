@@ -10,7 +10,7 @@ const MIN_PREVIOUS_FILES = 3; // need enough file context to detect a real shift
 const MIN_CURRENT_FILES = 1; // at least one file needed
 const MIN_CHUNK_SIZE = 8; // merge tiny chunks into neighbors
 const SIZE_CAP = 80;
-const OVERLAP = 3;
+export const OVERLAP = 3;
 const SHORT_SESSION_THRESHOLD = 10;
 
 // Ignore files outside the project — skill docs, tmp files, etc.

@@ -6,6 +6,8 @@ import { dirname, join } from "node:path";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { getClient } from "../storage/connection.js";
+import { OVERLAP } from "../pipeline/chunk.js";
+import { computeWindowMembership } from "./window-membership.js";
 import {
   getSessionNarrative,
   getSessionMoments,
@@ -1119,6 +1121,69 @@ ${sessionContexts}
         sendSSE(res, { phase: "error", message: String(err) });
         res.end();
       }
+    }
+  });
+
+  // ── Session events with chunk-window membership hints ────────────────
+
+  app.get("/api/sessions/:id/events-with-windows", async (req, res) => {
+    try {
+      const sql = getClient();
+      const sessionId = req.params.id;
+
+      const [eventRows, chunkRows, sittingRows] = await Promise.all([
+        sql`SELECT id, causal_order, category, actor, summary
+            FROM normalized_events
+            WHERE session_id = ${sessionId}
+            ORDER BY causal_order`,
+        sql`SELECT chunk_index, event_range_start, event_range_end, topic_hint
+            FROM chunks
+            WHERE session_id = ${sessionId}
+            ORDER BY chunk_index`,
+        sql`SELECT sitting_index, event_range_start, event_range_end, started_at, ended_at
+            FROM sittings
+            WHERE session_id = ${sessionId}
+            ORDER BY sitting_index`,
+      ]);
+
+      const eventsForMembership = eventRows.map((r: any) => ({
+        causalOrder: r.causal_order as number,
+      }));
+      const chunksForMembership = chunkRows.map((r: any) => ({
+        chunkIndex: r.chunk_index as number,
+        eventRangeStart: r.event_range_start as number,
+        eventRangeEnd: r.event_range_end as number,
+      }));
+
+      const membership = computeWindowMembership(eventsForMembership, chunksForMembership, OVERLAP);
+
+      const events = eventRows.map((r: any) => ({
+        id: r.id as string,
+        causalOrder: r.causal_order as number,
+        category: r.category as string,
+        actor: r.actor as string,
+        summary: r.summary as string,
+        windows: membership.get(r.causal_order as number) ?? [],
+      }));
+
+      const chunks = chunkRows.map((r: any) => ({
+        chunkIndex: r.chunk_index as number,
+        eventRangeStart: r.event_range_start as number,
+        eventRangeEnd: r.event_range_end as number,
+        topicHint: (r.topic_hint as string | null) ?? null,
+      }));
+
+      const sittings = sittingRows.map((r: any) => ({
+        sittingIndex: r.sitting_index as number,
+        eventRangeStart: r.event_range_start as number,
+        eventRangeEnd: r.event_range_end as number,
+        startedAt: new Date(r.started_at as string).toISOString(),
+        endedAt: new Date(r.ended_at as string).toISOString(),
+      }));
+
+      res.json({ events, chunks, sittings });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
     }
   });
 

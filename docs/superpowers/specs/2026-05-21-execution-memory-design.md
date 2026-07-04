@@ -1,5 +1,7 @@
 # Execution Memory System — Design Spec
 
+> **Historical (superseded 2026-07-04):** The pipeline stage described here (chunk→moments→transitions→narrative) was rewritten as `src/pipeline/understand/` per `docs/superpowers/specs/2026-07-04-understanding-stage-rewrite-design.md`. The chunking heuristics and two-pass merge rules documented here remain live in the new stage.
+
 ## What This Is
 
 A TypeScript CLI that ingests Claude Code conversation logs and produces evidence-backed session digests reconstructing how understanding evolved during AI-assisted development.

@@ -6,6 +6,7 @@ import type {
   FeatureFile,
   PendingObservation,
   SessionDetail,
+  SessionEventsWithWindows,
   ChatMessage,
   JournalResponse,
   JournalParams,
@@ -114,6 +115,9 @@ export const fetchSessions = (repoId?: string) =>
   json<Session[]>(repoId ? `/api/sessions?repoId=${repoId}` : "/api/sessions");
 export const fetchSessionDetail = (id: string) =>
   json<SessionDetail>(`/api/sessions/${id}`);
+
+export const fetchSessionEventsWithWindows = (id: string) =>
+  json<SessionEventsWithWindows>(`/api/sessions/${id}/events-with-windows`);
 
 // Digest — the intake and its press schedule (cron elapse settings)
 export interface DigestSchedule {

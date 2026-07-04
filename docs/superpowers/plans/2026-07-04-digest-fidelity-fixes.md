@@ -1,5 +1,7 @@
 # Digest Fidelity: Eval + Provenance Fixes Implementation Plan
 
+> **Historical (superseded 2026-07-04):** This plan describes audit-driven fixes to the digest pipeline (completed 2026-07-04) and deletion of the Gen-0 eval machinery (organism.ts, run-gen0.ts, chromosomes/). The work is now complete. See `docs/audits/2026-07-04-digest-fidelity-report.md` for the audit findings.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make digest fidelity measurable (fidelity eval + baseline), fix the deterministic provenance bugs the 2026-07-04 audit found, and retire the Gen-0 eval machinery — per `docs/audits/2026-07-04-digest-fidelity-report.md`.
