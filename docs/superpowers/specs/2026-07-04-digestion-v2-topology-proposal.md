@@ -1,6 +1,6 @@
 # Digestion v2 — Topology Proposal
 
-**Date:** 2026-07-04 · **Status:** proposal (design only, no implementation) — revised same day against the owner reframe ("digestion is the receiver of events — sessions, but also Jira/Slack — and it updates the brain")
+**Date:** 2026-07-04 · **Status:** proposal (design only, no implementation) — revised same day against the owner reframe ("digestion is the receiver of events — sessions, but also Jira/Slack — and it updates the brain") and the owner's second force ("although sessions can be in the context window does not necessarily mean one pass would be enough — this is reactive")
 **Inputs:** [owner reframe](../../../.superpowers/sdd/digestion-v2-reframe.md) · [fidelity report](../../audits/2026-07-04-digest-fidelity-report.md) · [understanding-stage rewrite](2026-07-04-understanding-stage-rewrite-design.md) · [agents-core design](2026-07-04-agents-core-design.md) · [digestion-zoom design](2026-07-04-digestion-zoom-design.md) · `.intent/audit/rewrite-{salvage,contracts}.md` · `docs/prd.md` §Integrations · code as of `801849a`
 
 **Grounding measurement (new, taken for this proposal).** Rendered transcript size of the four audited sessions through the production `renderChunkEvents`:
@@ -68,49 +68,84 @@ Also inherited: model-emitted confidence (saturated at ≥95% high on three inde
 
 All three candidates share the non-negotiables: deterministic groundwork (`parse → normalize → detectSittings → classifySession` — per §0, this is the **session adapter**, and everything downstream of the normalized `EvidenceStream` must be source-agnostic), `validateAnchors` in code, occurred-time from anchors, additive-only schema, `PipelineResult` for callers, idempotent + grown-log transactional replace, fidelity eval as referee. Each candidate is judged twice: as a session digester, and as the brain's receiver (does its shape assume transcript-ness, or does it receive evidence generally?).
 
-### Candidate A — Full-read, incremental-commit receiver (recommended)
+### Candidate A — Full-read, two-phase deliberative receiver (recommended)
 
-**Frame:** the receiver is a *reader with a pen*, not a synthesizer. The whole rendered evidence stream is injected up front (it fits — for sessions today, and a fortiori for every sparser source later). The agent reads chronologically and **commits findings as it reads** via recording tools; deterministic code accumulates the record; the final LLM output is only the thin stream-level synthesis. "LLMs judge; code carries" taken to its agentic conclusion: no finding is ever re-emitted after the turn that produced it. Nothing in this frame is transcript-specific — "read the evidence in order, commit anchored judgments while the region is hot" applies to a ticket history exactly as to a session.
+**Frame:** the receiver is a *deliberative reader*, not a reactive scanner. Holding the full session in a single context window is necessary but not sufficient — a single chronological pass is *first-impression reading*, and salience is retrospective: you only know event 50 mattered once you know the ending. A session opener flagged "exploring" in pass 1 may be the exact precursor of the session's only breakthrough; a tool-call cluster in the middle may be mere scaffolding or the decisive pivot — you cannot know locally. The audit's "local-salience failure class in agentic clothing" is the shape of any eager commit without knowing the arc. The recommended topology is therefore **two-phase deliberative**: a full draft read that records provisional commitments and makes open questions explicit, followed by a retrospective revision pass that re-weighs everything knowing the ending.
 
-**LangGraph sketch** (extends the existing core loop; same `StateGraph`, new tools + thinner finalize). Core tool names below; the session adapter binds them to session vocabulary (`record_claim` → `record_moment`, `record_episode_narrative` → sitting narratives):
+**Design-rationale note (why two phases, from the design forces):** "although sessions can be in the context window does not necessarily mean one pass would be enough — this is reactive" (owner, 2026-07-04). Single-pass incremental-commit is structurally identical to the audit's local-salience failure class: the agent commits judgments in the order it encounters evidence, with no mechanism to revise when later evidence changes the weight of earlier events. Adding amendment/retract tools to a single pass addresses the honest-failure mode but does not address the structural one — the agent must know that a moment deserves amendment, which requires the hindsight the second pass supplies. Phase 2 is the hindsight pass.
+
+**The whole rendered evidence stream is injected up front** (it fits — for sessions today, and a fortiori for every sparser source later). "LLMs judge; code carries" taken to its agentic conclusion: no finding becomes the record without surviving retrospective revision.
+
+**LangGraph sketch** (extends the existing core loop; same `StateGraph`, new tools + thinner finalize). Core tool names below; the session adapter binds them to session vocabulary (`record_claim` → `record_moment`, `record_episode_narrative` → sitting narratives). The two phases share the same graph; the phase flag gates which commit path is open.
 
 ```
 State = { messages, turns, tokensUsed, repairs, budgetExhausted, toolCallStats,
+          phase: 'draft' | 'revision',
           record: { claims: RecordedClaim[],              // accumulated by tools
                     episodeNarratives: EpisodeNarrative[],//   (session: moments,
                     edges: CausalEdge[],                  //    sitting narratives)
-                    amendments: Amendment[] },
+                    openQuestions: OpenQuestion[],         // explicit unknowns from phase 1
+                    amendments: Amendment[] },             // first-class; journal/zoom visible
           windowCursor: number }                          // overflow mode only
+
+── PHASE 1: DRAFT READ ──────────────────────────────────────────────────────
 
 START → inject_evidence              [deterministic: episode-annotated full render of
                                       the EvidenceStream (session adapter: sitting-
-                                      annotated transcript), or first window if overflow]
+                                      annotated transcript), or first window if overflow;
+                                      phase = 'draft']
       → call_model
           ├─ tool calls → execute_tools → budget_guard → call_model
           │     core tools:    record_claim · record_episode_narrative · record_edge
           │                    amend_claim · retract_claim
+          │                    record_open_question     ← new; records threads-of-unknown-
+          │                                               significance + targeted re-read
+          │                                               targets for phase 2
           │     adapter tools: peek_raw_event · git_log_window   (session adapter;
           │                    each adapter may register its own source tools)
-          └─ no tool calls → coverage_gate
-coverage_gate [code, no LLM; adapter-parameterized rules]
+          └─ no tool calls → phase1_coverage_gate
+phase1_coverage_gate [code, no LLM; adapter-parameterized rules]
           ├─ overflow & stream remains → advance_window → call_model
-          ├─ gaps found (episode uncovered, opening intent missing,
-          │   claim without required corroboration) → bounce → call_model
+          ├─ gaps found (episode uncovered, opening intent missing) → bounce → call_model
+          └─ draft_complete → begin_revision              [flip phase = 'revision';
+                                                           inject summary of record so far
+                                                           + open-questions list]
+
+── PHASE 2: RETROSPECTIVE REVISION ──────────────────────────────────────────
+
+begin_revision
+      → call_model                   [agent now knows the ending; instructed to re-weigh
+                                      provisional commits against the arc; open questions
+                                      drive targeted re-reads; commit gate enforced]
+          ├─ tool calls → execute_tools → budget_guard → call_model
+          │     core tools:    amend_claim · retract_claim · record_claim (new claims
+          │                    discovered only in retrospect), record_edge
+          │                    resolve_open_question    ← closes a record_open_question
+          │     adapter tools: peek_raw_event · git_log_window (targeted re-reads to
+          │                    verify claims or resolve open questions)
+          └─ no tool calls → phase2_coverage_gate
+phase2_coverage_gate [code; checks open questions resolved; anchor validity on all claims]
+          ├─ unresolved open questions → bounce → call_model
           └─ complete → finalize      [1 LLM turn: narrative synthesis from
-                                       episodeNarratives + record, by reference]
-      → assemble                      [code: record → brain-update contract (§4)
+                                       episodeNarratives + revised record, by reference]
+      → assemble                      [code: revised record → brain-update contract (§4)
                                        + adapter projection (session: PipelineResult,
-                                       digest tables)]
+                                       digest tables); amendments and retractions are
+                                       first-class events (journal/zoom visible — see Q2)]
       → END
 ```
 
-**The recording tools are the load-bearing change.** In the session binding, `record_claim` is exposed to the model as `record_moment` (the audited-good moment taxonomy is the session adapter's claim vocabulary). It validates *at commit time*, in the tool executor:
+**Amendments and retractions are first-class events.** When the phase 2 pass promotes, demotes, amends, or retracts a provisional commit, the change itself is emitted as a river event (`digest:amendment`, `digest:retraction`) anchored to both the original evidence and the retrospective evidence that changed the verdict. This directly addresses owner question 2 — the honest failure mode is part of the trace, visible in the zoom view's fourth lane.
+
+**The `record_open_question` tool is the explicit unknown mechanism.** During phase 1, the agent calls it whenever it encounters a thread whose significance cannot be determined locally — e.g., a tool-call cluster that might be scaffolding or the pivot, a decision whose scope is unclear until the arc resolves. Each open question records: a label, the evidence indices in question, and the agent's hypothesis. Phase 2 resolves or closes each one with `resolve_open_question`, optionally citing the later evidence that settled it. Unresolved questions block the phase 2 coverage gate — the topology forces the agent to be explicit about uncertainty rather than defaulting to silence.
+
+**The recording tools are the load-bearing change.** In the session binding, `record_claim` is exposed to the model as `record_moment` (the audited-good moment taxonomy is the session adapter's claim vocabulary). In **phase 1**, commits are *provisional* — they enter the record with `provisional: true` and are visible to phase 2 as candidates for re-weigh. In **phase 2**, only revised or newly confirmed claims pass the commit gate — the gate checks that each claim either carries a phase-2 confirmation or an amendment/retraction. It validates *at commit time*, in the tool executor:
 - anchor check (`validateAnchors` against the sitting's event range — quote ⊆ event text, index in range) → failure returns immediately in the tool result: `"evidence[0] unanchored: quote not found at [412]; nearest match [409]"`. Repair is *local and immediate* — one moment, while the region is still hot in context — not a whole-blob bounce at the end.
 - claim-typed moments (`confirmation | breakthrough | execution`) **require** a `citedToolEvents: number[]` field pointing at action/result events, plus the agent's `verification` verdict (`supported | contradicted`); code validates the cited events exist and are action/result category. Verification is woven into reading, and it finally has a place to be recorded (fixes D4). (This is the session adapter's instance of the core's generic rule: *an adapter declares which claim kinds require corroboration and what counts as corroborating evidence* — a Jira adapter's "decision" claim citing the authoring comment is the same mechanism.)
 - `confidence` is **not** an input — derived in code (E2's design, promoted to the contract): anchored + supported → high; anchored → medium; any unanchored evidence → low. Structurally cannot saturate.
 - occurred-time from first anchored event, at commit.
 
-`record_episode_narrative(episodeIndex, summary, openThreads[])` — in the session binding, the sitting narrative — is demanded by the coverage gate at each episode boundary — the rolling narrative is *forced by topology*, not requested by prompt. Persisted per digestion-zoom Part A as the `digest:sitting` event summary + new nullable columns on `sittings` (§5). `record_edge(fromMomentId, toMomentId, kind: caused | superseded | resolved | resumed)` lets causal structure accumulate where it is observed. `amend_moment`/`retract_moment` handle the honest failure mode of committing early and learning better later (the audit agents did exactly this); amendments are kept, not overwritten — the digester's own change-of-mind is part of the trace.
+`record_episode_narrative(episodeIndex, summary, openThreads[])` — in the session binding, the sitting narrative — is demanded by the coverage gate at each episode boundary — the rolling narrative is *forced by topology*, not requested by prompt. In phase 2 the sitting narratives may be revised to reflect retrospective significance; the revision is recorded as a `digest:sitting:revised` event. Persisted per digestion-zoom Part A as the `digest:sitting` event summary + new nullable columns on `sittings` (§5). `record_edge(fromMomentId, toMomentId, kind: caused | superseded | resolved | resumed)` lets causal structure accumulate where it is observed. `amend_claim`/`retract_claim` (session binding: `amend_moment`/`retract_moment`) handle the honest failure mode of committing early and learning better later (the audit agents did exactly this, and phase 2 now *systematically surfaces* the cases where this should happen); amendments are kept, not overwritten — the digester's own change-of-mind is part of the trace and is first-class in the river (addresses owner Q2).
 
 **Domain atoms:** moments remain the primary atom (the taxonomy is audited-good), but they stop being the *sole* atom: **sitting narratives** and **causal edges** become first-class recorded objects. Transitions and outcomes become *deterministic derivations*: transitions from `pivot`/`rejection` moments + `superseded` edges; outcomes from `supported` execution/confirmation moments (+ their `filesAffected`). Tables still written, readers untouched, two Sonnet calls and one whole re-projection failure class deleted. (Gated by experiment V2-E3 — if derivation measurably loses recall vs. the LLM calls, keep the calls.)
 
@@ -118,18 +153,21 @@ coverage_gate [code, no LLM; adapter-parameterized rules]
 
 **Long-session traversal:** single window is the *primary* path, justified: (i) measured — the worst real session is ~58k tokens rendered, 29% of the window; (ii) the known failure of long contexts is degraded *retrieval from the middle* at answer time — incremental commit sidesteps it because each judgment is made while its region is proximal, never reconstructed from distance; (iii) chronology (F8) is trivially preserved by a chronological read; (iv) prompt caching makes a growing single conversation cheap — each turn re-reads the transcript from cache at ~10% input price. **Overflow strategy** (render > ~120k tokens, leaving headroom for turns): the same graph flips to rolling — `advance_window` drops the oldest transcript segment from `messages` and injects the next sitting-group; the carried context is **the accumulated record itself** (recorded moments + sitting narratives + open threads), not an ad-hoc scratchpad. The notes that carry state across windows are the same objects that get stored — nothing is discarded (fixes D3 at the root).
 
-**Cost estimate** (Sonnet, prompt-cached):
-- short (2.4k render): 3–6 turns ≈ pipeline's 8–10 calls, cheaper in tokens.
-- medium (31k): 8–15 turns; ≈ pipeline's ~22 calls; cached input keeps token cost at or below pipeline (which pays full price for 17 disjoint extract prompts).
-- large (58k): 15–25 turns vs pipeline's observed ~35–40 calls. One full-price 58k read + ~20 cache-read turns + outputs ≈ **at or under pipeline cost, well under the 2× envelope**; the two deleted transitions/outcomes calls partially fund the recording turns.
+**Cost estimate** (Sonnet, prompt-cached, both phases):
 
-(Cost envelopes are per-adapter, judged against that adapter's own baseline — this table is the session adapter's. A Jira ticket or Slack thread is tens of events → 2–4 turns → pennies; sparse sources never stress the envelope.)
+Phase 2 costs far less than a second full pass, because the entire phase 1 transcript prefix is cached after phase 1 completes. Phase 2 pays full price only for new output tokens and the short `begin_revision` injection (record summary + open-questions list) — the original transcript is re-read from cache at ~10% of input token price. Empirically: phase 2 adds roughly 0.3× of the phase 1 cost, making the two-phase total **≈ 1.3× a single pass**, not 2×. This is the same prompt-caching argument that already makes the growing-conversation single pass cheap — phase 2 is just one more sequence of turns over the same cached prefix.
+
+- short (2.4k render): phase 1: 3–4 turns; phase 2: 1–3 targeted re-reads + revision turns ≈ pipeline's 8–10 calls total, at or below pipeline token cost.
+- medium (31k): phase 1: 8–12 turns; phase 2: 3–6 turns (mostly cached re-reads). ≈ pipeline's ~22 calls; two-phase token cost at or below pipeline (which pays full price for 17 disjoint extract prompts with no caching).
+- large (58k): phase 1: 12–20 turns; phase 2: 5–10 targeted turns. Two-phase total ≈ **≤1.3× phase 1 cost** ≈ **at or under pipeline cost**; the two deleted transitions/outcomes calls partially fund the revision turns.
+
+(Cost envelopes are per-adapter, judged against that adapter's own baseline — this table is the session adapter's. A Jira ticket or Slack thread is tens of events → 2–4 phase-1 turns + 1–2 revision turns → pennies; sparse sources never stress the envelope.)
 
 **What A cannot do well:**
-- Sessions whose signal hides below the render's truncation (actions cut at 200 chars, ok-results at 120) — mitigated by `peek_raw_event`, but the agent must think to look.
-- Genuinely overflow sessions run the degraded rolling path — the window strategy is only *mostly* dead.
-- Wall-clock: sequential by design; no parallel speedup (acceptable: digestion is a background daemon job).
-- Early-commit wrong: a moment recorded in sitting 1 may be recontextualized by sitting 5; `amend/retract` covers it but adds protocol the model must actually use — a fidelity-precision risk to watch in the experiment.
+- Sessions whose signal hides below the render's truncation (actions cut at 200 chars, ok-results at 120) — mitigated by `peek_raw_event` (a natural tool for phase 2 targeted re-reads), but the agent must think to look.
+- Genuinely overflow sessions run the degraded rolling path — the window strategy is only *mostly* dead. **Overflow + two phases:** when overflow mode is active, phase 1 uses `advance_window` in rolling mode as before; phase 2 then runs a *bounded revision pass* over the fully-accumulated phase-1 record (in context) plus targeted `peek_raw_event` re-reads to resolve open questions and verify claims — no second full rolling traversal, just the record + tool-assisted spot checks. The accumulated record is the carried context, same as before; phase 2 adds resolution of the open-question list. This is workable but less powerful than single-window phase 2 (targeted re-reads are limited to what the open-questions list surfaces, not free retrospective scanning). A `windowMode: 'rolling'` marker in the `digest:run` event flags that phase 2 was the bounded variant (owner Q3).
+- Wall-clock: sequential by design; no parallel speedup (acceptable: digestion is a background daemon job). Two phases add wall-clock, not just token cost; the tradeoff is deliberate.
+- Phase 2 overhead: the revision pass must actually move the needle — if the agent confirms everything in phase 1 without meaningful re-weigh, two phases cost more for no fidelity gain. The V2-E4 experiment (below) is the pre-registered check.
 - Cross-session structure (resumed *sessions*, not sittings) — out of scope for any per-stream receiver run; consolidation agent's job.
 
 **Adapter vs. core — the reframe re-examination.** What in A as first drafted assumed transcript-ness, and what receives evidence generally:
@@ -202,14 +240,15 @@ The shipped design: fetch-via-tools reader, prompt-directed sitting order, notes
 
 ## 3. Recommendation
 
-**Build Candidate A — full-read incremental-commit — as digestion v2, keeping C as the experimental control and deferring B's thread-following to the consolidation agent (while shipping B's edge atom inside A).**
+**Build Candidate A — full-read, two-phase deliberative receiver — as digestion v2, keeping C as the experimental control and deferring B's thread-following to the consolidation agent (while shipping B's edge atom inside A).**
 
 Reasoning against the owner's forces, one by one:
 - *"Narrow windows lose narrative and nuance"* — A deletes windows for every session that fits (all of them, today) and reads the arc whole; the 80-event cap and 3-event overlap die with the pipeline arm.
 - *"Concerned by the moment-only lens"* — sitting narratives and causal edges become first-class recorded objects written from the read, not projected from moments; transitions/outcomes stop being LLM re-projections.
 - *"Proper agentic search and reasoning; search and analysis are not so different"* — A keeps the agent loop, tools, and judgment; it removes only the *retrieval tax*. The audit agents that outperformed the pipeline held transcripts and took notes as they read — A is that method, formalized.
-- *Journal as product surface* — every recorded object is anchored and occurred-time-stamped at commit; `digest:sitting` events make the digestion structure river-native; the agent's recording trace *is* the zoom view's fourth lane.
+- *Journal as product surface* — every recorded object is anchored and occurred-time-stamped at commit; `digest:sitting` events make the digestion structure river-native; amendments and retractions are first-class river events; the agent's recording trace *is* the zoom view's fourth lane.
 - *"Digestion is the receiver of events — sessions, but also Jira/Slack — updating the brain"* — A's reading loop is source-agnostic by construction once the adapter/core split (§0, re-examination table above) is enforced: adapters own parse/render/episodes/vocabulary; the core owns commit, validation, narrative, and the brain-update contract (§4). The Jira/Slack plug-in sketch requires zero core changes — the receiver is designed for its second source before the second source exists.
+- *"One pass is not enough — this is reactive"* — the two-phase structure makes retrospective re-weigh a first-class operation, not an afterthought. Phase 1 reads the arc and records provisional judgments; phase 2 holds the full arc in mind, revisits open questions with targeted re-reads, and only commits revised claims. Salience is retrospective by construction.
 
 **Build order note:** v2 is built *as* the receiver core + the session adapter — not as a session digester to be split later. The boundary is a code boundary from day one: core modules (`src/agents/core/`, growing into the receiver) must not import from the session adapter (`src/adapters/cc*`, `src/agents/digest/`); the session adapter depends on the core, never the reverse. Enforced in review plus a cheap import-boundary lint check.
 
@@ -217,21 +256,22 @@ Reasoning against the owner's forces, one by one:
 
 | Survives as-is | Modified | Deleted (after promotion) |
 |---|---|---|
-| `core/graph.ts` loop, budget guard, repair bounce | `AgentState` + `record` annotation; `coverage_gate` node replaces blob-shaped custom node | pipeline `extract.ts`/`weave.ts`/`verify.ts`/`transitions.ts`(LLM)/`narrative.ts`(moment-only path) |
-| `core/tool.ts`, `run.ts`, `tools/git.ts` | `tools/transcript.ts`: `peek_raw_event` added; range/search kept for overflow mode | `chunk.ts` as a *reading* structure (kept only as storage span backfill, see §5) |
-| `validateAnchors`, `detectSittings`, groundwork, `renderChunkEvents` | `output-schema.ts` shrinks to narrative + session decisions; new `RecordedMoment`/`CausalEdge`/`SittingNarrative` schemas | `buildPseudoChunksPerSitting`, `mapAgentOutputToPipelineResult` (replaced by `assemble`) |
-| Storage contracts, `storeSessionDigest`, idempotency + grown-log replace, `PipelineResult` | `emit-events.ts` gains sitting-narrative + edge events | 3-event overlap, `dedup-moments` (nothing to dedup without overlap) |
+| `core/graph.ts` loop, budget guard, repair bounce | `AgentState` + `record` annotation + `phase` flag; `phase1_coverage_gate` and `phase2_coverage_gate` replace blob-shaped custom node; `begin_revision` node added | pipeline `extract.ts`/`weave.ts`/`verify.ts`/`transitions.ts`(LLM)/`narrative.ts`(moment-only path) |
+| `core/tool.ts`, `run.ts`, `tools/git.ts` | `tools/transcript.ts`: `peek_raw_event` added; range/search kept for overflow + phase-2 targeted re-reads | `chunk.ts` as a *reading* structure (kept only as storage span backfill, see §5) |
+| `validateAnchors`, `detectSittings`, groundwork, `renderChunkEvents` | `output-schema.ts` shrinks to narrative + session decisions; new `RecordedMoment`/`CausalEdge`/`SittingNarrative`/`OpenQuestion` schemas | `buildPseudoChunksPerSitting`, `mapAgentOutputToPipelineResult` (replaced by `assemble`) |
+| Storage contracts, `storeSessionDigest`, idempotency + grown-log replace, `PipelineResult` | `emit-events.ts` gains sitting-narrative + edge + amendment + retraction events | 3-event overlap, `dedup-moments` (nothing to dedup without overlap) |
 
-New code is concentrated in: recording tools (+ their commit-time validators), `coverage_gate`, `advance_window`, `assemble`, derived transitions/outcomes. The graph shape change is small; the contract change is the point. Everything in the "survives as-is" and "modified" columns sorts cleanly into the §0 split — the loop/tools/validators land in the receiver core, the groundwork/render/genre/git pieces land in the session adapter — so the migration *is* the boundary-drawing exercise.
+New code is concentrated in: recording tools (+ their commit-time validators), `phase1_coverage_gate`, `phase2_coverage_gate`, `begin_revision`, `record_open_question`/`resolve_open_question` tools, `advance_window`, `assemble`, derived transitions/outcomes. The graph shape change is modest; the two-phase state + tool additions are the point. Everything in the "survives as-is" and "modified" columns sorts cleanly into the §0 split — the loop/tools/validators land in the receiver core, the groundwork/render/genre/git pieces land in the session adapter — so the migration *is* the boundary-drawing exercise.
 
 **Pre-registered experiments (one dimension each; referee `run-fidelity.ts`; experiment set `d73d5190` + `5b31a1bb`, full set incl. `20f5efec` + `b9ab1a0c --force` before promotion; results in `.claude/skills/agents/experiments/`):**
 
 - **V2-E1 (context composition):** v1 agent, unchanged topology, but transcript injected up front instead of fetch-via-tools. *Expected:* catalog recall ↑ (esp. F6 texture items: b9ab1a0c's 0/5), turns ↓. Isolates "holding the session" from everything else.
-- **V2-E2 (topology):** incremental-commit tools + coverage gate + thin finalize, on whichever context arm won E1. *Expected:* precision violations stay 0 while moment count stays sane; anchored% ↑ (commit-time repair); chronology errors 0; verification recorded ≠ null on claim moments. Isolates "commit-as-you-read" from "full read".
+- **V2-E2 (topology):** incremental-commit tools + coverage gate + thin finalize *with single phase*, on whichever context arm won E1. *Expected:* precision violations stay 0 while moment count stays sane; anchored% ↑ (commit-time repair); chronology errors 0; verification recorded ≠ null on claim moments. Isolates "commit-as-you-read" from "full read". This is the single-pass baseline that V2-E4 is measured against.
 - **V2-E3 (contract):** derived confidence + derived transitions/outcomes vs model-emitted. *Expected:* calibration flips to INFORMATIVE (cannot saturate); recall/precision unchanged; −2 Sonnet calls. (Absorbs old E2.)
+- **V2-E4 (two-phase deliberative vs single-pass):** the recommended topology (two-phase) vs V2-E2 winner (single-pass incremental-commit). Held constant: context composition, commit tools, coverage gate, finalize. Varied: phase 2 retrospective revision pass + `record_open_question`/`resolve_open_question` tools. *Expected:* **arc-significance recall ↑** (moments that matter only in retrospect — session-opener precursors, mid-session pivots — should be promoted from provisional to confirmed; the F6 texture items that were missed because their significance was invisible locally are the canonical candidates); **narrative arc precision ↑** (phase 2 demotes locally-vivid moments that do not survive retrospective scrutiny); **open-question resolution rate** as a new fidelity metric. Fidelity metrics that move: F6 (texture recall), F5 (chronology), narrative-arc coherence (manual review against audit judges). Cost metric: actual two-phase token total vs V2-E2 (expected ≈ 1.3× V2-E2, not 2×). If V2-E4 shows no improvement over V2-E2 on arc-significance recall and no reduction in narrative-arc precision violations, the two-phase overhead is unjustified and V2-E2 becomes the recommended path.
 - **E1b control (kept from agents-core):** pipeline shape, sitting-sized chunks, zero overlap, carried moment-header — still the honest control that separates window-size from agenthood. Run once alongside V2-E1.
 - **Boundary check (structural, not an LLM experiment):** the adapter/core split cannot be eval-scored until a second source exists, so it is verified two ways instead: (i) the import-boundary lint (core never imports session-adapter modules) passes on every experiment branch; (ii) at each design change, the Jira adapter sketch in §2 must remain implementable with zero core diffs — a paper re-derivation, minutes of work, done as part of experiment review. All V2-E* experiments run through the session adapter; their referees and baselines are unchanged by the reframe.
-- **Promotion bar (unchanged from agents-core, restated):** v2 ≥ pipeline on every provenance check, strictly better on catalog recall, no precision/agency regression, full set, ≤3× pipeline token cost (expected: ≤1×) — then v2 becomes the default digest path and the pipeline understand-arm is excised.
+- **Promotion bar (unchanged from agents-core, restated):** v2 ≥ pipeline on every provenance check, strictly better on catalog recall, no precision/agency regression, full set, ≤3× pipeline token cost (expected: ≤1×, confirmed ≤1.3× with two-phase) — then v2 becomes the default digest path and the pipeline understand-arm is excised.
 
 Fidelity-eval additions required first (cheap, deterministic): score *chronology* (recorded moment order vs anchor-time order), *sitting-narrative coverage* (every sitting has one), *verification-recorded rate* on claim moments, and *edge validity* (edges reference stored moments). The catalogs already contain the ground truth for the first.
 
@@ -350,19 +390,25 @@ ALTER TABLE moment_evidence ADD COLUMN cited_for text;   -- null | 'verification
 -- on the agent arm.
 
 -- 5. Digest run bookkeeping — no new table; rides digest:run events (zoom Part A),
---    metadata gains { arm: 'v2', windowMode: 'single'|'rolling', turns, cacheReadTokens }.
+--    metadata gains { arm: 'v2', windowMode: 'single'|'rolling', turns, cacheReadTokens,
+--                     phase1Turns, phase2Turns, openQuestionsRaised, openQuestionsResolved }.
+
+-- 6. Open questions (two-phase deliberative) — ride the record in state; not persisted as
+--    rows (they are process-internal). The resolved/unresolved count lands in digest:run
+--    metadata. Unresolved open questions at end of phase 2 are optionally emitted as
+--    digest:open-question events (visible in zoom fourth lane) for human follow-up.
 ```
 
-No existing column changes; every reader keeps working; all new fields nullable. `transitions`/`outcomes` tables unchanged — v2 writes them from the deterministic derivation (V2-E3), same shapes.
+No existing column changes; every reader keeps working; all new fields nullable. `transitions`/`outcomes` tables unchanged — v2 writes them from the deterministic derivation (V2-E3), same shapes. Open questions are process-internal state (carried in `record.openQuestions[]`); only their resolution count and any unresolved residue need storage.
 
 ---
 
 ## 6. Open questions for the owner
 
 1. **Transitions/outcomes derivation:** may V2-E3 *replace* the two LLM calls with deterministic derivation if fidelity holds (tables/readers unchanged), or must both arms coexist behind a flag until a promotion-grade comparison? Forks how much of the old pipeline survives.
-2. **Amendment semantics in the river:** when the digester retracts/amends a moment mid-read, do the superseded versions surface in the Journal (honest process, noisier river) or only in the zoom view (clean river, provenance one click deeper)? Forks emit-events and the zoom spec.
-3. **Overflow threshold ownership:** single-window applies up to ~120k rendered tokens (all current sessions qualify at ≤58k). Is a *degraded-mode marker* on rolling-window digests (visible in `digest:run` and zoom) acceptable, or must rolling mode meet the identical fidelity bar before v2 ships? Forks the promotion criteria.
+2. **Amendment semantics in the river:** the proposal makes amendments and retractions first-class river events (`digest:amendment`, `digest:retraction`) visible in the zoom view's fourth lane. Two-phase sharpens the question: phase-2 amendments are the *systematic* outcome of retrospective re-weigh (not just the honest-failure repair), so they will be more frequent. The question becomes: do *phase-1 provisional commits that survive phase 2 unchanged* also surface in the Journal (clean, complete record), or only amendments and final confirmed claims (leaner river)? The zoom view always shows the full trace; the river is the question. Forks emit-events and the zoom spec.
+3. **Overflow threshold and phase-2 variant:** single-window (primary) applies up to ~120k rendered tokens (all current sessions qualify at ≤58k). For overflow sessions, phase 2 is the bounded revision pass (accumulated record + targeted re-reads only, no second full traversal — see §2). Is a *degraded-mode marker* on rolling-window digests (visible in `digest:run` and zoom) acceptable, or must the bounded phase-2 variant meet the identical fidelity bar before v2 ships? Forks the promotion criteria and whether V2-E4 needs an overflow sub-arm.
 4. **Fate of the fixed pipeline post-promotion:** excise entirely (agents-core says retire), or keep a no-LLM `--dry-run`-style deterministic skeleton (sittings + rendered river only) as the API-key-less fallback? Forks the deletion list and CLAUDE.md.
-5. **Cost envelope reconciliation:** this brief says justify beyond ~2× of ~12 calls/session, but the shipped pipeline already spends 35–40 Sonnet calls on large sessions and agents-core pre-registered ≤3× *pipeline* cost. Which baseline governs v2's promotion? (A is expected ≤1× pipeline, so this likely never binds — but it should be unambiguous before the experiments are scored. Per §4, envelopes for later adapters are set against their own baselines when those adapters are proposed.)
+5. **Cost envelope reconciliation:** this brief says justify beyond ~2× of ~12 calls/session, but the shipped pipeline already spends 35–40 Sonnet calls on large sessions and agents-core pre-registered ≤3× *pipeline* cost. Which baseline governs v2's promotion? (Two-phase A is expected ≤1.3× single-pass, ≤1× pipeline overall — so this likely never binds — but it should be unambiguous before the experiments are scored. Per §4, envelopes for later adapters are set against their own baselines when those adapters are proposed.)
 6. **Second-source adapter timing:** is a thin read-only Jira **or** Slack adapter (one project / one channel) worth building shortly after v2 promotion as a *boundary proof* — cheap, since the streams are tiny and the receiver core is shared — or does the second source wait for P2 intent-ingestion proper? Forks whether the adapter/core boundary stays a lint rule + paper exercise or gets a living test; also forks how soon the first intent-classed deltas (and thus the first real alignment queries) exist.
 7. **Delta gate mechanics:** should proposed understanding deltas keep riding `activity_events` + `reviewStatus` (today's observation gate — zero migration), or get a dedicated `understanding_deltas` table at v2 time (additive, better queryability, one more surface)? Forks §4.3 and the review UI's read path.
