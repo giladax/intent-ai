@@ -186,6 +186,38 @@ describe("buildClaimWindow", () => {
     const window = buildClaimWindow(moment, [chunk]);
     expect(window).toBe("(no action or result events in chunk)");
   });
+
+  it("appends truncation marker when event detail exceeds 500 chars", () => {
+    const longDetail = "x".repeat(600); // 600 chars, exceeds 500-char slice
+    const events: NormalizedDevEvent[] = [
+      makeEvent(1, "action", longDetail),
+      makeEvent(2, "result", "test result"),
+    ];
+    const chunk = makeChunk("chunk-0", events);
+    const moment = makeMoment("m0", "confirmation", "chunk-0");
+
+    const window = buildClaimWindow(moment, [chunk]);
+
+    // The sliced event should be capped at 500 chars and marked with " …[event truncated]"
+    expect(window).toContain(" …[event truncated]");
+    expect(window).not.toContain("x".repeat(600)); // Full string not present
+  });
+
+  it("does not append truncation marker when event detail is under 500 chars", () => {
+    const shortDetail = "y".repeat(100); // Under 500 chars
+    const events: NormalizedDevEvent[] = [
+      makeEvent(1, "action", shortDetail),
+      makeEvent(2, "result", "test result"),
+    ];
+    const chunk = makeChunk("chunk-0", events);
+    const moment = makeMoment("m0", "confirmation", "chunk-0");
+
+    const window = buildClaimWindow(moment, [chunk]);
+
+    // Event should be present without per-event truncation marker
+    expect(window).toContain("y".repeat(100));
+    expect(window).not.toContain(" …[event truncated]");
+  });
 });
 
 // ── Tests: applyVerdicts ──────────────────────────────────────────────
@@ -234,6 +266,19 @@ describe("applyVerdicts", () => {
     const result = applyVerdicts(moments, verdicts);
 
     expect(result.find((m) => m.id === "m0")?.confidence).toBeNull();
+    expect(result.find((m) => m.id === "m0")?.verification).toBe("supported");
+  });
+
+  it("supported verdict with 'low' confidence keeps it 'low' (never raises)", () => {
+    const moments = [
+      makeMoment("m0", "confirmation", "chunk-0", { confidence: "low" }),
+    ];
+    const verdicts = [{ momentId: "m0", verdict: "supported" as const }];
+
+    const result = applyVerdicts(moments, verdicts);
+
+    // 'supported' verdict must not raise confidence from 'low'
+    expect(result.find((m) => m.id === "m0")?.confidence).toBe("low");
     expect(result.find((m) => m.id === "m0")?.verification).toBe("supported");
   });
 

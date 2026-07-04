@@ -54,8 +54,11 @@ export function buildClaimWindow(
 
   // Render each event as a line
   const lines = events.map((e) => {
-    const detail = e.content.detail.slice(0, 500);
-    return `[${e.causalOrder}] ${e.category.toUpperCase()}(${e.actor}): ${detail}`;
+    const fullDetail = e.content.detail;
+    const detail = fullDetail.slice(0, 500);
+    // Append truncation marker if the original detail exceeded 500 chars
+    const truncationMarker = fullDetail.length > 500 ? " …[event truncated]" : "";
+    return `[${e.causalOrder}] ${e.category.toUpperCase()}(${e.actor}): ${detail}${truncationMarker}`;
   });
 
   // Build the window, truncating whole events from the end if needed
