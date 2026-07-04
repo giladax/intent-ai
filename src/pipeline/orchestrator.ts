@@ -47,7 +47,7 @@ function log(step: string): void {
 // keyed by CC session UUID — and re-copied when the source has grown (a
 // resumed session), so the raw tail is preserved even where the stored
 // digest is stale. Failure-safe: archiving never fails the digest.
-function archiveRawSession(logPath: string, ccSessionId: string): void {
+export function archiveRawSession(logPath: string, ccSessionId: string): void {
   try {
     const dir = path.join(process.cwd(), ".intent", "raw-sessions");
     fs.mkdirSync(dir, { recursive: true });
@@ -60,7 +60,7 @@ function archiveRawSession(logPath: string, ccSessionId: string): void {
   }
 }
 
-function getGitContext(sourcePath: string): { repo?: string; branch?: string; worktree?: string } {
+export function getGitContext(sourcePath: string): { repo?: string; branch?: string; worktree?: string } {
   try {
     const dir = path.dirname(sourcePath);
     const branch = execSync("git rev-parse --abbrev-ref HEAD", { cwd: dir, encoding: "utf-8" }).trim();

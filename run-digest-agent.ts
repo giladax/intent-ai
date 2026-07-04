@@ -23,11 +23,13 @@ async function main() {
   try {
     console.log(`Digesting: ${logPath}${forceFlag ? " (--force)" : ""}`);
     const result = await digestWithAgent(logPath, { force: forceFlag });
-    console.log(`\nDone. sessionId: ${result.sessionId}`);
-    console.log(`  Moments: ${result.moments.length}`);
-    console.log(`  Transitions: ${result.transitions.length}`);
-    console.log(`  Outcomes: ${result.outcomes.length}`);
-    console.log(`  Narrative: ${result.narrative.summary.slice(0, 100)}...`);
+    const sittingCount = Array.from(
+      new Set((result.moments as Array<{ chunkId?: string }>).map((m) => m.chunkId))
+    ).length;
+    const eventsEmitted = (result as { _eventsEmitted?: number })._eventsEmitted ?? 0;
+    console.log(
+      `stored digest ${result.sessionId} (${result.moments.length} moments, ${sittingCount} sittings) + emitted ${eventsEmitted} events`,
+    );
   } catch (err) {
     console.error("Error:", err instanceof Error ? err.message : String(err));
     process.exit(1);

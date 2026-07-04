@@ -15,13 +15,17 @@ import {
   findDigestedSession,
   latestTimestamp,
   loadStoredDigest,
+  archiveRawSession,
+  getGitContext,
   type PipelineResult,
 } from "../../pipeline/orchestrator.js";
+import { buildSessionEvents } from "../../pipeline/emit-events.js";
 import {
   buildDigestAgentConfig,
   mapAgentOutputToPipelineResult,
   buildAgentTraceEvents,
 } from "./agent.js";
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { AgentResult } from "../core/types.js";
 import type { DigestAgentOutput } from "./output-schema.js";
 
@@ -31,9 +35,12 @@ function log(step: string): void {
 
 export async function digestWithAgent(
   logPath: string,
-  opts?: { force?: boolean },
-): Promise<PipelineResult> {
+  opts?: { force?: boolean; _modelOverride?: BaseChatModel },
+): Promise<PipelineResult & { _eventsEmitted?: number }> {
   const ccSessionId = basename(logPath, ".jsonl");
+
+  // 0. Archive the raw log unconditionally (M2) — fail-safe, never blocks digestion.
+  archiveRawSession(logPath, ccSessionId);
 
   // 1. Parse first
   log("[1/7] Parsing CC log...");
@@ -80,7 +87,7 @@ export async function digestWithAgent(
   const agentConfig = buildDigestAgentConfig({ normalizedEvents, sittings, sessionShape });
   const agentInput = `Analyze this ${sessionShape} session with ${sittings.length} sitting(s) and ${normalizedEvents.length} events. Extract all meaningful moments, transitions, outcomes, and produce a narrative summary.`;
 
-  const agentResult: AgentResult<DigestAgentOutput> = await runAgent(agentConfig, agentInput);
+  const agentResult: AgentResult<DigestAgentOutput> = await runAgent(agentConfig, agentInput, opts?._modelOverride);
 
   if (agentResult.partial || !agentResult.output) {
     throw new Error(
@@ -139,16 +146,43 @@ export async function digestWithAgent(
     log(`  ⚠ Database write failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  // 8. Emit agent-trace events
+  // 8. Emit activity events — only when digest was stored (C1 + M4).
+  // Guard prevents phantom activity_events rows that reference a non-existent session.
   log("[7/7] Emitting activity events...");
+  let totalEventsEmitted = 0;
   if (digestStored) {
+    const gitCtx = getGitContext(logPath);
+
+    // 8a. Session events (moments, transitions, outcomes, narrative) → river (C1)
+    try {
+      const sessionEvents = buildSessionEvents({
+        sessionId,
+        repo: gitCtx.repo,
+        branch: gitCtx.branch,
+        worktree: gitCtx.worktree,
+        moments,
+        transitions,
+        outcomes,
+        narrative,
+        sessionEndedAt: endedAt,
+      });
+      await emitEvents(sessionEvents);
+      totalEventsEmitted += sessionEvents.length;
+      log(`  → Emitted ${sessionEvents.length} session events`);
+    } catch (err) {
+      log(`  ⚠ Failed to emit session events: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // 8b. Agent-trace events (tool calls, run summary) with git context (M4)
     try {
       const traceEvents = buildAgentTraceEvents(
         sessionId,
         agentResult.stats.toolCalls,
         agentResult.stats,
+        gitCtx,
       );
       await emitEvents(traceEvents);
+      totalEventsEmitted += traceEvents.length;
       log(`  → Emitted ${traceEvents.length} agent-trace events`);
     } catch (err) {
       log(
@@ -163,5 +197,6 @@ export async function digestWithAgent(
     moments,
     transitions,
     outcomes,
+    _eventsEmitted: totalEventsEmitted,
   };
 }

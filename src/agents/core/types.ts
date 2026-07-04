@@ -48,7 +48,7 @@ export interface AgentResult<T = unknown> {
   stats: {
     turns: number;
     tokensUsed: number;
-    toolCalls: { name: string; ms: number }[];
+    toolCalls: { name: string; ms: number; argsSummary: string }[];
     repairs: number;
   };
   /** Present when partial — the raw last attempt */

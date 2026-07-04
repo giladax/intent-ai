@@ -68,7 +68,7 @@ const GraphAnnotation = Annotation.Root({
     default: () => false,
   }),
   // Accumulated tool call stats for AgentResult.stats
-  toolCallStats: Annotation<{ name: string; ms: number }[]>({
+  toolCallStats: Annotation<{ name: string; ms: number; argsSummary: string }[]>({
     reducer: (a, b) => [...a, ...b],
     default: () => [],
   }),
@@ -178,7 +178,7 @@ export function buildAgentGraph(
 
     const toolMap = new Map(lcTools.map((t) => [t.name, t]));
     const toolMessages: ToolMessage[] = [];
-    const newStats: { name: string; ms: number }[] = [];
+    const newStats: { name: string; ms: number; argsSummary: string }[] = [];
 
     for (const tc of toolCalls) {
       const t = toolMap.get(tc.name);
@@ -189,7 +189,9 @@ export function buildAgentGraph(
       } else {
         content = `TOOL_ERROR: unknown tool "${tc.name}"`;
       }
-      newStats.push({ name: tc.name, ms: Date.now() - start });
+      const raw = JSON.stringify(tc.args ?? {});
+      const argsSummary = raw.length > 120 ? raw.slice(0, 117) + "..." : raw;
+      newStats.push({ name: tc.name, ms: Date.now() - start, argsSummary });
       toolMessages.push(
         new ToolMessage({ tool_call_id: tc.id ?? tc.name, content })
       );

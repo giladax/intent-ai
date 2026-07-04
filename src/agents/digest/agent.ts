@@ -72,7 +72,11 @@ Work sitting-by-sitting in causal order. For each sitting:
     name: "validate_anchors_and_repair",
     check: async (output: unknown, _state: unknown): Promise<string | null> => {
       const parsed = output as DigestAgentOutput;
-      if (!parsed?.moments?.length) return null;
+      // M3: zero-moment output is never valid — every session has at least an
+      // opening-intent moment from sitting 0.
+      if (!parsed?.moments?.length) {
+        return "Output contains zero moments. Every session has at least an opening-intent moment (see your instructions). Re-read sitting 0 and produce the digest.";
+      }
 
       const sittingChunks = buildPseudoChunksPerSitting(
         session.sittings,
@@ -277,8 +281,9 @@ export function mapAgentOutputToPipelineResult(
 
 export function buildAgentTraceEvents(
   sessionId: string,
-  toolCalls: { name: string; ms: number }[],
-  stats: { turns: number; tokensUsed: number; toolCalls: { name: string; ms: number }[]; repairs: number },
+  toolCalls: { name: string; ms: number; argsSummary: string }[],
+  stats: { turns: number; tokensUsed: number; toolCalls: { name: string; ms: number; argsSummary: string }[]; repairs: number },
+  gitCtx?: { repo?: string; branch?: string; worktree?: string },
 ): ActivityEvent[] {
   const events: ActivityEvent[] = [];
 
@@ -288,10 +293,13 @@ export function buildAgentTraceEvents(
       category: "agent:tool-call",
       tags: ["agent-trace", tc.name],
       actor: "agent",
-      summary: `${tc.name}() ${tc.ms}ms`,
-      metadata: { toolName: tc.name, ms: tc.ms },
+      summary: `${tc.name}(${tc.argsSummary}) ${tc.ms}ms`,
+      metadata: { toolName: tc.name, ms: tc.ms, argsSummary: tc.argsSummary },
       sourceType: "agent-trace",
       sessionId,
+      repo: gitCtx?.repo,
+      branch: gitCtx?.branch,
+      worktree: gitCtx?.worktree,
     });
   }
 
@@ -309,6 +317,9 @@ export function buildAgentTraceEvents(
     },
     sourceType: "agent-trace",
     sessionId,
+    repo: gitCtx?.repo,
+    branch: gitCtx?.branch,
+    worktree: gitCtx?.worktree,
   });
 
   return events;

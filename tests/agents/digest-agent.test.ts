@@ -313,4 +313,88 @@ describe("digest agent contracts", () => {
     expect(c1.eventRange).toEqual([5, 9]);
     expect(c1.events).toHaveLength(5);
   });
+
+  // I1: argsSummary present in buildAgentTraceEvents summaries
+  it("(g) buildAgentTraceEvents includes argsSummary in tool-call event summaries", () => {
+    const sessionId = "test-session-i1";
+    const toolCalls = [
+      { name: "read_transcript_range", ms: 12, argsSummary: '{"start":0,"end":10}' },
+      { name: "list_tool_events", ms: 5, argsSummary: "{}" },
+    ];
+    const stats = { turns: 2, tokensUsed: 800, toolCalls, repairs: 0 };
+
+    const events = buildAgentTraceEvents(sessionId, toolCalls, stats);
+    const toolCallEvents = events.filter((e) => e.category === "agent:tool-call");
+
+    expect(toolCallEvents[0]!.summary).toBe('read_transcript_range({"start":0,"end":10}) 12ms');
+    expect(toolCallEvents[1]!.summary).toBe("list_tool_events({}) 5ms");
+  });
+
+  // I1: long argsSummary is truncated to 120 chars in the stored field
+  it("(h) buildAgentTraceEvents argsSummary survives in metadata", () => {
+    const sessionId = "test-session-i1b";
+    const longArgs = "x".repeat(130);
+    const toolCalls = [{ name: "big_tool", ms: 1, argsSummary: longArgs }];
+    const stats = { turns: 1, tokensUsed: 100, toolCalls, repairs: 0 };
+
+    const events = buildAgentTraceEvents(sessionId, toolCalls, stats);
+    const tc = events.find((e) => e.category === "agent:tool-call")!;
+    expect(tc.metadata["argsSummary"]).toBe(longArgs);
+  });
+
+  // M3: zero-moment output triggers repair from the custom node
+  it("(i) validate_anchors_and_repair bounces when output has zero moments", async () => {
+    const events = makeNormalizedEvents(10);
+    const sittings = makeSittings(events);
+    const config = buildDigestAgentConfig({
+      normalizedEvents: events,
+      sittings,
+      sessionShape: "narrative",
+    });
+
+    const zeroMomentOutput = {
+      moments: [],
+      transitions: [],
+      outcomes: [],
+      narrative: {
+        sessionShape: "narrative",
+        summary: "Empty session.",
+        progression: [],
+        discoveries: [],
+        stabilizedDirections: [],
+        abandonedDirections: [],
+      },
+    };
+    const valid = makeValidAgentOutput(events);
+
+    const model = new ScriptedFakeChatModel([
+      makeFinalOutputMsg(zeroMomentOutput),
+      makeFinalOutputMsg(valid),
+    ]);
+
+    const result = await runAgent(config, "Analyze the session.", model);
+
+    // First attempt (zero moments) should have triggered a repair
+    expect(result.stats.repairs).toBeGreaterThan(0);
+    // Second attempt (valid) should produce non-partial output with moments
+    expect(result.partial).toBe(false);
+    expect(result.output).toBeTruthy();
+    const out = result.output as { moments: unknown[] };
+    expect(out.moments.length).toBeGreaterThan(0);
+  });
+
+  // M4: buildAgentTraceEvents passes git context to events
+  it("(j) buildAgentTraceEvents includes git context on events when provided", () => {
+    const sessionId = "test-session-m4";
+    const toolCalls = [{ name: "read_transcript_range", ms: 5, argsSummary: "{}" }];
+    const stats = { turns: 1, tokensUsed: 200, toolCalls, repairs: 0 };
+    const gitCtx = { repo: "intent-ai", branch: "feat/repo-brain", worktree: undefined };
+
+    const events = buildAgentTraceEvents(sessionId, toolCalls, stats, gitCtx);
+
+    for (const e of events) {
+      expect(e.repo).toBe("intent-ai");
+      expect(e.branch).toBe("feat/repo-brain");
+    }
+  });
 });
