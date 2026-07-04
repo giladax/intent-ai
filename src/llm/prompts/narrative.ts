@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Pass2Moment } from "./moments.js";
+import type { Pass2Moment } from "../../adapters/types.js";
 import type { IntentTransition, AcceptedOutcome } from "./transitions.js";
 import type { SessionShape } from "./classify.js";
 import type { Sitting } from "../../adapters/types.js";

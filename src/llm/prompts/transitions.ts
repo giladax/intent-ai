@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Pass2Moment } from "./moments.js";
+import type { Pass2Moment } from "../../adapters/types.js";
 import type { SessionShape } from "./classify.js";
 
 // ── Confidence Rubric (canonical) ────────────────────────────────────

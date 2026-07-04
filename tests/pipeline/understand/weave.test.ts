@@ -1,10 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { applyWeaveDecisions, filterDedupSurvivors } from "../../../src/pipeline/understand/weave.js";
-import type { ExtractedMoment, SessionChunk, EvidenceAnchor } from "../../../src/adapters/types.js";
+import type { ExtractedMoment, SessionChunk, EvidenceAnchor, Pass1Moment } from "../../../src/adapters/types.js";
 import type { z } from "zod";
 import type { WeaveOutputSchema } from "../../../src/llm/prompts/understand/weave.js";
 import type { DedupResult } from "../../../src/pipeline/dedup-moments.js";
-import type { Pass1Moment } from "../../../src/llm/prompts/moments.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 

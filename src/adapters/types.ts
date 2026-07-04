@@ -343,6 +343,38 @@ export interface ExtractedMoment {
   occurredAt: string | null;     // ISO; first anchored evidence's event timestamp, else chunk start
 }
 
+// ── Pass1 / Pass2 Moment Types (dedup-moments, transitions, narrative) ──
+// These types were the LLM output contracts for the old two-pass moment
+// hunter. They survive here because dedup-moments.ts (still in use by
+// the understanding stage's weave step) and transitions/narrative operate
+// over them. The prompt builder (buildPass1Prompt) that generated them was
+// removed; these types are structural contracts only.
+
+export interface Pass1Evidence {
+  quote: string;
+  sourceEventId?: string | undefined;
+  sourceType: "user" | "ai" | "tool_output";
+  quoteType: "verbatim" | "paraphrase";
+}
+
+export interface Pass1Moment {
+  type: MomentType;
+  statement: string;
+  significance: string;
+  agency: "developer" | "ai" | "collaborative";
+  confidence: "high" | "medium" | "low";
+  topicFingerprint: string;
+  evidence: Pass1Evidence[];
+}
+
+export interface Pass2Moment extends Pass1Moment {
+  arcId?: string;
+  arcRole?: "origin" | "development" | "turning_point" | "resolution";
+  relatedMomentIds?: number[];
+  verification?: "supported" | "contradicted" | "unverified" | null;
+  occurredAt?: string | null;
+}
+
 // ── Activity Events ─────────────────────────────────────────────────
 
 export interface ActivityEvent {

@@ -9,7 +9,7 @@ import {
   buildTransitionsPrompt,
   TransitionsOutputSchema,
 } from "../llm/prompts/transitions.js";
-import type { Pass2Moment } from "../llm/prompts/moments.js";
+import type { Pass2Moment } from "../adapters/types.js";
 import type { SessionShape as PromptSessionShape } from "../llm/prompts/classify.js";
 
 /**

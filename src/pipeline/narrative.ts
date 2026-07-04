@@ -11,7 +11,7 @@ import {
   buildNarrativePrompt,
   SessionNarrativeSchema,
 } from "../llm/prompts/narrative.js";
-import type { Pass2Moment } from "../llm/prompts/moments.js";
+import type { Pass2Moment } from "../adapters/types.js";
 import type { SessionShape as PromptSessionShape } from "../llm/prompts/classify.js";
 import type {
   IntentTransition as PromptTransition,

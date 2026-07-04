@@ -57,7 +57,6 @@ npx tsx src/cli/index.ts observe-events --dry-run    # show observations without
 npx tsx src/cli/index.ts up                  # start Postgres + migrate
 npx tsx src/cli/index.ts down                # stop Postgres
 npx tsx src/cli/index.ts web --port 3456     # start dashboard
-npx tsx run-gen0.ts                          # run Gen 0 fitness evaluation
 ```
 
 ## Testing
@@ -66,6 +65,7 @@ npx tsx run-gen0.ts                          # run Gen 0 fitness evaluation
 npm test                    # run all tests (vitest)
 npx vitest run              # same, explicit
 npx tsc --noEmit            # type check
+npx tsx run-fidelity.ts     # run fidelity eval (measurement-v2 baseline)
 ```
 
 ## Architecture
@@ -73,9 +73,9 @@ npx tsc --noEmit            # type check
 ### Pipeline
 
 ```
-CC log → parse → normalize (+ threading) → [classify + chunk + analyze] → moments p1 → moments p2 → transitions → narrative → emit events
-         │         │                          │          │        │           │             │             │            │           │
-       adapter   deterministic             Haiku     deterministic        Sonnet ×N     Sonnet ×1     Sonnet ×1    Sonnet ×1   deterministic
+CC log → parse → normalize (+ threading) → [classify + chunk + analyze] → sittings → chunks → extract → weave → verify → transitions → narrative → emit events
+         │         │                          │          │        │            │          │         │        │        │         │            │           │
+       adapter   deterministic             Haiku     deterministic        deterministic  determ  Sonnet×N  Sonnet×1  Sonnet×1  Sonnet×1    Sonnet×1   deterministic
 ```
 
 Each step enriches a shared context — never replaces upstream data. All types in `src/adapters/types.ts`. Read this file before modifying any pipeline step.
@@ -92,6 +92,7 @@ src/
     types.ts       All domain types
   pipeline/        Processing steps (each is a function, no classes)
     orchestrator.ts End-to-end pipeline runner
+    understand/    Understanding stage — sittings → chunks → extract → weave → verify
     emit-events.ts  Builds ActivityEvents from session digest
     observe-events.ts LLM-driven observation layer over event stream
   llm/
@@ -100,7 +101,7 @@ src/
   storage/         Postgres via Drizzle ORM
   cli/             Commander.js CLI
   mcp/             MCP server — Feature context for agents (8 tools, stdio transport)
-  eval/            Fitness scoring, LLM-as-judge, organism runner
+  eval/            Fidelity eval + measurement-v2 (mvp) harness
   web/             Dashboard server (Journal-first: river + lenses + Correspondence chat dock)
   daemon/          Background daemon for continuous session watching
   utils/           CC log discovery
@@ -131,13 +132,13 @@ Use LLM with structured output (Haiku) instead of regex for anything semantic �
 
 Write eval criteria FIRST, run baseline, inspect failures, THEN change code.
 
-1. Run eval, capture baseline: `npx tsx run-gen0.ts`
+1. Run eval, capture baseline: `npx tsx run-fidelity.ts`
 2. Read the ACTUAL pipeline output — moments, narrative
 3. Identify what's wrong
 4. Modify code
 5. Re-run eval and compare
 
-Fixtures in `tests/eval/fixtures/`. Criteria in `tests/eval/session-criteria.ts`. Fitness in `src/eval/fitness.ts`.
+Fixtures in `tests/eval/fixtures/`. Criteria in `tests/eval/fidelity-criteria.ts`. Fidelity harness in `src/eval/fidelity.ts`.
 
 ## How-To
 

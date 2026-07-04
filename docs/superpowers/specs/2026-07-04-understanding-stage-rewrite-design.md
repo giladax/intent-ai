@@ -1,6 +1,6 @@
 # Understanding-Stage Rewrite — Design
 
-**Date:** 2026-07-04 · **Status:** approved-scope (user 2026-07-04: understanding stage only, eval-first, extra LLM calls allowed for verification)
+**Date:** 2026-07-04 · **Status:** implemented
 **Inputs:** [fidelity audit](../../audits/2026-07-04-digest-fidelity-report.md) · rewrite-contracts.md + rewrite-salvage.md (`.intent/audit/`) · fidelity baseline (`docs/audits/fidelity-baseline-2026-07-04.md`)
 
 ## Why a rewrite, not patches

@@ -1,5 +1,4 @@
-import type { SessionChunk } from "../adapters/types.js";
-import type { Pass1Moment } from "../llm/prompts/moments.js";
+import type { SessionChunk, Pass1Moment } from "../adapters/types.js";
 
 // ── Dedup Moments ───────────────────────────────────────────────────
 // Deterministic pre-filter applied between pass 1 and pass 2.

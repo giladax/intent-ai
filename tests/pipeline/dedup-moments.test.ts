@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { dedupMoments } from "../../src/pipeline/dedup-moments.js";
-import type { SessionChunk } from "../../src/adapters/types.js";
-import type { Pass1Moment } from "../../src/llm/prompts/moments.js";
+import type { SessionChunk, Pass1Moment } from "../../src/adapters/types.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
