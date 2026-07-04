@@ -30,6 +30,11 @@ import {
   type JournalEventRow,
   type JournalSessionRow,
 } from "./journal.js";
+import {
+  joinArchive,
+  readRawSessionArchive,
+  type DigestedSessionRef,
+} from "./archive.js";
 
 // Journal §7.3: the human's gate actions become timeline events. Failure-safe —
 // a lost event never fails the review action itself.
@@ -793,6 +798,33 @@ export async function startWebServer(port: number): Promise<void> {
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
+  });
+
+  // ── Local session archive ─────────────────────────────────────────
+  // `.intent/raw-sessions/` — raw CC logs preserved by digestion (PRD
+  // v0.3.2: evidence outlives the ~30-day purge). Listed alongside the
+  // sessions table so undigested evidence is visible. fs read is
+  // fail-safe; a DB outage degrades to "digested unknown", never a 500.
+
+  app.get("/api/archive", async (_req, res) => {
+    const dir = join(process.cwd(), ".intent", "raw-sessions");
+    const files = readRawSessionArchive(dir);
+    let sessions: DigestedSessionRef[] = [];
+    let dbAvailable = true;
+    try {
+      const sql = getClient();
+      const rows = await sql`
+        SELECT id, source_hash, started_at FROM sessions
+        WHERE source_hash IS NOT NULL`;
+      sessions = rows.map((r: any) => ({
+        id: r.id as string,
+        sourceHash: (r.source_hash as string | null) ?? null,
+        startedAt: r.started_at ? new Date(r.started_at as string).toISOString() : null,
+      }));
+    } catch {
+      dbAvailable = false;
+    }
+    res.json({ dir, dbAvailable, entries: joinArchive(files, sessions) });
   });
 
   // ── Moment Events Drill-down ──────────────────────────────────────

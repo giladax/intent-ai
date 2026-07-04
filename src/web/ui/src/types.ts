@@ -170,6 +170,24 @@ export interface SessionEventsWithWindows {
   sittings: SessionSitting[];
 }
 
+// ── Local session archive (.intent/raw-sessions) ─────────────────────
+export interface ArchiveEntry {
+  hash: string;
+  file: string;
+  sizeBytes: number;
+  lastModified: string;
+  digested: boolean;
+  sessionId: string | null;
+  startedAt: string | null;
+}
+
+export interface ArchiveResponse {
+  dir: string;
+  /** False when the sessions table couldn't be reached — digested state unknown. */
+  dbAvailable: boolean;
+  entries: ArchiveEntry[];
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;

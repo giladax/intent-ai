@@ -1,6 +1,8 @@
-import type { Session } from "../types";
+import { useEffect, useState } from "react";
+import type { Session, ArchiveResponse } from "../types";
+import { fetchArchive } from "../api";
 import type { LiveState } from "../api";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Archive } from "lucide-react";
 
 interface Props {
   sessions: Session[];
@@ -10,7 +12,19 @@ interface Props {
   onSessionClick: (id: string) => void;
 }
 
+/** "5.7 MB" / "156 KB" — archive files are big; keep the figure readable. */
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
+}
+
 export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onSessionClick }: Props) {
+  const [archive, setArchive] = useState<ArchiveResponse | null>(null);
+
+  useEffect(() => {
+    fetchArchive().then(setArchive).catch(() => setArchive(null));
+  }, []);
   const sorted = [...sessions].sort((a, b) => {
     const da = a.started_at ? new Date(a.started_at).getTime() : 0;
     const db = b.started_at ? new Date(b.started_at).getTime() : 0;
@@ -93,6 +107,56 @@ export function SessionsPage({ sessions, undigestedCount, liveState, onSync, onS
             </button>
           ))}
         </div>
+      )}
+
+      {/* The archive — raw evidence preserved on disk (.intent/raw-sessions).
+          Digestion copies every log here so evidence outlives Claude Code's
+          ~30-day purge and every digest stays re-derivable. */}
+      {archive && archive.entries.length > 0 && (
+        <section className="ink-rise mt-14" style={{ "--i": 5 } as React.CSSProperties}>
+          <h3 className="ink-section">
+            <Archive className="mr-1 inline size-3" />
+            The archive — {archive.entries.length} raw session{archive.entries.length === 1 ? "" : "s"} preserved
+          </h3>
+          <p className="ink-chrome mt-3 italic">
+            Raw logs kept in <code>.intent/raw-sessions/</code> — evidence outlives the ~30-day purge;
+            every digest stays re-derivable.
+            {!archive.dbAvailable && " (The sessions table is unreachable — digested state unknown.)"}
+          </p>
+          <div className="ink-ledger mt-4">
+            {archive.entries.map((e) => {
+              const clickable = e.digested && e.sessionId;
+              return (
+                <button
+                  key={e.hash}
+                  className="ink-ledger-row"
+                  style={clickable ? undefined : { cursor: "default" }}
+                  onClick={() => { if (clickable) onSessionClick(e.sessionId as string); }}
+                  title={e.file}
+                >
+                  <span className="ink-ledger-meta w-20 shrink-0" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {e.hash.slice(0, 8)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="ink-ledger-meta">
+                      {formatSize(e.sizeBytes)} · touched{" "}
+                      {new Date(e.lastModified).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  </span>
+                  {archive.dbAvailable ? (
+                    e.digested ? (
+                      <span className="ink-tag ink-tag--moss">digested</span>
+                    ) : (
+                      <span className="ink-tag ink-tag--red">undigested</span>
+                    )
+                  ) : (
+                    <span className="ink-tag">unknown</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
       )}
     </div>
   );

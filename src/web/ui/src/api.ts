@@ -7,6 +7,7 @@ import type {
   PendingObservation,
   SessionDetail,
   SessionEventsWithWindows,
+  ArchiveResponse,
   ChatMessage,
   JournalResponse,
   JournalParams,
@@ -118,6 +119,9 @@ export const fetchSessionDetail = (id: string) =>
 
 export const fetchSessionEventsWithWindows = (id: string) =>
   json<SessionEventsWithWindows>(`/api/sessions/${id}/events-with-windows`);
+
+// Local session archive — .intent/raw-sessions joined against the sessions table
+export const fetchArchive = () => json<ArchiveResponse>("/api/archive");
 
 // Digest — the intake and its press schedule (cron elapse settings)
 export interface DigestSchedule {
