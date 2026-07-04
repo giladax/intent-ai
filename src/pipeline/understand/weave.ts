@@ -11,7 +11,7 @@ import {
   buildWeavePrompt,
   WeaveOutputSchema,
 } from "../../llm/prompts/understand/weave.js";
-import { dedupMoments } from "../dedup-moments.js";
+import { dedupMoments, type DedupResult } from "../dedup-moments.js";
 
 // ── arcRole mapping ───────────────────────────────────────────────────
 // WeaveDecisionSchema uses "development"; SessionMoment.arcRole uses "escalation".
@@ -209,6 +209,33 @@ export function applyWeaveDecisions(
   return result;
 }
 
+// ── filterDedupSurvivors ──────────────────────────────────────────────
+
+/**
+ * Pure function: given the original extracted moments, the pass1 adapter input
+ * (built from extracted), a reference map from pass1 moment object → extract id,
+ * and the dedup result, return only those extracted moments whose identity was
+ * NOT removed by dedup.
+ *
+ * Resolves removed moments by object identity (via pass1MomentToExtractId), NOT
+ * by statement text — two distinct moments with identical statements but different
+ * evidence will not be conflated.
+ */
+export function filterDedupSurvivors(
+  extracted: ExtractedMoment[],
+  pass1MomentToExtractId: Map<object, string>,
+  dedupResult: DedupResult,
+): ExtractedMoment[] {
+  const removedExtractIds = new Set<string>();
+  for (const { moment } of dedupResult.removed) {
+    const extractId = pass1MomentToExtractId.get(moment);
+    if (extractId !== undefined) {
+      removedExtractIds.add(extractId);
+    }
+  }
+  return extracted.filter((m) => !removedExtractIds.has(m.id));
+}
+
 // ── weaveMoments ──────────────────────────────────────────────────────
 
 /**
@@ -221,38 +248,46 @@ export async function weaveMoments(
   sessionShape: string,
   sittings: Sitting[],
 ): Promise<SessionMoment[]> {
-  // Build Pass1Moment-compatible shape for dedupMoments
-  // dedupMoments keys on evidence[].sourceEventId — we adapt from EvidenceAnchor.eventIndex
+  // Build Pass1Moment-compatible shape for dedupMoments.
+  // We also build a reference map (pass1 moment object → extract id) so that
+  // filterDedupSurvivors can resolve removed entries by object identity rather
+  // than statement text — avoiding false exclusions when two distinct moments
+  // in different chunks share the same statement.
+  const pass1MomentToExtractId = new Map<object, string>();
+
   const pass1Input = chunks.map((chunk) => {
     const chunkMoments = extracted
       .filter((m) => m.chunkIndex === chunk.chunkIndex)
-      .map((m) => ({
-        type: m.type,
-        statement: m.statement,
-        significance: m.significance,
-        agency: m.agency,
-        confidence: (m.confidence ?? "low") as "high" | "medium" | "low",
-        topicFingerprint: m.topicFingerprint,
-        // Adapt: give dedupMoments a sourceEventId from eventIndex so overlap dedup works
-        evidence: m.evidence.map((e) => ({
-          quote: e.quote,
-          sourceEventId:
-            e.eventIndex !== null ? String(e.eventIndex) : undefined,
-          sourceType: e.sourceType as "user" | "ai" | "tool_output",
-          quoteType: "verbatim" as const,
-        })),
-      }));
+      .map((m) => {
+        const pass1Moment = {
+          type: m.type,
+          statement: m.statement,
+          significance: m.significance,
+          agency: m.agency,
+          confidence: (m.confidence ?? "low") as "high" | "medium" | "low",
+          topicFingerprint: m.topicFingerprint,
+          // Adapt: give dedupMoments a sourceEventId from eventIndex so overlap dedup works
+          evidence: m.evidence.map((e) => ({
+            quote: e.quote,
+            sourceEventId:
+              e.eventIndex !== null ? String(e.eventIndex) : undefined,
+            sourceType: e.sourceType as "user" | "ai" | "tool_output",
+            quoteType: "verbatim" as const,
+          })),
+        };
+        pass1MomentToExtractId.set(pass1Moment, m.id);
+        return pass1Moment;
+      });
     return { chunkIndex: chunk.chunkIndex, moments: chunkMoments };
   });
 
   const dedupResult = dedupMoments(pass1Input, chunks);
 
-  // Collect surviving extract ids (moments not removed by dedup)
-  const removedStatements = new Set(
-    dedupResult.removed.map((r) => r.moment.statement),
-  );
-  const survivingExtracted = extracted.filter(
-    (m) => !removedStatements.has(m.statement),
+  // Collect surviving extracted moments by object identity, not statement text
+  const survivingExtracted = filterDedupSurvivors(
+    extracted,
+    pass1MomentToExtractId,
+    dedupResult,
   );
 
   if (survivingExtracted.length === 0) {

@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { applyWeaveDecisions } from "../../../src/pipeline/understand/weave.js";
+import { applyWeaveDecisions, filterDedupSurvivors } from "../../../src/pipeline/understand/weave.js";
 import type { ExtractedMoment, SessionChunk, EvidenceAnchor } from "../../../src/adapters/types.js";
 import type { z } from "zod";
 import type { WeaveOutputSchema } from "../../../src/llm/prompts/understand/weave.js";
+import type { DedupResult } from "../../../src/pipeline/dedup-moments.js";
+import type { Pass1Moment } from "../../../src/llm/prompts/moments.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -299,5 +301,118 @@ describe("applyWeaveDecisions", () => {
     result.forEach((r) => {
       expect(r.verification).toBeNull();
     });
+  });
+});
+
+// ── Tests: filterDedupSurvivors ────────────────────────────────────────
+
+describe("filterDedupSurvivors", () => {
+  it("keeps a moment whose pass1 twin was NOT removed, even when another moment in a different chunk shares the same statement", () => {
+    // Two extracted moments in DIFFERENT chunks with IDENTICAL statements
+    // but different evidence eventIndexes.
+    // Dedup removes only the one in chunk 0; the one in chunk 1 must survive.
+    const SHARED_STATEMENT = "identical statement across chunks";
+
+    const mChunk0 = makeExtracted("dup-c0", 0, {
+      statement: SHARED_STATEMENT,
+      evidence: [makeAnchor({ eventIndex: 10, quote: "evidence-chunk0" })],
+    });
+    const mChunk1 = makeExtracted("dup-c1", 1, {
+      statement: SHARED_STATEMENT,
+      evidence: [makeAnchor({ eventIndex: 20, quote: "evidence-chunk1" })],
+    });
+
+    const extractedPair: ExtractedMoment[] = [mChunk0, mChunk1];
+
+    // Simulate what weaveMoments does: build pass1 objects and track the map
+    const pass1MomentToExtractId = new Map<object, string>();
+    const pass1Chunk0: Pass1Moment = {
+      type: mChunk0.type,
+      statement: mChunk0.statement,
+      significance: mChunk0.significance,
+      agency: mChunk0.agency,
+      confidence: "high",
+      topicFingerprint: mChunk0.topicFingerprint,
+      evidence: [{ quote: "evidence-chunk0", sourceEventId: "10", sourceType: "ai", quoteType: "verbatim" }],
+    };
+    const pass1Chunk1: Pass1Moment = {
+      type: mChunk1.type,
+      statement: mChunk1.statement,
+      significance: mChunk1.significance,
+      agency: mChunk1.agency,
+      confidence: "high",
+      topicFingerprint: mChunk1.topicFingerprint,
+      evidence: [{ quote: "evidence-chunk1", sourceEventId: "20", sourceType: "ai", quoteType: "verbatim" }],
+    };
+    pass1MomentToExtractId.set(pass1Chunk0, mChunk0.id);
+    pass1MomentToExtractId.set(pass1Chunk1, mChunk1.id);
+
+    // Dedup removed only the chunk-0 moment (by object reference)
+    const dedupResult: DedupResult = {
+      moments: [
+        { chunkIndex: 0, moments: [] },          // chunk0's moment was removed
+        { chunkIndex: 1, moments: [pass1Chunk1] }, // chunk1's moment survived
+      ],
+      removed: [
+        { chunkIndex: 0, moment: pass1Chunk0, reason: "duplicate of event 10 in chunk 1" },
+      ],
+      boundaryMerges: [],
+      contradictions: [],
+    };
+
+    const survivors = filterDedupSurvivors(extractedPair, pass1MomentToExtractId, dedupResult);
+
+    // The chunk-1 moment must survive despite having the same statement as the removed chunk-0 moment
+    expect(survivors).toHaveLength(1);
+    expect(survivors[0].id).toBe("dup-c1");
+    expect(survivors[0].evidence[0].eventIndex).toBe(20);
+  });
+
+  it("removes both when both pass1 twins are in the removed set", () => {
+    const SHARED_STATEMENT = "both removed";
+
+    const mA = makeExtracted("both-c0", 0, { statement: SHARED_STATEMENT, evidence: [makeAnchor({ eventIndex: 1 })] });
+    const mB = makeExtracted("both-c1", 1, { statement: SHARED_STATEMENT, evidence: [makeAnchor({ eventIndex: 2 })] });
+
+    const pass1MomentToExtractId = new Map<object, string>();
+    const p1A: Pass1Moment = { type: mA.type, statement: mA.statement, significance: mA.significance, agency: mA.agency, confidence: "low", topicFingerprint: "general", evidence: [] };
+    const p1B: Pass1Moment = { type: mB.type, statement: mB.statement, significance: mB.significance, agency: mB.agency, confidence: "low", topicFingerprint: "general", evidence: [] };
+    pass1MomentToExtractId.set(p1A, mA.id);
+    pass1MomentToExtractId.set(p1B, mB.id);
+
+    const dedupResult: DedupResult = {
+      moments: [{ chunkIndex: 0, moments: [] }, { chunkIndex: 1, moments: [] }],
+      removed: [
+        { chunkIndex: 0, moment: p1A, reason: "duplicate" },
+        { chunkIndex: 1, moment: p1B, reason: "duplicate" },
+      ],
+      boundaryMerges: [],
+      contradictions: [],
+    };
+
+    const survivors = filterDedupSurvivors([mA, mB], pass1MomentToExtractId, dedupResult);
+    expect(survivors).toHaveLength(0);
+  });
+
+  it("passes through all moments when nothing was removed", () => {
+    const mA = makeExtracted("pass-c0", 0, { statement: "same" });
+    const mB = makeExtracted("pass-c1", 1, { statement: "same" });
+
+    const pass1MomentToExtractId = new Map<object, string>();
+    const p1A: Pass1Moment = { type: mA.type, statement: "same", significance: mA.significance, agency: mA.agency, confidence: "high", topicFingerprint: "general", evidence: [] };
+    const p1B: Pass1Moment = { type: mB.type, statement: "same", significance: mB.significance, agency: mB.agency, confidence: "high", topicFingerprint: "general", evidence: [] };
+    pass1MomentToExtractId.set(p1A, mA.id);
+    pass1MomentToExtractId.set(p1B, mB.id);
+
+    const dedupResult: DedupResult = {
+      moments: [{ chunkIndex: 0, moments: [p1A] }, { chunkIndex: 1, moments: [p1B] }],
+      removed: [],
+      boundaryMerges: [],
+      contradictions: [],
+    };
+
+    const survivors = filterDedupSurvivors([mA, mB], pass1MomentToExtractId, dedupResult);
+    expect(survivors).toHaveLength(2);
+    expect(survivors.map((s) => s.id)).toEqual(["pass-c0", "pass-c1"]);
   });
 });
