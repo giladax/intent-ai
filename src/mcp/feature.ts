@@ -14,6 +14,7 @@ import type {
   FeatureRecord,
   FeatureContextData,
   FeatureFileRow,
+  FeatureMomentRow,
 } from "../storage/queries.js";
 
 // ── Text scoring (shared with the topic tools via re-export) ─────────
@@ -137,6 +138,68 @@ export function resolveFeature(filePath: string, rows: FeatureFileRow[]): Featur
   return { candidateIds: [...bestByFeature.keys()] };
 }
 
+/**
+ * Does a file path (possibly absolute) match any of the Feature's patterns
+ * (repo-relative globs or exact paths)? Absolute corpus paths are handled by
+ * testing every path-segment suffix against the glob — structural matching
+ * only, no repo-root knowledge required.
+ */
+export function fileMatchesPatterns(file: string, patterns: string[]): boolean {
+  const target = normalizePath(file);
+  const segments = target.split("/");
+  for (const p of patterns) {
+    const pat = normalizePath(p);
+    if (pat === target || target.endsWith("/" + pat)) return true;
+    const re = globToRegExp(pat);
+    for (let i = 0; i < segments.length; i++) {
+      if (re.test(segments.slice(i).join("/"))) return true;
+    }
+  }
+  return false;
+}
+
+// ── Key-moment selection (served evidence) ──────────────────────────
+//
+// Deterministic ranking over the Feature's digested moments. Eligibility:
+// high/medium confidence AND an anchored evidence quote (the provenance
+// rule — no quote, no serving). Rank: confidence, file overlap with the
+// Feature's patterns, verification status; recency breaks ties.
+
+const KEY_MOMENT_LIMIT = 8;
+
+function keyMomentScore(m: FeatureMomentRow, patterns: string[]): number {
+  let score = m.confidence === "high" ? 2 : 1;
+  if (patterns.length > 0 && m.files.some((f) => fileMatchesPatterns(f, patterns))) {
+    score += 1.5;
+  }
+  if (m.verification === "supported") score += 0.5;
+  if (m.verification === "contradicted") score -= 2;
+  return score;
+}
+
+export function selectKeyMoments(
+  candidates: FeatureMomentRow[],
+  patterns: string[],
+  limit = KEY_MOMENT_LIMIT,
+): FeatureMomentRow[] {
+  return candidates
+    .filter(
+      (m) =>
+        (m.confidence === "high" || m.confidence === "medium") &&
+        typeof m.quote === "string" &&
+        m.quote.trim().length > 0,
+    )
+    .map((m) => ({ m, score: keyMomentScore(m, patterns) }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const at = a.m.occurredAt?.getTime() ?? 0;
+      const bt = b.m.occurredAt?.getTime() ?? 0;
+      return bt - at;
+    })
+    .slice(0, limit)
+    .map((s) => s.m);
+}
+
 // ── Task → Feature matching ─────────────────────────────────────────
 
 export interface TaskScore {
@@ -231,6 +294,19 @@ export function formatFeatureContext(ctx: FeatureContextData): string {
     parts.push(`\n## Constraints\n\n${feature.constraints.map((c) => `- ${c}`).join("\n")}`);
   }
 
+  // Key moments: digested, evidence-anchored claims from this Feature's
+  // sessions — confidence + verification shown so the agent can weigh them.
+  const keyMoments = selectKeyMoments(ctx.momentCandidates, ctx.relevantFiles);
+  if (keyMoments.length > 0) {
+    const lines = keyMoments.map((m) => {
+      const day = m.occurredAt ? m.occurredAt.toISOString().slice(0, 10) : "undated";
+      const verification = m.verification && m.verification.trim() ? m.verification : "unverified";
+      const quote = (m.quote ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+      return `- [${m.confidence}, ${verification}] ${m.statement} (${day})\n  > "${quote}"`;
+    });
+    parts.push(`\n## Key Moments (evidence-anchored)\n\n${lines.join("\n")}`);
+  }
+
   if (ctx.relevantFiles.length > 0) {
     parts.push(`\n## Relevant Files\n\n${ctx.relevantFiles.map((f) => `- \`${f}\``).join("\n")}`);
   }
@@ -239,7 +315,10 @@ export function formatFeatureContext(ctx: FeatureContextData): string {
     parts.push(
       `\n## Related Sessions\n\n${ctx.relatedSessions
         .slice(0, 8)
-        .map((s) => `- ${s.summary} (${s.shape ?? "session"}${s.role ? `, ${s.role}` : ""})`)
+        .map((s) => {
+          const day = s.startedAt ? `${s.startedAt.toISOString().slice(0, 10)} — ` : "";
+          return `- ${day}${s.summary} (${s.shape ?? "session"}${s.role ? `, ${s.role}` : ""})`;
+        })
         .join("\n")}`,
     );
   }

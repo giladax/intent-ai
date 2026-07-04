@@ -488,6 +488,21 @@ export interface FeatureObservation {
   timestamp: Date;
 }
 
+/** A digested moment eligible to appear in served Feature context.
+ *  Carries the anchored evidence quote + verification status from the
+ *  re-digested corpus (provenance rule: every served claim traces back). */
+export interface FeatureMomentRow {
+  id: string;
+  sessionId: string;
+  statement: string;
+  type: string;
+  confidence: string | null;
+  verification: string | null;
+  occurredAt: Date | null;
+  quote: string | null;
+  files: string[];
+}
+
 /** Assembled, served view of a Feature — the data behind featureContext(). */
 export interface FeatureContextData {
   feature: FeatureRecord;
@@ -495,6 +510,9 @@ export interface FeatureContextData {
   relatedSessions: RelatedSession[];
   approvedObservations: FeatureObservation[];
   reportedUnknowns: FeatureObservation[];
+  /** high/medium-confidence moments from the Feature's sessions; the serve
+   *  layer selects + formats (selectKeyMoments) — raw candidates here. */
+  momentCandidates: FeatureMomentRow[];
 }
 
 function toStringArray(value: unknown): string[] {
@@ -587,6 +605,41 @@ export async function getFeatureSessions(featureId: string): Promise<RelatedSess
   }));
 }
 
+/** High/medium-confidence moments (with their first anchored evidence quote)
+ *  from the sessions linked to a Feature. Raw candidates for the serve layer;
+ *  relevance ranking happens in src/mcp/feature.ts (selectKeyMoments). */
+export async function getFeatureMoments(
+  featureId: string,
+  cap = 300,
+): Promise<FeatureMomentRow[]> {
+  const sql = getClient();
+  const rows = await sql`
+    SELECT m.id, m.session_id, m.statement, m.type, m.confidence,
+           m.verification, m.occurred_at, c.files_in_scope,
+           (SELECT me.quote FROM moment_evidence me
+             WHERE me.moment_id = m.id
+             ORDER BY (me.source_event_id IS NULL), me.id
+             LIMIT 1) AS quote
+    FROM moments m
+    JOIN feature_sessions fs
+      ON fs.session_id = m.session_id AND fs.feature_id = ${featureId}
+    LEFT JOIN chunks c ON c.id = m.chunk_id
+    WHERE m.confidence IN ('high', 'medium')
+    ORDER BY m.occurred_at DESC NULLS LAST
+    LIMIT ${cap}`;
+  return rows.map((r: any) => ({
+    id: r.id as string,
+    sessionId: r.session_id as string,
+    statement: r.statement as string,
+    type: r.type as string,
+    confidence: (r.confidence as string | null) ?? null,
+    verification: (r.verification as string | null) ?? null,
+    occurredAt: r.occurred_at ? new Date(r.occurred_at) : null,
+    quote: (r.quote as string | null) ?? null,
+    files: (r.files_in_scope as string[] | null) ?? [],
+  }));
+}
+
 /** Observations attached to a Feature, filtered by review status. */
 export async function getFeatureObservations(
   featureId: string,
@@ -640,17 +693,20 @@ export async function loadFeatureContext(featureId: string): Promise<FeatureCont
   const relevantFiles = fileRows
     .map((r: any) => (r.glob as string | null) ?? (r.file_path as string | null))
     .filter((p: string | null): p is string => !!p);
-  const [relatedSessions, approvedObservations, reportedUnknowns] = await Promise.all([
-    getFeatureSessions(featureId),
-    getFeatureObservations(featureId, "approved"),
-    getFeatureObservations(featureId, "pending"),
-  ]);
+  const [relatedSessions, approvedObservations, reportedUnknowns, momentCandidates] =
+    await Promise.all([
+      getFeatureSessions(featureId),
+      getFeatureObservations(featureId, "approved"),
+      getFeatureObservations(featureId, "pending"),
+      getFeatureMoments(featureId),
+    ]);
   return {
     feature,
     relevantFiles,
     relatedSessions,
     approvedObservations,
     reportedUnknowns: reportedUnknowns.filter((o) => o.category === "observation:unknown"),
+    momentCandidates,
   };
 }
 

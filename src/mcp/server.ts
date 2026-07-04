@@ -6,7 +6,6 @@ import {
   listFeatures,
   getFeatureById,
   getFeatureFileRows,
-  loadFeatureContext,
   insertObservation,
   type FeatureRecord,
 } from "../storage/queries.js";
@@ -15,8 +14,8 @@ import {
   resolveFeature,
   resolveTask,
   formatCandidates,
-  formatFeatureContext,
 } from "./feature.js";
+import { renderFeatureContext } from "./context.js";
 import {
   buildMcpReadEvent,
   emitMcpReadEvent,
@@ -35,9 +34,9 @@ function errMsg(e: unknown): string {
 }
 
 async function featureContextResponse(featureId: string) {
-  const ctx = await loadFeatureContext(featureId);
-  if (!ctx) return mcpText(`Feature ${featureId} not found.`);
-  return mcpText(formatFeatureContext(ctx));
+  const text = await renderFeatureContext(featureId);
+  if (!text) return mcpText(`Feature ${featureId} not found.`);
+  return mcpText(text);
 }
 
 async function featuresByIds(ids: string[], projectId: string | null): Promise<FeatureRecord[]> {
@@ -309,18 +308,18 @@ export function createBrainServer(): McpServer {
     async ({ featureId, sessionId }) => {
       const startedAt = Date.now();
       try {
-        const ctx = await loadFeatureContext(featureId);
+        const feature = await getFeatureById(featureId);
         await emitRead(
           "feature-context",
           startedAt,
-          ctx ? "hit" : "miss",
-          ctx
-            ? `Agent got context for Feature "${ctx.feature.name}"`
+          feature ? "hit" : "miss",
+          feature
+            ? `Agent got context for Feature "${feature.name}"`
             : `Agent requested Feature ${featureId} — not found`,
           { sessionId, featureId, metadata: {} },
         );
-        if (!ctx) return mcpText(`Feature ${featureId} not found.`);
-        return mcpText(formatFeatureContext(ctx));
+        if (!feature) return mcpText(`Feature ${featureId} not found.`);
+        return await featureContextResponse(featureId);
       } catch (err) {
         await emitRead("feature-context", startedAt, "error", `brain_feature_context failed for ${featureId}`, {
           sessionId, featureId, metadata: { error: errMsg(err) },

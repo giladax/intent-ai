@@ -9,8 +9,15 @@ import {
   formatCandidates,
   formatFeatureContext,
   buildAgentInstructions,
+  fileMatchesPatterns,
+  selectKeyMoments,
 } from "../../src/mcp/feature.js";
-import type { FeatureRecord, FeatureFileRow, FeatureContextData } from "../../src/storage/queries.js";
+import type {
+  FeatureRecord,
+  FeatureFileRow,
+  FeatureContextData,
+  FeatureMomentRow,
+} from "../../src/storage/queries.js";
 
 function feature(over: Partial<FeatureRecord> & { id: string; name: string }): FeatureRecord {
   return {
@@ -126,6 +133,89 @@ describe("resolveTask", () => {
   });
 });
 
+describe("fileMatchesPatterns", () => {
+  it("matches a repo-relative glob against an absolute corpus path", () => {
+    expect(
+      fileMatchesPatterns("/Users/dev/intent-ai/src/mcp/server.ts", ["src/mcp/**"]),
+    ).toBe(true);
+  });
+
+  it("matches exact repo-relative paths", () => {
+    expect(fileMatchesPatterns("src/storage/queries.ts", ["src/storage/queries.ts"])).toBe(true);
+  });
+
+  it("does not match unrelated paths", () => {
+    expect(fileMatchesPatterns("/abs/repo/docs/prd.md", ["src/mcp/**"])).toBe(false);
+  });
+});
+
+function momentRow(over: Partial<FeatureMomentRow> & { id: string }): FeatureMomentRow {
+  return {
+    sessionId: "s1",
+    statement: `moment ${over.id}`,
+    type: "discovery",
+    confidence: "high",
+    verification: "supported",
+    occurredAt: new Date("2026-07-01T10:00:00Z"),
+    quote: "a real anchored quote",
+    files: [],
+    ...over,
+  };
+}
+
+describe("selectKeyMoments", () => {
+  it("keeps only high/medium confidence moments with an evidence quote", () => {
+    const picked = selectKeyMoments(
+      [
+        momentRow({ id: "hi" }),
+        momentRow({ id: "med", confidence: "medium" }),
+        momentRow({ id: "low", confidence: "low" }),
+        momentRow({ id: "noquote", quote: null }),
+      ],
+      [],
+    );
+    expect(picked.map((m) => m.id).sort()).toEqual(["hi", "med"]);
+  });
+
+  it("prefers moments whose files overlap the feature's patterns", () => {
+    const picked = selectKeyMoments(
+      [
+        momentRow({ id: "elsewhere", files: ["/repo/docs/prd.md"] }),
+        momentRow({ id: "on-feature", files: ["/repo/src/mcp/server.ts"] }),
+      ],
+      ["src/mcp/**"],
+      1,
+    );
+    expect(picked.map((m) => m.id)).toEqual(["on-feature"]);
+  });
+
+  it("ranks high confidence above medium, and demotes contradicted moments", () => {
+    const picked = selectKeyMoments(
+      [
+        momentRow({ id: "med", confidence: "medium" }),
+        momentRow({ id: "hi-contradicted", verification: "contradicted" }),
+        momentRow({ id: "hi-supported" }),
+      ],
+      [],
+    );
+    expect(picked[0].id).toBe("hi-supported");
+    expect(picked[picked.length - 1].id).toBe("hi-contradicted");
+  });
+
+  it("breaks score ties by recency (newest first) and caps at limit", () => {
+    const picked = selectKeyMoments(
+      [
+        momentRow({ id: "old", occurredAt: new Date("2026-06-01T00:00:00Z") }),
+        momentRow({ id: "new", occurredAt: new Date("2026-07-03T00:00:00Z") }),
+        momentRow({ id: "mid", occurredAt: new Date("2026-06-15T00:00:00Z") }),
+      ],
+      [],
+      2,
+    );
+    expect(picked.map((m) => m.id)).toEqual(["new", "mid"]);
+  });
+});
+
 describe("formatting", () => {
   const ctx: FeatureContextData = {
     feature: feature({
@@ -146,6 +236,17 @@ describe("formatting", () => {
     reportedUnknowns: [
       { id: "o2", category: "observation:unknown", summary: "How to dedupe?", reviewStatus: "pending", timestamp: new Date() },
     ],
+    momentCandidates: [
+      momentRow({
+        id: "m1",
+        statement: "Chose denormalized session context on events",
+        confidence: "high",
+        verification: "supported",
+        quote: "events are self-contained; feature_id is NOT a foreign key",
+        files: ["/repo/src/storage/schema.ts"],
+      }),
+      momentRow({ id: "m-low", confidence: "low" }),
+    ],
   };
 
   it("formatFeatureContext includes all sections", () => {
@@ -160,6 +261,21 @@ describe("formatting", () => {
     expect(text).toContain("## Known Unknowns");
     expect(text).toContain("How to dedupe?");
     expect(text).toContain("## Agent Instructions");
+  });
+
+  it("formatFeatureContext renders key moments with evidence quotes and verification", () => {
+    const text = formatFeatureContext(ctx);
+    expect(text).toContain("## Key Moments");
+    expect(text).toContain("Chose denormalized session context on events");
+    expect(text).toContain("high, supported");
+    expect(text).toContain('> "events are self-contained; feature_id is NOT a foreign key"');
+    // low-confidence candidate is filtered out of the served context
+    expect(text).not.toContain("moment m-low");
+  });
+
+  it("formatFeatureContext omits the Key Moments section when there are no candidates", () => {
+    const text = formatFeatureContext({ ...ctx, momentCandidates: [] });
+    expect(text).not.toContain("## Key Moments");
   });
 
   it("buildAgentInstructions leads with constraints", () => {
