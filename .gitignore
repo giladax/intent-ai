@@ -4,3 +4,4 @@ dist
 events.ndjson
 .claude/settings.local.json
 .intent/
+eval-runs/
