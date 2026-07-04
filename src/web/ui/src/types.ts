@@ -305,3 +305,100 @@ export interface StatsOverview {
   };
   features: FeatureMomentum[];
 }
+
+// ── Provenance (GET /api/events/:id/provenance) ──────────────────────
+// Mirrors src/web/provenance.ts exactly — the chain that lets any river
+// event explain itself, C-level verdict down to transcript anchors.
+export type ProvenanceKind =
+  | "moment"
+  | "narrative"
+  | "transition"
+  | "outcome"
+  | "observation"
+  | "consult"
+  | "agent-trace"
+  | "event";
+
+export type VerificationVerdict = "supported" | "contradicted" | "mixed" | "unverified";
+
+export interface ProvenanceAnchorEvent {
+  id: string;
+  causalOrder: number;
+  summary: string;
+  category: string | null;
+  actor: string | null;
+  timestamp: string | null;
+}
+
+export interface ProvenanceEvidence {
+  id: string;
+  quote: string;
+  quoteType: string | null;
+  sourceType: string | null;
+  anchored: boolean;
+  event: ProvenanceAnchorEvent | null;
+}
+
+export interface ProvenanceMoment {
+  id: string;
+  type: string;
+  statement: string;
+  significance: string | null;
+  agency: string | null;
+  confidence: string | null;
+  confidencePct: number | null;
+  verification: string | null;
+  evidence: ProvenanceEvidence[];
+}
+
+export interface ProvenanceVerdict {
+  confidencePct: number | null;
+  verification: VerificationVerdict;
+  supported: number;
+  contradicted: number;
+  unverified: number;
+  moments: number;
+  quotes: number;
+  anchored: number;
+  anchoredPct: number | null;
+  transcriptEvents: number;
+}
+
+export interface Provenance {
+  event: {
+    id: string;
+    timestamp: string;
+    category: string;
+    summary: string;
+    actor: string;
+    sourceType: string | null;
+    sessionId: string | null;
+    featureId: string | null;
+  } | null;
+  kind: ProvenanceKind;
+  verdict: ProvenanceVerdict;
+  moments: ProvenanceMoment[];
+  session: { id: string; shape: string | null; startedAt: string | null; endedAt: string | null } | null;
+  digest: {
+    moments: number;
+    quotes: number;
+    anchored: number;
+    anchoredPct: number | null;
+    supported: number;
+    contradicted: number;
+  } | null;
+  agentTrace: {
+    run: { summary: string; metadata: Record<string, unknown> } | null;
+    toolCalls: Array<{ name: string; ms: number | null; argsSummary: string; summary: string }>;
+  } | null;
+  observations: Array<{
+    id: string;
+    timestamp: string;
+    category: string;
+    summary: string;
+    reviewStatus: string | null;
+    featureId: string | null;
+  }>;
+  /** Reserved for digestion-v2 — always null today. */
+  understandingDelta: null;
+}

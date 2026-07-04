@@ -42,6 +42,12 @@ import {
   type SessionQualityRow,
   type FeatureMomentumRow,
 } from "./stats.js";
+import {
+  buildProvenance,
+  provenanceKind,
+  isUuidLike,
+  type ProvenanceKind,
+} from "./provenance.js";
 
 // Journal §7.3: the human's gate actions become timeline events. Failure-safe —
 // a lost event never fails the review action itself.
@@ -930,6 +936,268 @@ export async function startWebServer(port: number): Promise<void> {
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
+  });
+
+  // ── Provenance — every river event explains itself ────────────────
+  // GET /api/events/:id/provenance resolves the full chain for an activity
+  // event: event → moment(s) → evidence quotes → anchored transcript events →
+  // session digest quality → the digester's own trace → related observations.
+  // `:id` accepts an activity_events.id, a source_id, or a bare moments.id
+  // (the session-detail surface). SQL stays thin; ALL shaping lives in the
+  // pure provenance.ts module. Fail-safe: every missing link resolves to
+  // null/[] — a broken chain renders as far as the record reaches, never 500.
+
+  app.get("/api/events/:id/provenance", async (req, res) => {
+    const id = req.params.id;
+    const sql = getClient();
+    const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await fn();
+      } catch {
+        return fallback;
+      }
+    };
+
+    // (a) the root event — by id, then by source pointer.
+    let event: any = null;
+    if (isUuidLike(id)) {
+      [event] = await safe(
+        () => sql`SELECT * FROM activity_events WHERE id = ${id}` as any,
+        [] as any[],
+      );
+    }
+    if (!event) {
+      [event] = await safe(
+        () =>
+          sql`SELECT * FROM activity_events WHERE source_id = ${id}
+              ORDER BY timestamp DESC LIMIT 1` as any,
+        [] as any[],
+      );
+    }
+
+    // No event row? The caller may hold a bare moment id (session detail) —
+    // synthesize the chain straight from the moment.
+    let kindOverride: ProvenanceKind | undefined;
+    let momentRows: any[] = [];
+    let sessionId: string | null = event?.session_id ?? null;
+    if (!event && isUuidLike(id)) {
+      const [m] = await safe(() => sql`SELECT * FROM moments WHERE id = ${id}` as any, [] as any[]);
+      if (m) {
+        kindOverride = "moment";
+        momentRows = [m];
+        sessionId = m.session_id;
+      }
+    }
+    if (!event && momentRows.length === 0) {
+      res.status(404).json({ error: "event not found" });
+      return;
+    }
+
+    const kind = kindOverride ?? provenanceKind(event?.source_type ?? null, event?.category ?? null);
+    const meta = (event?.metadata ?? {}) as Record<string, unknown>;
+    const sourceId = (event?.source_id as string | null) ?? "";
+
+    // (b)(c) supporting moments. Digest-time emission stamps pipeline-local
+    // ids into source_id, so resolution goes id-then-statement (both indexed
+    // by session): moments by statement; transitions/outcomes via their join
+    // tables after resolving the parent row the same way.
+    if (momentRows.length === 0 && sessionId) {
+      if (kind === "moment") {
+        momentRows = await safe(
+          () =>
+            sql`SELECT * FROM moments
+                WHERE session_id = ${sessionId}
+                  AND (id::text = ${sourceId} OR statement = ${event.summary})
+                LIMIT 5` as any,
+          [] as any[],
+        );
+      } else if (kind === "transition") {
+        const from = typeof meta.from === "string" ? meta.from : "";
+        const to = typeof meta.to === "string" ? meta.to : "";
+        momentRows = await safe(
+          () =>
+            sql`SELECT DISTINCT m.* FROM transitions t
+                JOIN transition_moments tm ON tm.transition_id = t.id
+                JOIN moments m ON m.id = tm.moment_id
+                WHERE t.session_id = ${sessionId}
+                  AND (t.id::text = ${sourceId}
+                       OR (t.from_statement = ${from} AND t.to_statement = ${to}))` as any,
+          [] as any[],
+        );
+      } else if (kind === "outcome") {
+        momentRows = await safe(
+          () =>
+            sql`SELECT DISTINCT m.* FROM outcomes o
+                JOIN outcome_moments om ON om.outcome_id = o.id
+                JOIN moments m ON m.id = om.moment_id
+                WHERE o.session_id = ${sessionId}
+                  AND (o.id::text = ${sourceId} OR o.statement = ${event.summary})` as any,
+          [] as any[],
+        );
+      } else if (kind === "narrative") {
+        // the narrative summarizes the whole session — its support IS the moments
+        momentRows = await safe(
+          () =>
+            sql`SELECT * FROM moments WHERE session_id = ${sessionId}
+                ORDER BY occurred_at ASC NULLS LAST, id LIMIT 40` as any,
+          [] as any[],
+        );
+      }
+    }
+
+    // Evidence rows + their anchored transcript events (timestamp from the raw
+    // event when it survives; normalized events carry no clock of their own).
+    const momentIds = momentRows.map((m: any) => m.id);
+    let evidenceRows: any[] = [];
+    let anchorRows: any[] = [];
+    if (momentIds.length > 0) {
+      evidenceRows = await safe(
+        () =>
+          sql`SELECT id, moment_id, quote, quote_type, source_type, source_event_id
+              FROM moment_evidence WHERE moment_id = ANY(${momentIds})` as any,
+        [] as any[],
+      );
+      const anchorIds = [...new Set(evidenceRows.map((e: any) => e.source_event_id).filter(Boolean))];
+      if (anchorIds.length > 0) {
+        anchorRows = await safe(
+          () =>
+            sql`SELECT ne.id, ne.causal_order, ne.summary, ne.category, ne.actor, re.timestamp
+                FROM normalized_events ne
+                LEFT JOIN raw_events re ON re.id = ne.raw_event_id
+                WHERE ne.id = ANY(${anchorIds})` as any,
+          [] as any[],
+        );
+      }
+    }
+
+    // (d) session + its digest-quality summary (the same counts the stats lens reads).
+    let sessionRow: any = null;
+    let qualityRow: any = null;
+    let traceRows: any[] = [];
+    if (sessionId) {
+      [sessionRow] = await safe(
+        () =>
+          sql`SELECT id, session_shape, started_at, ended_at FROM sessions
+              WHERE id = ${sessionId}` as any,
+        [] as any[],
+      );
+      [qualityRow] = await safe(
+        () =>
+          sql`SELECT COUNT(DISTINCT m.id)::int AS moments,
+                     COUNT(e.id)::int AS quotes,
+                     COUNT(e.source_event_id)::int AS anchored,
+                     COUNT(DISTINCT m.id) FILTER (WHERE m.verification = 'supported')::int AS supported,
+                     COUNT(DISTINCT m.id) FILTER (WHERE m.verification = 'contradicted')::int AS contradicted
+              FROM moments m
+              LEFT JOIN moment_evidence e ON e.moment_id = m.id
+              WHERE m.session_id = ${sessionId}` as any,
+        [] as any[],
+      );
+      // (e) the digester's own reasoning, when it left a trace
+      traceRows = await safe(
+        () =>
+          sql`SELECT id, timestamp, category, summary, metadata FROM activity_events
+              WHERE session_id = ${sessionId} AND source_type = 'agent-trace'
+              ORDER BY timestamp ASC LIMIT 40` as any,
+        [] as any[],
+      );
+    }
+
+    // (f) related observations — the "brain delta" slot.
+    const featureId = (event?.feature_id as string | null) ?? null;
+    let observationRows: any[] = [];
+    if (sessionId || featureId) {
+      observationRows = await safe(
+        () =>
+          sql`SELECT id, timestamp, category, summary, review_status, feature_id
+              FROM activity_events
+              WHERE category LIKE ${OBSERVATION_CATEGORY_PREFIX + "%"}
+                AND (${sessionId ? sql`session_id = ${sessionId}` : sql`FALSE`}
+                     OR ${featureId ? sql`feature_id = ${featureId}` : sql`FALSE`})
+                AND id <> ${event?.id ?? "00000000-0000-0000-0000-000000000000"}
+              ORDER BY timestamp DESC LIMIT 10` as any,
+        [] as any[],
+      );
+    }
+
+    res.json(
+      buildProvenance({
+        event: event
+          ? {
+              id: event.id,
+              timestamp: new Date(event.timestamp).toISOString(),
+              category: event.category,
+              summary: event.summary,
+              actor: event.actor,
+              tags: event.tags ?? [],
+              metadata: event.metadata ?? {},
+              sourceType: event.source_type ?? null,
+              sourceId: event.source_id ?? null,
+              sessionId: event.session_id ?? null,
+              featureId: event.feature_id ?? null,
+              reviewStatus: event.review_status ?? null,
+            }
+          : null,
+        kind: kindOverride,
+        moments: momentRows.map((m: any) => ({
+          id: m.id,
+          type: m.type,
+          statement: m.statement,
+          significance: m.significance ?? null,
+          agency: m.agency ?? null,
+          confidence: m.confidence ?? null,
+          verification: m.verification ?? null,
+        })),
+        evidence: evidenceRows.map((e: any) => ({
+          id: e.id,
+          momentId: e.moment_id,
+          quote: e.quote,
+          quoteType: e.quote_type ?? null,
+          sourceType: e.source_type ?? null,
+          sourceEventId: e.source_event_id ?? null,
+        })),
+        anchorEvents: anchorRows.map((a: any) => ({
+          id: a.id,
+          causalOrder: a.causal_order,
+          summary: a.summary,
+          category: a.category ?? null,
+          actor: a.actor ?? null,
+          timestamp: a.timestamp ? new Date(a.timestamp).toISOString() : null,
+        })),
+        session: sessionRow
+          ? {
+              id: sessionRow.id,
+              sessionShape: sessionRow.session_shape ?? null,
+              startedAt: sessionRow.started_at ? new Date(sessionRow.started_at).toISOString() : null,
+              endedAt: sessionRow.ended_at ? new Date(sessionRow.ended_at).toISOString() : null,
+            }
+          : null,
+        quality: qualityRow
+          ? {
+              moments: Number(qualityRow.moments) || 0,
+              quotes: Number(qualityRow.quotes) || 0,
+              anchored: Number(qualityRow.anchored) || 0,
+              supported: Number(qualityRow.supported) || 0,
+              contradicted: Number(qualityRow.contradicted) || 0,
+            }
+          : null,
+        traceRows: traceRows.map((t: any) => ({
+          id: t.id,
+          timestamp: new Date(t.timestamp).toISOString(),
+          category: t.category,
+          summary: t.summary,
+          metadata: t.metadata ?? {},
+        })),
+        observationRows: observationRows.map((o: any) => ({
+          id: o.id,
+          timestamp: new Date(o.timestamp).toISOString(),
+          category: o.category,
+          summary: o.summary,
+          reviewStatus: o.review_status ?? null,
+          featureId: o.feature_id ?? null,
+        })),
+      }),
+    );
   });
 
   // ── Chat (SSE streaming) ──────────────────────────────────────────

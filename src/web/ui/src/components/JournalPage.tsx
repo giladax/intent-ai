@@ -33,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ProvenanceWhy, ProvenanceDrawer } from "./ProvenancePanel";
 import { ChevronDown, ChevronRight, Search, ArrowUpRight, X } from "lucide-react";
 
 interface Props {
@@ -122,7 +123,16 @@ function Pulse({
 }
 
 // ── Beat row ──────────────────────────────────────────────────────────
-function BeatRow({ beat, onFeatureClick }: { beat: JournalBeat; onFeatureClick: (id: string) => void }) {
+function BeatRow({
+  beat,
+  onFeatureClick,
+  onSessionClick,
+}: {
+  beat: JournalBeat;
+  onFeatureClick: (id: string) => void;
+  onSessionClick: (sessionId: string) => void;
+}) {
+  const [provOpen, setProvOpen] = useState(false);
   const miss = beatIsMiss(beat.metadata);
   const time = new Date(beat.timestamp).toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -153,10 +163,27 @@ function BeatRow({ beat, onFeatureClick }: { beat: JournalBeat; onFeatureClick: 
           <button className="j-feature-tag ml-2 align-middle" onClick={() => onFeatureClick(featureId)}>
             feature
           </button>
-        )}
+        )}{" "}
+        <ProvenanceWhy open={provOpen} onClick={() => setProvOpen((v) => !v)} />
+        <ProvenanceDrawer eventId={beat.id} open={provOpen} onOpenSession={onSessionClick} />
       </div>
     </div>
   );
+}
+
+/** The beat whose provenance stands for the whole entry, when one does. */
+function provenanceBeatOf(ep: JournalEpisode): JournalBeat | null {
+  if (ep.beats.length === 0) return null;
+  if (ep.kind === "session") {
+    // the narrative event — the digest's own account of the session window
+    return (
+      ep.beats.find(
+        (b) => b.metadata && ("progression" in b.metadata || "arcCount" in b.metadata),
+      ) ?? null
+    );
+  }
+  if (ep.kind === "observation" || ep.kind === "event") return ep.beats[0];
+  return null;
 }
 
 // ── Rollup line ───────────────────────────────────────────────────────
@@ -214,12 +241,14 @@ function Entry({
   onFeatureClick: (featureId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [provOpen, setProvOpen] = useState(false);
   const time = new Date(ep.startedAt).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
   const sessionId = ep.kind === "session" ? ep.id.slice("session:".length) : null;
+  const provBeat = provenanceBeatOf(ep);
 
   return (
     <article
@@ -239,6 +268,7 @@ function Entry({
         <span className="j-time">{time}</span>
         <span>{ep.kind === "review-batch" ? "review" : ep.kind}</span>
         <span className="truncate normal-case tracking-normal">{ep.actor}</span>
+        {provBeat && <ProvenanceWhy open={provOpen} onClick={() => setProvOpen((v) => !v)} />}
         {sessionId && (
           <button className="j-open-link" onClick={() => onSessionClick(sessionId)}>
             open session <ArrowUpRight className="size-3" />
@@ -249,6 +279,10 @@ function Entry({
       <h4 className="j-title">{ep.title || `Session ${shortId(ep.id)}`}</h4>
 
       <Rollup ep={ep} />
+
+      {provBeat && (
+        <ProvenanceDrawer eventId={provBeat.id} open={provOpen} onOpenSession={onSessionClick} />
+      )}
 
       {ep.featureIds.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -303,7 +337,7 @@ function Entry({
             <div>
               <div className="j-beats">
                 {ep.beats.map((b) => (
-                  <BeatRow key={b.id} beat={b} onFeatureClick={onFeatureClick} />
+                  <BeatRow key={b.id} beat={b} onFeatureClick={onFeatureClick} onSessionClick={onSessionClick} />
                 ))}
               </div>
             </div>

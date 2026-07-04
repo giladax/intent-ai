@@ -12,6 +12,7 @@ import type {
   JournalResponse,
   JournalParams,
   StatsOverview,
+  Provenance,
 } from "./types";
 
 const BASE = "";
@@ -123,6 +124,11 @@ export const fetchSessionEventsWithWindows = (id: string) =>
 
 // Local session archive — .intent/raw-sessions joined against the sessions table
 export const fetchArchive = () => json<ArchiveResponse>("/api/archive");
+
+// Provenance — the chain that lets any river event explain itself.
+// Accepts an activity-event id, a source id, or a bare moment id.
+export const fetchProvenance = (id: string) =>
+  json<Provenance>(`/api/events/${id}/provenance`);
 
 // Stats overview — the altitude layer (cadence, provenance quality, momentum).
 // Fail-safe by contract: the server answers the empty shape rather than 500.

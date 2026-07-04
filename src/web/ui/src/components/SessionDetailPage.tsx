@@ -1,11 +1,12 @@
 // The record, read closely — one digested session in the ink language:
 // masthead header, moments as a ledger of glyphs, the narrative as the deck.
 // The event stream keeps its chunk-window hints (digestion inspection).
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchSessionDetail, fetchSessionEventsWithWindows, fetchStatsOverview } from "../api";
 import type { SessionDetail, SessionEventsWithWindows, EventWithWindows, EventWindow, SessionSitting, SessionQuality } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProvenanceRing } from "./Quality";
+import { ProvenanceWhy, ProvenanceDrawer } from "./ProvenancePanel";
 import { momentTone } from "./journal-util";
 import { ArrowLeft } from "lucide-react";
 
@@ -42,6 +43,42 @@ function chunkColor(index: number) {
   };
 }
 
+// ── Moment row — a ledger line that can explain itself ────────────────
+function MomentRow({ m, onJump }: { m: any; onJump: (causalOrder: number) => void }) {
+  const [provOpen, setProvOpen] = useState(false);
+  const tone = momentTone(m.type);
+  return (
+    <div className="flex gap-3 border-b py-3" style={{ borderColor: "var(--j-hairline)" }}>
+      <span
+        className="w-4 shrink-0 pt-0.5 text-center"
+        style={{
+          fontFamily: "var(--j-mono)",
+          fontSize: "0.75rem",
+          color: tone ? `var(--j-${tone})` : "var(--j-faint)",
+        }}
+      >
+        {MOMENT_GLYPH[m.type] ?? "·"}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={tone ? `ink-tag ink-tag--${tone}` : "ink-tag"}>{m.type || "moment"}</span>
+          {m.agency && <span className="ink-ledger-meta">{m.agency}</span>}
+          {m.confidence && <span className="ink-ledger-meta">{m.confidence}</span>}
+          <ProvenanceWhy open={provOpen} onClick={() => setProvOpen((v) => !v)} />
+        </div>
+        <p
+          className="mt-1.5"
+          style={{ fontFamily: "var(--j-serif)", fontSize: "0.98rem", lineHeight: 1.55, color: "var(--j-ink)", margin: 0, marginTop: "0.35rem" }}
+        >
+          {m.statement}
+        </p>
+        {m.significance && <p className="ink-ledger-sub mt-1">{m.significance}</p>}
+        {m.id && <ProvenanceDrawer eventId={m.id} open={provOpen} onJump={onJump} />}
+      </div>
+    </div>
+  );
+}
+
 function formatGap(prev: SessionSitting, curr: SessionSitting): string {
   const ms = new Date(curr.startedAt).getTime() - new Date(prev.endedAt).getTime();
   if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
@@ -70,6 +107,17 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
       .then((s) => setQuality(s.sessions.find((q) => q.sessionId === sessionId) ?? null))
       .catch(() => setQuality(null));
   }, [sessionId]);
+
+  // An evidence anchor answers with a jump: scroll the transcript event into
+  // view and flash it in the river's teal.
+  const jumpToEvent = useCallback((causalOrder: number) => {
+    const el = document.getElementById(`evt-${causalOrder}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.remove("prov-flash");
+    void el.offsetWidth; // restart the animation
+    el.classList.add("prov-flash");
+  }, []);
 
   if (loading) {
     return (
@@ -151,41 +199,9 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
         <section className="ink-rise mt-10" style={{ "--i": 3 } as React.CSSProperties}>
           <h3 className="ink-section">{moments.length} moment{moments.length === 1 ? "" : "s"}</h3>
           <div className="mt-4">
-            {moments.map((m: any, i: number) => {
-              const tone = momentTone(m.type);
-              return (
-              <div
-                key={m.id || i}
-                className="flex gap-3 border-b py-3"
-                style={{ borderColor: "var(--j-hairline)" }}
-              >
-                <span
-                  className="w-4 shrink-0 pt-0.5 text-center"
-                  style={{
-                    fontFamily: "var(--j-mono)",
-                    fontSize: "0.75rem",
-                    color: tone ? `var(--j-${tone})` : "var(--j-faint)",
-                  }}
-                >
-                  {MOMENT_GLYPH[m.type] ?? "·"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={tone ? `ink-tag ink-tag--${tone}` : "ink-tag"}>{m.type || "moment"}</span>
-                    {m.agency && <span className="ink-ledger-meta">{m.agency}</span>}
-                    {m.confidence && <span className="ink-ledger-meta">{m.confidence}</span>}
-                  </div>
-                  <p
-                    className="mt-1.5"
-                    style={{ fontFamily: "var(--j-serif)", fontSize: "0.98rem", lineHeight: 1.55, color: "var(--j-ink)", margin: 0, marginTop: "0.35rem" }}
-                  >
-                    {m.statement}
-                  </p>
-                  {m.significance && <p className="ink-ledger-sub mt-1">{m.significance}</p>}
-                </div>
-              </div>
-              );
-            })}
+            {moments.map((m: any, i: number) => (
+              <MomentRow key={m.id || i} m={m} onJump={jumpToEvent} />
+            ))}
           </div>
         </section>
       )}
@@ -238,8 +254,9 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
                     </div>
                   )}
 
-                  {/* Event row */}
+                  {/* Event row — an anchor target for provenance jumps */}
                   <div
+                    id={`evt-${event.causalOrder}`}
                     style={{
                       borderLeft: `3px solid ${chunk.border}`,
                       background: isOverlap ? chunk.bg : undefined,
