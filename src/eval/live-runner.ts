@@ -3,7 +3,11 @@
  * pole", now owned).
  *
  * Per (task × arm × run):
- *   1. fresh DETACHED git worktree at a pinned base commit
+ *   1. fresh LOCAL CLONE at a pinned base commit, in a temp dir OUTSIDE the
+ *      repo. The pilot (2026-07-05) used `git worktree` and got burned:
+ *      worktrees share stash refs with the main checkout, and a concurrent
+ *      agent's stash/pop crossed with the eval agent's stash/pop — edits
+ *      leaked in BOTH directions. A clone shares nothing mutable.
  *   2. decontaminated: the answer key (mvp-* criteria, scoring code, specs,
  *      audits, day reports) is removed from the working tree before the
  *      agent starts (fixes v1's F2 — answer-in-repo)
@@ -12,7 +16,11 @@
  *      treatment gets the intent-brain server + brain_enter-first
  *      instruction — same model, same permission mode, same base commit
  *   4. artifacts captured to the run dir: transcript JSONL (from
- *      ~/.claude/projects/), final diff, tsc + targeted-test results
+ *      ~/.claude/projects/), final diff, BASELINE-RELATIVE tsc result
+ *      (pilot lesson #2: the repo carries pre-existing tsc errors, so
+ *      "tsc exits 0" punishes agents for old debt and rewards burning
+ *      time on unrelated fixes — the gate is "no NET-NEW errors"),
+ *      targeted-test result
  *   5. a SessionInput row appended to the manifest — the existing
  *      `run-mvp-eval.ts --manifest` scoring path works unchanged
  *   6. an `eval:run` activity event lands on the journal (failure-safe)
@@ -52,6 +60,7 @@ export const DECONTAMINATION_PATHS: string[] = [
   "tests/eval/mvp-judge.test.ts",
   "tests/eval/mvp-decontamination.test.ts",
   "tests/eval/cvr-checks.test.ts",
+  "tests/eval/live-runner.test.ts",
   "docs/specs/2026-07-03-measurement-v2-spec.md",
   "docs/audits",
   "docs/handoffs",
@@ -87,7 +96,7 @@ export function buildTaskPrompt(task: TaskCriteria, arm: Arm): string {
     ``,
     `Requirements:`,
     `- Work only inside this repository checkout.`,
-    `- When you are done, \`npx tsc --noEmit\` must pass and existing tests must not break.`,
+    `- Do not introduce new TypeScript errors (the repo has some pre-existing ones — those are not yours to fix) and do not break existing tests.`,
     `- Do not commit; leave your changes in the working tree.`,
   ].join("\n");
 
@@ -128,13 +137,13 @@ export function claudeArgs(task: TaskCriteria, arm: Arm): string[] {
     "--strict-mcp-config",
     "--mcp-config",
     mcpConfigFor(arm),
-    // Unattended pilot runs in a throwaway detached worktree; edits and
+    // Unattended runs execute in a throwaway isolated clone; edits and
     // commands are confined there. Recorded honestly in the pilot doc.
     "--dangerously-skip-permissions",
   ];
 }
 
-// ── Worktree lifecycle ───────────────────────────────────────────────
+// ── Checkout lifecycle (isolated local clone) ────────────────────────
 
 export interface RunContext {
   repoRoot: string;
@@ -147,16 +156,22 @@ async function sh(cwd: string, cmd: string, args: string[], timeoutMs = 120_000)
   return execFileAsync(cmd, args, { cwd, timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
 }
 
-export async function prepareWorktree(
+/**
+ * Fresh isolated checkout: a LOCAL clone (hardlinked objects, fast) in the
+ * OS temp dir — outside the repo, sharing no refs, no index, and crucially
+ * NO STASH with the development checkout. Detached at the base commit.
+ */
+export async function prepareCheckout(
   ctx: RunContext,
   label: string,
 ): Promise<string> {
-  const dir = path.join(ctx.runDir, `wt-${label}`);
-  await sh(ctx.repoRoot, "git", ["worktree", "add", "--detach", dir, ctx.baseCommit]);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), `mvp-eval-${label}-`));
+  await sh(ctx.repoRoot, "git", ["clone", "--local", "--no-checkout", ctx.repoRoot, dir], 300_000);
+  await sh(dir, "git", ["checkout", "--detach", ctx.baseCommit]);
 
   // Decontaminate (F2): the answer key never ships to the agent. The
-  // removals are committed inside the worktree (detached, discarded with
-  // it) so the captured diff contains ONLY the agent's changes.
+  // removals are committed inside the clone (detached, discarded with it)
+  // so the captured diff contains ONLY the agent's changes.
   for (const p of DECONTAMINATION_PATHS) {
     fs.rmSync(path.join(dir, p), { recursive: true, force: true });
   }
@@ -164,7 +179,7 @@ export async function prepareWorktree(
   await sh(dir, "git", [
     "-c", "user.email=eval@intent-ai.local",
     "-c", "user.name=mvp-eval-runner",
-    "commit", "-m", "decontaminate eval worktree (answer key removed)",
+    "commit", "-m", "decontaminate eval checkout (answer key removed)",
   ]);
 
   // Share deps + env: node_modules symlink; .env copied for the MCP server
@@ -177,13 +192,9 @@ export async function prepareWorktree(
   return dir;
 }
 
-export async function removeWorktree(ctx: RunContext, dir: string): Promise<void> {
+export async function removeCheckout(ctx: RunContext, dir: string): Promise<void> {
   if (ctx.keepWorktrees) return;
-  try {
-    await sh(ctx.repoRoot, "git", ["worktree", "remove", "--force", dir]);
-  } catch {
-    // best-effort cleanup; `git worktree prune` recovers later
-  }
+  fs.rmSync(dir, { recursive: true, force: true });
 }
 
 // ── Artifact capture ─────────────────────────────────────────────────
@@ -216,6 +227,29 @@ async function runCheck(worktree: string, cmd: string, timeoutMs: number): Promi
   }
 }
 
+// ── Baseline-relative tsc gate (pilot lesson #2) ─────────────────────
+
+/** Pure: count TypeScript errors in tsc output. Structural parse only. */
+export function countTsErrors(output: string): number {
+  return (output.match(/error TS\d+/g) ?? []).length;
+}
+
+/**
+ * Run `npx tsc --noEmit` and count errors regardless of exit code. The repo
+ * carries pre-existing tsc errors (9 at the time of writing), so a raw
+ * exit-code gate fails every honest run and rewards the agent that burns
+ * time fixing unrelated debt (the pilot's baseline arm did exactly that).
+ */
+export async function tscErrorCount(worktree: string): Promise<number> {
+  try {
+    const { stdout, stderr } = await sh(worktree, "npx", ["tsc", "--noEmit"], 300_000);
+    return countTsErrors(stdout + stderr);
+  } catch (err) {
+    const e = err as { stdout?: string; stderr?: string };
+    return countTsErrors((e.stdout ?? "") + (e.stderr ?? ""));
+  }
+}
+
 // ── One (task × arm × run) session ───────────────────────────────────
 
 export interface LiveRunResult extends SessionInput {
@@ -231,11 +265,15 @@ export async function runLiveSession(
   run: number,
 ): Promise<LiveRunResult> {
   const label = `${task.id}-${arm}-${run}`;
-  const worktree = await prepareWorktree(ctx, label);
+  const worktree = await prepareCheckout(ctx, label);
   const realWorktree = fs.realpathSync(worktree);
 
   fs.mkdirSync(ctx.runDir, { recursive: true });
   fs.writeFileSync(path.join(ctx.runDir, `prompt-${label}.txt`), buildTaskPrompt(task, arm));
+
+  // tsc gate is baseline-relative: capture the pre-session error count in
+  // the decontaminated checkout (pre-existing debt is not the agent's).
+  const tscErrorsBefore = await tscErrorCount(worktree);
 
   const startedAt = Date.now();
   let claudeExitOk = true;
@@ -270,11 +308,19 @@ export async function runLiveSession(
   const diff = await captureDiff(worktree);
   fs.writeFileSync(path.join(ctx.runDir, `diff-${label}.patch`), diff);
 
-  const tscPassed = await runCheck(worktree, "npx tsc --noEmit", 300_000);
+  const tscErrorsAfter = await tscErrorCount(worktree);
+  const tscPassed = tscErrorsAfter <= tscErrorsBefore;
   const testPassed = await runCheck(worktree, task.testCommand, 600_000);
 
-  await removeWorktree(ctx, worktree);
-  await emitEvalRunEvent(task, arm, run, { durationMs, tscPassed, testPassed, claudeExitOk });
+  await removeCheckout(ctx, worktree);
+  await emitEvalRunEvent(task, arm, run, {
+    durationMs,
+    tscPassed,
+    tscErrorsBefore,
+    tscErrorsAfter,
+    testPassed,
+    claudeExitOk,
+  });
 
   return {
     taskId: task.id,

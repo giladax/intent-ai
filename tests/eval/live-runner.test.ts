@@ -101,3 +101,18 @@ describe("DECONTAMINATION_PATHS (fixes F2 — answer-in-repo)", () => {
     expect(DECONTAMINATION_PATHS).toContain(".superpowers");
   });
 });
+
+describe("countTsErrors (baseline-relative tsc gate — pilot lesson)", () => {
+  it("counts error TS lines regardless of exit semantics", async () => {
+    const { countTsErrors } = await import("../../src/eval/live-runner.js");
+    const out = [
+      "src/cli/digest.ts(138,60): error TS2339: Property 'x' does not exist.",
+      "src/cli/digest.ts(139,60): error TS2339: Property 'y' does not exist.",
+      "src/storage/queries.ts(10,1): error TS7006: implicit any",
+      "some unrelated line",
+    ].join("\n");
+    expect(countTsErrors(out)).toBe(3);
+    expect(countTsErrors("")).toBe(0);
+    expect(countTsErrors("all clean")).toBe(0);
+  });
+});
