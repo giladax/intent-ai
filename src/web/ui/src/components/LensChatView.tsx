@@ -6,6 +6,7 @@ import { LensRail, type LensType } from "./LensRail";
 import { LensChatMain } from "./LensChatMain";
 import { fetchLensArrival, fetchPendingObservations, approveObservation, rejectObservation, fetchNotifications, fetchFeed, type Notification, type FeedComposed } from "../api";
 import type { PressedStory } from "./FeedStream";
+import { NotifButton, NotifCard, useLastSeen } from "./NotifButton";
 import type { Feature, LensArrivalData, PendingObservation } from "../types";
 
 interface LensChatViewProps {
@@ -25,6 +26,8 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
   const [feed, setFeed] = useState<FeedComposed | null>(null);
   const [feedLoading, setFeedLoading] = useState(true);
   const [pressedStories, setPressedStories] = useState<PressedStory[]>([]);
+  const [notifCardOpen, setNotifCardOpen] = useState(false);
+  const lastSeen = useLastSeen();
 
   useEffect(() => {
     fetchLensArrival()
@@ -43,7 +46,7 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
   // Notification polling — on mount + every 30 seconds. Fail-safe: quiet.
   useEffect(() => {
     const poll = () => {
-      fetchNotifications()
+      fetchNotifications(lastSeen ?? undefined)
         .then((data) => {
           setNotifications(data.notifications);
           setUnreadNotifCount(data.unreadCount);
@@ -53,7 +56,7 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
     poll();
     const timer = setInterval(poll, 30_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [lastSeen]);
 
   const refreshPending = useCallback(() => {
     fetchPendingObservations(projectId ?? undefined)
@@ -124,6 +127,19 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
     category: o.category,
   }));
 
+  function handleNotifOpen() {
+    setNotifCardOpen(true);
+    setUnreadNotifCount(0);
+  }
+
+  const notifSlot = notifCardOpen ? (
+    <NotifCard
+      notifications={notifications}
+      lastSeen={lastSeen}
+      onDismiss={() => setNotifCardOpen(false)}
+    />
+  ) : null;
+
   return (
     <div
       className="lc-shell"
@@ -166,7 +182,9 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
         feedLoading={feedLoading}
         pressedStories={pressedStories}
         onStoryPress={handleStoryPress}
+        notifSlot={notifSlot}
       />
+      <NotifButton unreadCount={unreadNotifCount} onOpen={handleNotifOpen} />
     </div>
   );
 }

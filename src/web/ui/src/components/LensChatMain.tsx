@@ -149,14 +149,6 @@ export function LensChatMain({
   // Rail-driven lens selection leaves feed mode (feature page instead).
   const feedMode = focusedLens === null || pressedStories.length > 0;
 
-  const now = new Date();
-  const metaDate = now.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).toLowerCase().replace(",", "");
-  // → "sat jul 5" (locale-formatted, lowercase)
-
   const scopeLabel = focusedLens === "feature" && selectedFeatureName
     ? `◉ ${selectedFeatureName.toUpperCase()}`
     : focusedLens === "timeline" && selectedTimeRange
@@ -217,9 +209,7 @@ export function LensChatMain({
 
   return (
     <main className="lc-main" ref={chatRef}>
-      <div className="lc-meta-top lc-rise" style={{ animationDelay: "0.6s" }}>
-        intent-ai · feat/repo-brain · {metaDate}
-      </div>
+      {/* meta-top pill replaced by the NotifButton (rendered by LensChatView) */}
 
       <div className="lc-chat">
         {/* The feed — editorial org overview (replaces the arrival turn) */}
