@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import "./LensChatMain.css";
-import { streamChat, type FeedComposed } from "../api";
+import { streamChat, fetchLensOpening, type FeedComposed } from "../api";
 import type { ChatMessage } from "../types";
 import type { LensType } from "./LensRail";
 import { FeedStream, type PressedStory } from "./FeedStream";
@@ -106,8 +106,36 @@ export function LensChatMain({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [openingTurn, setOpeningTurn] = useState<string | null>(null);
+  const [openingLoading, setOpeningLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+
+  // Seeded opening — fetched when a feature is selected. The opening IS the
+  // chat's first turn: understanding + recent insights + pending count.
+  useEffect(() => {
+    if (!selectedFeatureId) {
+      setOpeningTurn(null);
+      setOpeningLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setOpeningLoading(true);
+    setOpeningTurn(null);
+    fetchLensOpening(selectedFeatureId)
+      .then((res) => {
+        if (!cancelled) setOpeningTurn(res.turn);
+      })
+      .catch(() => {
+        if (!cancelled) setOpeningTurn(null); // fail-safe: no opening, chat still works
+      })
+      .finally(() => {
+        if (!cancelled) setOpeningLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFeatureId]);
 
   // Scroll to bottom after new messages
   useEffect(() => {
@@ -206,7 +234,38 @@ export function LensChatMain({
           />
         )}
 
-        {/* Pending observations as in-chat approval cards */}
+        {/* Seeded opening — the feature lens's first turn (before any message):
+            understanding + insights, then the seam, then inline approvals. */}
+        {focusedLens === "feature" && selectedFeatureId && (
+          <>
+            <section className="lc-turn-brain lc-rise" aria-label="Feature opening">
+              <div className="lc-speaker">
+                brain{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : ""}
+              </div>
+              {openingLoading ? (
+                <div className="fs-skel" aria-label="Loading understanding">
+                  <span /><span />
+                </div>
+              ) : (
+                openingTurn?.split("\n\n").map((para, i) => (
+                  <p key={i} className="lc-brainline" style={{ marginBottom: "14px" }}>
+                    {para}
+                  </p>
+                ))
+              )}
+            </section>
+            <div className="feed-seam" aria-hidden="true" />
+            {pendingObservations.length > 0 && messages.length === 0 && (
+              <PendingApprovalTurns
+                observations={pendingObservations}
+                onApprove={onApprove}
+                onReject={onReject}
+              />
+            )}
+          </>
+        )}
+
+        {/* Pending observations as in-chat approval cards (org lens) */}
         {pendingObservations.length > 0 && messages.length === 0 && focusedLens === null && (
           <PendingApprovalTurns
             observations={pendingObservations}

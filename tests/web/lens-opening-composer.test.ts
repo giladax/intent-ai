@@ -25,3 +25,24 @@ describe("buildLensOpeningTurn", () => {
     expect(turn).toContain("3");
   });
 });
+
+describe("buildLensOpeningTurn — voice rule", () => {
+  it("does not contain banned words", () => {
+    const banned = ["river", "sitting", "ink", "correspondence", "edition", "sittings"];
+    const turn = buildLensOpeningTurn({
+      featureName: "Test",
+      understanding: "Some understanding text with the word river and sitting in it.",
+      recentInsights: [],
+      pendingCount: 0,
+    });
+    // The turn is plain-voice assembly; the understanding may contain banned words
+    // since it comes from raw DB data — the UI is responsible for NOT rendering
+    // generated copy that violates voice rules. Only the PROMPT-generated opening
+    // (from Sonnet polish) must be clean. So this test verifies that the function
+    // itself doesn't add banned words.
+    const addedContent = turn.replace("Some understanding text with the word river and sitting in it.", "");
+    for (const word of banned) {
+      expect(addedContent.toLowerCase()).not.toContain(word);
+    }
+  });
+});
