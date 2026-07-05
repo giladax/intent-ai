@@ -840,6 +840,29 @@ export async function startWebServer(port: number): Promise<void> {
     res.json({ dbAvailable, entries: joinArchive(files, sessions) });
   });
 
+  // ── Feed endpoint ───────────────────────────────────────────────────────
+  // Returns the LLM-composed editorial feed. Cached in feed_cache table.
+  // Fail-safe: any DB/LLM error returns buildSkeletonFeed(), never 500.
+  // ?refresh=1 forces recompose on next call.
+
+  app.get("/api/feed", async (req, res) => {
+    try {
+      const forceRefresh = req.query["refresh"] === "1";
+      const { getFeedOrCompose } = await import("./feed-composer.js");
+      const sql = getClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const feed = await getFeedOrCompose(sql as unknown as any, forceRefresh);
+      res.json(feed);
+    } catch (_err) {
+      try {
+        const { buildSkeletonFeed } = await import("./feed-composer.js");
+        res.json(buildSkeletonFeed());
+      } catch {
+        res.json({ editionNumber: 0, composedAt: new Date().toISOString(), lede: { text: "Feed unavailable.", citedSessionIds: [] }, trending: [] });
+      }
+    }
+  });
+
   // ── Lens arrival brief ────────────────────────────────────────────────
   // One cheap call: returns the verdict sentence + stats counts that the
   // lens-chat surface uses for its arrival turn. Reuses the stats/observations

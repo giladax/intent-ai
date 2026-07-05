@@ -140,6 +140,30 @@ export const fetchStatsOverview = (repoId?: string) =>
 
 export const fetchLensArrival = () => json<LensArrivalData>("/api/lens/arrival");
 
+// Feed — editorial overview composed by the brain. Cached; recomposes on new events.
+export interface FeedStory {
+  featureId: string;
+  featureName: string;
+  heatScore: number;
+  heatLabel: "hot" | "still warm" | "cooling";
+  eventCount: number;
+  headline: string;
+  dek: string;
+  openQuestion: string;
+  citedSessionIds: string[];
+  actorInitials: string[];
+}
+
+export interface FeedComposed {
+  editionNumber: number;
+  composedAt: string;
+  lede: { text: string; citedSessionIds: string[] };
+  trending: FeedStory[];
+}
+
+export const fetchFeed = (refresh = false) =>
+  json<FeedComposed>(`/api/feed${refresh ? "?refresh=1" : ""}`);
+
 // Digest — the intake and its press schedule (cron elapse settings)
 export interface DigestSchedule {
   enabled: boolean;
