@@ -92,7 +92,7 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
       <header className="chat-dock-head">
         <div>
           <div className="ink-kicker">You &amp; Quire, connecting the dots</div>
-          <div className="chat-dock-title">The Correspondence</div>
+          <div className="chat-dock-title">Ask Quire</div>
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (

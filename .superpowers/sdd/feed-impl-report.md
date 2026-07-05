@@ -179,3 +179,59 @@ Live verification (Chrome, port 7899):
 - C2 re-verified destructively: DROP TABLE feed_cache → `cli up` → table recreated with full schema ✓
 - Corrected counts: server tsc = 9 errors (matches baseline exactly); tests 727 passing
 - UI rebuilt: `index-DiMsoyie.js`; screenshots 01.png/02.png re-taken with final build
+
+---
+
+# Feed Fix-Wave Re-Review Closures — 2026-07-06
+
+**Baseline:** 727 tests / 9 tsc errors / typecheck:ui clean
+**Tasks:** I6 completion, I4 completion, dedupTrending advisory
+
+## I6 — Feature-scoped inline approval cards
+
+Extracted pure filter `filterPendingObsForLens` to `src/web/lens-obs-filter.ts`.
+Logic: feature lens + selectedFeatureId → show only observations attributed to that
+feature (null feature_id observations hidden); any other lens → org-level all (capped 5).
+
+`LensChatView.tsx` updated: `pendingObsForChat` now calls `filterPendingObsForLens(pendingObs, focusedLens, selectedFeatureId)` instead of the prior unconditional `slice(0, 5)`.
+
+**Test:** `tests/web/lens-obs-filter.test.ts` (8 cases — feature filter, null-feature hide, org fallback, caps).
+
+## I4 — Voice banned-word scan in copy test
+
+New test file: `tests/web/voice-word-scan.test.ts`.
+Scans every `.tsx/.ts` in `src/web/ui/src/components/` (excl. ui/ shadcn primitives)
+for banned words (`river`, `sittings`, `sitting`, `ink`, `correspondence`, `edition`, `unfolded`)
+in JSX text nodes and user-facing prop string values (title, placeholder, aria-label, alt).
+
+**First-run violation found and fixed:** `ChatDock.tsx` line 95 — `"The Correspondence"` was
+the chat dock title. Renamed to `"Ask Quire"`. No other user-facing violations existed.
+CSS variable strings (`var(--lc-ink)`) and JS identifier names are not flagged (scanner
+extracts text between `>...<` and user-facing props only).
+
+**Test suite:** 24 cases (1 sanity + 1 per component file). All pass on the fixed tree.
+Regression proof: `>the river runs empty<` in any component JSX text would be caught.
+
+## dedupTrending unit tests (advisory)
+
+New test file: `tests/web/dedup-trending.test.ts` (7 cases):
+- First item always kept
+- >50% session overlap → suppressed
+- exactly 50% overlap → kept (docstring says "more than 50%")
+- no evidence → always kept
+- hottest-first order preserved
+- maxItems cap
+- explicit empty sessionIds → treated as no evidence
+
+**Bug found:** existing code used `< 0.5` (suppresses ≥50%), contradicting the docstring which
+says ">50% suppressed, <50% kept". Fixed to `<= 0.5` so exactly 50% overlap is now kept,
+matching the declared contract.
+
+## Final counts
+
+| Check | Baseline | Final |
+|---|---|---|
+| vitest | 727 tests / 75 files | **766 tests / 78 files** (+39 new) |
+| `tsc --noEmit` errors | 9 | 9 (unchanged) |
+| `typecheck:ui` | clean | clean |
+| UI artifact | rebuilt | rebuilt (ChatDock + LensChatView changes)

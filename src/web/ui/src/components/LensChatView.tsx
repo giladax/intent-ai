@@ -9,6 +9,7 @@ import type { PressedStory } from "./FeedStream";
 import { NotifButton, NotifCard, useLastSeen } from "./NotifButton";
 import { setLastSeenInStorage, getLastSeenFromStorage } from "./notif-utils";
 import type { Feature, LensArrivalData, PendingObservation } from "../types";
+import { filterPendingObsForLens } from "../../../../web/lens-obs-filter.js";
 
 interface LensChatViewProps {
   features: Feature[];
@@ -137,7 +138,7 @@ export function LensChatView({ features, projectId, onSessionClick }: LensChatVi
   const totals = arrivalData?.totals ?? { sessions: 0, events: 0, moments: 0 };
   const pendingCount = arrivalData?.pendingCount ?? 0;
 
-  const pendingObsForChat = pendingObs.slice(0, 5).map((o) => ({
+  const pendingObsForChat = filterPendingObsForLens(pendingObs, focusedLens, selectedFeatureId).map((o) => ({
     id: o.id,
     summary: o.summary,
     featureName: o.feature_name,

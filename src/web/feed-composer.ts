@@ -459,7 +459,7 @@ export function dedupTrending(
       result.push(item);
     } else {
       const overlap = sids.filter((s) => seen.has(s)).length;
-      if (overlap / sids.length < 0.5) {
+      if (overlap / sids.length <= 0.5) {
         sids.forEach((s) => seen.add(s));
         result.push(item);
       }
