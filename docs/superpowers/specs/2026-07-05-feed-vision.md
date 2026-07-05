@@ -18,6 +18,8 @@ Owner verbatim: "we are missing a hook. nothing about this feels like its breath
 
 ## Amendment (owner, same day): the mechanic is uniform across lenses
 
-Verbatim: "same logic should be the same for any lens, if I pick a feature, there should be the overview, so the specific feature selection is opening a chat with the top level understanding a recent insights and" (message cut off — continuation pending).
+Verbatim: "same logic should be the same for any lens, if I pick a feature, there should be the overview, so the specific feature selection is opening a chat with the top level understanding a recent insights and" — "and the ability to approve pending stuff for that feature inline."
 
 Selecting ANY lens = opening a chat seeded with that lens's editorial overview as its first turn: top-level understanding + recent insights, then the Brain engages or waits. Not "page then chat" — the overview IS the chat's opening content. One mechanic at every altitude: org feed, feature story, trending unfold. Future role lenses inherit the same shape.
+
+The lens's seeded opening therefore carries three things: top-level understanding, recent insights, and that lens's pending approvals as inline actionable cards (stamp without leaving the chat).
