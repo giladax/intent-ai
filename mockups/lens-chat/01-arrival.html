@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brain — Arrival</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ================= LENS RAIL / CHAT-FIRST — shared shell ================= */
+  :root{
+    --paper:#EFE5CE; --paper-2:#ECE7D9; --ink:#1C1A15; --ink-60:rgba(28,26,21,.6);
+    --ink-40:rgba(28,26,21,.4); --ink-25:rgba(28,26,21,.25); --ink-12:rgba(28,26,21,.12);
+    --cobalt:#2B49D8; --vermilion:#D8492B; --marigold:#ECA636;
+    --moss:#2E6B58; --amber:#B4681E; --bone:#F5F1E8;
+    --ease:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
+    --rail-w:172px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Hanken Grotesk',sans-serif; font-size:15px;
+    display:grid; grid-template-columns:var(--rail-w) 1fr; overflow:hidden;
+  }
+  ::selection{background:var(--ink); color:var(--paper)}
+
+  /* ---------- materialize grammar ---------- */
+  @keyframes rise{
+    from{opacity:0; transform:translateY(16px) scale(.985); filter:blur(10px)}
+    to{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}
+  }
+  .rise{animation:rise .8s var(--ease) both}
+  @keyframes word{
+    from{opacity:0; transform:translateY(.35em); filter:blur(6px)}
+    to{opacity:1; transform:translateY(0); filter:blur(0)}
+  }
+  .w{display:inline-block; animation:word .55s var(--ease) both}
+  @keyframes breathe{
+    0%,100%{transform:scale(1); opacity:.85} 50%{transform:scale(1.28); opacity:1}
+  }
+  @keyframes needpulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(180,104,30,.5)} 55%{box-shadow:0 0 0 7px rgba(180,104,30,0)}
+  }
+
+  /* =================== THE LENS RAIL =================== */
+  .rail{
+    height:100vh; display:flex; flex-direction:column; padding:22px 16px 18px;
+    border-right:1px solid var(--ink-12); background:var(--paper);
+  }
+  .wordmark{
+    font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:22px; letter-spacing:-.02em;
+    display:flex; align-items:center; gap:8px; margin-bottom:26px;
+  }
+  .wordmark .pulse{
+    width:8px; height:8px; border-radius:50%; background:var(--moss);
+    animation:breathe 5.4s ease-in-out infinite;
+  }
+  .lenses{display:flex; flex-direction:column; gap:10px; flex:1; min-height:0}
+  .lens{
+    position:relative; border-radius:16px; min-height:106px; padding:12px 13px;
+    display:flex; flex-direction:column; cursor:pointer; border:none; text-align:left;
+    font-family:inherit; width:100%;
+    transition:opacity .55s var(--ease), filter .55s var(--ease),
+               transform .55s var(--ease), min-height .6s var(--ease), flex-grow .6s var(--ease);
+  }
+  .lens .num{
+    font-family:'Spline Sans Mono',monospace; font-size:11px; font-weight:500; letter-spacing:.08em;
+  }
+  .lens .mark{
+    position:absolute; top:11px; right:13px; font-size:13px; line-height:1;
+    transition:transform .45s var(--ease);
+  }
+  .lens:hover .mark{transform:translate(3px,-3px)}
+  .lens:hover{transform:translateY(-2px)}
+  .lens .label{
+    margin-top:auto; font-weight:800; font-size:14px; letter-spacing:.01em; line-height:1.1;
+    text-transform:uppercase;
+  }
+  .lens .sub{
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; margin-top:4px; opacity:.75;
+    letter-spacing:.04em;
+  }
+  .lens--feature{background:var(--cobalt); color:var(--bone)}
+  .lens--timeline{background:var(--vermilion); color:var(--bone)}
+  .lens--team{background:var(--marigold); color:var(--ink)}
+  .lens--soon{opacity:.85}
+  .lens--soon .label::after{
+    content:'SOON'; font-family:'Spline Sans Mono',monospace; font-size:8px; font-weight:500;
+    vertical-align:super; margin-left:5px; letter-spacing:.12em; opacity:.7;
+  }
+  .lens--ghost{
+    background:transparent; border:1.5px dashed var(--ink-25); color:var(--ink-40);
+    min-height:64px; justify-content:center; align-items:center; flex-direction:row; gap:7px;
+  }
+  .lens--ghost .plus{font-size:16px; font-weight:400; line-height:1}
+  .lens--ghost .glabel{
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; letter-spacing:.1em; margin-top:0;
+  }
+  .lens--ghost:hover{border-color:var(--ink-40); color:var(--ink-60); transform:none}
+  .needs{
+    position:absolute; bottom:13px; right:13px; width:8px; height:8px; border-radius:50%;
+    background:var(--amber); border:2px solid rgba(245,241,232,.9);
+    animation:needpulse 5.4s ease-in-out infinite;
+  }
+  .rail-foot{
+    margin-top:14px; font-family:'Spline Sans Mono',monospace; font-size:9.5px;
+    color:var(--ink-40); letter-spacing:.05em; line-height:1.7;
+  }
+  .rail-foot .river{
+    display:block; height:12px; margin-bottom:6px; position:relative; overflow:hidden;
+  }
+  .rail-foot .river i{
+    position:absolute; bottom:0; width:2px; background:var(--ink-25); border-radius:1px;
+  }
+
+  /* =================== THE MAIN EVENT: CHAT =================== */
+  .main{position:relative; height:100vh; overflow-y:auto; scroll-behavior:smooth}
+  .meta-top{
+    position:fixed; top:20px; right:26px; font-family:'Spline Sans Mono',monospace;
+    font-size:10px; color:var(--ink-40); letter-spacing:.06em; z-index:5;
+  }
+  .chat{
+    max-width:660px; margin:0 auto; padding:16vh 32px 190px;
+    display:flex; flex-direction:column; gap:38px;
+  }
+  .turn-brain{display:flex; flex-direction:column; gap:14px}
+  .speaker{
+    display:flex; align-items:center; gap:7px;
+    font-family:'Spline Sans Mono',monospace; font-size:10px; letter-spacing:.14em;
+    color:var(--ink-40); text-transform:uppercase;
+  }
+  .speaker::before{content:''; width:7px; height:7px; border-radius:2px; background:var(--moss)}
+  .verdict{
+    font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:clamp(28px,3.4vw,40px); line-height:1.12; letter-spacing:-.025em;
+  }
+  .verdict em{font-style:italic; font-weight:400}
+  .brainline{font-size:16.5px; line-height:1.65; color:var(--ink); max-width:56ch}
+  .brainline .dim{color:var(--ink-60)}
+  .handle{
+    text-decoration:underline dashed var(--ink-40); text-underline-offset:4px; cursor:pointer;
+    transition:color .3s var(--ease);
+  }
+  .handle:hover{color:var(--cobalt)}
+  .handle--amber{text-decoration-color:var(--amber); color:var(--amber); font-weight:600}
+  .whispers{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'Spline Sans Mono',monospace; font-size:10.5px; letter-spacing:.03em;
+    border:1px solid var(--ink-25); border-radius:99px; padding:5px 11px; cursor:pointer;
+    background:transparent; color:var(--ink-60);
+    transition:background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease);
+  }
+  .chip .dot{width:6px; height:6px; border-radius:50%}
+  .chip:hover{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+
+  /* ---------- ask bar ---------- */
+  .askwrap{
+    position:fixed; bottom:0; left:var(--rail-w); right:0; padding:22px 32px 26px;
+    display:flex; justify-content:center; pointer-events:none;
+    background:linear-gradient(to top, var(--paper) 45%, transparent);
+  }
+  .ask{
+    pointer-events:auto; width:min(620px,100%); display:flex; align-items:center; gap:10px;
+    background:#FAF4E4; border:1.5px solid var(--ink); border-radius:99px; padding:14px 20px;
+    box-shadow:0 10px 30px -14px rgba(28,26,21,.28);
+    transition:transform .4s var(--ease), box-shadow .4s var(--ease);
+  }
+  .ask:focus-within{transform:translateY(-3px); box-shadow:0 16px 38px -14px rgba(28,26,21,.34)}
+  .ask input{
+    flex:1; border:none; outline:none; background:transparent; font-family:inherit;
+    font-size:15px; color:var(--ink);
+  }
+  .ask input::placeholder{color:var(--ink-40)}
+  .ask .enter{
+    font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40);
+    border:1px solid var(--ink-12); border-radius:6px; padding:3px 7px;
+  }
+  .ask .brand-dot{width:8px;height:8px;border-radius:50%;background:var(--moss);animation:breathe 5.4s ease-in-out infinite}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ LENS RAIL ============ -->
+  <nav class="rail" aria-label="Lenses">
+    <div class="wordmark rise" style="animation-delay:.05s">brain.<span class="pulse"></span></div>
+    <div class="lenses">
+      <button class="lens lens--feature rise" style="animation-delay:.16s" onclick="location.href='02-lens-focus.html'">
+        <span class="num">01</span><span class="mark">↗</span>
+        <span class="label">Feature</span>
+        <span class="sub">6 under watch</span>
+        <span class="needs" title="1 delta awaits your stamp"></span>
+      </button>
+      <button class="lens lens--timeline rise" style="animation-delay:.24s">
+        <span class="num">02</span><span class="mark">↗</span>
+        <span class="label">Timeline</span>
+        <span class="sub">jun 21 — today</span>
+      </button>
+      <button class="lens lens--team lens--soon rise" style="animation-delay:.32s">
+        <span class="num">03</span><span class="mark">↗</span>
+        <span class="label">Team</span>
+        <span class="sub">1 human · n agents</span>
+      </button>
+      <button class="lens lens--ghost rise" style="animation-delay:.4s" title="Lenses grow with your org — Sprint, Service, Customer…">
+        <span class="plus">+</span><span class="glabel">LENS</span>
+      </button>
+    </div>
+    <div class="rail-foot rise" style="animation-delay:.5s">
+      <span class="river" aria-hidden="true" id="river"></span>
+      9 sessions<br>484 events<br>347 moments
+    </div>
+  </nav>
+
+  <!-- ============ THE MAIN EVENT ============ -->
+  <main class="main">
+    <div class="meta-top rise" style="animation-delay:.6s">intent-ai · feat/repo-brain · sat jul 4</div>
+    <div class="chat">
+
+      <section class="turn-brain">
+        <div class="speaker rise" style="animation-delay:.7s">brain · just now</div>
+        <h1 class="verdict" id="verdict" aria-label="Quiet, and on course."></h1>
+        <p class="brainline rise" style="animation-delay:2.15s">
+          Yesterday closed with <span class="handle">6 breakthroughs</span> across two features —
+          derived confidence landed with 485 tests passing, and the dead-code purge came back clean.
+          <span class="dim">One thing waits:</span>
+          <span class="handle handle--amber">an understanding delta on MCP Server awaits your stamp.</span>
+        </p>
+        <div class="whispers rise" style="animation-delay:2.5s">
+          <button class="chip"><span class="dot" style="background:var(--cobalt)"></span>12 commitments</button>
+          <button class="chip"><span class="dot" style="background:var(--vermilion)"></span>3 pivots</button>
+          <button class="chip"><span class="dot" style="background:var(--moss)"></span>6 breakthroughs · verified</button>
+        </div>
+      </section>
+
+    </div>
+    <div class="askwrap">
+      <div class="ask rise" style="animation-delay:1.1s">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <input type="text" placeholder="Ask the brain anything — or pick a lens to focus…" aria-label="Ask the brain">
+        <span class="enter">⏎</span>
+      </div>
+    </div>
+  </main>
+
+<script>
+  // Verdict materializes word by word — a thought completing.
+  const verdictWords = ['Quiet,','and','on','course.'];
+  const v = document.getElementById('verdict');
+  verdictWords.forEach((word,i)=>{
+    const s = document.createElement('span');
+    s.className = 'w'; s.textContent = word;
+    s.style.animationDelay = (0.95 + i*0.24) + 's';
+    v.appendChild(s);
+    if(i < verdictWords.length-1) v.appendChild(document.createTextNode(' '));
+  });
+  // 1px river sparkline in the rail foot — the event stream, present, never loud.
+  const river = document.getElementById('river');
+  const heat = [2,1,3,2,5,3,1,2,4,7,9,6,3,8,11,7,4,10,12,9];
+  heat.forEach((h,i)=>{
+    const t = document.createElement('i');
+    t.style.left = (i*(100/heat.length)) + '%';
+    t.style.height = Math.min(12, h+1) + 'px';
+    if(i>=heat.length-2){ t.style.background = 'var(--moss)'; }
+    river.appendChild(t);
+  });
+</script>
+</body>
+</html>
