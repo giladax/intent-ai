@@ -590,6 +590,73 @@ export function createBrainServer(): McpServer {
     },
   );
 
+  // ── brain_attention ───────────────────────────────────────────────
+  // Additive: existing tools untouched. Reads attention_state from DB so it
+  // works cross-process (MCP server and web server are separate processes).
+
+  server.tool(
+    "brain_attention",
+    "Get the user's current attention state — what they are looking at in the Brain dashboard right now. Returns the lens focus, open session, and a terse assembled context. No attention reported → honest 'no attention (dashboard not open)'.",
+    {
+      sessionId: z.string().optional().describe("Your session id, for provenance"),
+    },
+    async ({ sessionId }) => {
+      const startedAt = Date.now();
+      try {
+        const { readAttention } = await import("../storage/attention-store.js");
+        const { formatAttentionMcpText } = await import("./attention-formatter.js");
+        const result = await readAttention();
+
+        if (!result) {
+          await emitRead("attention", startedAt, "miss", "brain_attention: no attention reported", { sessionId });
+          return mcpText("No attention reported — the Brain dashboard does not appear to be open.");
+        }
+
+        const attn = result.state;
+        // Augment with feature orientation if a feature lens is active
+        let featureOrientation: string | null = null;
+        if (attn.lens?.featureId) {
+          try {
+            const { renderFeatureContext } = await import("./context.js");
+            featureOrientation = await renderFeatureContext(attn.lens.featureId, "orientation");
+          } catch { /* non-fatal */ }
+        }
+
+        // Augment with session narrative if a session is open
+        let sessionSummary: string | null = null;
+        if (attn.openSessionId) {
+          try {
+            const narrative = await getSessionNarrative(attn.openSessionId);
+            if (narrative?.summary) sessionSummary = narrative.summary.slice(0, 300);
+          } catch { /* non-fatal */ }
+        }
+
+        const baseText = formatAttentionMcpText(attn, result.updatedAt, result.stale);
+        const extras: string[] = [];
+        if (featureOrientation) extras.push(`\n### Feature orientation\n${featureOrientation}`);
+        if (sessionSummary) extras.push(`\nSession summary: ${sessionSummary}`);
+
+        const fullText = baseText + (extras.length ? "\n" + extras.join("\n") : "");
+
+        await emitRead(
+          "attention",
+          startedAt,
+          "hit",
+          `brain_attention: user looking at ${attn.lens?.featureName ?? attn.surface}`,
+          {
+            sessionId,
+            featureId: attn.lens?.featureId,
+            metadata: { surface: attn.surface, lensType: attn.lens?.type ?? null, stale: result.stale },
+          },
+        );
+
+        return mcpText(fullText);
+      } catch (err) {
+        return mcpText(`brain_attention unavailable: ${errMsg(err)}`);
+      }
+    },
+  );
+
   return server;
 }
 
