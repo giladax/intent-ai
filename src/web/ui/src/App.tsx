@@ -12,6 +12,7 @@ import { FeatureDetail } from "./components/FeatureDetail";
 import { ReviewQueue } from "./components/ReviewQueue";
 import { JournalPage } from "./components/JournalPage";
 import { DigestPanel } from "./components/DigestPanel";
+import { LensChatView } from "./components/LensChatView";
 import { fetchProjects, fetchSessions, fetchFeatures, fetchPendingObservations } from "./api";
 import type { LiveState } from "./api";
 import type { Project, Session, Feature } from "./types";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 type View =
+  | "lens-chat"   // ← new default
   | "journal"
   | "features"
   | "feature-detail"
@@ -39,7 +41,7 @@ function sectionOf(view: View): Section | null {
     case "review": return "review";
     case "sessions":
     case "session-detail": return "sessions";
-    default: return null; // the intake stands apart
+    default: return null; // lens-chat, digest, and the intake stand apart
   }
 }
 
@@ -55,7 +57,7 @@ function AppShell() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [view, setView] = useState<View>("journal");
+  const [view, setView] = useState<View>("lens-chat");
   const [undigestedCount, setUndigestedCount] = useState(0);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [features, setFeatures] = useState<Feature[]>([]);
@@ -141,6 +143,42 @@ function AppShell() {
     }
   }, [view, selectedFeatureId, selectedFeatureName, selectedSessionId, selectedSessionLabel, setAutoItem]);
 
+  // Lens-chat default view — full page, no masthead
+  if (view === "lens-chat") {
+    return (
+      <div className="lc-root" style={{ position: "relative", height: "100%" }}>
+        <LensChatView
+          features={features}
+          projectId={selectedProject?.id ?? null}
+        />
+        {/* "ledger" link — unobtrusive corner affordance to reach classic shell */}
+        <button
+          className="lc-ledger-toggle"
+          onClick={() => setView("journal")}
+          title="Switch to classic ledger view"
+          style={{
+            position: "fixed",
+            bottom: "16px",
+            right: "16px",
+            zIndex: 50,
+            fontFamily: "'Spline Sans Mono', monospace",
+            fontSize: "10px",
+            letterSpacing: "0.12em",
+            color: "var(--lc-ink-40)",
+            background: "transparent",
+            border: "1px solid var(--lc-ink-12)",
+            borderRadius: "6px",
+            padding: "4px 10px",
+            cursor: "pointer",
+            textTransform: "uppercase",
+          }}
+        >
+          ledger ↗
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="ink-app flex h-svh flex-col overflow-hidden">
       {/* The masthead — one ribbon: wordmark, sections, the intake, the Correspondence */}
@@ -182,6 +220,15 @@ function AppShell() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            {/* Back to lens-chat surface */}
+            <button
+              className="ink-mast-section"
+              onClick={() => setView("lens-chat")}
+              title="Back to lens view"
+              style={{ fontSize: "11px", opacity: 0.6 }}
+            >
+              ← lens
+            </button>
             {/* The intake — always reachable; urgent when sessions wait */}
             {selectedProject && (
               <button
