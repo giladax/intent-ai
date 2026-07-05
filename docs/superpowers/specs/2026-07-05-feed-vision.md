@@ -23,3 +23,9 @@ Verbatim: "same logic should be the same for any lens, if I pick a feature, ther
 Selecting ANY lens = opening a chat seeded with that lens's editorial overview as its first turn: top-level understanding + recent insights, then the Brain engages or waits. Not "page then chat" — the overview IS the chat's opening content. One mechanic at every altitude: org feed, feature story, trending unfold. Future role lenses inherit the same shape.
 
 The lens's seeded opening therefore carries three things: top-level understanding, recent insights, and that lens's pending approvals as inline actionable cards (stamp without leaving the chat).
+
+## Voice rule (owner, binding on all user-facing copy)
+
+Verbatim: "the language is too poetic, the river and what not mindset developing this should not necessarily be how we want to interact with the users, story is a big role here, stating value but keeping the doors slightly open to have the user eager to learn more. BUT - we can't be pretentious, because this is not how I am."
+
+Rules: internal metaphors (river, sittings, ink, correspondence) are DEVELOPMENT vocabulary — never user-facing copy. The product speaks plainly: state the value, tell the story straight, end with a slight opening (a concrete question or an unresolved thread) that makes the reader want the next layer. No cleverness about itself, no mysticism, no literary posturing. The test: would the owner say this sentence out loud to a colleague? If not, rewrite it.
