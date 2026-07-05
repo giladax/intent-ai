@@ -1,7 +1,7 @@
 // LensChatView — the lens-rail + chat-first default view.
 // Composes LensRail and LensChatMain; owns the lens focus state.
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { LensRail, type LensType } from "./LensRail";
 import { LensChatMain } from "./LensChatMain";
 import { fetchLensArrival, fetchPendingObservations, approveObservation, rejectObservation, fetchNotifications, fetchFeed, type Notification, type FeedComposed } from "../api";
@@ -34,6 +34,38 @@ export function LensChatView({ features, projectId, onSessionClick }: LensChatVi
   const [metaRepo, setMetaRepo] = useState("");
   const [metaBranch, setMetaBranch] = useState("");
   const lastSeen = useLastSeen();
+  const attentionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced attention reporter — fire-and-forget, 2s delay.
+  const reportAttention = useCallback(() => {
+    if (attentionDebounceRef.current) clearTimeout(attentionDebounceRef.current);
+    attentionDebounceRef.current = setTimeout(() => {
+      const state = {
+        surface: "feed" as const,
+        lens: focusedLens === "feature" && selectedFeatureId
+          ? { type: "feature", featureId: selectedFeatureId, featureName: selectedFeatureName ?? undefined }
+          : focusedLens === "timeline"
+          ? { type: "timeline" }
+          : null,
+        expandedStoryIds: pressedStories.map((s) => s.featureId),
+        openSessionId: null,
+        pendingApprovalVisible: false,
+        ts: Date.now(),
+      };
+      fetch("/api/attention", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(state),
+      }).catch(() => { /* fire-and-forget */ });
+    }, 2000);
+  }, [focusedLens, selectedFeatureId, selectedFeatureName, pressedStories]);
+
+  useEffect(() => {
+    reportAttention();
+    return () => {
+      if (attentionDebounceRef.current) clearTimeout(attentionDebounceRef.current);
+    };
+  }, [reportAttention]);
 
   useEffect(() => {
     fetchLensArrival()
