@@ -173,6 +173,25 @@ export interface LensOpeningResult {
 export const fetchLensOpening = (featureId: string) =>
   json<LensOpeningResult>(`/api/lens/opening/${encodeURIComponent(featureId)}`);
 
+// Notifications — derived from DB signals (no LLM). Fail-safe: returns [].
+export interface Notification {
+  type: "pending_gate" | "area_activity" | "contradicted" | "hot_streak";
+  featureId: string;
+  text: string;
+  featureName?: string;
+  timestamp?: string;
+}
+
+export const fetchNotifications = (lastSeen?: string, actor?: string) => {
+  const params = new URLSearchParams();
+  if (lastSeen) params.set("lastSeen", lastSeen);
+  if (actor) params.set("actor", actor);
+  const query = params.toString();
+  return json<{ notifications: Notification[]; unreadCount: number }>(
+    `/api/notifications${query ? `?${query}` : ""}`
+  );
+};
+
 // Digest — the intake and its press schedule (cron elapse settings)
 export interface DigestSchedule {
   enabled: boolean;

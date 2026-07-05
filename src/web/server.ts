@@ -909,6 +909,84 @@ export async function startWebServer(port: number): Promise<void> {
     }
   });
 
+  // ── Notifications ─────────────────────────────────────────────────────
+  // Derives notifications from DB signals: pending gates, area activity,
+  // contradicted decisions, hot-streak features. No LLM. Fail-safe: returns
+  // empty array on any error. ?lastSeen=<ISO>&actor=<initials>
+
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const { buildNotifText, dedupNotifications } = await import("./notifications.js");
+      const { OBSERVATION_CATEGORY_PREFIX } = await import("./observations.js");
+      const sql = getClient();
+      const lastSeen = (req.query.lastSeen as string | undefined) || null;
+      const _actor = (req.query.actor as string | undefined) || null;
+
+      const notifications: Array<{ type: "pending_gate" | "area_activity" | "contradicted" | "hot_streak"; featureId: string; text: string; featureName?: string; timestamp?: string }> = [];
+
+      // Signal 1: pending gates per feature
+      try {
+        const pending = await sql`
+          SELECT ae.feature_id, f.name AS feature_name, COUNT(*)::int AS cnt
+          FROM activity_events ae
+          LEFT JOIN features f ON f.id::text = ae.feature_id
+          WHERE ae.review_status = 'pending'
+            AND ae.category LIKE ${OBSERVATION_CATEGORY_PREFIX + "%"}
+            AND ae.feature_id IS NOT NULL
+          GROUP BY ae.feature_id, f.name
+          ORDER BY cnt DESC
+          LIMIT 5`;
+        for (const row of pending) {
+          const featureId = row.feature_id as string;
+          const featureName = (row.feature_name as string | null) ?? featureId;
+          const count = Number(row.cnt) || 0;
+          if (count > 0) {
+            notifications.push({
+              type: "pending_gate",
+              featureId,
+              featureName,
+              text: buildNotifText({ type: "pending_gate", featureName, count }),
+            });
+          }
+        }
+      } catch { /* fail-safe */ }
+
+      // Signal 2: area activity since lastSeen
+      if (lastSeen) {
+        try {
+          const activity = await sql`
+            SELECT ae.feature_id, f.name AS feature_name, COUNT(*)::int AS cnt,
+                   MAX(ae.timestamp)::text AS last_ts
+            FROM activity_events ae
+            LEFT JOIN features f ON f.id::text = ae.feature_id
+            WHERE ae.timestamp > ${lastSeen}
+              AND ae.feature_id IS NOT NULL
+            GROUP BY ae.feature_id, f.name
+            HAVING COUNT(*) > 0
+            ORDER BY cnt DESC
+            LIMIT 5`;
+          for (const row of activity) {
+            const featureId = row.feature_id as string;
+            const featureName = (row.feature_name as string | null) ?? featureId;
+            const count = Number(row.cnt) || 0;
+            notifications.push({
+              type: "area_activity",
+              featureId,
+              featureName,
+              text: buildNotifText({ type: "area_activity", featureName, count }),
+              timestamp: (row.last_ts as string | null) ?? undefined,
+            });
+          }
+        } catch { /* fail-safe */ }
+      }
+
+      const deduped = dedupNotifications(notifications);
+      res.json({ notifications: deduped, unreadCount: deduped.length });
+    } catch (_err) {
+      res.json({ notifications: [], unreadCount: 0 });
+    }
+  });
+
   // ── Lens opening turn ─────────────────────────────────────────────────
   // Returns the seeded first-turn text for a feature lens. Deterministic:
   // top-level understanding + recent approved insights + pending count.
