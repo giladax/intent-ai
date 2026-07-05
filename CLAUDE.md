@@ -16,7 +16,7 @@ Requires: `ANTHROPIC_API_KEY` and `DATABASE_URL` in `.env` (see `.env.example`).
 
 ## Vision
 
-Intent-AI (product name: **Brain**) is an **organizational understanding engine**: it correlates **intent** — "what we want" (PRDs and, later, other signals) — with **implementation** — "what we have" (code and sessions) — and serves the current understanding to humans and agents over MCP. **The event river (Journal) is the substrate; Feature is the primary lens** — intent and implementation are two kinds of evidence sliced by it; **alignment** ("is what we built still what we wanted?") is the differentiator. Understanding is the umbrella; alignment is the spearhead. No trees, no graph-viz UI — time is the axis, search is the front door.
+Intent-AI (product name: **Quire**) is an **organizational understanding engine**: it correlates **intent** — "what we want" (PRDs and, later, other signals) — with **implementation** — "what we have" (code and sessions) — and serves the current understanding to humans and agents over MCP. **The event river (Journal) is the substrate; Feature is the primary lens** — intent and implementation are two kinds of evidence sliced by it; **alignment** ("is what we built still what we wanted?") is the differentiator. Understanding is the umbrella; alignment is the spearhead. No trees, no graph-viz UI — time is the axis, search is the front door.
 
 **Source of truth for product direction: [`docs/prd.md`](docs/prd.md) (PRD v0.3.1 — journal-as-product amendments).** Deferred bets live in [`docs/future-knowledge.md`](docs/future-knowledge.md).
 
