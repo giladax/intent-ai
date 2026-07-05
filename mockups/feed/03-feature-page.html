@@ -46,6 +46,15 @@
   @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:300% 0}}
   @keyframes waitdot{0%,100%{opacity:.25}30%{opacity:1}}
   @keyframes needpulse{0%,100%{box-shadow:0 0 0 0 rgba(180,104,30,.5)}55%{box-shadow:0 0 0 7px rgba(180,104,30,0)}}
+  @keyframes stampin{
+    0%{opacity:0; transform:rotate(-18deg) scale(2.6)}
+    62%{opacity:1; transform:rotate(-8deg) scale(.92)}
+    82%{transform:rotate(-8deg) scale(1.06)}
+    100%{opacity:1; transform:rotate(-8deg) scale(1)}
+  }
+  @keyframes ripple{
+    0%{box-shadow:0 0 0 0 rgba(46,107,88,.55)} 100%{box-shadow:0 0 0 26px rgba(46,107,88,0)}
+  }
 
   /* =================== LENS RAIL — focused on FEATURE =================== */
   .rail{
@@ -223,6 +232,56 @@
   .waiting i:nth-child(2){animation-delay:.25s}
   .waiting i:nth-child(3){animation-delay:.5s}
 
+  /* ---------- inline approval card ---------- */
+  .seal-card{
+    position:relative; border:1.5px solid var(--ink); border-radius:16px; background:#F6EEDA;
+    padding:20px 22px 20px; box-shadow:5px 5px 0 0 var(--amber); overflow:hidden; max-width:58ch;
+    transition:box-shadow .7s var(--ease), opacity .7s var(--ease), transform .7s var(--ease);
+  }
+  body.sealed .seal-card{box-shadow:5px 5px 0 0 var(--moss); opacity:.82}
+  .seal-card .tag{
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; font-weight:600; letter-spacing:.14em;
+    background:var(--amber); color:var(--bone); border-radius:6px; padding:4px 9px; margin-bottom:13px;
+    transition:background .6s var(--ease);
+  }
+  body.sealed .seal-card .tag{background:var(--moss)}
+  .seal-card .tag::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--bone); animation:needpulse 5.4s ease-in-out infinite}
+  body.sealed .seal-card .tag::before{animation:none; opacity:.6}
+  .seal-card h2{font-weight:800; font-size:19px; letter-spacing:-.01em; margin-bottom:4px}
+  .seal-card .vline{
+    font-family:'Spline Sans Mono',monospace; font-size:11px; color:var(--ink-60); letter-spacing:.05em; margin-bottom:15px;
+  }
+  .seal-card .vline b{color:var(--ink)}
+  .seal-card .vline .arrow{color:var(--moss); font-weight:600}
+  .delta{border-top:1px solid var(--ink-12); padding-top:13px; display:flex; flex-direction:column; gap:8px; margin-bottom:15px}
+  .delta .row{display:flex; gap:10px; font-size:14px; line-height:1.55}
+  .delta .op{font-family:'Spline Sans Mono',monospace; font-size:12px; font-weight:600; padding-top:1px}
+  .delta .add .op{color:var(--moss)}
+  .delta .add{color:var(--ink)}
+  .delta .del{color:var(--ink-40); text-decoration:line-through; text-decoration-color:var(--ink-25)}
+  .delta .del .op{color:var(--vermilion); text-decoration:none}
+  .seal-card .ev{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:17px}
+  .actions{display:flex; gap:10px; transition:opacity .45s var(--ease)}
+  body.sealed .actions{opacity:0; pointer-events:none}
+  .btn{
+    font-family:'Hanken Grotesk',sans-serif; font-weight:700; font-size:13.5px; letter-spacing:.02em;
+    border-radius:99px; padding:11px 22px; cursor:pointer; border:1.5px solid var(--ink);
+    transition:transform .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn-seal{background:var(--ink); color:var(--paper)}
+  .btn-seal:hover{box-shadow:0 8px 20px -8px rgba(28,26,21,.5)}
+  .btn-ghost{background:transparent; color:var(--ink)}
+  .stamp{
+    position:absolute; right:22px; bottom:18px; opacity:0; pointer-events:none;
+    border:3px double var(--moss); color:var(--moss); border-radius:10px; padding:8px 16px;
+    font-family:'Spline Sans Mono',monospace; font-size:14px; font-weight:600; letter-spacing:.18em;
+  }
+  body.sealed .stamp{animation:stampin .7s var(--spring) both}
+  .closing-after-seal{display:none}
+  body.sealed .closing-after-seal{display:flex; animation:rise .8s var(--ease) .9s both}
+
   /* ---------- ask bar (scoped) ---------- */
   .askwrap{
     position:fixed; bottom:0; left:var(--rail-w); right:0; padding:22px 32px 26px;
@@ -372,12 +431,46 @@
       <!-- chat begins, already scoped to this feature -->
       <div class="chat">
 
-        <section class="turn-brain rise" style="animation-delay:3.4s">
+        <section class="turn-brain rise" style="animation-delay:3.4s" id="opening-turn">
           <div class="speaker">brain · <span class="scope">lens: feature / digest pipeline</span></div>
-          <p class="q">I’m holding one thing open here: E1b hasn’t run, so the rewrite’s central
-            bet is still unproven at scale. Want me to line up what E0 needs before it can fire?
-            <span class="waiting" aria-label="the brain is waiting"><i></i><i></i><i></i></span></p>
-          <div class="cites">
+          <p class="brainline" style="margin-bottom:18px">
+            I’m holding one thing open here: E1b hasn’t run, so the rewrite’s central
+            bet is still unproven at scale. And one thing waits for your ink:
+          </p>
+
+          <!-- pending approval card — part of the Brain’s opening turn -->
+          <div class="seal-card rise" style="animation-delay:3.7s" id="card">
+            <span class="tag" id="cardTag">AWAITING YOUR STAMP</span>
+            <h2>Digest Pipeline &amp; Understanding Stage</h2>
+            <div class="vline">understanding <b>v3</b> <span class="arrow">→</span> <b>v4</b> · drafted from 4 verified moments · jul 4, 22:26–sat 20:11</div>
+            <div class="delta">
+              <div class="row add"><span class="op">+</span><span>Reading is now <b>two-phase deliberative</b> — draft pass holds provisional commits; retrospective revision corrects after the full session is known.</span></div>
+              <div class="row add"><span class="op">+</span><span>The <b>3-event overlap is removed</b> and its deduplication machinery with it; audit verdict: "worse than noise — negative value."</span></div>
+              <div class="row add"><span class="op">+</span><span><b>Fidelity is scored</b> — the digest grades its own faithfulness to the raw transcript; raw sessions archived to <code>.intent/</code> for re-check.</span></div>
+              <div class="row del"><span class="op">−</span><span>Pipeline reads once, linearly; overlap helps with context continuity across chunk boundaries.</span></div>
+            </div>
+            <div class="ev">
+              <button class="chip"><span class="dot" style="background:var(--moss)"></span>fidelity scoring · fri 23:23</button>
+              <button class="chip"><span class="dot" style="background:var(--vermilion)"></span>pivot · sat 01:14</button>
+              <button class="chip"><span class="dot" style="background:var(--vermilion)"></span>"worse than noise" · sat 15:45</button>
+              <button class="chip"><span class="dot" style="background:var(--moss)"></span>archive · 801849a</button>
+            </div>
+            <div class="actions">
+              <button class="btn btn-seal" onclick="seal()">Seal into memory</button>
+              <button class="btn btn-ghost">Pull the thread</button>
+            </div>
+            <div class="stamp">SEALED · v4</div>
+          </div>
+
+          <!-- quiet follow-on after seal -->
+          <section class="closing-after-seal" style="margin-top:16px; flex-direction:column; gap:10px">
+            <div class="speaker">brain · <span class="scope">lens: feature / digest pipeline</span></div>
+            <p class="brainline" style="font-style:italic; color:var(--ink-60)">Sealed. Want me to line up what E0 needs before it can fire?
+              <span class="waiting" aria-label="the brain is waiting"><i></i><i></i><i></i></span></p>
+          </section>
+
+          <!-- open question chips (before seal, replaced by follow-on after) -->
+          <div class="cites" id="pre-seal-chips" style="margin-top:14px">
             <span class="chip"><span class="dot" style="background:var(--cobalt)"></span>yes — what blocks E0?</span>
             <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>show the 1 a.m. pivot</span>
           </div>
@@ -440,6 +533,20 @@
       el.appendChild(t);
     });
   });
+  // Seal the pending approval — stamp springs in, card settles, pre-seal chips hide.
+  function seal(){
+    if(document.body.classList.contains('sealed')) return;
+    document.body.classList.add('sealed');
+    setTimeout(()=>{ document.getElementById('cardTag').textContent = 'SEALED INTO MEMORY'; }, 550);
+    // hide pre-seal suggestion chips
+    const chips = document.getElementById('pre-seal-chips');
+    if(chips){ chips.style.transition='opacity .45s'; chips.style.opacity='0'; setTimeout(()=>chips.style.display='none', 500); }
+    const main = document.querySelector('.main');
+    setTimeout(()=> main.scrollTo({top: main.scrollHeight, behavior:'smooth'}), 950);
+  }
+  if(new URLSearchParams(location.search).get('sealed')==='1'){
+    setTimeout(seal, 3800);
+  }
 </script>
 </body>
 </html>

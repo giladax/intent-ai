@@ -77,7 +77,7 @@ Heat is *visible but never a chart*:
 |---|---|
 | `01-the-feed.html` | Arrival: org-lens editorial overview (edition no. 9), trending stories with heat, briefs, ask-bar. Presses work here too. |
 | `02-press-and-unfold.html` | The hook mid-flight: the hottest story auto-presses (`?pressed=1` jumps straight there) — stream scrolls, overview materializes, the Brain asks and waits, ask-bar scoped. |
-| `03-feature-page.html` | Feature lens focused (rail fades around 01 FEATURE, real per-feature moment counts): the feature's top-level editorial page — story, state band, open question — then the seam, then the chat already begun below it. |
+| `03-feature-page.html` | Feature lens focused (rail fades around 01 FEATURE, real per-feature moment counts): the feature's top-level editorial page — story, state band, open question — then the seam, then the chat already begun below it. The Brain's seeded opening turn carries three things: top-level understanding (the editorial page above), recent insights, and the feature's pending approvals as inline actionable cards — stamp/discard without leaving the stream. |
 
 Rail additions over lens-chat: **00 ORG** (ink box — the feed is the org lens, "you are
 here") and the ghost box is now **+ ROLE LENS** (`exec · product · eng — soon`) — lenses

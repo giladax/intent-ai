@@ -13,8 +13,12 @@ const shots = [
     scrollTo: '.unfold .ask-turn', block: 'end' },
   // feature lens: top-level editorial page
   { file: '03-feature-page.html',             out: '03-feature-page.png',     settle: 6200 },
-  // feature page, scrolled to where the chat begins
+  // feature page, scrolled to where the chat begins (approval card visible)
   { file: '03-feature-page.html',             out: '03-feature-chat.png',     settle: 6200, scrollTo: '.chat' },
+  // feature page: scrolled to show the approval card in the Brain's opening turn
+  { file: '03-feature-page.html',             out: '03-feature-approval.png', settle: 6200, scrollTo: '.seal-card', block: 'center' },
+  // feature page: after sealing — stamp animation settled, closing line visible
+  { file: '03-feature-page.html?sealed=1',    out: '03-feature-sealed.png',   settle: 9000, scrollTo: '.seal-card', block: 'center' },
 ];
 
 const browser = await chromium.launch({ channel: 'chrome' });
