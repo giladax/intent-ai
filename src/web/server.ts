@@ -840,6 +840,30 @@ export async function startWebServer(port: number): Promise<void> {
     res.json({ dbAvailable, entries: joinArchive(files, sessions) });
   });
 
+  // ── Meta endpoint — repo name + current branch ─────────────────────────
+  // Lightweight; answers once per process (values cached in module scope).
+  // Fail-safe: returns empty strings on any error.
+
+  let _metaCache: { repo: string; branch: string } | null = null;
+  app.get("/api/meta", async (_req, res) => {
+    if (_metaCache) { res.json(_metaCache); return; }
+    try {
+      const { execSync } = await import("node:child_process");
+      const cwd = join(__dirname, "..", "..");
+      const branch = execSync("git branch --show-current", { cwd, encoding: "utf-8" }).trim();
+      let repo = "";
+      try {
+        const remote = execSync("git remote get-url origin", { cwd, encoding: "utf-8" }).trim();
+        const m = remote.match(/[:/]([^/]+)(?:\.git)?$/);
+        if (m) repo = m[1];
+      } catch { /* no remote */ }
+      _metaCache = { repo, branch };
+      res.json(_metaCache);
+    } catch {
+      res.json({ repo: "", branch: "" });
+    }
+  });
+
   // ── Feed endpoint ───────────────────────────────────────────────────────
   // Returns the LLM-composed editorial feed. Cached in feed_cache table.
   // Fail-safe: any DB/LLM error returns buildSkeletonFeed(), never 500.
@@ -1010,28 +1034,47 @@ export async function startWebServer(port: number): Promise<void> {
       const featureName = (feature?.name as string | undefined) ?? fid;
       const understanding = (feature?.current_understanding as string | null | undefined) ?? null;
 
-      // Recent approved observations (up to 3)
+      // Recent approved observations (up to 3) — via direct feature_id OR feature_sessions join
       let recentInsights: string[] = [];
       try {
         const obsRows = await sql`
-          SELECT summary FROM activity_events
-          WHERE feature_id = ${fid}
-            AND category LIKE ${"observation:%"}
-            AND review_status = 'approved'
-            AND timestamp >= NOW() - INTERVAL '7 days'
+          SELECT summary FROM (
+            SELECT ae.summary, ae.timestamp FROM activity_events ae
+            WHERE ae.feature_id = ${fid}
+              AND ae.category LIKE ${"observation:%"}
+              AND ae.review_status = 'approved'
+              AND ae.timestamp >= NOW() - INTERVAL '7 days'
+            UNION
+            SELECT ae.summary, ae.timestamp FROM activity_events ae
+            JOIN feature_sessions fs ON fs.session_id = ae.session_id
+            WHERE fs.feature_id = ${fid}
+              AND ae.feature_id IS NULL
+              AND ae.category LIKE ${"observation:%"}
+              AND ae.review_status = 'approved'
+              AND ae.timestamp >= NOW() - INTERVAL '7 days'
+          ) sub
           ORDER BY timestamp DESC
           LIMIT 3`;
         recentInsights = obsRows.map((r: any) => r.summary as string);
       } catch { /* fail-safe */ }
 
-      // Pending observations count
+      // Pending observations count — same dual-path attribution
       let pendingCount = 0;
       try {
         const [pendingRow] = await sql`
-          SELECT COUNT(*)::int AS count FROM activity_events
-          WHERE feature_id = ${fid}
-            AND review_status = 'pending'
-            AND category LIKE ${"observation:%"}`;
+          SELECT COUNT(*)::int AS count FROM (
+            SELECT ae.id FROM activity_events ae
+            WHERE ae.feature_id = ${fid}
+              AND ae.review_status = 'pending'
+              AND ae.category LIKE ${"observation:%"}
+            UNION
+            SELECT ae.id FROM activity_events ae
+            JOIN feature_sessions fs ON fs.session_id = ae.session_id
+            WHERE fs.feature_id = ${fid}
+              AND ae.feature_id IS NULL
+              AND ae.review_status = 'pending'
+              AND ae.category LIKE ${"observation:%"}
+          ) sub`;
         pendingCount = Number(pendingRow?.count) || 0;
       } catch { /* fail-safe */ }
 
