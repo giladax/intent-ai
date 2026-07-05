@@ -135,6 +135,16 @@ export const fetchProvenance = (id: string) =>
 export const fetchStatsOverview = (repoId?: string) =>
   json<StatsOverview>(repoId ? `/api/stats/overview?repoId=${repoId}` : "/api/stats/overview");
 
+// Lens arrival brief — the verdict sentence source
+export interface LensArrivalData {
+  pendingCount: number;
+  recentEvents: number;
+  activeDays: number;
+  totals: { sessions: number; events: number; moments: number };
+}
+
+export const fetchLensArrival = () => json<LensArrivalData>("/api/lens/arrival");
+
 // Digest — the intake and its press schedule (cron elapse settings)
 export interface DigestSchedule {
   enabled: boolean;

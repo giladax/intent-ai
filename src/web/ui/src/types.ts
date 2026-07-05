@@ -402,3 +402,11 @@ export interface Provenance {
   /** Reserved for digestion-v2 — always null today. */
   understandingDelta: null;
 }
+
+// ── Lens-chat arrival brief ──────────────────────────────────────────
+export interface LensArrivalData {
+  pendingCount: number;
+  recentEvents: number;
+  activeDays: number;
+  totals: { sessions: number; events: number; moments: number };
+}

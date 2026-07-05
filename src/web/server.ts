@@ -840,6 +840,52 @@ export async function startWebServer(port: number): Promise<void> {
     res.json({ dbAvailable, entries: joinArchive(files, sessions) });
   });
 
+  // ── Lens arrival brief ────────────────────────────────────────────────
+  // One cheap call: returns the verdict sentence + stats counts that the
+  // lens-chat surface uses for its arrival turn. Reuses the stats/observations
+  // queries already wired in this file. Fail-safe: a DB outage returns the
+  // empty-state shape — the UI shows "Quiet, and on course." and zero counts.
+
+  app.get("/api/lens/arrival", async (_req, res) => {
+    try {
+      const sql = getClient();
+      const [pendingRow] = await sql`
+        SELECT COUNT(*)::int AS count FROM activity_events
+        WHERE review_status = 'pending'
+          AND category LIKE ${OBSERVATION_CATEGORY_PREFIX + "%"}`;
+      const pendingCount = Number(pendingRow?.count) || 0;
+
+      // Recent cadence (7 days)
+      const [cadenceRow] = await sql`
+        SELECT COUNT(*)::int AS recent_events,
+               COUNT(DISTINCT to_char("timestamp", 'YYYY-MM-DD'))::int AS active_days
+        FROM activity_events
+        WHERE "timestamp" >= now() - interval '7 days'`;
+
+      const recentEvents = Number(cadenceRow?.recent_events) || 0;
+      const activeDays   = Number(cadenceRow?.active_days)   || 0;
+
+      // Session & moment totals
+      const [totals] = await sql`
+        SELECT (SELECT COUNT(*)::int FROM sessions) AS sessions,
+               (SELECT COUNT(*)::int FROM activity_events) AS events,
+               (SELECT COUNT(*)::int FROM moments) AS moments`;
+
+      res.json({
+        pendingCount,
+        recentEvents,
+        activeDays,
+        totals: {
+          sessions: Number(totals?.sessions) || 0,
+          events:   Number(totals?.events)   || 0,
+          moments:  Number(totals?.moments)  || 0,
+        },
+      });
+    } catch {
+      res.json({ pendingCount: 0, recentEvents: 0, activeDays: 0, totals: { sessions: 0, events: 0, moments: 0 } });
+    }
+  });
+
   // ── Stats overview — the altitude layer ───────────────────────────
   // One cheap, read-only aggregate that lets every page read at C-level:
   // event cadence (fortnight strip), per-session provenance quality
