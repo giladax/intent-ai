@@ -82,7 +82,7 @@ function Pulse({
       <button data-active={clause === "sessions"} onClick={() => toggle("sessions")}>
         {fig(pulse.sessionsDigested)} session{pulse.sessionsDigested === 1 ? "" : "s"} digested
       </button>
-      {", agents consulted the Brain "}
+      {", agents consulted Quire "}
       <button data-active={clause === "consults"} onClick={() => toggle("consults")}>
         {fig(pulse.consults)} time{pulse.consults === 1 ? "" : "s"}
       </button>
@@ -95,7 +95,7 @@ function Pulse({
           {")"}
         </span>
       )}
-      {"; the Brain noticed "}
+      {"; Quire noticed "}
       <button data-active={clause === "observations"} onClick={() => toggle("observations")}>
         {fig(pulse.observationsNoticed)} thing{pulse.observationsNoticed === 1 ? "" : "s"}
       </button>
@@ -541,7 +541,7 @@ export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, 
         {/* the river */}
         {filtered.length === 0 ? (
           <div className="j-empty j-rise" style={{ "--i": 4 } as React.CSSProperties}>
-            The river is quiet. Work a session with the Brain enabled,
+            Quiet so far. Work a session with Quire enabled,
             <br />
             and the Journal will narrate it here.
           </div>

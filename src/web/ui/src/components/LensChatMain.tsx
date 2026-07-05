@@ -195,12 +195,12 @@ export function LensChatMain({
         if (event.type === "text" && event.content) appendToLast(event.content);
         else if (event.type === "error") {
           console.error("[LensChatMain] stream event error:", event.content);
-          appendToLast("The Brain lost the thread — ask again.", true);
+          appendToLast("Quire lost the thread — ask again.", true);
         }
       }
     } catch (err) {
       console.error("[LensChatMain] stream error:", err);
-      appendToLast("The Brain lost the thread — ask again.", true);
+      appendToLast("Quire lost the thread — ask again.", true);
     } finally {
       setStreaming(false);
       inputRef.current?.focus({ preventScroll: true });
@@ -230,7 +230,7 @@ export function LensChatMain({
           <>
             <section className="lc-turn-brain lc-rise" aria-label="Feature opening">
               <div className="lc-speaker">
-                brain{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : ""}
+                Quire{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : ""}
               </div>
               {openingLoading ? (
                 <div className="fs-skel" aria-label="Loading understanding">
@@ -274,7 +274,7 @@ export function LensChatMain({
           ) : (
             <div key={i} className="lc-turn-brain">
               <div className="lc-speaker">
-                brain{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : " · just now"}
+                Quire{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : " · just now"}
               </div>
               <p className="lc-brainline">
                 {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
@@ -300,9 +300,9 @@ export function LensChatMain({
             placeholder={
               scopeLabel
                 ? `Ask within ${selectedFeatureName ?? selectedTimeRange ?? "this lens"}…`
-                : "Ask the brain anything — or expand a story…"
+                : "Ask Quire anything — or expand a story…"
             }
-            aria-label="Ask the brain"
+            aria-label="Ask Quire"
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") { e.preventDefault(); send(); }
@@ -388,7 +388,7 @@ function ApprovalCard({
       className="lc-turn-brain lc-rise"
       style={{ animationDelay: `${index * 0.15}s` }}
     >
-      <div className="lc-speaker">brain · <span className="lc-scope">pending stamp</span></div>
+      <div className="lc-speaker">Quire · <span className="lc-scope">pending stamp</span></div>
       <div className={`lc-seal-card${status !== "pending" ? " lc-seal-card--sealed" : ""}`}>
         <span className={`lc-seal-tag lc-seal-tag--${status}`}>
           {status === "pending" ? "AWAITS YOUR STAMP" : status === "approved" ? "APPROVED" : "REJECTED"}

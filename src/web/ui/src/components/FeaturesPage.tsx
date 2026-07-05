@@ -68,7 +68,7 @@ export function FeaturesPage({ repoId, onFeatureClick }: Props) {
     <div className="mx-auto max-w-2xl px-8 pb-24 pt-12">
       <header>
         <div className="ink-rise flex items-baseline justify-between" style={{ "--i": 0 } as React.CSSProperties}>
-          <span className="ink-kicker">The atlas — what the Brain holds</span>
+          <span className="ink-kicker">The atlas — what Quire holds</span>
           <button
             className="ink-stamp ink-stamp--quiet inline-flex items-center gap-1"
             onClick={() => setCreating((v) => !v)}
@@ -107,7 +107,7 @@ export function FeaturesPage({ repoId, onFeatureClick }: Props) {
           <p className="ink-deck">
             The atlas is empty. Create a feature to start
             <br />
-            mapping what the Brain understands.
+            mapping what Quire understands.
           </p>
         </div>
       ) : (

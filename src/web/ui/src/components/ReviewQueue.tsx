@@ -116,7 +116,7 @@ export function ReviewQueue({ repoId, onFeatureClick }: Props) {
     <div className="mx-auto max-w-2xl px-8 pb-24 pt-12">
       <header>
         <div className="ink-rise flex items-baseline justify-between" style={{ "--i": 0 } as React.CSSProperties}>
-          <span className="ink-kicker">The gate — what the Brain wants to learn</span>
+          <span className="ink-kicker">The gate — what Quire wants to learn</span>
           <button className="ink-stamp ink-stamp--quiet" onClick={load}>Refresh</button>
         </div>
         <h1 className="ink-masthead ink-rise mt-2" style={{ "--i": 1 } as React.CSSProperties}>Review</h1>
@@ -129,7 +129,7 @@ export function ReviewQueue({ repoId, onFeatureClick }: Props) {
               Approving teaches; whatever you approve is served to every agent that enters the feature.
             </>
           ) : (
-            <>The Brain is current — every observation has been judged. Come back after the next session.</>
+            <>Quire is current — every observation has been judged. Come back after the next session.</>
           )}
         </p>
       </header>

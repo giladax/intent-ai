@@ -1441,7 +1441,7 @@ export async function startWebServer(port: number): Promise<void> {
             sections.push(`### ${item?.label ?? "pinned item"}\n(unavailable: ${err instanceof Error ? err.message : String(err)})`);
           }
         }
-        systemPrompt = `You are the Brain — the organizational understanding engine for this repository. The user is reading the dashboard and has pinned specific elements of the page into this conversation. Treat the pinned material below as the working context; the conversation is *about* these things.
+        systemPrompt = `You are Quire — the organizational understanding engine for this repository. The user is reading the dashboard and has pinned specific elements of the page into this conversation. Treat the pinned material below as the working context; the conversation is *about* these things.
 
 ${sections.join("\n\n---\n\n")}
 
@@ -1516,12 +1516,12 @@ ${sessionContexts}
           ORDER BY timestamp DESC LIMIT 60`;
 
         if (recentEvents.length === 0) {
-          systemPrompt = `You are the Brain — the organizational understanding engine. The user is looking at the Timeline lens scoped to "${label}". There are no recorded events in this period. Let them know the journal is quiet for this window, and suggest broadening the range.`;
+          systemPrompt = `You are Quire — the organizational understanding engine. The user is looking at the Timeline lens scoped to "${label}". There are no recorded events in this period. Let them know the journal is quiet for this window, and suggest broadening the range.`;
         } else {
           const evSummary = recentEvents.map((e: any) =>
             `[${new Date(e.timestamp).toISOString()}] ${e.category} / ${e.actor}: ${e.summary}`
           ).join("\n");
-          systemPrompt = `You are the Brain — the organizational understanding engine. The user is looking at the Timeline lens scoped to "${label}". Here are the recorded events in this window:\n\n${evSummary}\n\n## Rules\n- Answer based on this event record.\n- Summarize patterns, pivots, and outcomes when asked.\n- Keep responses concise but grounded in the evidence above.`;
+          systemPrompt = `You are Quire — the organizational understanding engine. The user is looking at the Timeline lens scoped to "${label}". Here are the recorded events in this window:\n\n${evSummary}\n\n## Rules\n- Answer based on this event record.\n- Summarize patterns, pivots, and outcomes when asked.\n- Keep responses concise but grounded in the evidence above.`;
         }
       } else if (lensScope?.featureId && !featureId) {
         // Feature lens scope without an explicit featureId in the body — use lensScope
@@ -1545,7 +1545,7 @@ ${sessionContexts}
         }
 
         if (digests.length === 0) {
-          systemPrompt = `You are the Brain scoped to the feature "${featureName}". No session digests are available yet for this feature. The user may need to tag sessions to it first.`;
+          systemPrompt = `You are Quire scoped to the feature "${featureName}". No session digests are available yet for this feature. The user may need to tag sessions to it first.`;
         } else {
           const sessionContexts = digests.map((d, i) => {
             const prompt = buildSystemPrompt(d);
@@ -1553,7 +1553,7 @@ ${sessionContexts}
             return `### Session ${i + 1}\n${digestStart >= 0 ? prompt.slice(digestStart) : prompt}`;
           }).join("\n\n---\n\n");
 
-          systemPrompt = `You are the Brain scoped to the feature "${featureName}". You have access to ${digests.length} session digests for this feature.\n\n${sessionContexts}\n\n## Rules\n- Answer based on the evidence in the digests.\n- Quote the developer's actual words when available.\n- If asked about something not covered, say so.`;
+          systemPrompt = `You are Quire scoped to the feature "${featureName}". You have access to ${digests.length} session digests for this feature.\n\n${sessionContexts}\n\n## Rules\n- Answer based on the evidence in the digests.\n- Quote the developer's actual words when available.\n- If asked about something not covered, say so.`;
         }
       } else {
         systemPrompt = `You are an execution memory assistant for AI-assisted development sessions. The user hasn't selected a specific feature or session yet. Help them navigate — suggest they select a feature or session from the sidebar to start exploring.`;

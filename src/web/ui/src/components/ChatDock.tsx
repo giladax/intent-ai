@@ -74,10 +74,10 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
     try {
       for await (const event of streamChat(q, history, { contextItems })) {
         if (event.type === "text" && event.content) appendToLast(event.content);
-        else if (event.type === "error") appendToLast(`The Brain couldn't answer: ${event.content}`, true);
+        else if (event.type === "error") appendToLast(`Quire couldn't answer: ${event.content}`, true);
       }
     } catch (err) {
-      appendToLast(`The Brain couldn't answer: ${err instanceof Error ? err.message : String(err)}`, true);
+      appendToLast(`Quire couldn't answer: ${err instanceof Error ? err.message : String(err)}`, true);
     } finally {
       setStreaming(false);
       inputRef.current?.focus({ preventScroll: true });
@@ -91,7 +91,7 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
       {/* masthead */}
       <header className="chat-dock-head">
         <div>
-          <div className="ink-kicker">You &amp; the Brain, connecting the dots</div>
+          <div className="ink-kicker">You &amp; Quire, connecting the dots</div>
           <div className="chat-dock-title">The Correspondence</div>
         </div>
         <div className="flex items-center gap-1">
@@ -173,7 +173,7 @@ export function ChatDock({ liveState }: { liveState?: LiveState | null }) {
           placeholder={
             contextItems.length > 0
               ? `Ask about ${contextItems[0].label}${contextItems.length > 1 ? ` (+${contextItems.length - 1})` : ""}…`
-              : "Ask the Brain anything…"
+              : "Ask Quire anything…"
           }
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

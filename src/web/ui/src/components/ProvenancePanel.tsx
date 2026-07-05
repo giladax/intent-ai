@@ -264,7 +264,7 @@ export function ProvenanceDrawer({ eventId, open, onJump, onOpenSession }: Drawe
               {data.moments.length === 0 && (
                 <p className="prov-quiet">
                   This event is its own record — no digested chain stands behind it
-                  {data.kind === "consult" ? "; it was a live consult of the Brain" : ""}.
+                  {data.kind === "consult" ? "; it was a live consult of Quire" : ""}.
                 </p>
               )}
 
@@ -288,7 +288,7 @@ export function ProvenanceDrawer({ eventId, open, onJump, onOpenSession }: Drawe
                     data-tone="gold"
                     style={{ "--i": Math.min(++stagger, 14) } as React.CSSProperties}
                   >
-                    <span className="prov-link-label">the brain noticed</span>
+                    <span className="prov-link-label">Quire noticed</span>
                     {data.observations.slice(0, 5).map((o) => (
                       <p key={o.id} className="prov-obs">
                         {o.summary}
@@ -309,7 +309,7 @@ export function ProvenanceDrawer({ eventId, open, onJump, onOpenSession }: Drawe
                 >
                   <span className="prov-link-label">understanding delta</span>
                   <p className="prov-reserved-text">
-                    reserved — digestion v2 will record what this changed in the Brain.
+                    reserved — digestion v2 will record what this changed in Quire.
                   </p>
                 </div>
               </div>

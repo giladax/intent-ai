@@ -187,7 +187,7 @@ function AppShell() {
           <DropdownMenu>
             <DropdownMenuTrigger render={<button className="ink-mast-wordmark" title="Switch project" />}>
               <Feather className="size-3.5" style={{ color: "var(--j-ink-soft)" }} />
-              <span>{selectedProject?.name ?? "Brain"}</span>
+              <span>{selectedProject?.name ?? "Quire"}</span>
               <ChevronDown className="size-3 opacity-50" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
@@ -246,7 +246,7 @@ function AppShell() {
       </header>
 
       {/* Content area — the Correspondence slides in under the masthead,
-          so the masthead controls (intake, Ask the Brain) stay reachable.
+          so the masthead controls (intake, Ask Quire) stay reachable.
           overflow-clip (not hidden): the parked dock overflows to the right,
           and clip forbids the programmatic ancestor-scroll that focus() would
           otherwise trigger — which dragged the whole page sideways. min-h-0:
@@ -312,7 +312,7 @@ function AskBrainButton() {
   return (
     <button className="ink-ask" data-open={open} title="⌘J" onClick={toggleDock}>
       {open ? <X className="size-3" /> : <MessageSquare className="size-3" />}
-      {open ? "Close" : items.length > 0 ? `Correspondence · ${items.length}` : "Ask the Brain"}
+      {open ? "Close" : items.length > 0 ? `Correspondence · ${items.length}` : "Ask Quire"}
     </button>
   );
 }

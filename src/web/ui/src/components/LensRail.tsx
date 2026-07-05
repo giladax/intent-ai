@@ -68,7 +68,7 @@ export function LensRail({
     <nav className={`lc-rail${hasFocus ? " lc-rail--has-focus" : ""}`} aria-label="Lenses">
       {/* Wordmark */}
       <div className="lc-wordmark lc-rise" style={{ animationDelay: "0.05s" }}>
-        brain.<span className="lc-pulse" aria-hidden="true" />
+        Quire.<span className="lc-pulse" aria-hidden="true" />
         {unreadNotifCount > 0 && <span className="lc-notif-dot" aria-label={`${unreadNotifCount} unread notifications`} />}
       </div>
 
