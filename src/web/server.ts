@@ -909,6 +909,60 @@ export async function startWebServer(port: number): Promise<void> {
     }
   });
 
+  // ── Lens opening turn ─────────────────────────────────────────────────
+  // Returns the seeded first-turn text for a feature lens. Deterministic:
+  // top-level understanding + recent approved insights + pending count.
+  // Fail-safe: any DB error returns a minimal opening turn, never 500.
+
+  app.get("/api/lens/opening/:featureId", async (req, res) => {
+    try {
+      const { buildLensOpeningTurn } = await import("./lens-opening-composer.js");
+      const sql = getClient();
+      const fid = req.params.featureId;
+
+      // Feature name and understanding
+      const [feature] = await sql`SELECT name, current_understanding FROM features WHERE id = ${fid}`;
+      const featureName = (feature?.name as string | undefined) ?? fid;
+      const understanding = (feature?.current_understanding as string | null | undefined) ?? null;
+
+      // Recent approved observations (up to 3)
+      let recentInsights: string[] = [];
+      try {
+        const obsRows = await sql`
+          SELECT summary FROM activity_events
+          WHERE feature_id = ${fid}
+            AND category LIKE ${"observation:%"}
+            AND review_status = 'approved'
+            AND timestamp >= NOW() - INTERVAL '7 days'
+          ORDER BY timestamp DESC
+          LIMIT 3`;
+        recentInsights = obsRows.map((r: any) => r.summary as string);
+      } catch { /* fail-safe */ }
+
+      // Pending observations count
+      let pendingCount = 0;
+      try {
+        const [pendingRow] = await sql`
+          SELECT COUNT(*)::int AS count FROM activity_events
+          WHERE feature_id = ${fid}
+            AND review_status = 'pending'
+            AND category LIKE ${"observation:%"}`;
+        pendingCount = Number(pendingRow?.count) || 0;
+      } catch { /* fail-safe */ }
+
+      const turn = buildLensOpeningTurn({ featureName, understanding, recentInsights, pendingCount });
+      res.json({ turn, polished: false, citedSessionIds: [] });
+    } catch (_err) {
+      try {
+        const { buildLensOpeningTurn } = await import("./lens-opening-composer.js");
+        const turn = buildLensOpeningTurn({ featureName: req.params.featureId, understanding: null, recentInsights: [], pendingCount: 0 });
+        res.json({ turn, polished: false, citedSessionIds: [] });
+      } catch {
+        res.json({ turn: "No information available for this feature yet.", polished: false, citedSessionIds: [] });
+      }
+    }
+  });
+
   // ── Stats overview — the altitude layer ───────────────────────────
   // One cheap, read-only aggregate that lets every page read at C-level:
   // event cadence (fortnight strip), per-session provenance quality

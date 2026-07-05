@@ -164,6 +164,15 @@ export interface FeedComposed {
 export const fetchFeed = (refresh = false) =>
   json<FeedComposed>(`/api/feed${refresh ? "?refresh=1" : ""}`);
 
+// Lens opening turn — seeded first turn for any feature lens.
+export interface LensOpeningResult {
+  turn: string;
+  polished: boolean;
+  citedSessionIds: string[];
+}
+export const fetchLensOpening = (featureId: string) =>
+  json<LensOpeningResult>(`/api/lens/opening/${encodeURIComponent(featureId)}`);
+
 // Digest — the intake and its press schedule (cron elapse settings)
 export interface DigestSchedule {
   enabled: boolean;
