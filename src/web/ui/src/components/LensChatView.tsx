@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { LensRail, type LensType } from "./LensRail";
 import { LensChatMain } from "./LensChatMain";
-import { fetchLensArrival, fetchPendingObservations, approveObservation, rejectObservation } from "../api";
+import { fetchLensArrival, fetchPendingObservations, approveObservation, rejectObservation, fetchNotifications, type Notification } from "../api";
 import type { Feature, LensArrivalData, PendingObservation } from "../types";
 
 interface LensChatViewProps {
@@ -19,11 +19,28 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
   const [selectedTimeRange, setSelectedTimeRange] = useState<"today" | "week" | null>(null);
   const [arrivalData, setArrivalData] = useState<LensArrivalData | null>(null);
   const [pendingObs, setPendingObs] = useState<PendingObservation[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
     fetchLensArrival()
       .then(setArrivalData)
       .catch(() => {/* fail-safe: undefined arrival data shows empty state */});
+  }, []);
+
+  // Notification polling — on mount + every 30 seconds. Fail-safe: quiet.
+  useEffect(() => {
+    const poll = () => {
+      fetchNotifications()
+        .then((data) => {
+          setNotifications(data.notifications);
+          setUnreadNotifCount(data.unreadCount);
+        })
+        .catch(() => {/* fail-safe: no notifications */});
+    };
+    poll();
+    const timer = setInterval(poll, 30_000);
+    return () => clearInterval(timer);
   }, []);
 
   const refreshPending = useCallback(() => {
@@ -105,6 +122,8 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
         onLensFocus={handleLensFocus}
         onFeatureSelect={handleFeatureSelect}
         onTimeRangeSelect={handleTimeRangeSelect}
+        onOrgSelect={handleClearScope}
+        unreadNotifCount={unreadNotifCount}
       />
       <LensChatMain
         pendingCount={pendingCount}

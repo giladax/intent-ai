@@ -27,6 +27,10 @@ interface LensRailProps {
   onLensFocus: (lens: LensType) => void;
   onFeatureSelect: (featureId: string, featureName: string) => void;
   onTimeRangeSelect: (range: "today" | "week") => void;
+  /** Pressing 00 ORG returns to the org feed (clears any lens scope). */
+  onOrgSelect: () => void;
+  /** Unread notification count — shows the vermilion dot on the wordmark. */
+  unreadNotifCount: number;
 }
 
 export function LensRail({
@@ -39,6 +43,8 @@ export function LensRail({
   onLensFocus,
   onFeatureSelect,
   onTimeRangeSelect,
+  onOrgSelect,
+  unreadNotifCount,
 }: LensRailProps) {
   const hasFocus = focusedLens !== null;
 
@@ -63,10 +69,26 @@ export function LensRail({
       {/* Wordmark */}
       <div className="lc-wordmark lc-rise" style={{ animationDelay: "0.05s" }}>
         brain.<span className="lc-pulse" aria-hidden="true" />
+        {unreadNotifCount > 0 && <span className="lc-notif-dot" aria-label={`${unreadNotifCount} unread notifications`} />}
       </div>
 
       {/* Lens boxes */}
       <div className="lc-lenses">
+        {/* 00 ORG — the feed, "you are here" */}
+        <button
+          className="lc-lens lc-lens--org lc-rise"
+          style={{ animationDelay: "0.1s" }}
+          onClick={onOrgSelect}
+          aria-current={focusedLens === null ? "true" : undefined}
+        >
+          <span className="lc-num">00</span>
+          <span className="lc-mark">↗</span>
+          <span className="lc-label" style={{ marginTop: "auto" }}>Org</span>
+          <span className="lc-sub">
+            {focusedLens === null ? "the feed · you are here" : "back to the feed"}
+          </span>
+        </button>
+
         {/* 01 FEATURE */}
         <button
           className={`lc-lens lc-lens--feature lc-rise${focusedLens === "feature" ? " lc-lens--focused" : ""}`}
@@ -154,11 +176,11 @@ export function LensRail({
         <button
           className="lc-lens lc-lens--ghost lc-rise"
           style={{ animationDelay: "0.4s" }}
-          title="Lenses grow with your org — Sprint, Service, Customer…"
+          title="Lenses shaped by your seat in the company — coming"
           disabled
         >
-          <span className="lc-plus">+</span>
-          <span className="lc-glabel">LENS</span>
+          <span className="lc-glabel">+ ROLE LENS</span>
+          <span className="lc-gsub">exec · product · eng — soon</span>
         </button>
       </div>
 

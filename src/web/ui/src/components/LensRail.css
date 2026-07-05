@@ -103,6 +103,25 @@
 }
 
 /* Color variants */
+/* 00 ORG — the feed is the org lens, "you are here". Ink box, static
+   rotated mark (matches mockups/feed/01-the-feed.html .lens--org). */
+.lc-lens--org {
+  background: var(--lc-ink);
+  color: var(--lc-bone);
+}
+
+.lc-lens--org .lc-mark {
+  transform: rotate(90deg);
+}
+
+.lc-lens--org:hover .lc-mark {
+  transform: rotate(90deg);
+}
+
+.lc-lens--org .lc-sub {
+  color: rgba(245, 241, 232, 0.7);
+}
+
 .lc-lens--feature {
   background: var(--lc-cobalt);
   color: var(--lc-bone);
@@ -135,9 +154,16 @@
   color: var(--lc-ink-40);
   min-height: 64px;
   justify-content: center;
-  align-items: center;
-  flex-direction: row;
-  gap: 7px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 14px;
+}
+
+.lc-lens--ghost:hover {
+  border-color: var(--lc-ink-40);
+  color: var(--lc-ink-60);
+  transform: none;
 }
 
 .lc-plus {
@@ -146,8 +172,26 @@
 
 .lc-glabel {
   font-family: 'Spline Sans Mono', monospace;
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.1em;
+  font-weight: 500;
+}
+
+.lc-gsub {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+}
+
+/* Vermilion notification dot on the wordmark (badgepop entrance) */
+.lc-notif-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lc-vermilion);
+  animation: badgepop 0.5s var(--lc-spring) 0.8s both;
 }
 
 /* Focus state — dims non-focused lenses */
