@@ -142,19 +142,31 @@ const StorySonnetSchema = z.object({
 });
 
 export async function queryTrendingInputs(db: PostgresJsDatabase<Record<string, never>>, windowHours = 48): Promise<TrendingInput[]> {
+  // Events attach to features two ways: a direct feature_id on the event,
+  // or (the common path) via the session → feature_sessions mapping.
   const rows = await db.execute(drizzleSql`
     SELECT
-      ae.feature_id,
-      COALESCE(f.name, ae.feature_id) as feature_name,
+      sub.fid as feature_id,
+      COALESCE(f.name, sub.fid) as feature_name,
       json_agg(
-        json_build_object('timestamp', ae.timestamp, 'featureId', ae.feature_id)
-        ORDER BY ae.timestamp DESC
-      ) FILTER (WHERE ae.timestamp >= NOW() - (${windowHours} || ' hours')::interval) as events
-    FROM activity_events ae
-    LEFT JOIN features f ON f.id = ae.feature_id
-    WHERE ae.feature_id IS NOT NULL
-    GROUP BY ae.feature_id, f.name
-    HAVING COUNT(*) > 0
+        json_build_object('timestamp', sub.ts, 'featureId', sub.fid)
+        ORDER BY sub.ts DESC
+      ) as events
+    FROM (
+      SELECT ae.feature_id as fid, ae.timestamp as ts
+      FROM activity_events ae
+      WHERE ae.feature_id IS NOT NULL
+        AND ae.timestamp >= NOW() - make_interval(hours => ${windowHours})
+      UNION ALL
+      SELECT fs.feature_id::text as fid, ae.timestamp as ts
+      FROM activity_events ae
+      JOIN feature_sessions fs ON fs.session_id = ae.session_id
+      WHERE ae.feature_id IS NULL
+        AND ae.timestamp >= NOW() - make_interval(hours => ${windowHours})
+    ) sub
+    LEFT JOIN features f ON f.id::text = sub.fid
+    GROUP BY sub.fid, f.name
+    ORDER BY COUNT(*) DESC
     LIMIT 10
   `);
 
@@ -167,13 +179,63 @@ export async function queryTrendingInputs(db: PostgresJsDatabase<Record<string, 
     }));
 }
 
-export async function composeFeedEditorial(trendingItems: TrendingItem[], orgName: string): Promise<FeedComposed> {
+// ── Feature evidence — real event summaries fed to the composer ────────
+
+export interface FeatureEvidence {
+  summaries: string[];       // recent event summaries, newest first
+  sessionIds: string[];      // distinct session ids (provenance)
+  actorInitials: string[];   // derived contributor initials
+}
+
+/** Map raw actor strings to display initials. AI actors get the agent mark. */
+export function actorsToInitials(actors: string[]): string[] {
+  const out = new Set<string>();
+  for (const a of actors) {
+    const norm = a.toLowerCase();
+    if (norm === "developer" || norm === "collaborative") out.add("GK");
+    if (norm === "ai" || norm === "collaborative" || norm.startsWith("agent")) out.add("AI");
+  }
+  return [...out];
+}
+
+export async function queryFeatureEvidence(
+  db: PostgresJsDatabase<Record<string, never>>,
+  featureId: string,
+  windowHours = 48,
+  limit = 12,
+): Promise<FeatureEvidence> {
+  const rows = await db.execute(drizzleSql`
+    SELECT ae.summary, ae.actor, ae.session_id::text as session_id, ae.category
+    FROM activity_events ae
+    LEFT JOIN feature_sessions fs ON fs.session_id = ae.session_id
+    WHERE (ae.feature_id = ${featureId} OR fs.feature_id::text = ${featureId})
+      AND ae.timestamp >= NOW() - make_interval(hours => ${windowHours})
+    ORDER BY ae.timestamp DESC
+    LIMIT ${limit}
+  `);
+  const list = rows as unknown as Array<{ summary: string; actor: string; session_id: string | null; category: string }>;
+  const sessionIds = [...new Set(list.map((r) => r.session_id).filter((s): s is string => !!s))];
+  return {
+    summaries: list.map((r) => `[${r.category}] ${r.summary}`),
+    sessionIds,
+    actorInitials: actorsToInitials(list.map((r) => r.actor)),
+  };
+}
+
+export async function composeFeedEditorial(
+  trendingItems: TrendingItem[],
+  orgName: string,
+  evidenceByFeature?: Map<string, FeatureEvidence>,
+  editionNumber?: number,
+): Promise<FeedComposed> {
   const { callSonnet } = await import("../llm/client.js");
 
   const topItems = trendingItems.slice(0, 3);
-  const topSummary = topItems.map(item =>
-    `- ${item.featureName}: ${item.eventCount} events, heat=${item.heatScore.toFixed(1)}`
-  ).join("\n");
+  const topSummary = topItems.map(item => {
+    const ev = evidenceByFeature?.get(item.featureId);
+    const sample = ev?.summaries.slice(0, 4).map((s) => `    · ${s.slice(0, 180)}`).join("\n") ?? "";
+    return `- ${item.featureName}: ${item.eventCount} events, heat=${item.heatScore.toFixed(1)}${sample ? `\n${sample}` : ""}`;
+  }).join("\n");
 
   // Call 1: org lede
   let lede: FeedLede = { text: `${orgName} has active work across ${trendingItems.length} features.`, citedSessionIds: [] };
@@ -183,11 +245,11 @@ export async function composeFeedEditorial(trendingItems: TrendingItem[], orgNam
       `Generate a 1-paragraph editorial overview for a development team feed.
 
 Organization: ${orgName}
-Active features (by heat score):
+Active features (by heat, with recent recorded events as evidence):
 ${topSummary}
 Total active features: ${trendingItems.length}
 
-Generate a concise lede paragraph that tells the team what is moving and why it matters.
+Generate a concise lede paragraph that tells the team what actually moved and why it matters. Lead with the most significant real event from the evidence above. Every claim must trace to the evidence — never invent.
 Return JSON: { "text": "...", "citedSessionIds": [] }`,
       LedeSonnetSchema,
     );
@@ -199,13 +261,17 @@ Return JSON: { "text": "...", "citedSessionIds": [] }`,
   // Calls 2-3: top 2 stories (bottom 3 get deterministic dek)
   const stories: FeedStory[] = await Promise.all(
     trendingItems.slice(0, 5).map(async (item, idx) => {
+      const ev = evidenceByFeature?.get(item.featureId);
       let headline = item.featureName;
-      let dek = `${item.eventCount} events in the last 48 hours.`;
+      let dek = ev?.summaries[0]
+        ? `${ev.summaries[0].replace(/^\[[^\]]*\]\s*/, "").slice(0, 200)} ${item.eventCount} events in the last 48 hours.`
+        : `${item.eventCount} events in the last 48 hours.`;
       let openQuestion = "What comes next?";
-      let citedSessionIds: string[] = [];
+      let citedSessionIds: string[] = ev?.sessionIds.slice(0, 3) ?? [];
 
       if (idx < 2) {
         try {
+          const evidenceBlock = ev?.summaries.slice(0, 10).map((s) => `- ${s.slice(0, 220)}`).join("\n") ?? "(no recorded summaries)";
           const storyResult = await callSonnet(
             VOICE_SYSTEM_PROMPT,
             `Generate editorial copy for a trending feature story.
@@ -213,14 +279,17 @@ Return JSON: { "text": "...", "citedSessionIds": [] }`,
 Feature: ${item.featureName}
 Heat: ${item.heatLabel} (score: ${item.heatScore.toFixed(1)})
 Event count (48h): ${item.eventCount}
+Recent recorded events (newest first — this is your only evidence):
+${evidenceBlock}
 
+The headline carries the actual news from the evidence. The dek explains what happened and why it matters in 2-3 sentences. The openQuestion is the concrete unresolved thread.
 Return JSON: { "headline": "...", "dek": "...", "openQuestion": "...", "citedSessionIds": [] }`,
             StorySonnetSchema,
           );
           headline = storyResult.headline;
           dek = storyResult.dek;
           openQuestion = storyResult.openQuestion;
-          citedSessionIds = storyResult.citedSessionIds;
+          if (storyResult.citedSessionIds.length > 0) citedSessionIds = storyResult.citedSessionIds;
         } catch (_e) {
           // fail-safe: use defaults
         }
@@ -236,13 +305,14 @@ Return JSON: { "headline": "...", "dek": "...", "openQuestion": "...", "citedSes
         dek,
         openQuestion,
         citedSessionIds,
-        actorInitials: [],
+        actorInitials: ev?.actorInitials ?? [],
       };
     })
   );
 
   return {
-    editionNumber: Math.floor(Date.now() / (1000 * 60 * 60 * 24)), // day-based edition number
+    // Default: days since the epoch of the product (fallback when no count given)
+    editionNumber: editionNumber ?? 1,
     composedAt: new Date().toISOString(),
     lede,
     trending: stories,
@@ -285,26 +355,36 @@ export async function setCachedFeed(db: PostgresJsDatabase<Record<string, never>
 }
 
 export async function getFeedOrCompose(db: PostgresJsDatabase<Record<string, never>>, forceRefresh = false): Promise<FeedComposed> {
-  if (!forceRefresh) {
-    const { feed, eventCount } = await getCachedFeed(db);
-    if (feed) return feed;
+  const { feed, eventCount } = await getCachedFeed(db);
+  if (feed && !forceRefresh) return feed;
 
-    // Need to compose
-    const inputs = await queryTrendingInputs(db);
-    const now = new Date();
-    const ranked = rankTrending(inputs, now);
-    const composed = await composeFeedEditorial(ranked, "Quire");
-    await setCachedFeed(db, composed, eventCount);
-    return composed;
-  }
-
-  // Force refresh: clear cache and recompose
-  const currentCountResult = await db.execute(drizzleSql`SELECT COUNT(*)::integer as cnt FROM activity_events`);
-  const eventCount = Number((currentCountResult as unknown as Array<{cnt: number}>)[0]?.cnt ?? 0);
+  // Compose: rank trending, gather real evidence for the top items, then
+  // write the editorial copy (≤3 Sonnet calls: 1 lede + top 2 stories).
   const inputs = await queryTrendingInputs(db);
   const now = new Date();
   const ranked = rankTrending(inputs, now);
-  const composed = await composeFeedEditorial(ranked, "Quire");
+
+  const evidenceByFeature = new Map<string, FeatureEvidence>();
+  await Promise.all(
+    ranked.map(async (item) => {
+      try {
+        evidenceByFeature.set(item.featureId, await queryFeatureEvidence(db, item.featureId));
+      } catch {
+        /* evidence is optional — composition degrades gracefully */
+      }
+    }),
+  );
+
+  // Edition number = how many sessions have been digested (the mockup's "UPDATE 9").
+  let editionNumber = 1;
+  try {
+    const sessRows = await db.execute(drizzleSql`SELECT COUNT(*)::integer as cnt FROM sessions`);
+    editionNumber = Math.max(1, Number((sessRows as unknown as Array<{ cnt: number }>)[0]?.cnt ?? 1));
+  } catch {
+    /* fall back to 1 */
+  }
+
+  const composed = await composeFeedEditorial(ranked, "Quire", evidenceByFeature, editionNumber);
   await setCachedFeed(db, composed, eventCount);
   return composed;
 }

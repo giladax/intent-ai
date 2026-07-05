@@ -849,9 +849,10 @@ export async function startWebServer(port: number): Promise<void> {
     try {
       const forceRefresh = req.query["refresh"] === "1";
       const { getFeedOrCompose } = await import("./feed-composer.js");
-      const sql = getClient();
+      const { getDb } = await import("../storage/connection.js");
+      const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const feed = await getFeedOrCompose(sql as unknown as any, forceRefresh);
+      const feed = await getFeedOrCompose(db as unknown as any, forceRefresh);
       res.json(feed);
     } catch (_err) {
       try {
@@ -954,14 +955,20 @@ export async function startWebServer(port: number): Promise<void> {
       // Signal 2: area activity since lastSeen
       if (lastSeen) {
         try {
+          // Events attach to features directly (feature_id) or via the
+          // session → feature_sessions mapping (the common path).
           const activity = await sql`
-            SELECT ae.feature_id, f.name AS feature_name, COUNT(*)::int AS cnt,
-                   MAX(ae.timestamp)::text AS last_ts
-            FROM activity_events ae
-            LEFT JOIN features f ON f.id::text = ae.feature_id
-            WHERE ae.timestamp > ${lastSeen}
-              AND ae.feature_id IS NOT NULL
-            GROUP BY ae.feature_id, f.name
+            SELECT sub.fid AS feature_id, f.name AS feature_name, COUNT(*)::int AS cnt,
+                   MAX(sub.ts)::text AS last_ts
+            FROM (
+              SELECT COALESCE(ae.feature_id, fs.feature_id::text) AS fid, ae.timestamp AS ts
+              FROM activity_events ae
+              LEFT JOIN feature_sessions fs ON fs.session_id = ae.session_id
+              WHERE ae.timestamp > ${lastSeen}
+            ) sub
+            JOIN features f ON f.id::text = sub.fid
+            WHERE sub.fid IS NOT NULL
+            GROUP BY sub.fid, f.name
             HAVING COUNT(*) > 0
             ORDER BY cnt DESC
             LIMIT 5`;
