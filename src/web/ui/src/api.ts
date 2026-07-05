@@ -13,7 +13,10 @@ import type {
   JournalParams,
   StatsOverview,
   Provenance,
+  LensArrivalData,
 } from "./types";
+
+export type { LensArrivalData };
 
 const BASE = "";
 
@@ -134,14 +137,6 @@ export const fetchProvenance = (id: string) =>
 // Fail-safe by contract: the server answers the empty shape rather than 500.
 export const fetchStatsOverview = (repoId?: string) =>
   json<StatsOverview>(repoId ? `/api/stats/overview?repoId=${repoId}` : "/api/stats/overview");
-
-// Lens arrival brief — the verdict sentence source
-export interface LensArrivalData {
-  pendingCount: number;
-  recentEvents: number;
-  activeDays: number;
-  totals: { sessions: number; events: number; moments: number };
-}
 
 export const fetchLensArrival = () => json<LensArrivalData>("/api/lens/arrival");
 

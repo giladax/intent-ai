@@ -102,17 +102,8 @@ export function LensChatMain({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [arrivalDissolved, setArrivalDissolved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
-
-  // When a lens is focused for the first time, dissolve the arrival turn.
-  useEffect(() => {
-    if (focusedLens !== null && !arrivalDissolved) {
-      const t = setTimeout(() => setArrivalDissolved(true), 420);
-      return () => clearTimeout(t);
-    }
-  }, [focusedLens, arrivalDissolved]);
 
   // Scroll to bottom after new messages
   useEffect(() => {
@@ -121,12 +112,31 @@ export function LensChatMain({
     }
   }, [messages]);
 
+  // Arrival dissolved = lens is focused AND conversation has started.
+  // Clearing scope (focusedLens → null) brings the arrival brief back.
+  // Focusing a lens with no messages keeps arrival visible (dissolve-pending).
+  const arrivalDissolved = focusedLens !== null && messages.length > 0;
+
+  const now = new Date();
+  const metaDate = now.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).toLowerCase().replace(",", "");
+  // → "sat jul 5" (locale-formatted, lowercase)
+
   const verdictText = buildArrivalBrief(null, pendingCount);
 
   const scopeLabel = focusedLens === "feature" && selectedFeatureName
     ? `◉ ${selectedFeatureName.toUpperCase()}`
     : focusedLens === "timeline" && selectedTimeRange
     ? `◉ ${selectedTimeRange === "today" ? "TODAY" : "THIS WEEK"}`
+    : null;
+
+  const speakerScope = focusedLens === "feature" && selectedFeatureName
+    ? `lens: feature / ${selectedFeatureName.toUpperCase()}`
+    : focusedLens === "timeline" && selectedTimeRange
+    ? `lens: timeline / ${selectedTimeRange === "today" ? "TODAY" : "THIS WEEK"}`
     : null;
 
   const lensScope = buildLensScopeContext(
@@ -161,10 +171,14 @@ export function LensChatMain({
         },
       })) {
         if (event.type === "text" && event.content) appendToLast(event.content);
-        else if (event.type === "error") appendToLast(`The Brain couldn't answer: ${event.content}`, true);
+        else if (event.type === "error") {
+          console.error("[LensChatMain] stream event error:", event.content);
+          appendToLast("The Brain lost the thread — ask again.", true);
+        }
       }
     } catch (err) {
-      appendToLast(`The Brain couldn't answer: ${err instanceof Error ? err.message : String(err)}`, true);
+      console.error("[LensChatMain] stream error:", err);
+      appendToLast("The Brain lost the thread — ask again.", true);
     } finally {
       setStreaming(false);
       inputRef.current?.focus({ preventScroll: true });
@@ -177,7 +191,7 @@ export function LensChatMain({
   return (
     <main className="lc-main" ref={chatRef}>
       <div className="lc-meta-top lc-rise" style={{ animationDelay: "0.6s" }}>
-        intent-ai · feat/repo-brain
+        intent-ai · feat/repo-brain · {metaDate}
       </div>
 
       <div className="lc-chat">
@@ -252,7 +266,7 @@ export function LensChatMain({
           ) : (
             <div key={i} className="lc-turn-brain">
               <div className="lc-speaker">
-                brain{focusedLens && scopeLabel ? <> · <span className="lc-scope">{scopeLabel}</span></> : " · now"}
+                brain{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : " · just now"}
               </div>
               <p className="lc-brainline">
                 {m.content || (streaming && i === messages.length - 1 ? "…" : "")}

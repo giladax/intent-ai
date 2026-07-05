@@ -101,3 +101,29 @@ Note: `05-approval-pending.png` / `05b-approval-sealed.png` skipped (no pending 
 - **Font loading**: Hanken Grotesk + Spline Sans Mono load from Google Fonts (`<link>` in `index.html`). In Playwright headless they loaded correctly. In offline environments the system will fall back to sans-serif/monospace.
 - **Arrival dissolution timing**: When a lens is clicked, the arrival turn animates out (lc-dissolve) after 420ms delay. If the user clicks very fast, a brief flash of dissolved+new state is possible. Acceptable for v1.
 - **Mobile layout**: `--lc-rail-w: 172px` is fixed; no responsive breakpoint for small screens. Out of scope for v1 (desktop-first).
+
+---
+
+## Review Pass — 2026-07-05
+
+**Commit:** (see below after commit)
+**Tests:** 667 pass (+7 new: lens-label-clamp.test.ts)
+
+### Findings Fixed
+
+| # | Finding | Fix |
+|---|---------|-----|
+| IMPORTANT-1 | Arrival never re-shows after scope clear | `arrivalDissolved` derived from `focusedLens !== null && messages.length > 0`; `useState`+`useEffect` removed |
+| 2 | `lensScope.timeRange.label` unvalidated in LLM prompt | `sanitizeLensLabel()` in `lens-chat-utils.ts`; dynamic-imported in `server.ts` timeline branch |
+| 3 | Meta-top missing date | Live `toLocaleDateString` date appended: "intent-ai · feat/repo-brain · sat jul 5" |
+| 4 | Speaker line wrong format | `speakerScope` derived → "brain · LENS: FEATURE / <NAME>" format per DESIGN.md |
+| 5 | Reduced-motion gaps | `.lc-brand-dot`, `.lc-pulse`, `.lc-stamp`, `.lc-needs`, `[class*=lc-ripple]` added to `prefers-reduced-motion` block |
+| 6 | Duplicate `LensArrivalData` | Inline interface removed from `api.ts`; imported from `types.ts` + re-exported |
+| 7 | Raw error messages shown to user | Catch block maps to "The Brain lost the thread — ask again." + `console.error` |
+
+### Arrival Re-show Verification
+
+- Server: port 3466
+- Action: focus Feature lens → ask nothing → clear scope (toggle lens off)
+- Result: `.lc-verdict` visible — PASS
+- Screenshot: `.superpowers/sdd/shots-lens-chat-impl/05-arrival-reshow.png`

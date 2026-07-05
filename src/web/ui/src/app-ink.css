@@ -1025,4 +1025,29 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* Continuous / physics animations — collapse to settled state */
+  .lc-brand-dot,
+  .lc-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: scale(1) !important;
+  }
+
+  .lc-stamp {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: rotate(-8deg) scale(1) !important;
+  }
+
+  .lc-needs {
+    animation: none !important;
+    box-shadow: 0 0 0 3px rgba(180, 104, 30, 0.35) !important;
+  }
+
+  /* lc-ripple: not yet applied to a class but future-proof */
+  [class*="lc-ripple"] {
+    animation: none !important;
+    box-shadow: none !important;
+  }
 }

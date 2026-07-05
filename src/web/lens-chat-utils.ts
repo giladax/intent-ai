@@ -46,6 +46,21 @@ export function buildLensScopeContext(
   return { featureId: null, timeRange: null };
 }
 
+const LABEL_ALLOWLIST = new Set(["today", "this week"]);
+const MAX_LABEL_LEN = 32;
+
+/**
+ * Server-side guard: allowlist known labels, else strip to safe chars + clamp.
+ * Never throws; always returns a string safe for LLM system prompt inclusion.
+ */
+export function sanitizeLensLabel(raw: string | null | undefined): string {
+  if (!raw) return "selected period";
+  const lower = raw.toLowerCase().trim();
+  if (LABEL_ALLOWLIST.has(lower)) return lower;
+  // Strip to alphanumeric + space + hyphen, clamp to 32 chars.
+  return raw.replace(/[^a-z0-9 \-]/gi, "").slice(0, MAX_LABEL_LEN).trim() || "selected period";
+}
+
 /** Derive the one-line arrival verdict from pending count + optional cadence hint. */
 export function buildArrivalBrief(
   _stats: null | { streak: number; totalEvents: number },

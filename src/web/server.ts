@@ -1352,7 +1352,8 @@ ${sessionContexts}
         const sql = getClient();
         const since = lensScope.timeRange.since;
         const until = lensScope.timeRange.until;
-        const label = lensScope.timeRange.label ?? "selected period";
+        const { sanitizeLensLabel } = await import("./lens-chat-utils.js");
+        const label = sanitizeLensLabel(lensScope.timeRange.label);
 
         const recentEvents = await sql`
           SELECT category, summary, actor, timestamp FROM activity_events
