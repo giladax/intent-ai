@@ -1,0 +1,154 @@
+/* ── FeedStream — the editorial org overview + press-and-unfold flow.
+   Ported from mockups/feed/01-the-feed.html / 02-press-and-unfold.html.
+   Base feed-* component classes (now-edge, edition, story, heat, avatars)
+   live in app-ink.css; this file holds the stream container + the unfold
+   grammar (stem, staggered blur-rise via transitions on the .in class). */
+
+.feed-stream {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* headline — word-by-word entrance (mirrors .w in the mockup) */
+.fs-word {
+  display: inline-block;
+  animation: lc-word 0.55s var(--lc-ease) both;
+}
+
+/* pressed story accents — flat colored shadow commits the press */
+.feed-story.pressed { background: #F3EBD6; cursor: default; }
+.feed-story.pressed:hover { transform: none; }
+.feed-story.pressed .press { color: var(--lc-moss); }
+.feed-story[data-accent="vermilion"].pressed { box-shadow: 4px 4px 0 0 var(--lc-vermilion); }
+.feed-story[data-accent="marigold"].pressed { box-shadow: 4px 4px 0 0 var(--lc-marigold); }
+.feed-story[data-accent="cobalt"].pressed { box-shadow: 4px 4px 0 0 var(--lc-cobalt); }
+.feed-story .press .ar { display: inline-block; transition: transform 0.3s var(--lc-ease); }
+.feed-story:hover .press .ar { transform: translateY(2px); }
+
+/* ---- the flow: presses extend the stream here ---- */
+.fs-flow { display: flex; flex-direction: column; }
+
+.fs-unfold { scroll-margin-top: 56px; padding-top: 8px; }
+.fs-unfold .fs-stem {
+  width: 2px;
+  height: 0;
+  margin: 6px 0 18px 21px;
+  border-radius: 2px;
+  transition: height 0.7s var(--lc-ease);
+}
+.fs-unfold.in .fs-stem { height: 44px; }
+.fs-unfold[data-accent="vermilion"] .fs-stem { background: var(--lc-vermilion); }
+.fs-unfold[data-accent="marigold"] .fs-stem { background: var(--lc-marigold); }
+.fs-unfold[data-accent="cobalt"] .fs-stem { background: var(--lc-cobalt); }
+
+/* staggered blur-rise: content is present in the DOM, transitions reveal it
+   when .in lands (double-rAF after mount). No animation-fill-mode traps. */
+.fs-u {
+  opacity: 0;
+  transform: translateY(18px);
+  filter: blur(10px);
+  transition: opacity 0.8s var(--lc-ease), transform 0.8s var(--lc-ease), filter 0.8s var(--lc-ease);
+}
+.fs-unfold.in .fs-u { opacity: 1; transform: translateY(0); filter: blur(0); }
+.fs-unfold.in .fs-u1 { transition-delay: 0.25s; }
+.fs-unfold.in .fs-u2 { transition-delay: 0.45s; }
+.fs-unfold.in .fs-u3 { transition-delay: 0.7s; }
+.fs-unfold.in .fs-u4 { transition-delay: 0.95s; }
+.fs-unfold.in .fs-u5 { transition-delay: 1.5s; }
+.fs-unfold.in .fs-u6 { transition-delay: 1.75s; }
+.fs-unfold.in .fs-u7 { transition-delay: 2s; }
+
+.fs-speaker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--lc-ink-40);
+  text-transform: uppercase;
+}
+.fs-speaker::before { content: ''; width: 7px; height: 7px; border-radius: 2px; background: var(--lc-moss); }
+.fs-speaker .fs-scope { font-weight: 600; }
+.fs-unfold[data-accent="vermilion"] .fs-scope { color: var(--lc-vermilion); }
+.fs-unfold[data-accent="marigold"] .fs-scope { color: #B57B14; }
+.fs-unfold[data-accent="cobalt"] .fs-scope { color: var(--lc-cobalt); }
+
+.fs-unfold h3 {
+  font-weight: 800;
+  font-size: clamp(24px, 2.8vw, 32px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  max-width: 24ch;
+}
+.fs-unfold .fs-body { font-size: 16px; line-height: 1.68; max-width: 58ch; margin-bottom: 16px; }
+.fs-unfold .fs-body .dim { color: var(--lc-ink-60); }
+
+.fs-cites { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 26px; }
+.fs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--lc-ink-25);
+  border-radius: 99px;
+  padding: 5px 11px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--lc-ink-60);
+  text-decoration: none;
+  transition: background 0.3s var(--lc-ease), color 0.3s var(--lc-ease), border-color 0.3s var(--lc-ease);
+}
+.fs-chip .fs-dot { width: 6px; height: 6px; border-radius: 50%; }
+.fs-chip:hover { background: var(--lc-ink); color: var(--lc-paper); border-color: var(--lc-ink); }
+
+/* the ask turn — the question, then waiting */
+.fs-ask-turn { border-left: 2px solid var(--lc-ink-12); padding-left: 18px; margin: 4px 0 30px; scroll-margin-bottom: 128px; }
+.fs-ask-turn .fs-q { font-weight: 700; font-size: 17px; line-height: 1.5; max-width: 48ch; margin-bottom: 12px; }
+.fs-waiting { display: inline-flex; align-items: center; gap: 5px; margin-left: 2px; vertical-align: baseline; }
+.fs-waiting i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--lc-ink-40);
+  animation: waitdot 1.8s ease-in-out infinite;
+}
+.fs-waiting i:nth-child(2) { animation-delay: 0.25s; }
+.fs-waiting i:nth-child(3) { animation-delay: 0.5s; }
+
+.fs-openline {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--lc-ink-25);
+  text-transform: uppercase;
+  margin-bottom: 38px;
+}
+
+/* skeleton loading state — pulsing bars */
+@keyframes fs-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.7; } }
+.fs-skel { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
+.fs-skel span {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--lc-ink-12);
+  animation: fs-pulse 1.6s ease-in-out infinite;
+}
+.fs-skel span:nth-child(1) { width: 72%; }
+.fs-skel span:nth-child(2) { width: 54%; animation-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-word { animation: none; }
+  .fs-u { transition: none; opacity: 1; transform: none; filter: none; }
+  .fs-unfold .fs-stem { transition: none; }
+  .fs-unfold.in .fs-stem { height: 44px; }
+  .fs-waiting i { animation: none; opacity: 0.5; }
+  .fs-skel span { animation: none; }
+}

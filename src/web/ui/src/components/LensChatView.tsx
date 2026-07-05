@@ -4,7 +4,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { LensRail, type LensType } from "./LensRail";
 import { LensChatMain } from "./LensChatMain";
-import { fetchLensArrival, fetchPendingObservations, approveObservation, rejectObservation, fetchNotifications, type Notification } from "../api";
+import { fetchLensArrival, fetchPendingObservations, approveObservation, rejectObservation, fetchNotifications, fetchFeed, type Notification, type FeedComposed } from "../api";
+import type { PressedStory } from "./FeedStream";
 import type { Feature, LensArrivalData, PendingObservation } from "../types";
 
 interface LensChatViewProps {
@@ -21,11 +22,22 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
   const [pendingObs, setPendingObs] = useState<PendingObservation[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [feed, setFeed] = useState<FeedComposed | null>(null);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [pressedStories, setPressedStories] = useState<PressedStory[]>([]);
 
   useEffect(() => {
     fetchLensArrival()
       .then(setArrivalData)
       .catch(() => {/* fail-safe: undefined arrival data shows empty state */});
+  }, []);
+
+  // The composed feed — fail-safe: null keeps the skeleton visible.
+  useEffect(() => {
+    fetchFeed()
+      .then(setFeed)
+      .catch(() => setFeed(null))
+      .finally(() => setFeedLoading(false));
   }, []);
 
   // Notification polling — on mount + every 30 seconds. Fail-safe: quiet.
@@ -63,6 +75,8 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
   }
 
   function handleFeatureSelect(featureId: string, featureName: string) {
+    // Rail-driven selection leaves feed mode — the feature page takes over.
+    setPressedStories([]);
     setSelectedFeatureId(featureId);
     setSelectedFeatureName(featureName);
   }
@@ -76,6 +90,18 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
     setSelectedFeatureId(null);
     setSelectedFeatureName(null);
     setSelectedTimeRange(null);
+    setPressedStories([]);
+  }
+
+  // A story press IS the feature lens selection — the stream stays and the
+  // unfold appends in-stream; the seeded opening follows below.
+  function handleStoryPress(featureId: string, featureName: string) {
+    setPressedStories((prev) =>
+      prev.some((p) => p.featureId === featureId) ? prev : [...prev, { featureId, featureName }],
+    );
+    setFocusedLens("feature");
+    setSelectedFeatureId(featureId);
+    setSelectedFeatureName(featureName);
   }
 
   async function handleApprove(id: string) {
@@ -136,6 +162,10 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
         pendingObservations={pendingObsForChat}
         onApprove={handleApprove}
         onReject={handleReject}
+        feed={feed}
+        feedLoading={feedLoading}
+        pressedStories={pressedStories}
+        onStoryPress={handleStoryPress}
       />
     </div>
   );

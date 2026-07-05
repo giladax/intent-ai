@@ -9,9 +9,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import "./LensChatMain.css";
-import { streamChat } from "../api";
+import { streamChat, type FeedComposed } from "../api";
 import type { ChatMessage } from "../types";
 import type { LensType } from "./LensRail";
+import { FeedStream, type PressedStory } from "./FeedStream";
 
 // ── Inlined pure utilities (mirrors src/web/lens-chat-utils.ts) ───────
 
@@ -59,16 +60,6 @@ function buildLensScopeContext(
   return { featureId: null, timeRange: null };
 }
 
-function buildArrivalBrief(
-  _stats: null | { streak: number; totalEvents: number },
-  pendingCount: number,
-): string {
-  if (pendingCount > 0) {
-    return `On course — ${pendingCount} thing${pendingCount === 1 ? "" : "s"} waiting for your stamp.`;
-  }
-  return "Quiet, and on course.";
-}
-
 // ── Component ─────────────────────────────────────────────────────────
 
 interface LensChatMainProps {
@@ -85,6 +76,14 @@ interface LensChatMainProps {
   pendingObservations: Array<{ id: string; summary: string; featureName: string | null; category: string }>;
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
+  /** The composed editorial feed — shown when the org lens is active. */
+  feed: FeedComposed | null;
+  feedLoading: boolean;
+  /** Stories pressed open in the feed (press-and-unfold stack). */
+  pressedStories: PressedStory[];
+  onStoryPress: (featureId: string, featureName: string) => void;
+  /** Notification card slot — rendered at the top of the feed stream. */
+  notifSlot?: React.ReactNode;
 }
 
 export function LensChatMain({
@@ -98,6 +97,11 @@ export function LensChatMain({
   pendingObservations,
   onApprove,
   onReject,
+  feed,
+  feedLoading,
+  pressedStories,
+  onStoryPress,
+  notifSlot,
 }: LensChatMainProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -112,10 +116,10 @@ export function LensChatMain({
     }
   }, [messages]);
 
-  // Arrival dissolved = lens is focused AND conversation has started.
-  // Clearing scope (focusedLens → null) brings the arrival brief back.
-  // Focusing a lens with no messages keeps arrival visible (dissolve-pending).
-  const arrivalDissolved = focusedLens !== null && messages.length > 0;
+  // Feed mode: the org lens is active, OR a story press opened the feature
+  // lens from within the feed (the stream stays — presses extend it).
+  // Rail-driven lens selection leaves feed mode (feature page instead).
+  const feedMode = focusedLens === null || pressedStories.length > 0;
 
   const now = new Date();
   const metaDate = now.toLocaleDateString("en-US", {
@@ -124,8 +128,6 @@ export function LensChatMain({
     day: "numeric",
   }).toLowerCase().replace(",", "");
   // → "sat jul 5" (locale-formatted, lowercase)
-
-  const verdictText = buildArrivalBrief(null, pendingCount);
 
   const scopeLabel = focusedLens === "feature" && selectedFeatureName
     ? `◉ ${selectedFeatureName.toUpperCase()}`
@@ -185,9 +187,6 @@ export function LensChatMain({
     }
   };
 
-  // Verdict words animate one-by-one
-  const verdictWords = verdictText.split(" ");
-
   return (
     <main className="lc-main" ref={chatRef}>
       <div className="lc-meta-top lc-rise" style={{ animationDelay: "0.6s" }}>
@@ -195,56 +194,16 @@ export function LensChatMain({
       </div>
 
       <div className="lc-chat">
-        {/* Arrival turn */}
-        {!arrivalDissolved && (
-          <section
-            className={`lc-turn-brain${focusedLens ? " lc-dissolve" : ""}`}
-            aria-label="Arrival brief"
-          >
-            <div className="lc-speaker lc-rise" style={{ animationDelay: "0.7s" }}>
-              brain · just now
-            </div>
-            <h1 className="lc-verdict" aria-label={verdictText}>
-              {verdictWords.map((word, i) => (
-                <span key={i}>
-                  <span
-                    className="lc-word"
-                    style={{ animationDelay: `${0.95 + i * 0.24}s` }}
-                  >
-                    {word}
-                  </span>
-                  {i < verdictWords.length - 1 ? " " : ""}
-                </span>
-              ))}
-            </h1>
-            <p className="lc-brainline lc-rise" style={{ animationDelay: "2.15s" }}>
-              {arrivalTotals.sessions} sessions digested, {arrivalTotals.events} events recorded.
-              {pendingCount > 0 && (
-                <>
-                  {" "}<span className="lc-dim">One thing waits:</span>{" "}
-                  <span className="lc-handle lc-handle--amber">
-                    {pendingCount} understanding delta{pendingCount === 1 ? "" : "s"} await{pendingCount === 1 ? "s" : ""} your stamp.
-                  </span>
-                </>
-              )}
-            </p>
-            <div className="lc-whispers lc-rise" style={{ animationDelay: "2.5s" }}>
-              <button className="lc-chip">
-                <span className="lc-dot" style={{ background: "var(--lc-cobalt)" }} />
-                {arrivalTotals.sessions} sessions
-              </button>
-              <button className="lc-chip">
-                <span className="lc-dot" style={{ background: "var(--lc-moss)" }} />
-                {arrivalTotals.events} events
-              </button>
-              {pendingCount > 0 && (
-                <button className="lc-chip">
-                  <span className="lc-dot" style={{ background: "var(--lc-amber)" }} />
-                  {pendingCount} pending
-                </button>
-              )}
-            </div>
-          </section>
+        {/* The feed — editorial org overview (replaces the arrival turn) */}
+        {feedMode && (
+          <FeedStream
+            feed={feed}
+            loading={feedLoading}
+            sessionsDigested={arrivalTotals.sessions}
+            pressedStories={pressedStories}
+            onStoryPress={onStoryPress}
+            notifSlot={notifSlot}
+          />
         )}
 
         {/* Pending observations as in-chat approval cards */}
@@ -292,7 +251,7 @@ export function LensChatMain({
             placeholder={
               scopeLabel
                 ? `Ask within ${selectedFeatureName ?? selectedTimeRange ?? "this lens"}…`
-                : "Ask the brain anything — or pick a lens to focus…"
+                : "Ask the brain anything — or expand a story…"
             }
             aria-label="Ask the brain"
             onChange={(e) => setInput(e.target.value)}
