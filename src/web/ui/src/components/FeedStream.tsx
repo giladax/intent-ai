@@ -46,11 +46,20 @@ const KICK_COLOR: Record<string, string> = {
   cobalt: "var(--lc-cobalt)",
 };
 
-/** Split the lede into a headline (first sentence) + the rest. */
+/** Split the lede into a headline (first sentence) + the rest.
+    Long first sentences break at the em-dash — headlines stay short. */
 function splitLede(text: string): { headline: string; rest: string } {
   const m = text.match(/^(.+?[.!?])\s+(.*)$/s);
-  if (m && m[1].length >= 12) return { headline: m[1], rest: m[2] };
-  return { headline: text, rest: "" };
+  let headline = m && m[1].length >= 12 ? m[1] : text;
+  let rest = m && m[1].length >= 12 ? m[2] : "";
+  if (headline.length > 110) {
+    const dash = headline.indexOf(" — ");
+    if (dash > 20) {
+      rest = headline.slice(dash + 3).replace(/^./, (c) => c.toUpperCase()) + (rest ? " " + rest : "");
+      headline = headline.slice(0, dash) + ".";
+    }
+  }
+  return { headline, rest };
 }
 
 export function FeedStream({
