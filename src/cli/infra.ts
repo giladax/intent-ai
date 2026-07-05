@@ -30,6 +30,18 @@ export function up(): void {
   console.log("Running migrations...");
   run("npx drizzle-kit migrate");
 
+  // Startup guard: ensure feed_cache table exists even if the migration was
+  // added after the DB was first initialised (covers installs that skipped 0004).
+  run(
+    `docker compose exec -T db psql -U intent -d intent -c ` +
+    `"CREATE TABLE IF NOT EXISTS feed_cache (` +
+    `id text PRIMARY KEY, ` +
+    `payload jsonb NOT NULL, ` +
+    `composed_at timestamptz NOT NULL, ` +
+    `event_count_at_compose integer NOT NULL DEFAULT 0` +
+    `);" 2>/dev/null || true`,
+  );
+
   console.log("Database is up and migrated.");
 }
 

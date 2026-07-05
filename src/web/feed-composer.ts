@@ -67,12 +67,17 @@ export interface CacheEntry {
   composedAt: Date;
 }
 
-const CACHE_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_MAX_AGE_MS = 60 * 60 * 1000;    // 1 hour — normal TTL
+const CACHE_MIN_AGE_MS = 5 * 60 * 1000;     // 5 min — never recompose faster than this
+const CACHE_DEGRADED_TTL_MS = 5 * 60 * 1000; // 5 min — degraded (all-LLM-failed) composes expire quickly
 
-export function isCacheStale(entry: CacheEntry, currentEventCount: number): boolean {
-  if (currentEventCount > entry.eventCountAtCompose) return true;
+export function isCacheStale(entry: CacheEntry, currentEventCount: number, degraded = false): boolean {
   const age = Date.now() - entry.composedAt.getTime();
-  return age > CACHE_MAX_AGE_MS;
+  // Never recompose more than once per 5 minutes regardless of event count.
+  if (age < CACHE_MIN_AGE_MS) return false;
+  const maxAge = degraded ? CACHE_DEGRADED_TTL_MS : CACHE_MAX_AGE_MS;
+  if (age > maxAge) return true;
+  return currentEventCount > entry.eventCountAtCompose;
 }
 
 export function buildFeedCacheKey(): string {
@@ -112,6 +117,18 @@ export interface FeedComposed {
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { sql as drizzleSql } from "drizzle-orm";
 import { z } from "zod";
+
+const BANNED_OUTPUT_WORDS = ["river", "sitting", "ink", "correspondence", "edition", "sittings", "unfolded"];
+
+/**
+ * Returns true if the text contains any voice-rule banned words (case-insensitive, whole-word).
+ * Used to detect LLM outputs that violate the voice rule — fall back to deterministic dek.
+ */
+export function containsBannedWords(text: string): boolean {
+  return BANNED_OUTPUT_WORDS.some((w) =>
+    new RegExp(`\\b${w}\\b`, "i").test(text),
+  );
+}
 
 const VOICE_SYSTEM_PROMPT = `You are Quire, an organizational understanding engine. You generate editorial copy for a development team's feed.
 
@@ -205,12 +222,12 @@ export async function queryFeatureEvidence(
   limit = 12,
 ): Promise<FeatureEvidence> {
   const rows = await db.execute(drizzleSql`
-    SELECT ae.summary, ae.actor, ae.session_id::text as session_id, ae.category
+    SELECT DISTINCT ON (ae.id) ae.summary, ae.actor, ae.session_id::text as session_id, ae.category
     FROM activity_events ae
     LEFT JOIN feature_sessions fs ON fs.session_id = ae.session_id
     WHERE (ae.feature_id = ${featureId} OR fs.feature_id::text = ${featureId})
       AND ae.timestamp >= NOW() - make_interval(hours => ${windowHours})
-    ORDER BY ae.timestamp DESC
+    ORDER BY ae.id, ae.timestamp DESC
     LIMIT ${limit}
   `);
   const list = rows as unknown as Array<{ summary: string; actor: string; session_id: string | null; category: string }>;
@@ -253,7 +270,9 @@ Generate a concise lede paragraph that tells the team what actually moved and wh
 Return JSON: { "text": "...", "citedSessionIds": [] }`,
       LedeSonnetSchema,
     );
-    lede = { text: ledeResult.text, citedSessionIds: ledeResult.citedSessionIds };
+    // Lede prompt never supplies session ids — any model-returned ids are fabricated.
+    // Always use [] so the byline only claims provenance it can actually deliver.
+    lede = { text: ledeResult.text, citedSessionIds: [] };
   } catch (_e) {
     // fail-safe: use default
   }
@@ -263,8 +282,12 @@ Return JSON: { "text": "...", "citedSessionIds": [] }`,
     trendingItems.slice(0, 5).map(async (item, idx) => {
       const ev = evidenceByFeature?.get(item.featureId);
       let headline = item.featureName;
-      let dek = ev?.summaries[0]
-        ? `${ev.summaries[0].replace(/^\[[^\]]*\]\s*/, "").slice(0, 200)} ${item.eventCount} events in the last 48 hours.`
+      const summaryRaw = ev?.summaries[0]?.replace(/^\[[^\]]*\]\s*/, "").slice(0, 200).trimEnd() ?? "";
+      const summaryPart = summaryRaw
+        ? (summaryRaw.match(/[.!?]$/) ? summaryRaw : summaryRaw + ".")
+        : "";
+      let dek = summaryPart
+        ? `${summaryPart} ${item.eventCount} events in the last 48 hours.`
         : `${item.eventCount} events in the last 48 hours.`;
       let openQuestion = "What comes next?";
       let citedSessionIds: string[] = ev?.sessionIds.slice(0, 3) ?? [];
@@ -286,10 +309,18 @@ The headline carries the actual news from the evidence. The dek explains what ha
 Return JSON: { "headline": "...", "dek": "...", "openQuestion": "...", "citedSessionIds": [] }`,
             StorySonnetSchema,
           );
-          headline = storyResult.headline;
-          dek = storyResult.dek;
-          openQuestion = storyResult.openQuestion;
-          if (storyResult.citedSessionIds.length > 0) citedSessionIds = storyResult.citedSessionIds;
+          // Voice-rule guard: if Sonnet output contains banned words, fall back to deterministic dek.
+          if (!containsBannedWords(storyResult.headline) && !containsBannedWords(storyResult.dek)) {
+            headline = storyResult.headline;
+            dek = storyResult.dek;
+            openQuestion = storyResult.openQuestion;
+          }
+          // Only trust ids from our DB evidence — any extra model ids are fabricated.
+          if (storyResult.citedSessionIds.length > 0 && ev?.sessionIds?.length) {
+            const knownSet = new Set(ev.sessionIds);
+            const validated = storyResult.citedSessionIds.filter((id) => knownSet.has(id));
+            if (validated.length > 0) citedSessionIds = validated;
+          }
         } catch (_e) {
           // fail-safe: use defaults
         }
@@ -331,9 +362,14 @@ export async function getCachedFeed(db: PostgresJsDatabase<Record<string, never>
 
   const row = rows[0];
   const entry: CacheEntry = { eventCountAtCompose: row.eventCountAtCompose, composedAt: new Date(row.composedAt) };
-  if (isCacheStale(entry, eventCount)) return { feed: null, eventCount };
+  // Detect degraded compose: lede has no cited sessions AND no story has citations → all LLM calls failed.
+  const cachedFeed = row.payload as FeedComposed;
+  const degraded =
+    cachedFeed.lede.citedSessionIds.length === 0 &&
+    cachedFeed.trending.every((s) => s.citedSessionIds.length === 0 && s.eventCount === 0);
+  if (isCacheStale(entry, eventCount, degraded)) return { feed: null, eventCount };
 
-  return { feed: row.payload as FeedComposed, eventCount };
+  return { feed: cachedFeed, eventCount };
 }
 
 export async function setCachedFeed(db: PostgresJsDatabase<Record<string, never>>, feed: FeedComposed, eventCount: number): Promise<void> {
@@ -354,10 +390,24 @@ export async function setCachedFeed(db: PostgresJsDatabase<Record<string, never>
   });
 }
 
+// Module-level in-flight lock: concurrent compose requests share one promise.
+let _composeInFlight: Promise<FeedComposed> | null = null;
+
 export async function getFeedOrCompose(db: PostgresJsDatabase<Record<string, never>>, forceRefresh = false): Promise<FeedComposed> {
   const { feed, eventCount } = await getCachedFeed(db);
   if (feed && !forceRefresh) return feed;
 
+  // In-flight dedup: if a compose is already running, await it instead of
+  // launching a second one. This handles concurrent stale-cache hits.
+  if (_composeInFlight) return _composeInFlight;
+
+  _composeInFlight = _doCompose(db, eventCount).finally(() => {
+    _composeInFlight = null;
+  });
+  return _composeInFlight;
+}
+
+async function _doCompose(db: PostgresJsDatabase<Record<string, never>>, eventCount: number): Promise<FeedComposed> {
   // Compose: rank trending, gather real evidence for the top items, then
   // write the editorial copy (≤3 Sonnet calls: 1 lede + top 2 stories).
   const inputs = await queryTrendingInputs(db);
@@ -384,9 +434,49 @@ export async function getFeedOrCompose(db: PostgresJsDatabase<Record<string, nev
     /* fall back to 1 */
   }
 
-  const composed = await composeFeedEditorial(ranked, "Quire", evidenceByFeature, editionNumber);
+  const deduped = dedupTrending(ranked, evidenceByFeature);
+  const composed = await composeFeedEditorial(deduped, "Quire", evidenceByFeature, editionNumber);
   await setCachedFeed(db, composed, eventCount);
   return composed;
+}
+
+/**
+ * Suppress stories whose session evidence overlaps heavily with a higher-ranked story.
+ * "Heavily" = more than 50% of the candidate's session ids are already accounted for.
+ * Items with no evidence are always kept (can't assess overlap).
+ */
+export function dedupTrending(
+  items: TrendingItem[],
+  evidenceByFeature: Map<string, FeatureEvidence>,
+  maxItems = 5,
+): TrendingItem[] {
+  const seen = new Set<string>();
+  const result: TrendingItem[] = [];
+  for (const item of items) {
+    const ev = evidenceByFeature.get(item.featureId);
+    const sids = ev?.sessionIds ?? [];
+    if (sids.length === 0) {
+      result.push(item);
+    } else {
+      const overlap = sids.filter((s) => seen.has(s)).length;
+      if (overlap / sids.length < 0.5) {
+        sids.forEach((s) => seen.add(s));
+        result.push(item);
+      }
+    }
+    if (result.length >= maxItems) break;
+  }
+  return result;
+}
+
+/**
+ * Filter model-returned citation ids against the DB-derived known set.
+ * Any id not in knownSessionIds is dropped as a fabricated reference.
+ */
+export function filterCitations(modelIds: string[], knownSessionIds: string[]): string[] {
+  if (knownSessionIds.length === 0) return [];
+  const known = new Set(knownSessionIds);
+  return modelIds.filter((id) => known.has(id));
 }
 
 export function buildSkeletonFeed(): FeedComposed {
