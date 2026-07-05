@@ -954,3 +954,75 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   color: var(--j-paper);
   border-color: var(--j-red);
 }
+
+/* ── Lens-chat design tokens ─────────────────────────────────────────
+   These are the exact mockup values from mockups/lens-chat/ — do NOT
+   modify unless the owner approves a design change.                  */
+:root {
+  --lc-paper: #EFE5CE;
+  --lc-paper-2: #ECE7D9;
+  --lc-bone: #F5F1E8;
+  --lc-ink: #1C1A15;
+  --lc-ink-60: rgba(28, 26, 21, 0.6);
+  --lc-ink-40: rgba(28, 26, 21, 0.4);
+  --lc-ink-25: rgba(28, 26, 21, 0.25);
+  --lc-ink-12: rgba(28, 26, 21, 0.12);
+  --lc-cobalt: #2B49D8;
+  --lc-vermilion: #D8492B;
+  --lc-marigold: #ECA636;
+  --lc-moss: #2E6B58;
+  --lc-amber: #B4681E;
+  --lc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lc-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --lc-rail-w: 172px;
+}
+
+/* Lens-chat animations */
+@keyframes lc-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); filter: blur(10px); }
+  to   { opacity: 1; transform: translateY(0) scale(1);        filter: blur(0);    }
+}
+@keyframes lc-dissolve {
+  to { opacity: 0; transform: translateY(-12px) scale(0.99); filter: blur(10px); }
+}
+@keyframes lc-word {
+  from { opacity: 0; transform: translateY(0.35em); filter: blur(6px); }
+  to   { opacity: 1; transform: translateY(0);       filter: blur(0);   }
+}
+@keyframes lc-breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.85; }
+  50%       { transform: scale(1.28); opacity: 1;    }
+}
+@keyframes lc-needpulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(180, 104, 30, 0.5); }
+  55%       { box-shadow: 0 0 0 7px rgba(180, 104, 30, 0);   }
+}
+@keyframes lc-stampin {
+  0%   { opacity: 0; transform: rotate(-18deg) scale(2.6); }
+  62%  { opacity: 1; transform: rotate(-8deg)  scale(0.92); }
+  82%  {             transform: rotate(-8deg)  scale(1.06); }
+  100% { opacity: 1; transform: rotate(-8deg)  scale(1);    }
+}
+@keyframes lc-ripple {
+  0%   { box-shadow: 0 0 0 0   rgba(46, 107, 88, 0.55); }
+  100% { box-shadow: 0 0 0 26px rgba(46, 107, 88, 0);   }
+}
+@keyframes lc-drawline {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes lc-pop {
+  from { transform: scale(0); }
+  60%  { transform: scale(1.25); }
+  to   { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="lc-rise"],
+  [class*="lc-dissolve"],
+  [class*="lc-word"] {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
