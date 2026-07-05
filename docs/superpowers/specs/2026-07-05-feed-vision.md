@@ -29,3 +29,11 @@ The lens's seeded opening therefore carries three things: top-level understandin
 Verbatim: "the language is too poetic, the river and what not mindset developing this should not necessarily be how we want to interact with the users, story is a big role here, stating value but keeping the doors slightly open to have the user eager to learn more. BUT - we can't be pretentious, because this is not how I am."
 
 Rules: internal metaphors (river, sittings, ink, correspondence) are DEVELOPMENT vocabulary — never user-facing copy. The product speaks plainly: state the value, tell the story straight, end with a slight opening (a concrete question or an unresolved thread) that makes the reader want the next layer. No cleverness about itself, no mysticism, no literary posturing. The test: would the owner say this sentence out loud to a colleague? If not, rewrite it.
+
+## The personal layer + the name (owner, 2026-07-05)
+
+Verbatim: "we need a hook, something that would make this personal, like avatar of people in the org next to stuff, something that can actually be engaging, notifications think please and what should we name it (not brain) this is dull and not intriguing, you want to ask yourself why did they call it like that, then think hard and then you convince yourself you understood but the name was mere nonsense that made you imagine."
+
+1. **People in the feed**: avatars of org members next to the work — decisions, sessions, approvals carry faces. The feed is about people's work, not abstract events. (Agents get marks too — visibly non-human.)
+2. **Notifications**: the product reaches out — a gate waits for you, your area moved, something you decided got contradicted. Engagement, not noise.
+3. **The name** (replacing "Brain"): the naming philosophy is binding — a name that provokes "why did they call it that?", rewards theory-building, and never resolves; evocative near-nonsense that makes you imagine. Not descriptive, not dull.
