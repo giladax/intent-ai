@@ -106,7 +106,7 @@ Note: `05-approval-pending.png` / `05b-approval-sealed.png` skipped (no pending 
 
 ## Review Pass — 2026-07-05
 
-**Commit:** (see below after commit)
+**Commit:** 30895f3
 **Tests:** 667 pass (+7 new: lens-label-clamp.test.ts)
 
 ### Findings Fixed
