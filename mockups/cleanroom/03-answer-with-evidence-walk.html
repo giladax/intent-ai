@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brain — Answer · The Evidence Walk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Hanken+Grotesk:ital,wght@0,300..700;1,400&family=Spline+Sans+Mono:wght@300..600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#F5F1E8; --bone-2:#EDE7DA; --card:#FBF9F3;
+  --ink:#1C1A15; --ink-2:rgba(28,26,21,.64); --ink-3:rgba(28,26,21,.4); --ink-4:rgba(28,26,21,.22);
+  --line:rgba(28,26,21,.13);
+  --moss:#2E6B58; --moss-soft:rgba(46,107,88,.12);
+  --amber:#B4681E;
+  --serif:"Fraunces", Georgia, serif;
+  --sans:"Hanken Grotesk", -apple-system, sans-serif;
+  --mono:"Spline Sans Mono", ui-monospace, monospace;
+  --out:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bone);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,252,243,.9) 0%, rgba(255,252,243,0) 55%),
+    radial-gradient(140% 110% at 50% 115%, rgba(46,107,88,.07) 0%, rgba(46,107,88,0) 50%);}
+.grain{position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:60;opacity:.55;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.045"/></feComponentTransfer></filter><rect width="220" height="220" filter="url(%23n)"/></svg>');}
+
+@keyframes rise{from{opacity:0;filter:blur(10px);transform:translateY(14px) scale(.995)}to{opacity:1;filter:blur(0);transform:none}}
+.rise{opacity:0;animation:rise 1s var(--out) forwards}
+
+header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:24px 34px;
+  background:linear-gradient(var(--bone) 55%, transparent)}
+.wordmark{font-family:var(--serif);font-weight:500;font-size:17px;display:flex;align-items:center;gap:9px}
+.wordmark .glyph{color:var(--moss);font-size:15px;transform:translateY(-1px)}
+.lens{font-size:12.5px;color:var(--ink-2);letter-spacing:.04em;display:flex;align-items:center;gap:8px;
+  border:1px solid var(--line);border-radius:99px;padding:7px 14px;background:rgba(251,249,243,.6)}
+.lens b{font-weight:600;color:var(--ink)} .lens .dot{width:5px;height:5px;border-radius:50%;background:var(--moss)}
+
+.page{position:relative;z-index:10;max-width:780px;margin:0 auto;padding:18px 28px 190px}
+
+.qline{font-family:var(--mono);font-weight:300;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);animation-delay:.05s}
+.qline .you{color:var(--moss)}
+.question{margin-top:10px;font-family:var(--serif);font-weight:380;font-size:clamp(21px,2.4vw,28px);letter-spacing:-.012em;color:var(--ink-2);animation-delay:.1s}
+
+.verdict{margin-top:34px;font-family:var(--serif);font-weight:350;font-size:clamp(30px,3.8vw,44px);letter-spacing:-.02em;line-height:1.2;animation-delay:.3s}
+.verdict .em{font-style:italic;color:var(--moss)}
+
+.answer{margin-top:26px;display:grid;gap:18px;font-size:16.5px;line-height:1.72;color:var(--ink);font-weight:400;max-width:680px}
+.answer p{animation-delay:calc(.5s + var(--i)*.18s)}
+.answer p .dim{color:var(--ink-2)}
+
+/* citation chips — every sentence carries its source */
+.cite{display:inline-flex;align-items:center;gap:6px;vertical-align:2px;margin-left:6px;cursor:pointer;
+  font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.05em;color:var(--moss);
+  background:var(--moss-soft);border:1px solid rgba(46,107,88,.28);border-radius:99px;padding:2.5px 9px;
+  transition:background .3s, transform .3s var(--out), box-shadow .3s;user-select:none}
+.cite:hover{background:rgba(46,107,88,.2);transform:translateY(-1px)}
+.cite.on{background:var(--moss);color:var(--bone);box-shadow:0 6px 18px -8px rgba(46,107,88,.6)}
+.cite .tick{font-size:9px}
+
+/* ---------- the walk — 4 hops to bedrock ---------- */
+.walk-wrap{max-width:680px;overflow:hidden;max-height:0;opacity:0;filter:blur(6px);
+  transition:max-height 1.1s var(--out), opacity .8s var(--out) .1s, filter .8s var(--out) .1s, margin .8s var(--out)}
+.walk-wrap.open{max-height:1200px;opacity:1;filter:blur(0);margin:14px 0 10px}
+.walk{position:relative;padding:10px 0 4px 34px}
+.walk::before{content:"";position:absolute;left:9px;top:16px;bottom:26px;width:1.5px;
+  background:linear-gradient(var(--moss) 70%, var(--ink));transform-origin:top;transform:scaleY(0);
+  transition:transform 1.4s var(--out) .15s}
+.walk-wrap.open .walk::before{transform:scaleY(1)}
+.hop{position:relative;padding:13px 0;opacity:0;transform:translateY(12px);filter:blur(6px);
+  transition:opacity .7s var(--out), transform .7s var(--out), filter .7s var(--out)}
+.walk-wrap.open .hop{opacity:1;transform:none;filter:blur(0)}
+.walk-wrap.open .hop:nth-child(1){transition-delay:.2s}
+.walk-wrap.open .hop:nth-child(2){transition-delay:.42s}
+.walk-wrap.open .hop:nth-child(3){transition-delay:.64s}
+.walk-wrap.open .hop:nth-child(4){transition-delay:.86s}
+.walk-wrap.open .hop:nth-child(5){transition-delay:1.15s}
+.hop .node{position:absolute;left:-31px;top:20px;width:13px;height:13px;border-radius:50%;
+  background:var(--bone);border:2px solid var(--moss);display:grid;place-items:center}
+.hop .node::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--moss)}
+.hop .tag{font-family:var(--mono);font-weight:400;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px;display:flex;gap:10px;align-items:center}
+.hop .tag .n{color:var(--moss)}
+.hop-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 18px;font-size:14px;line-height:1.6;color:var(--ink);
+  box-shadow:0 10px 30px -18px rgba(28,26,21,.18)}
+.hop-card .meta{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}
+.badge{font-family:var(--mono);font-weight:400;font-size:10px;letter-spacing:.06em;border-radius:99px;padding:2.5px 9px;border:1px solid var(--line);color:var(--ink-2)}
+.badge.ok{color:var(--moss);border-color:rgba(46,107,88,.35);background:var(--moss-soft)}
+.badge.conf{color:var(--ink-2)}
+.hop.claim .hop-card{font-family:var(--serif);font-weight:400;font-size:15.5px;font-style:italic;color:var(--ink-2);background:transparent;box-shadow:none;border-style:dashed}
+
+/* bedrock — the raw transcript */
+.hop.bedrock .node{border-color:var(--ink)} .hop.bedrock .node::after{background:var(--ink)}
+.bedrock-card{background:var(--ink);color:#EDE7DA;border-radius:14px;padding:18px 20px;
+  font-family:var(--mono);font-weight:300;font-size:13px;line-height:1.75;
+  box-shadow:0 24px 50px -20px rgba(28,26,21,.5)}
+.bedrock-card .ln{color:rgba(237,231,218,.38);user-select:none;margin-right:14px}
+.bedrock-card .hl{background:rgba(46,107,88,.4);border-radius:3px;padding:1px 3px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.bedrock-card .src{margin-top:13px;padding-top:12px;border-top:1px solid rgba(237,231,218,.14);
+  display:flex;justify-content:space-between;align-items:center;font-size:10.5px;letter-spacing:.08em;color:rgba(237,231,218,.55)}
+.bedrock-card .src a{color:#7FBCA4;text-decoration:none;border-bottom:1px dashed rgba(127,188,164,.5)}
+
+/* walk complete stamp */
+.hop.done{padding-bottom:2px}
+.hop.done .node{border-color:var(--moss);background:var(--moss)} .hop.done .node::after{background:var(--bone)}
+.done-line{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-weight:300;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--moss);padding-top:8px}
+.done-line .seal{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--moss);display:grid;place-items:center;font-size:10px}
+
+/* follow-ups + persistent ask */
+.follow{margin-top:38px;display:flex;flex-wrap:wrap;gap:9px;animation-delay:1.5s}
+.follow a{font-size:12.5px;color:var(--ink-2);border:1px solid var(--line);background:rgba(251,249,243,.75);
+  padding:8px 15px;border-radius:99px;text-decoration:none;transition:border-color .3s, color .3s, transform .3s var(--out)}
+.follow a:hover{border-color:var(--moss);color:var(--moss);transform:translateY(-1px)}
+.follow a.warm{border-color:rgba(180,104,30,.4);color:var(--amber)}
+
+.ask-zone{position:fixed;left:0;right:0;bottom:26px;display:flex;justify-content:center;z-index:30;pointer-events:none}
+.ask{pointer-events:auto;width:min(620px,86vw);display:flex;align-items:center;gap:13px;background:var(--card);
+  border:1px solid var(--line);border-radius:99px;padding:15px 22px;
+  box-shadow:0 18px 50px -22px rgba(28,26,21,.28), 0 2px 8px -4px rgba(28,26,21,.1);
+  transition:border-color .4s, transform .4s var(--out);animation-delay:1.3s}
+.ask:focus-within{border-color:rgba(46,107,88,.45);transform:translateY(-2px)}
+.ask .spark{color:var(--moss);font-size:15px}
+.ask input{flex:1;border:0;outline:0;background:transparent;font-family:var(--sans);font-size:15px;color:var(--ink)}
+.ask input::placeholder{color:var(--ink-3)}
+.ask kbd{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);border:1px solid var(--line);border-radius:6px;padding:3px 7px}
+
+.flow{position:fixed;bottom:20px;right:34px;z-index:40;display:flex;gap:8px;align-items:center}
+.flow a{width:7px;height:7px;border-radius:50%;background:var(--ink-4);display:block;transition:background .3s, transform .3s}
+.flow a:hover{transform:scale(1.4)} .flow a.on{background:var(--moss)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.15s!important;transition-delay:0s!important}
+  .rise{opacity:1}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header>
+  <div class="wordmark"><span class="glyph">⁘</span> Brain</div>
+  <div class="lens"><span class="dot"></span> Rae Osei · viewing as <b>Engineer</b> <span style="opacity:.5">▾</span></div>
+</header>
+
+<main class="page">
+  <div class="qline rise"><span class="you">you asked</span> · just now</div>
+  <div class="question rise">Why do we digest on a schedule instead of live?</div>
+
+  <h1 class="verdict rise">Freshness lost to fidelity — <span class="em">deliberately.</span></h1>
+
+  <div class="answer">
+    <p class="rise" style="--i:0">On July 4 the Topic subsystem was excised and digestion moved to a schedule. Live per-event digestion had coupled understanding to daemon uptime and produced fragments the observation layer couldn't trust.<button class="cite on" data-walk="w1">⁘ decision <span class="tick">✓</span></button></p>
+
+    <div class="walk-wrap open" id="w1">
+      <div class="walk">
+        <div class="hop claim">
+          <span class="node"></span>
+          <div class="tag"><span class="n">hop 1</span> the claim</div>
+          <div class="hop-card">"…digestion moved to a schedule. Live per-event digestion had coupled understanding to daemon uptime…"</div>
+        </div>
+        <div class="hop">
+          <span class="node"></span>
+          <div class="tag"><span class="n">hop 2</span> feature understanding</div>
+          <div class="hop-card">
+            <b>Digest Pipeline &amp; Understanding Stage</b> — the pipeline processes sessions in scheduled batches; each step enriches a shared context, never replaces upstream data.
+            <div class="meta"><span class="badge">understanding v9</span><span class="badge">cites 4 sessions</span></div>
+          </div>
+        </div>
+        <div class="hop">
+          <span class="node"></span>
+          <div class="tag"><span class="n">hop 3</span> the moment</div>
+          <div class="hop-card">
+            Scheduled digestion replaces live per-event digestion; raw sessions are archived to <code style="font-family:var(--mono);font-size:12px">.intent/</code> before processing.
+            <div class="meta"><span class="badge">decision</span><span class="badge conf">confidence · high</span><span class="badge ok">✓ verified against tool calls</span><span class="badge">Jul 4 · 14:32 · sitting 3</span></div>
+          </div>
+        </div>
+        <div class="hop bedrock">
+          <span class="node"></span>
+          <div class="tag"><span class="n">hop 4</span> the raw transcript</div>
+          <div class="bedrock-card">
+            <div><span class="ln">1480</span>so we hold the daemon to capture-only. digestion becomes a scheduled pass.</div>
+            <div><span class="ln">1481</span><span class="hl">Legacy events: map at read time, never backfill. Mutating history to fit</span></div>
+            <div><span class="ln">1482</span><span class="hl">today's vocabulary is the "Brain edits the source" anti-pattern applied to ourselves.</span></div>
+            <div class="src"><span>session 801849a · ai · 2026-07-04 14:32:18</span><a href="#">open raw transcript ↗</a></div>
+          </div>
+        </div>
+        <div class="hop done">
+          <span class="node"></span>
+          <div class="done-line"><span class="seal">✓</span> walk complete · claim → feature → moment → transcript · 4 hops</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="rise" style="--i:1">The decision names digest fidelity as its precondition: <span class="dim">raw sessions are archived to</span> <code style="font-family:var(--mono);font-size:13.5px">.intent/</code> <span class="dim">before anything is interpreted — nothing is lost while the brain waits.</span><button class="cite" data-walk="none">⁘ commitment <span class="tick">✓</span></button></p>
+
+    <p class="rise" style="--i:2"><span class="dim">And it held: the last three scheduled runs caught up cleanly — 1, 3, and 1 sessions — with zero unverified execution moments in the batch.</span><button class="cite" data-walk="none">⁘ river · 3 events</button></p>
+  </div>
+
+  <div class="follow rise">
+    <a href="#">Who was in the room for this?</a>
+    <a href="#">What would break if we digested live?</a>
+    <a href="#">Show me that sitting</a>
+    <a class="warm" href="04-approval-sealed-into-memory.html">Anything here awaiting approval? →</a>
+  </div>
+</main>
+
+<div class="ask-zone">
+  <form class="ask rise" onsubmit="return false">
+    <span class="spark">⁘</span>
+    <input type="text" placeholder="Follow up — the brain keeps the thread…">
+    <kbd>⌘K</kbd>
+  </form>
+</div>
+
+<nav class="flow">
+  <a href="01-arrival-the-verdict.html" title="Arrival"></a>
+  <a href="02-ask-the-brain-materializes.html" title="Ask"></a>
+  <a class="on" href="03-answer-with-evidence-walk.html" title="Evidence"></a>
+  <a href="04-approval-sealed-into-memory.html" title="Approval"></a>
+</nav>
+
+<script>
+// citation chips summon / dissolve the walk
+document.querySelectorAll('.cite').forEach(c=>{
+  c.addEventListener('click',()=>{
+    const w = document.getElementById('w1');
+    if (c.dataset.walk === 'w1'){ w.classList.toggle('open'); c.classList.toggle('on'); }
+    else {
+      // other chips: gentle "not in this mockup" nudge
+      c.style.transform='translateY(-1px) scale(1.06)';
+      setTimeout(()=>c.style.transform='',280);
+    }
+  });
+});
+</script>
+</body>
+</html>
