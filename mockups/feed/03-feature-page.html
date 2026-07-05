@@ -55,6 +55,7 @@
   @keyframes ripple{
     0%{box-shadow:0 0 0 0 rgba(46,107,88,.55)} 100%{box-shadow:0 0 0 26px rgba(46,107,88,0)}
   }
+  @keyframes badgepop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
 
   /* =================== LENS RAIL — focused on FEATURE =================== */
   .rail{
@@ -306,6 +307,54 @@
   .ask input::placeholder{color:var(--ink-40)}
   .ask .enter{font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40); border:1px solid var(--ink-12); border-radius:6px; padding:3px 7px}
 
+  /* =================== PEOPLE SYSTEM =================== */
+  .av{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%; flex-shrink:0;
+    font-family:'Spline Sans Mono',monospace; font-size:8px; font-weight:600;
+    letter-spacing:.04em; color:var(--bone); border:1.5px solid var(--paper);
+    cursor:default; position:relative;
+  }
+  .av--sm{width:18px; height:18px; font-size:7px}
+  .av--agent{border-radius:6px}
+  .av--agent::after{
+    content:''; position:absolute; bottom:-2px; right:-2px;
+    width:8px; height:8px; border-radius:50%;
+    background:var(--paper); border:1px solid var(--ink-25);
+    background-image:radial-gradient(circle, var(--ink-40) 1px, transparent 1px);
+    background-size:4px 4px; background-position:center;
+  }
+  .avstack{display:inline-flex; align-items:center}
+  .avstack .av{margin-left:-6px}
+  .avstack .av:first-child{margin-left:0}
+  .attrib{
+    display:flex; align-items:center; gap:7px; margin-top:8px;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px;
+    letter-spacing:.05em; color:var(--ink-40);
+  }
+
+  /* =================== NOTIFICATION BADGE =================== */
+  .notif-btn{
+    position:fixed; top:20px; right:26px; z-index:10;
+    display:flex; align-items:center; gap:8px;
+    background:rgba(239,229,206,.92); backdrop-filter:blur(6px);
+    border:1.5px solid var(--ink-12); border-radius:10px;
+    padding:7px 11px; cursor:pointer; font-family:inherit;
+  }
+  .notif-btn .icon{font-size:14px; line-height:1; user-select:none}
+  .notif-btn .meta{font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40); letter-spacing:.06em; text-align:right; line-height:1.5}
+  .notif-btn .meta a{color:var(--ink-60); text-decoration:none; border-bottom:1px dashed var(--ink-25)}
+  .notif-btn .meta a:hover{color:var(--cobalt); border-color:var(--cobalt)}
+  .notif-badge{
+    position:absolute; top:-5px; right:-5px;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--vermilion); color:var(--bone);
+    font-family:'Spline Sans Mono',monospace; font-size:8.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--paper);
+    animation:badgepop .5s var(--spring) .8s both;
+  }
+
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation-duration:.01ms!important; animation-iteration-count:1!important;
       transition-duration:.01ms!important; transition-delay:0s!important}
@@ -356,10 +405,14 @@
 
   <!-- ============ FEATURE PAGE, THEN THE CHAT ============ -->
   <main class="main">
-    <div class="meta-top">
-      intent-ai · feat/repo-brain · sun jul 5<br>
-      <a href="01-the-feed.html">‹ the feed</a> · <a href="02-press-and-unfold.html">‹ press-and-unfold</a>
-    </div>
+    <button class="notif-btn" aria-label="Notifications">
+      <span class="icon" aria-hidden="true">🔔</span>
+      <span class="meta">
+        intent-ai · feat/repo-brain · sun jul 5<br>
+        <a href="01-the-feed.html" onclick="event.stopPropagation()">‹ the feed</a> · <a href="02-press-and-unfold.html" onclick="event.stopPropagation()">‹ press-and-unfold</a>
+      </span>
+      <span class="notif-badge" aria-label="2 notifications">2</span>
+    </button>
 
     <div class="stream">
 
@@ -388,6 +441,14 @@
           <span><b>9</b> unattended digests this weekend</span>
           <span>last moved <b>sat 20:11</b></span>
           <span class="open">1 OPEN QUESTION</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; margin-left:auto">
+            <span class="avstack" aria-label="Gilad Koch, Dana Avraham, AI agent worked on this">
+              <span class="av av--sm" style="background:var(--cobalt)" title="Gilad Koch">GK</span>
+              <span class="av av--sm" style="background:var(--vermilion)" title="Dana Avraham">DA</span>
+              <span class="av av--sm av--agent" style="background:var(--ink-60)" title="AI agent">AI</span>
+            </span>
+            <span style="font-family:'Spline Sans Mono',monospace; font-size:9.5px; color:var(--ink-40)">3 contributors</span>
+          </span>
         </div>
 
         <div class="crosshead rise" style="animation-delay:2.35s">THE STORY SO FAR <span class="rule"></span></div>
@@ -478,7 +539,10 @@
         </section>
 
         <div class="turn-user rise" style="animation-delay:4.2s">
-          <div class="who">gilad</div>
+          <div class="who" style="display:flex; align-items:center; justify-content:flex-end; gap:6px">
+            <span>gilad</span>
+            <span class="av av--sm" style="background:var(--cobalt)" title="Gilad Koch">GK</span>
+          </div>
           <div class="bubble">What did the fidelity audit actually change?</div>
         </div>
 

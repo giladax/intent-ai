@@ -6,11 +6,14 @@ import path from 'node:path';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const shots = [
-  // arrival: editorial org overview + trending, settled
+  // arrival: editorial org overview + trending, settled — avatars on stories, notif badge visible
   { file: '01-the-feed.html',                 out: '01-the-feed.png',         settle: 4800 },
   // mid-interaction: capture AFTER the press — stream scrolled, overview materialized, brain asking
   { file: '02-press-and-unfold.html?pressed=1', out: '02-press-and-unfold.png', settle: 4200,
     scrollTo: '.unfold .ask-turn', block: 'end' },
+  // personal layer: notification badge pressed → "while you were away" card + unfold
+  { file: '01-the-feed.html?notif=1',         out: '01-notif-open.png',       settle: 4800,
+    scrollTo: '#notif-area', block: 'start' },
   // feature lens: top-level editorial page
   { file: '03-feature-page.html',             out: '03-feature-page.png',     settle: 6200 },
   // feature page, scrolled to where the chat begins (approval card visible)

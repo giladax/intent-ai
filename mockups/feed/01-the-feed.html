@@ -48,6 +48,15 @@
     0%{background-position:-200% 0} 100%{background-position:300% 0}
   }
   @keyframes waitdot{0%,100%{opacity:.25}30%{opacity:1}}
+  @keyframes badgepop{
+    0%{transform:scale(0); opacity:0}
+    70%{transform:scale(1.25)}
+    100%{transform:scale(1); opacity:1}
+  }
+  @keyframes notifslide{
+    from{opacity:0; transform:translateY(-18px) scale(.97); filter:blur(8px)}
+    to{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}
+  }
 
   /* =================== LENS RAIL =================== */
   .rail{
@@ -97,17 +106,107 @@
   .rail-foot .river{display:block; height:14px; margin-bottom:6px; position:relative; overflow:hidden}
   .rail-foot .river i{position:absolute; bottom:0; width:3px; background:var(--ink-25); border-radius:1px}
 
+  /* =================== PEOPLE SYSTEM — avatars =================== */
+  /* Human: filled disc with initials */
+  .av{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%; flex-shrink:0;
+    font-family:'Spline Sans Mono',monospace; font-size:8px; font-weight:600;
+    letter-spacing:.04em; color:var(--bone); border:1.5px solid var(--paper);
+    cursor:default; position:relative;
+  }
+  .av--sm{width:18px; height:18px; font-size:7px}
+  .av--lg{width:28px; height:28px; font-size:10px}
+  /* Agent: rounded-square instead of disc + small circuit badge */
+  .av--agent{border-radius:6px}
+  .av--agent::after{
+    content:''; position:absolute; bottom:-2px; right:-2px;
+    width:8px; height:8px; border-radius:50%;
+    background:var(--paper); border:1px solid var(--ink-25);
+    background-image:radial-gradient(circle, var(--ink-40) 1px, transparent 1px);
+    background-size:4px 4px; background-position:center;
+  }
+  /* stacked group */
+  .avstack{display:inline-flex; align-items:center}
+  .avstack .av{margin-left:-6px}
+  .avstack .av:first-child{margin-left:0}
+  .avstack .av--more{
+    background:var(--paper-2); color:var(--ink-60); border-color:var(--ink-12);
+    font-size:7.5px; font-weight:500;
+  }
+  /* attribution line */
+  .attrib{
+    display:flex; align-items:center; gap:7px; margin-top:10px;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px;
+    letter-spacing:.05em; color:var(--ink-40);
+  }
+  .attrib .avstack{margin-right:1px}
+
+  /* =================== NOTIFICATION SURFACE =================== */
+  /* Bell button in the meta-top area */
+  .notif-btn{
+    position:fixed; top:20px; right:26px; z-index:10;
+    display:flex; align-items:center; gap:8px;
+    background:rgba(239,229,206,.92); backdrop-filter:blur(6px);
+    border:1.5px solid var(--ink-12); border-radius:10px;
+    padding:7px 11px; cursor:pointer; font-family:inherit;
+    transition:border-color .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .notif-btn:hover{border-color:var(--ink-40); box-shadow:0 4px 14px -6px rgba(28,26,21,.18)}
+  .notif-btn .icon{font-size:14px; line-height:1; user-select:none}
+  .notif-btn .meta{
+    font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40);
+    letter-spacing:.06em; text-align:right; line-height:1.5;
+  }
+  .notif-btn .meta a{color:var(--ink-60); text-decoration:none; border-bottom:1px dashed var(--ink-25)}
+  .notif-btn .meta a:hover{color:var(--cobalt); border-color:var(--cobalt)}
+  /* the badge — appears when there are unread notifications */
+  .notif-badge{
+    position:absolute; top:-5px; right:-5px;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--vermilion); color:var(--bone);
+    font-family:'Spline Sans Mono',monospace; font-size:8.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--paper);
+    animation:badgepop .5s var(--spring) .8s both;
+  }
+  /* notification card that lands in the feed */
+  .notif-card{
+    border:1.5px solid var(--cobalt); border-radius:18px;
+    background:rgba(43,73,216,.05); padding:18px 20px 14px;
+    margin-bottom:24px; position:relative;
+    animation:notifslide .7s var(--ease) both;
+  }
+  .notif-card .nkick{
+    display:flex; align-items:center; gap:8px; margin-bottom:11px;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; font-weight:600;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--cobalt);
+  }
+  .notif-card .nkick .dot{width:7px; height:7px; border-radius:50%; background:var(--cobalt); animation:breathe 3.8s ease-in-out infinite}
+  .notif-card .ntitle{font-weight:700; font-size:16px; line-height:1.4; margin-bottom:7px; max-width:44ch}
+  .notif-card .nbody{font-size:14px; line-height:1.6; color:var(--ink-60); max-width:58ch; margin-bottom:12px}
+  .notif-card .nbody b{color:var(--ink)}
+  .notif-card .nfoot{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; letter-spacing:.06em; color:var(--ink-40);
+    border-top:1px solid var(--ink-06); padding-top:10px; margin-top:10px;
+  }
+  .notif-card .dismiss{
+    margin-left:auto; color:var(--ink-40); background:none; border:none; cursor:pointer;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; letter-spacing:.08em;
+    transition:color .3s var(--ease);
+  }
+  .notif-card .dismiss:hover{color:var(--ink)}
+  /* the unfold section specific to notification */
+  .notif-unfold{
+    border:1.5px solid var(--cobalt); border-radius:18px; padding:20px 22px 18px;
+    margin-bottom:24px; background:rgba(43,73,216,.04);
+    display:flex; flex-direction:column; gap:0;
+  }
+
   /* =================== THE FEED =================== */
   .main{position:relative; height:100vh; overflow-y:auto; scroll-behavior:smooth}
   @media (prefers-reduced-motion:reduce){.main{scroll-behavior:auto}}
-  .meta-top{
-    position:fixed; top:20px; right:26px; font-family:'Spline Sans Mono',monospace;
-    font-size:10px; color:var(--ink-40); letter-spacing:.06em; z-index:5; text-align:right;
-    background:rgba(239,229,206,.88); backdrop-filter:blur(6px);
-    padding:8px 11px; border-radius:10px;
-  }
-  .meta-top a{color:var(--ink-60); text-decoration:none; border-bottom:1px dashed var(--ink-25)}
-  .meta-top a:hover{color:var(--cobalt); border-color:var(--cobalt)}
   .stream{
     max-width:680px; margin:0 auto; padding:64px 32px 210px;
     display:flex; flex-direction:column; gap:0;
@@ -151,6 +250,7 @@
   .byline{
     margin-top:16px; font-family:'Spline Sans Mono',monospace; font-size:10px;
     letter-spacing:.08em; color:var(--ink-40);
+    display:flex; align-items:center; gap:9px;
   }
   .byline b{color:var(--moss); font-weight:600}
 
@@ -355,103 +455,135 @@
 
   <!-- ============ THE FEED ============ -->
   <main class="main" id="main">
-    <div class="meta-top rise" style="animation-delay:.6s">
-      intent-ai · feat/repo-brain · sun jul 5<br>
-      <a href="02-press-and-unfold.html">press-and-unfold ›</a> · <a href="03-feature-page.html">feature page ›</a>
-    </div>
+
+    <!-- notification button — quiet presence in the shell -->
+    <button class="notif-btn rise" style="animation-delay:.6s" id="notif-btn" onclick="openNotif()" aria-label="Notifications">
+      <span class="icon" aria-hidden="true">🔔</span>
+      <span class="meta">
+        intent-ai · feat/repo-brain · sun jul 5<br>
+        <a href="02-press-and-unfold.html" onclick="event.stopPropagation()">press-and-unfold ›</a> · <a href="03-feature-page.html" onclick="event.stopPropagation()">feature page ›</a>
+      </span>
+      <span class="notif-badge" id="notif-badge" aria-label="2 notifications">2</span>
+    </button>
 
     <div class="stream">
 
+      <!-- notification card — personal item at the top, visible when notifications open -->
+      <div id="notif-area"></div>
+
       <!-- the now edge -->
-      <div class=”now-edge rise” style=”animation-delay:.5s” aria-hidden=”true”>
-        <div class=”line”></div>
-        <div class=”lab”><span>last updated</span><span>sat 21:16 · <b>9 sessions digested</b></span></div>
+      <div class="now-edge rise" style="animation-delay:.5s" aria-hidden="true">
+        <div class="line"></div>
+        <div class="lab"><span>last updated</span><span>sat 21:16 · <b>9 sessions digested</b></span></div>
       </div>
 
       <!-- lead: the org overview, written by the brain -->
-      <header class=”edition rise” style=”animation-delay:.65s”>
-        <span><span class=”k”>THE FEED</span> · ORG LENS</span>
+      <header class="edition rise" style="animation-delay:.65s">
+        <span><span class="k">THE FEED</span> · ORG LENS</span>
         <span>UPDATE 9 · SUNDAY, JULY 5</span>
       </header>
 
-      <article class=”lead”>
-        <h1 id=”headline” aria-label=”Digest quality was unverified for weeks. This weekend we audited it and rewrote the pipeline.”></h1>
-        <p class=”lede rise” style=”animation-delay:2.6s”>
+      <article class="lead">
+        <h1 id="headline" aria-label="Digest quality was unverified for weeks. This weekend we audited it and rewrote the pipeline."></h1>
+        <p class="lede rise" style="animation-delay:2.6s">
           300 events in 48 hours, and most of them point the same direction: making the system
           checkable. You audited how the pipeline reads and
-          <span class=”handle” onclick=”unfold(‘digest’)”>rewrote it to read in two passes</span>.
-          You wired confidence to <span class=”handle” onclick=”unfold(‘mcp’)”>verified evidence</span>
-          instead of the extractor’s own score. Then you put an agent in the hot seat —
+          <span class="handle" onclick="unfold('digest')">rewrote it to read in two passes</span>.
+          You wired confidence to <span class="handle" onclick="unfold('mcp')">verified evidence</span>
+          instead of the extractor's own score. Then you put an agent in the hot seat —
           ask the Brain a question it could only answer if the last three weeks of digestion
-          actually worked. <span class=”dim”>It answered.</span>
+          actually worked. <span class="dim">It answered.</span>
         </p>
-        <p class=”byline rise” style=”animation-delay:3s”>
+        <p class="byline rise" style="animation-delay:3s">
+          <!-- human avatar for the lead author -->
+          <span class="av av--sm" style="background:var(--cobalt)" title="Gilad Koch" aria-label="Gilad Koch">GK</span>
           — <b>written by the brain</b> from 9 sessions · every sentence traces to a transcript line
         </p>
       </article>
 
       <!-- trending -->
-      <div class=”trendhead rise” style=”animation-delay:3.2s”>
-        <span class=”ember”></span> MOST ACTIVE <span class=”rule”></span>
-        <span class=”note”>heat = events, recency-weighted</span>
+      <div class="trendhead rise" style="animation-delay:3.2s">
+        <span class="ember"></span> MOST ACTIVE <span class="rule"></span>
+        <span class="note">heat = events, recency-weighted</span>
       </div>
 
-      <button class=”story rise” style=”animation-delay:3.35s” data-accent=”vermilion”
-              id=”story-digest” onclick=”unfold(‘digest’)”>
-        <span class=”kick” style=”color:var(--vermilion)”><span class=”sq” style=”background:var(--vermilion)”></span>PIPELINE · 48 HOURS OF ACTIVITY</span>
+      <!-- story 1: pipeline — vermilion — Gilad drove it, AI agent ran sessions -->
+      <button class="story rise" style="animation-delay:3.35s" data-accent="vermilion"
+              id="story-digest" onclick="unfold('digest')">
+        <span class="kick" style="color:var(--vermilion)"><span class="sq" style="background:var(--vermilion)"></span>PIPELINE · 48 HOURS OF ACTIVITY</span>
         <h2>Digest quality was unverified for weeks — yesterday we audited it and rewrote the pipeline. Evidence is now checkable.</h2>
-        <p class=”dek”>
+        <p class="dek">
           A Friday-night fidelity audit turned into a Saturday rewrite: two-pass deliberative
-          reading in, the 3-event overlap out — verdict: <i>”worse than noise.”</i> The
+          reading in, the 3-event overlap out — verdict: <i>"worse than noise."</i> The
           scheduler ran its first unattended digests the same night.
         </p>
-        <span class=”foot”>
-          <span class=”heat” data-heat=”7,9,12,10,8,11,9” aria-hidden=”true”></span>
+        <span class="foot">
+          <span class="heat" data-heat="7,9,12,10,8,11,9" aria-hidden="true"></span>
           <span>191 events fri · 109 sat · still active</span>
-          <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
+          <!-- who touched this: Gilad + AI agent + Dana reviewed -->
+          <span class="avstack" aria-label="Gilad Koch, AI agent, Dana Avraham touched this">
+            <span class="av av--sm" style="background:var(--cobalt)" title="Gilad Koch">GK</span>
+            <span class="av av--sm av--agent" style="background:var(--ink-60)" title="AI agent (digest runner)">AI</span>
+            <span class="av av--sm" style="background:var(--vermilion)" title="Dana Avraham">DA</span>
+          </span>
+          <span class="press">EXPAND <span class="ar">↓</span></span>
         </span>
       </button>
 
-      <button class=”story rise” style=”animation-delay:3.5s” data-accent=”marigold”
-              id=”story-ui” onclick=”unfold(‘ui’)”>
-        <span class=”kick” style=”color:#B57B14”><span class=”sq” style=”background:var(--marigold)”></span>DASHBOARD · REBUILT FOUR TIMES</span>
+      <!-- story 2: UI — marigold — Gilad + Rafi worked on it -->
+      <button class="story rise" style="animation-delay:3.5s" data-accent="marigold"
+              id="story-ui" onclick="unfold('ui')">
+        <span class="kick" style="color:#B57B14"><span class="sq" style="background:var(--marigold)"></span>DASHBOARD · REBUILT FOUR TIMES</span>
         <h2>Four redesigns in two days. The last one added color and motion the earlier versions had explicitly ruled out.</h2>
-        <p class=”dek”>
-          Friday morning dropped the “lanes” layout for a feed-first design; by noon every page
-          matched. Saturday’s cleanup removed ~2,600 lines of unused code — then at 19:46 you
-          pushed back on the AI’s “motion restraint” constraint. What you’re reading now is the result.
+        <p class="dek">
+          Friday morning dropped the "lanes" layout for a feed-first design; by noon every page
+          matched. Saturday's cleanup removed ~2,600 lines of unused code — then at 19:46 you
+          pushed back on the AI's "motion restraint" constraint. What you're reading now is the result.
         </p>
-        <span class=”foot”>
-          <span class=”heat” data-heat=”5,8,11,7,10,6,9” aria-hidden=”true”></span>
+        <span class="foot">
+          <span class="heat" data-heat="5,8,11,7,10,6,9" aria-hidden="true"></span>
           <span>last activity sat 19:46 · active</span>
-          <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
+          <!-- Gilad + Rafi + AI agent -->
+          <span class="avstack" aria-label="Gilad Koch, Rafi Mizrahi, AI agent worked on this">
+            <span class="av av--sm" style="background:var(--cobalt)" title="Gilad Koch">GK</span>
+            <span class="av av--sm" style="background:var(--moss)" title="Rafi Mizrahi">RM</span>
+            <span class="av av--sm av--agent" style="background:var(--ink-60)" title="AI agent (design)">AI</span>
+            <span class="av av--sm av--more">+1</span>
+          </span>
+          <span class="press">EXPAND <span class="ar">↓</span></span>
         </span>
       </button>
 
-      <button class=”story rise” style=”animation-delay:3.65s” data-accent=”cobalt”
-              id=”story-mcp” onclick=”unfold(‘mcp’)”>
-        <span class=”kick” style=”color:var(--cobalt)”><span class=”sq” style=”background:var(--cobalt)”></span>MCP · END-TO-END TEST</span>
+      <!-- story 3: MCP — cobalt — Gilad + Chen ran the test -->
+      <button class="story rise" style="animation-delay:3.65s" data-accent="cobalt"
+              id="story-mcp" onclick="unfold('mcp')">
+        <span class="kick" style="color:var(--cobalt)"><span class="sq" style="background:var(--cobalt)"></span>MCP · END-TO-END TEST</span>
         <h2>An agent asked the Brain how this system works — and got a complete answer from the digests.</h2>
-        <p class=”dek”>
+        <p class="dek">
           The test passed at 16:54 Saturday: a subagent with no context queried the brain and
           got a structured answer back. Confidence scores are now derived from evidence
           verification — 485 tests pass.
         </p>
-        <span class=”foot”>
-          <span class=”heat” data-heat=”4,6,9,7,8,5,7” aria-hidden=”true”></span>
+        <span class="foot">
+          <span class="heat" data-heat="4,6,9,7,8,5,7" aria-hidden="true"></span>
           <span>72 moments · active</span>
-          <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
+          <!-- Chen + AI agent -->
+          <span class="avstack" aria-label="Chen Levi, AI agent ran this test">
+            <span class="av av--sm" style="background:var(--marigold); color:var(--ink)" title="Chen Levi">CL</span>
+            <span class="av av--sm av--agent" style="background:var(--ink-60)" title="AI agent (test runner)">AI</span>
+          </span>
+          <span class="press">EXPAND <span class="ar">↓</span></span>
         </span>
       </button>
 
-      <aside class=”briefs rise” style=”animation-delay:3.85s”>
-        <div class=”bh”>ALSO THIS WEEK</div>
-        <p class=”brief”><b>29 tables connected to real Postgres for the first time.</b> The broken
+      <aside class="briefs rise" style="animation-delay:3.85s">
+        <div class="bh">ALSO THIS WEEK</div>
+        <p class="brief"><b>29 tables connected to real Postgres for the first time.</b> The broken
           8-migration chain is gone, replaced by a clean baseline; a write race now fails against a
-          partial unique index. <span class=”t”>storage · fri 15:32 · cooling</span></p>
-        <p class=”brief”><b>One gap the Brain can’t close on its own:</b> the API key in <code>.env</code>
+          partial unique index. <span class="t">storage · fri 15:32 · cooling</span></p>
+        <p class="brief"><b>One gap the Brain can't close on its own:</b> the API key in <code>.env</code>
           went invalid mid-test (401). Synthesis retried three times and stopped.
-          <span class=”t”>unresolved · sat 16:54</span></p>
+          <span class="t">unresolved · sat 16:54</span></p>
       </aside>
 
       <!-- presses extend the stream here — content and conversation, same medium -->
@@ -470,124 +602,175 @@
   </main>
 
   <!-- ============ UNFOLD CONTENT — the brain's deeper cuts ============ -->
-  <template id=”tpl-digest”>
-    <section class=”unfold” data-accent=”vermilion”>
-      <div class=”stem” aria-hidden=”true”></div>
-      <div class=”speaker u u1”>brain · <span class=”scope”>digest pipeline</span></div>
-      <h3 class=”u u2”>The audit found the pipeline solving a problem that no longer exists. The rewrite fixes that.</h3>
-      <p class=”body u u3”>
+  <template id="tpl-digest">
+    <section class="unfold" data-accent="vermilion">
+      <div class="stem" aria-hidden="true"></div>
+      <div class="speaker u u1">brain · <span class="scope">digest pipeline</span></div>
+      <h3 class="u u2">The audit found the pipeline solving a problem that no longer exists. The rewrite fixes that.</h3>
+      <p class="body u u3">
         Friday night the fidelity audit delivered its core finding: a scoring engine, 10 new tests,
         full suite green at 321. Twenty minutes later the plan got interrupted mid-run —
         <q>I want you to rewrite</q> — and at 1:14 a.m. Saturday the challenge went deeper:
         <q>seems to me this flow is not good enough.</q> The audit backed you up. All four audited
         sessions fit inside a single context window — worst case ~58k of 200k tokens —
-        <span class=”dim”>so the chunking, the overlap, and all the cleanup machinery around them
+        <span class="dim">so the chunking, the overlap, and all the cleanup machinery around them
         were solving a problem that no longer exists.</span> The 3-event overlap drew the clearest
-        verdict: <q>worse than noise — it’s negative value.</q>
+        verdict: <q>worse than noise — it's negative value.</q>
       </p>
-      <p class=”body u u4”>
+      <p class="body u u4">
         The replacement is <b>two-pass deliberative reading</b> — a draft pass that holds
         provisional calls and open questions, then a retrospective revision once the full session
         is known. An E1b control arm is queued to isolate what actually helps, and E0 is on hold
-        until the topology proposal lands. <span class=”dim”>While the reading approach was being
+        until the topology proposal lands. <span class="dim">While the reading approach was being
         worked out, the scheduler proved the other half:</span> at 22:26 Friday it fired on its
         own for the first time, and by Saturday night it had run nine catch-up sessions with
         nobody watching.
       </p>
-      <div class=”cites u u5”>
-        <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>pivot · sat 01:14</span>
-        <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>”worse than noise” · sat 15:45</span>
-        <span class=”chip”><span class=”dot” style=”background:var(--moss)”></span>scheduler · fri 22:26</span>
-        <span class=”chip”><span class=”dot” style=”background:var(--moss)”></span>321/321 tests</span>
+      <div class="attrib u u5" style="margin-bottom:14px">
+        <span class="avstack">
+          <span class="av av--sm" style="background:var(--cobalt)" title="Gilad Koch">GK</span>
+          <span class="av av--sm av--agent" style="background:var(--ink-60)" title="AI agent">AI</span>
+          <span class="av av--sm" style="background:var(--vermilion)" title="Dana Avraham">DA</span>
+        </span>
+        <span>Gilad drove the pivot · Dana sealed the audit · AI ran 9 catch-up sessions</span>
       </div>
-      <div class=”ask-turn u u6”>
-        <div class=”speaker” style=”margin-bottom:10px”>brain · asking</div>
-        <p class=”q”>Three decisions between the 1 a.m. challenge and the first unattended digest.
+      <div class="cites u u5">
+        <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>pivot · sat 01:14</span>
+        <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>"worse than noise" · sat 15:45</span>
+        <span class="chip"><span class="dot" style="background:var(--moss)"></span>scheduler · fri 22:26</span>
+        <span class="chip"><span class="dot" style="background:var(--moss)"></span>321/321 tests</span>
+      </div>
+      <div class="ask-turn u u6">
+        <div class="speaker" style="margin-bottom:10px">brain · asking</div>
+        <p class="q">Three decisions between the 1 a.m. challenge and the first unattended digest.
           Want to walk through them?
-          <span class=”waiting” aria-label=”brain is waiting”><i></i><i></i><i></i></span></p>
-        <div class=”cites” style=”margin-bottom:0”>
-          <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>show the decisions</span>
-          <span class=”chip”><span class=”dot” style=”background:var(--ink-40)”></span>what does E1b test?</span>
-          <a class=”chip” href=”03-feature-page.html”><span class=”dot” style=”background:var(--cobalt)”></span>open feature page ↗</a>
+          <span class="waiting" aria-label="brain is waiting"><i></i><i></i><i></i></span></p>
+        <div class="cites" style="margin-bottom:0">
+          <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>show the decisions</span>
+          <span class="chip"><span class="dot" style="background:var(--ink-40)"></span>what does E1b test?</span>
+          <a class="chip" href="03-feature-page.html"><span class="dot" style="background:var(--cobalt)"></span>open feature page ↗</a>
         </div>
       </div>
-      <p class=”openline u u7”>ask anything below · or expand another story above</p>
+      <p class="openline u u7">ask anything below · or expand another story above</p>
     </section>
   </template>
 
-  <template id=”tpl-ui”>
-    <section class=”unfold” data-accent=”marigold”>
-      <div class=”stem” aria-hidden=”true”></div>
-      <div class=”speaker u u1”>brain · <span class=”scope”>dashboard</span></div>
-      <h3 class=”u u2”>Four redesigns in one weekend. Each one rejected something the previous version had treated as fixed.</h3>
-      <p class=”body u u3”>
-        Rebuild one: the observability agent rejected the “lanes” layout from the handoff and
+  <template id="tpl-ui">
+    <section class="unfold" data-accent="marigold">
+      <div class="stem" aria-hidden="true"></div>
+      <div class="speaker u u1">brain · <span class="scope">dashboard</span></div>
+      <h3 class="u u2">Four redesigns in one weekend. Each one rejected something the previous version had treated as fixed.</h3>
+      <p class="body u u3">
+        Rebuild one: the observability agent rejected the "lanes" layout from the handoff and
         shipped <b>the feed</b> — the activity stream as the main page. Rebuild two, by 12:43
         Friday: <q>the entire app now speaks the same design language</q>, every page redrawn
         with the same editorial primitives. Rebuild three, Saturday 16:43 — the cleanup pass:
         a feed-first shell, ~2,600 lines of code from the old Topic system removed.
-        <span class=”dim”>Rebuild four started at 19:46, when you pushed back on the AI’s
-        “motion restraint” constraint and asked for color, animation, and energy instead.</span>
+        <span class="dim">Rebuild four started at 19:46, when you pushed back on the AI's
+        "motion restraint" constraint and asked for color, animation, and energy instead.</span>
       </p>
-      <p class=”body u u4”>
-        The design brief I’m now working from: <b>engaging enough for a founder, clear enough for
-        an engineer</b>. What you’re reading is the first thing built to that brief.
+      <p class="body u u4">
+        The design brief I'm now working from: <b>engaging enough for a founder, clear enough for
+        an engineer</b>. What you're reading is the first thing built to that brief.
       </p>
-      <div class=”cites u u5”>
-        <span class=”chip”><span class=”dot” style=”background:var(--marigold)”></span>feed concept · fri 11:35</span>
-        <span class=”chip”><span class=”dot” style=”background:var(--marigold)”></span>cleanup · sat 16:43</span>
-        <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>motion override · sat 19:46</span>
+      <div class="attrib u u5" style="margin-bottom:14px">
+        <span class="avstack">
+          <span class="av av--sm" style="background:var(--cobalt)" title="Gilad Koch">GK</span>
+          <span class="av av--sm" style="background:var(--moss)" title="Rafi Mizrahi">RM</span>
+          <span class="av av--sm av--agent" style="background:var(--ink-60)" title="AI agent">AI</span>
+        </span>
+        <span>Gilad pushed the motion override · Rafi reviewed the cleanup</span>
       </div>
-      <div class=”ask-turn u u6”>
-        <div class=”speaker” style=”margin-bottom:10px”>brain · asking</div>
-        <p class=”q”>The motion override is the most recent design decision on record.
+      <div class="cites u u5">
+        <span class="chip"><span class="dot" style="background:var(--marigold)"></span>feed concept · fri 11:35</span>
+        <span class="chip"><span class="dot" style="background:var(--marigold)"></span>cleanup · sat 16:43</span>
+        <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>motion override · sat 19:46</span>
+      </div>
+      <div class="ask-turn u u6">
+        <div class="speaker" style="margin-bottom:10px">brain · asking</div>
+        <p class="q">The motion override is the most recent design decision on record.
           Want to see what it replaced?
-          <span class=”waiting” aria-label=”brain is waiting”><i></i><i></i><i></i></span></p>
-        <div class=”cites” style=”margin-bottom:0”>
-          <span class=”chip”><span class=”dot” style=”background:var(--marigold)”></span>show what was replaced</span>
-          <span class=”chip”><span class=”dot” style=”background:var(--ink-40)”></span>what got removed?</span>
+          <span class="waiting" aria-label="brain is waiting"><i></i><i></i><i></i></span></p>
+        <div class="cites" style="margin-bottom:0">
+          <span class="chip"><span class="dot" style="background:var(--marigold)"></span>show what was replaced</span>
+          <span class="chip"><span class="dot" style="background:var(--ink-40)"></span>what got removed?</span>
         </div>
       </div>
-      <p class=”openline u u7”>ask anything below · or expand another story above</p>
+      <p class="openline u u7">ask anything below · or expand another story above</p>
     </section>
   </template>
 
-  <template id=”tpl-mcp”>
-    <section class=”unfold” data-accent=”cobalt”>
-      <div class=”stem” aria-hidden=”true”></div>
-      <div class=”speaker u u1”>brain · <span class=”scope”>mcp server</span></div>
-      <h3 class=”u u2”>An agent with no prior context asked how this system works. The digests answered it.</h3>
-      <p class=”body u u3”>
+  <template id="tpl-mcp">
+    <section class="unfold" data-accent="cobalt">
+      <div class="stem" aria-hidden="true"></div>
+      <div class="speaker u u1">brain · <span class="scope">mcp server</span></div>
+      <h3 class="u u2">An agent with no prior context asked how this system works. The digests answered it.</h3>
+      <p class="body u u3">
         Saturday 16:54, a subagent queried the brain and returned a complete, structured answer
         to <q>how does this work?</q> — the first end-to-end test that what gets digested can be
         served back usefully. Two things were unexpected along the way: <b>src/mcp/server.ts
         already existed</b>, a working implementation better than the spec that was being written
         to replace it; and <b>confidence scores are now derived</b> — computed from evidence
-        verification, not the extractor’s own rating — wired into <span class=”handle”>brain_search</span>
-        and <span class=”handle”>brain_feature_context</span>, 485 tests passing, 18 new.
+        verification, not the extractor's own rating — wired into <span class="handle">brain_search</span>
+        and <span class="handle">brain_feature_context</span>, 485 tests passing, 18 new.
       </p>
-      <p class=”body u u4”>
-        <span class=”dim”>One issue still open:</span> the API key in <code>.env</code> went
+      <p class="body u u4">
+        <span class="dim">One issue still open:</span> the API key in <code>.env</code> went
         invalid mid-test — synthesis hit a 401 three times before the agent worked around it.
-        The test passed anyway, but the key hasn’t been confirmed in every environment.
+        The test passed anyway, but the key hasn't been confirmed in every environment.
       </p>
-      <div class=”cites u u5”>
-        <span class=”chip”><span class=”dot” style=”background:var(--cobalt)”></span>test passed · sat 16:54</span>
-        <span class=”chip”><span class=”dot” style=”background:var(--moss)”></span>derived confidence · sat 16:19</span>
-        <span class=”chip”><span class=”dot” style=”background:var(--amber)”></span>401 · open issue</span>
+      <div class="attrib u u5" style="margin-bottom:14px">
+        <span class="avstack">
+          <span class="av av--sm" style="background:var(--marigold); color:var(--ink)" title="Chen Levi">CL</span>
+          <span class="av av--sm av--agent" style="background:var(--ink-60)" title="AI agent (test runner)">AI</span>
+        </span>
+        <span>Chen ran the end-to-end test · AI agent executed the query</span>
       </div>
-      <div class=”ask-turn u u6”>
-        <div class=”speaker” style=”margin-bottom:10px”>brain · asking</div>
-        <p class=”q”>I can’t confirm from the digests whether the rotated key reached every
-          environment. Want me to list everywhere it’s read from?
-          <span class=”waiting” aria-label=”brain is waiting”><i></i><i></i><i></i></span></p>
-        <div class=”cites” style=”margin-bottom:0”>
-          <span class=”chip”><span class=”dot” style=”background:var(--cobalt)”></span>yes — trace the key</span>
-          <span class=”chip”><span class=”dot” style=”background:var(--ink-40)”></span>show the test transcript</span>
+      <div class="cites u u5">
+        <span class="chip"><span class="dot" style="background:var(--cobalt)"></span>test passed · sat 16:54</span>
+        <span class="chip"><span class="dot" style="background:var(--moss)"></span>derived confidence · sat 16:19</span>
+        <span class="chip"><span class="dot" style="background:var(--amber)"></span>401 · open issue</span>
+      </div>
+      <div class="ask-turn u u6">
+        <div class="speaker" style="margin-bottom:10px">brain · asking</div>
+        <p class="q">I can't confirm from the digests whether the rotated key reached every
+          environment. Want me to list everywhere it's read from?
+          <span class="waiting" aria-label="brain is waiting"><i></i><i></i><i></i></span></p>
+        <div class="cites" style="margin-bottom:0">
+          <span class="chip"><span class="dot" style="background:var(--cobalt)"></span>yes — trace the key</span>
+          <span class="chip"><span class="dot" style="background:var(--ink-40)"></span>show the test transcript</span>
         </div>
       </div>
-      <p class=”openline u u7”>ask anything below · or expand another story above</p>
+      <p class="openline u u7">ask anything below · or expand another story above</p>
     </section>
+  </template>
+
+  <!-- notification unfold template -->
+  <template id="tpl-notif-unfold">
+    <div class="notif-unfold" id="notif-unfold-content">
+      <div class="speaker" style="margin-bottom:10px; animation:rise .5s var(--ease) .1s both; opacity:0">brain · <span class="scope" style="color:var(--cobalt)">for you</span></div>
+      <p style="font-size:16px; line-height:1.65; max-width:54ch; margin-bottom:18px; animation:rise .5s var(--ease) .25s both; opacity:0">
+        Dana left a comment on <b>Digest Pipeline</b> after you sealed the fidelity audit:
+        <i>"The two-pass approach looks right — E1b should confirm."</i> That was 4 hours ago.
+        The feature hasn't moved since.
+      </p>
+      <p style="font-size:16px; line-height:1.65; max-width:54ch; margin-bottom:18px; animation:rise .5s var(--ease) .4s both; opacity:0">
+        Also: Rafi approved the dashboard cleanup at 20:11 — the decision you made about removing
+        ~2,600 lines is now in the record. No open questions on that feature right now.
+      </p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; animation:rise .5s var(--ease) .55s both; opacity:0">
+        <span class="chip" onclick="unfold('digest')"><span class="dot" style="background:var(--cobalt)"></span>open digest pipeline</span>
+        <span class="chip"><span class="dot" style="background:var(--moss)"></span>see dashboard approval</span>
+        <span class="chip"><span class="dot" style="background:var(--ink-40)"></span>mark all read</span>
+      </div>
+      <div class="attrib" style="animation:rise .5s var(--ease) .65s both; opacity:0">
+        <span class="avstack">
+          <span class="av av--sm" style="background:var(--vermilion)" title="Dana Avraham">DA</span>
+          <span class="av av--sm" style="background:var(--moss)" title="Rafi Mizrahi">RM</span>
+        </span>
+        <span>Dana commented · Rafi approved · both 3–4 hours ago</span>
+      </div>
+    </div>
   </template>
 
 <script>
@@ -656,6 +839,55 @@
     e.stopPropagation();
     document.body.classList.remove('scoped');
     document.getElementById('askinput').placeholder='Ask the Brain anything — or expand a story…';
+  }
+
+  // ============ NOTIFICATION SURFACE ============
+  let notifOpen = false;
+  function openNotif(){
+    if(notifOpen) return;
+    notifOpen = true;
+    // hide the badge
+    const badge = document.getElementById('notif-badge');
+    if(badge){ badge.style.transition='opacity .4s'; badge.style.opacity='0'; setTimeout(()=>badge.remove(), 400); }
+    // inject the notification card + unfold into the top of the stream
+    const area = document.getElementById('notif-area');
+    // card
+    const card = document.createElement('div');
+    card.className = 'notif-card';
+    card.innerHTML = `
+      <div class="nkick"><span class="dot"></span>WHILE YOU WERE AWAY · 4 HOURS</div>
+      <div class="ntitle">Dana commented on Digest Pipeline. Rafi approved the dashboard cleanup.</div>
+      <div class="nbody">Two things happened after your last session that touch work you own. <b>Neither blocks anything.</b> One leaves a door open.</div>
+      <div class="nfoot">
+        <span class="avstack">
+          <span class="av av--sm" style="background:var(--vermilion)" title="Dana Avraham">DA</span>
+          <span class="av av--sm" style="background:var(--moss)" title="Rafi Mizrahi">RM</span>
+        </span>
+        <span>2 people · 4 hours ago</span>
+        <button class="dismiss" onclick="expandNotif(event)">EXPAND ↓</button>
+      </div>`;
+    area.appendChild(card);
+    // scroll to top so user sees it
+    setTimeout(()=>card.scrollIntoView({behavior:RM?'auto':'smooth', block:'start'}), 120);
+  }
+
+  function expandNotif(e){
+    e.stopPropagation();
+    const area = document.getElementById('notif-area');
+    // inject the unfold below the card
+    const existing = document.getElementById('notif-unfold-content');
+    if(existing) return;
+    const node = document.getElementById('tpl-notif-unfold').content.firstElementChild.cloneNode(true);
+    area.appendChild(node);
+    // update dismiss button
+    const btn = area.querySelector('.dismiss');
+    if(btn){ btn.textContent='MARK READ'; btn.onclick=(ev)=>{ ev.stopPropagation(); area.style.transition='opacity .5s'; area.style.opacity='0'; setTimeout(()=>area.innerHTML='', 520); }; }
+    setTimeout(()=>node.scrollIntoView({behavior:RM?'auto':'smooth', block:'start'}), 80);
+  }
+
+  // Auto-open notifications if ?notif=1
+  if(new URLSearchParams(location.search).get('notif')==='1'){
+    setTimeout(()=>{ openNotif(); setTimeout(expandNotif.bind(null, {stopPropagation:()=>{}}), 1200); }, 600);
   }
 </script>
 </body>

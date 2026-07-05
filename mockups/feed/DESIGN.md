@@ -90,6 +90,60 @@ here") and the ghost box is now **+ ROLE LENS** (`exec · product · eng — soo
 by the reader's seat in the company are the contract for what grows next.
 
 `shots.mjs` re-captures `shots/` (playwright-core + installed Chrome, 1440×900@2x; the
-02 shot is taken *after* the press interaction fires). Palette and type unchanged from
+02 shot is taken *after* the press interaction fires; `01-notif-open.png` captures the
+notification card unfolded). Palette and type unchanged from
 lens-chat: paper `#EFE5CE`, ink `#1C1A15`, cobalt `#2B49D8`, vermilion `#D8492B`,
 marigold `#ECA636`, moss `#2E6B58`, amber `#B4681E`.
+
+## The personal layer
+
+### People next to the work
+
+Every story, moment, and approval carries the faces of who drove it. Three elements:
+
+1. **Initials disc** — a `22px` circle (`.av`) with the person's two-letter initials and a
+   deterministic color: Gilad = cobalt, Dana = vermilion, Rafi = moss, Chen = marigold (ink
+   text). Border is always `--paper` so discs stack cleanly. Small variant `.av--sm` (18px)
+   rides story footers; large variant `.av--lg` (28px) is available for headers.
+
+2. **Agent mark** — AI agents use `.av--agent`: same disc but `border-radius:6px`
+   (rounded-square instead of circle) plus a small circuit-dot badge in the bottom-right corner.
+   Background is `--ink-60` to read as clearly non-human at a glance. The shape difference is
+   the tell — no label needed.
+
+3. **Stacked group** — `.avstack` overlaps discs with `margin-left:-6px`. Hot stories carry
+   three discs; a `.av--more` overflow disc (`+N`) handles four or more. Attribution lines
+   (`.attrib`) combine the stack with a plain-voice caption: "Gilad drove the pivot · Dana
+   sealed the audit."
+
+The feel is credit, not surveillance: the names appear on the work they touched, not on a
+separate "who did what" view.
+
+### Notifications
+
+**Taste rules — what reaches out:**
+- A decision gate is waiting on YOU (your approval, your response blocks others)
+- Something in your area moved while you were away (a feature you last touched got a comment
+  or update)
+- A decision you made was contradicted by new evidence (the Brain flags the conflict)
+- A hot streak in a feature you follow (significant activity density jump)
+
+**What never fires:**
+- Routine digest completions (background work; check the rail-foot count if curious)
+- Other people's chatter in features you don't own
+- Notifications the system has no confidence about (it says nothing rather than guessing)
+
+**Where it lives:**
+- **The shell** — a quiet bell icon in the top-right (`🔔`) with a vermilion badge (`--vermilion`)
+  when unread. The badge uses `.notif-badge` with a `badgepop` spring entrance. The button
+  (`notif-btn`) also carries the page meta (repo, branch, nav links) — it replaces the old
+  `meta-top` pill, so the notification surface is already in the chrome you're always looking at.
+- **The feed** — pressing the bell injects a `notif-card` at the top of the stream: "WHILE YOU
+  WERE AWAY · N HOURS" in cobalt. The card is concise (two lines: who, what; one line: impact).
+  A dismiss/expand button at the foot unfolds the full context inline, infinite-chat style — the
+  `notif-unfold` section materializes with the same `.rise`/stagger grammar as every other unfold.
+
+**The personal item voice:** plain and specific. "Dana commented on Digest Pipeline. Rafi
+approved the dashboard cleanup." Not "You have 2 notifications." Timestamps are relative when
+recent (4 hours ago), absolute when older. The "While you were away" label sets context without
+drama.

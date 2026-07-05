@@ -48,6 +48,7 @@
     0%{background-position:-200% 0} 100%{background-position:300% 0}
   }
   @keyframes waitdot{0%,100%{opacity:.25}30%{opacity:1}}
+  @keyframes badgepop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
 
   /* =================== LENS RAIL =================== */
   .rail{
@@ -309,6 +310,56 @@
   .ask .enter{font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40); border:1px solid var(--ink-12); border-radius:6px; padding:3px 7px}
   .ask .brand-dot{width:8px;height:8px;border-radius:50%;background:var(--moss);animation:breathe 5.4s ease-in-out infinite; margin-left:6px}
 
+  /* =================== PEOPLE SYSTEM =================== */
+  .av{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%; flex-shrink:0;
+    font-family:'Spline Sans Mono',monospace; font-size:8px; font-weight:600;
+    letter-spacing:.04em; color:var(--bone); border:1.5px solid var(--paper);
+    cursor:default; position:relative;
+  }
+  .av--sm{width:18px; height:18px; font-size:7px}
+  .av--agent{border-radius:6px}
+  .av--agent::after{
+    content:''; position:absolute; bottom:-2px; right:-2px;
+    width:8px; height:8px; border-radius:50%;
+    background:var(--paper); border:1px solid var(--ink-25);
+    background-image:radial-gradient(circle, var(--ink-40) 1px, transparent 1px);
+    background-size:4px 4px; background-position:center;
+  }
+  .avstack{display:inline-flex; align-items:center}
+  .avstack .av{margin-left:-6px}
+  .avstack .av:first-child{margin-left:0}
+  .avstack .av--more{background:var(--paper-2); color:var(--ink-60); border-color:var(--ink-12); font-size:7.5px; font-weight:500}
+  .attrib{
+    display:flex; align-items:center; gap:7px; margin-top:10px;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px;
+    letter-spacing:.05em; color:var(--ink-40);
+  }
+
+  /* =================== NOTIFICATION BADGE =================== */
+  .notif-btn{
+    position:fixed; top:20px; right:26px; z-index:10;
+    display:flex; align-items:center; gap:8px;
+    background:rgba(239,229,206,.92); backdrop-filter:blur(6px);
+    border:1.5px solid var(--ink-12); border-radius:10px;
+    padding:7px 11px; cursor:pointer; font-family:inherit;
+    transition:border-color .3s var(--ease);
+  }
+  .notif-btn .icon{font-size:14px; line-height:1; user-select:none}
+  .notif-btn .meta{font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40); letter-spacing:.06em; text-align:right; line-height:1.5}
+  .notif-btn .meta a{color:var(--ink-60); text-decoration:none; border-bottom:1px dashed var(--ink-25)}
+  .notif-btn .meta a:hover{color:var(--cobalt); border-color:var(--cobalt)}
+  .notif-badge{
+    position:absolute; top:-5px; right:-5px;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--vermilion); color:var(--bone);
+    font-family:'Spline Sans Mono',monospace; font-size:8.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--paper);
+    animation:badgepop .5s var(--spring) .8s both;
+  }
+
   .hint{
     position:fixed; left:calc(var(--rail-w) + 26px); top:20px; z-index:6; max-width:340px;
     font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40);
@@ -364,10 +415,15 @@
 
   <!-- ============ THE FEED ============ -->
   <main class="main" id="main">
-    <div class="meta-top rise" style="animation-delay:.6s">
-      intent-ai · feat/repo-brain · sun jul 5<br>
-      <a href="01-the-feed.html">‹ the feed</a> · <a href="03-feature-page.html">feature page ›</a>
-    </div>
+    <!-- notification button -->
+    <button class="notif-btn rise" style="animation-delay:.6s" aria-label="Notifications">
+      <span class="icon" aria-hidden="true">🔔</span>
+      <span class="meta">
+        intent-ai · feat/repo-brain · sun jul 5<br>
+        <a href="01-the-feed.html" onclick="event.stopPropagation()">‹ the feed</a> · <a href="03-feature-page.html" onclick="event.stopPropagation()">feature page ›</a>
+      </span>
+      <span class="notif-badge" aria-label="2 notifications">2</span>
+    </button>
     <div class="hint rise" style="animation-delay:.7s">expand <b>any story</b> — the overview appears below it in the same stream, and the Brain asks a follow-up</div>
 
     <div class="stream">
@@ -395,7 +451,8 @@
           ask the Brain a question it could only answer if the last three weeks of digestion
           actually worked. <span class=”dim”>It answered.</span>
         </p>
-        <p class=”byline rise” style=”animation-delay:3s”>
+        <p class=”byline rise” style=”animation-delay:3s; display:flex; align-items:center; gap:9px”>
+          <span class=”av av--sm” style=”background:var(--cobalt)” title=”Gilad Koch”>GK</span>
           — <b>written by the brain</b> from 9 sessions · every sentence traces to a transcript line
         </p>
       </article>
@@ -418,6 +475,11 @@
         <span class=”foot”>
           <span class=”heat” data-heat=”7,9,12,10,8,11,9” aria-hidden=”true”></span>
           <span>191 events fri · 109 sat · still active</span>
+          <span class=”avstack” aria-label=”Gilad Koch, AI agent, Dana Avraham”>
+            <span class=”av av--sm” style=”background:var(--cobalt)” title=”Gilad Koch”>GK</span>
+            <span class=”av av--sm av--agent” style=”background:var(--ink-60)” title=”AI agent”>AI</span>
+            <span class=”av av--sm” style=”background:var(--vermilion)” title=”Dana Avraham”>DA</span>
+          </span>
           <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
         </span>
       </button>
@@ -434,6 +496,11 @@
         <span class=”foot”>
           <span class=”heat” data-heat=”5,8,11,7,10,6,9” aria-hidden=”true”></span>
           <span>last activity sat 19:46 · active</span>
+          <span class=”avstack” aria-label=”Gilad Koch, Rafi Mizrahi, AI agent”>
+            <span class=”av av--sm” style=”background:var(--cobalt)” title=”Gilad Koch”>GK</span>
+            <span class=”av av--sm” style=”background:var(--moss)” title=”Rafi Mizrahi”>RM</span>
+            <span class=”av av--sm av--agent” style=”background:var(--ink-60)” title=”AI agent”>AI</span>
+          </span>
           <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
         </span>
       </button>
@@ -450,6 +517,10 @@
         <span class=”foot”>
           <span class=”heat” data-heat=”4,6,9,7,8,5,7” aria-hidden=”true”></span>
           <span>72 moments · active</span>
+          <span class=”avstack” aria-label=”Chen Levi, AI agent”>
+            <span class=”av av--sm” style=”background:var(--marigold); color:var(--ink)” title=”Chen Levi”>CL</span>
+            <span class=”av av--sm av--agent” style=”background:var(--ink-60)” title=”AI agent”>AI</span>
+          </span>
           <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
         </span>
       </button>
@@ -504,6 +575,14 @@
         own for the first time, and by Saturday night it had run nine catch-up sessions with
         nobody watching.
       </p>
+      <div class=”attrib u u5” style=”margin-bottom:14px”>
+        <span class=”avstack”>
+          <span class=”av av--sm” style=”background:var(--cobalt)” title=”Gilad Koch”>GK</span>
+          <span class=”av av--sm av--agent” style=”background:var(--ink-60)” title=”AI agent”>AI</span>
+          <span class=”av av--sm” style=”background:var(--vermilion)” title=”Dana Avraham”>DA</span>
+        </span>
+        <span>Gilad drove the pivot · Dana sealed the audit · AI ran 9 catch-up sessions</span>
+      </div>
       <div class=”cites u u5”>
         <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>pivot · sat 01:14</span>
         <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>”worse than noise” · sat 15:45</span>
