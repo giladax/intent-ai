@@ -31,6 +31,8 @@ interface FeedStreamProps {
   onStoryPress: (featureId: string, featureName: string) => void;
   /** Optional notification card rendered before the now-edge (Task 9). */
   notifSlot?: React.ReactNode;
+  /** Optional: navigate to a session detail when a citation chip is clicked. */
+  onSessionClick?: (sessionId: string) => void;
 }
 
 const ACCENT_VAR: Record<string, string> = {
@@ -69,6 +71,7 @@ export function FeedStream({
   pressedStories,
   onStoryPress,
   notifSlot,
+  onSessionClick,
 }: FeedStreamProps) {
   if (loading || !feed) {
     return (
@@ -91,6 +94,7 @@ export function FeedStream({
   const accentByFeature = new Map(
     feed.trending.map((s, i) => [s.featureId, storyAccent(i)]),
   );
+  const hasLedeProvenance = feed.lede.citedSessionIds.length > 0;
 
   return (
     <div className="feed-stream">
@@ -134,7 +138,8 @@ export function FeedStream({
           </p>
         )}
         <p className="feed-byline lc-rise" style={{ animationDelay: "3s" }}>
-          — <b>written by Quire</b> from the recorded sessions · every claim traces to the record
+          — <b>written by Quire</b> from the recorded sessions
+          {hasLedeProvenance && <> · every claim traces to the record</>}
         </p>
       </article>
 
@@ -175,6 +180,7 @@ export function FeedStream({
               key={p.featureId}
               story={story}
               accent={accentByFeature.get(p.featureId) ?? "vermilion"}
+              onSessionClick={onSessionClick}
             />
           );
         })}
@@ -263,7 +269,7 @@ export function Avatar({ initials, size = "sm" }: { initials: string; size?: "sm
 
 // ── Unfold section — the story's deeper cut, appended in-stream ────────
 
-function UnfoldSection({ story, accent }: { story: FeedStory; accent: string }) {
+function UnfoldSection({ story, accent, onSessionClick }: { story: FeedStory; accent: string; onSessionClick?: (id: string) => void }) {
   const ref = useRef<HTMLElement>(null);
   const [entered, setEntered] = useState(false);
 
@@ -307,12 +313,24 @@ function UnfoldSection({ story, accent }: { story: FeedStory; accent: string }) 
           <span className="fs-dot" style={{ background: "var(--lc-moss)" }} />
           {story.heatLabel}
         </span>
-        {story.citedSessionIds.slice(0, 2).map((sid) => (
-          <span key={sid} className="fs-chip">
-            <span className="fs-dot" style={{ background: "var(--lc-ink-40)" }} />
-            session {sid.slice(0, 8)}
-          </span>
-        ))}
+        {story.citedSessionIds.slice(0, 2).map((sid) =>
+          onSessionClick ? (
+            <button
+              key={sid}
+              className="fs-chip fs-chip--link"
+              onClick={() => onSessionClick(sid)}
+              title={`Open session ${sid.slice(0, 8)}`}
+            >
+              <span className="fs-dot" style={{ background: "var(--lc-ink-40)" }} />
+              session {sid.slice(0, 8)}
+            </button>
+          ) : (
+            <span key={sid} className="fs-chip">
+              <span className="fs-dot" style={{ background: "var(--lc-ink-40)" }} />
+              session {sid.slice(0, 8)}
+            </span>
+          )
+        )}
       </div>
       <div className="fs-ask-turn fs-u fs-u6">
         <div className="fs-speaker" style={{ marginBottom: "10px" }}>Quire · asking</div>

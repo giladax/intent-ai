@@ -150,6 +150,7 @@ function AppShell() {
         <LensChatView
           features={features}
           projectId={selectedProject?.id ?? null}
+          onSessionClick={(id) => { setSelectedSessionId(id); setView("session-detail"); }}
         />
         {/* "ledger" link — unobtrusive corner affordance to reach classic shell */}
         <button
@@ -312,7 +313,7 @@ function AskBrainButton() {
   return (
     <button className="ink-ask" data-open={open} title="⌘J" onClick={toggleDock}>
       {open ? <X className="size-3" /> : <MessageSquare className="size-3" />}
-      {open ? "Close" : items.length > 0 ? `Correspondence · ${items.length}` : "Ask Quire"}
+      {open ? "Close" : items.length > 0 ? `Ask Quire · ${items.length}` : "Ask Quire"}
     </button>
   );
 }

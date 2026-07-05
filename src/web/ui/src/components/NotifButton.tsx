@@ -10,18 +10,24 @@ import { getLastSeenFromStorage, setLastSeenInStorage, hoursSince } from "./noti
 interface NotifButtonProps {
   unreadCount: number;
   onOpen: () => void;
+  repo?: string;
+  branch?: string;
 }
 
-export function NotifButton({ unreadCount, onOpen }: NotifButtonProps) {
+export function NotifButton({ unreadCount, onOpen, repo, branch }: NotifButtonProps) {
   const metaDate = new Date()
     .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
     .toLowerCase()
     .replace(",", "");
 
+  const repoLabel = repo || branch
+    ? `${repo || "—"} · ${branch || "—"}`
+    : "intent-ai · feat/repo-brain";
+
   return (
     <button className="notif-btn lc-rise" style={{ animationDelay: "0.6s" }} onClick={onOpen} aria-label="Notifications">
       <span className="icon" aria-hidden="true">🔔</span>
-      <span className="meta">intent-ai · feat/repo-brain · {metaDate}</span>
+      <span className="meta">{repoLabel} · {metaDate}</span>
       {unreadCount > 0 && (
         <span className="notif-badge" aria-label={`${unreadCount} notifications`}>{unreadCount}</span>
       )}
@@ -56,6 +62,7 @@ export function NotifCard({ notifications, lastSeen, onDismiss }: NotifCardProps
   const headliners = notifications.slice(0, 2).map((n) => n.text);
   const title = headliners.length > 0 ? headliners.join(" ") : "Nothing new since your last visit.";
   const count = notifications.length;
+  const pendingGateCount = notifications.filter((n) => n.type === "pending_gate").length;
 
   return (
     <div>
@@ -65,7 +72,7 @@ export function NotifCard({ notifications, lastSeen, onDismiss }: NotifCardProps
         <div className="nbody">
           {count === 0
             ? "Quiet since you left. Nothing needs you right now."
-            : <>{count} thing{count === 1 ? "" : "s"} happened that touch work you follow. <b>Nothing is blocked.</b></>}
+            : <>{count} thing{count === 1 ? "" : "s"} happened that touch work you follow.{pendingGateCount === 0 ? <> <b>Nothing is blocked.</b></> : null}</>}
         </div>
         <div className="nfoot">
           <span>{count} update{count === 1 ? "" : "s"}</span>

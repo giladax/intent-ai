@@ -80,7 +80,7 @@ export function DigestPanel({ repoId, undigestedCount, onDone }: Props) {
         <div className="ink-rule-double ink-rise mt-4" style={{ "--i": 1 } as React.CSSProperties} />
         <p className="ink-deck ink-rise mt-4" style={{ "--i": 2 } as React.CSSProperties}>
           {digested !== null ? (
-            <>Done — <span style={{ fontStyle: "normal", fontWeight: 600, color: "var(--j-moss)" }}>{digested}</span> session{digested === 1 ? "" : "s"} entered the river.</>
+            <>Done — <span style={{ fontStyle: "normal", fontWeight: 600, color: "var(--j-moss)" }}>{digested}</span> session{digested === 1 ? "" : "s"} processed.</>
           ) : undigestedCount > 0 ? (
             <><span style={{ fontStyle: "normal", fontWeight: 600, color: "var(--j-red)" }}>{undigestedCount}</span> session{undigestedCount === 1 ? "" : "s"} waiting to be read.</>
           ) : (

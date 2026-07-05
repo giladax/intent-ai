@@ -250,7 +250,7 @@ export function SessionDetailPage({ sessionId, onBack }: Props) {
                   {/* Sitting separator */}
                   {sitting && prevSitting && (
                     <div className="ink-section my-3" style={{ color: "var(--j-faint)" }}>
-                      sitting {sitting.sittingIndex + 1} · after {formatGap(prevSitting, sitting)} gap
+                      section {sitting.sittingIndex + 1} · after {formatGap(prevSitting, sitting)} gap
                     </div>
                   )}
 

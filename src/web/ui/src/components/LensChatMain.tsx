@@ -84,6 +84,8 @@ interface LensChatMainProps {
   onStoryPress: (featureId: string, featureName: string) => void;
   /** Notification card slot — rendered at the top of the feed stream. */
   notifSlot?: React.ReactNode;
+  /** Navigate to a session's detail page when a feed citation chip is clicked. */
+  onSessionClick?: (sessionId: string) => void;
 }
 
 export function LensChatMain({
@@ -102,6 +104,7 @@ export function LensChatMain({
   pressedStories,
   onStoryPress,
   notifSlot,
+  onSessionClick,
 }: LensChatMainProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -221,6 +224,7 @@ export function LensChatMain({
             pressedStories={pressedStories}
             onStoryPress={onStoryPress}
             notifSlot={notifSlot}
+            onSessionClick={onSessionClick}
           />
         )}
 

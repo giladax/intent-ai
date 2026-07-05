@@ -159,3 +159,23 @@ In-flight dedup: `_composeInFlight` module lock. Min-age: `isCacheStale` returns
 - UI rebuilt: `index-D6GlKzNz.js`
 - Commits: `849a389` (C2+C1), `689039a` (I1+I6+I8), `de4dd65` (I2-I5+I7+I10)
 - Screenshots: `.superpowers/sdd/shots-feed-impl/01.png` + `02.png`
+
+## Follow-up commit (source-file recovery + I7 completion)
+Commit `de4dd65` accidentally contained only the rebuilt UI artifact — the UI source
+changes were left uncommitted in the working tree. This follow-up commit carries them:
+App.tsx, DigestPanel.tsx, FeedStream.tsx, JournalPage.tsx, LensChatMain.tsx,
+LensChatView.tsx, NotifButton.tsx, SessionDetailPage.tsx, quire-copy.test.ts.
+
+It also **completes I7**: no parent was passing `onSessionClick` to FeedStream, so
+citation chips were still inert. Now threaded App.tsx → LensChatView → LensChatMain →
+FeedStream; chips render as buttons and navigate to the session detail page.
+
+Live verification (Chrome, port 7899):
+- Byline: "— written by Quire from the recorded sessions" (provenance claim dropped, lede uncited) — I7 ✓
+- Trending: 1 distinct story (was 4 near-identical at heat 13.032 from one session) — I1 ✓
+- Dek: full sentences, no mid-word truncation — I3 ✓
+- Notif meta: "intent-ai · feat/repo-brain" served live from /api/meta — I10 ✓
+- Chip click navigated to session detail; "section N · after gap" separators confirmed — I7 + I4 ✓
+- C2 re-verified destructively: DROP TABLE feed_cache → `cli up` → table recreated with full schema ✓
+- Corrected counts: server tsc = 9 errors (matches baseline exactly); tests 727 passing
+- UI rebuilt: `index-DiMsoyie.js`; screenshots 01.png/02.png re-taken with final build

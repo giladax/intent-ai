@@ -11,6 +11,7 @@ const UI_COMPONENTS = [
   "src/web/ui/src/components/ChatDock.tsx",
   "src/web/ui/src/components/FeaturesPage.tsx",
   "src/web/ui/src/components/FeedStream.tsx",
+  "src/web/ui/src/components/ProvenancePanel.tsx",
 ];
 
 // User-facing "brain"/"Brain" patterns that must have been replaced.

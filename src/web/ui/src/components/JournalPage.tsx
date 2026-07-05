@@ -488,7 +488,7 @@ export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, 
         </header>
 
         {error && (
-          <p className="j-chrome mt-4 italic">The journal endpoint isn&rsquo;t answering yet — the river runs empty.</p>
+          <p className="j-chrome mt-4 italic">The journal endpoint isn&rsquo;t responding yet — nothing to show.</p>
         )}
 
         {/* quiet chrome: lenses */}
@@ -533,7 +533,7 @@ export function JournalPage({ repoId, features, onSessionClick, onFeatureClick, 
               className="j-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="search the river…"
+              placeholder="search events…"
             />
           </div>
         </div>

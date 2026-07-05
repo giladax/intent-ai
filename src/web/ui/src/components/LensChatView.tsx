@@ -7,14 +7,17 @@ import { LensChatMain } from "./LensChatMain";
 import { fetchLensArrival, fetchPendingObservations, approveObservation, rejectObservation, fetchNotifications, fetchFeed, type Notification, type FeedComposed } from "../api";
 import type { PressedStory } from "./FeedStream";
 import { NotifButton, NotifCard, useLastSeen } from "./NotifButton";
+import { setLastSeenInStorage, getLastSeenFromStorage } from "./notif-utils";
 import type { Feature, LensArrivalData, PendingObservation } from "../types";
 
 interface LensChatViewProps {
   features: Feature[];
   projectId: string | null;
+  /** Navigate to a session's detail page when a feed citation chip is clicked. */
+  onSessionClick?: (sessionId: string) => void;
 }
 
-export function LensChatView({ features, projectId }: LensChatViewProps) {
+export function LensChatView({ features, projectId, onSessionClick }: LensChatViewProps) {
   const [focusedLens, setFocusedLens] = useState<LensType>(null);
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
   const [selectedFeatureName, setSelectedFeatureName] = useState<string | null>(null);
@@ -27,12 +30,24 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
   const [feedLoading, setFeedLoading] = useState(true);
   const [pressedStories, setPressedStories] = useState<PressedStory[]>([]);
   const [notifCardOpen, setNotifCardOpen] = useState(false);
+  const [metaRepo, setMetaRepo] = useState("");
+  const [metaBranch, setMetaBranch] = useState("");
   const lastSeen = useLastSeen();
 
   useEffect(() => {
     fetchLensArrival()
       .then(setArrivalData)
       .catch(() => {/* fail-safe: undefined arrival data shows empty state */});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/meta")
+      .then((r) => r.json())
+      .then((d: { repo?: string; branch?: string }) => {
+        if (d.repo) setMetaRepo(d.repo);
+        if (d.branch) setMetaBranch(d.branch);
+      })
+      .catch(() => {/* fail-safe: hardcoded fallback in NotifButton */});
   }, []);
 
   // The composed feed — fail-safe: null keeps the skeleton visible.
@@ -44,9 +59,11 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
   }, []);
 
   // Notification polling — on mount + every 30 seconds. Fail-safe: quiet.
+  // Read lastSeen dynamically each poll so that a dismiss stamp persists correctly.
   useEffect(() => {
     const poll = () => {
-      fetchNotifications(lastSeen ?? undefined)
+      const currentLastSeen = getLastSeenFromStorage() ?? lastSeen ?? undefined;
+      fetchNotifications(currentLastSeen)
         .then((data) => {
           setNotifications(data.notifications);
           setUnreadNotifCount(data.unreadCount);
@@ -132,11 +149,19 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
     setUnreadNotifCount(0);
   }
 
+  function handleNotifDismiss() {
+    // Stamp "now" so the next poll uses the post-dismiss timestamp — prevents
+    // badge resurrection for events that arrived before the dismiss.
+    setLastSeenInStorage(new Date().toISOString());
+    setNotifCardOpen(false);
+    setUnreadNotifCount(0);
+  }
+
   const notifSlot = notifCardOpen ? (
     <NotifCard
       notifications={notifications}
       lastSeen={lastSeen}
-      onDismiss={() => setNotifCardOpen(false)}
+      onDismiss={handleNotifDismiss}
     />
   ) : null;
 
@@ -183,8 +208,9 @@ export function LensChatView({ features, projectId }: LensChatViewProps) {
         pressedStories={pressedStories}
         onStoryPress={handleStoryPress}
         notifSlot={notifSlot}
+        onSessionClick={onSessionClick}
       />
-      <NotifButton unreadCount={unreadNotifCount} onOpen={handleNotifOpen} />
+      <NotifButton unreadCount={unreadNotifCount} onOpen={handleNotifOpen} repo={metaRepo} branch={metaBranch} />
     </div>
   );
 }
