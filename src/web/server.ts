@@ -1260,7 +1260,7 @@ export async function startWebServer(port: number): Promise<void> {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { question, featureId, sessionId, history, contextItems } = req.body;
+      const { question, featureId, sessionId, history, contextItems, lensScope } = req.body;
 
       if (!question) {
         res.status(400).json({ error: "question is required" });
@@ -1346,6 +1346,58 @@ ${sessionContexts}
           systemPrompt = buildSystemPrompt(digest);
         } catch (err) {
           systemPrompt = `You are an execution memory assistant. The session ${sessionId} could not be loaded: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      } else if (lensScope?.timeRange) {
+        // Timeline-scoped: summarize recent events in the given window
+        const sql = getClient();
+        const since = lensScope.timeRange.since;
+        const until = lensScope.timeRange.until;
+        const label = lensScope.timeRange.label ?? "selected period";
+
+        const recentEvents = await sql`
+          SELECT category, summary, actor, timestamp FROM activity_events
+          WHERE timestamp >= ${since} AND timestamp <= ${until}
+          ORDER BY timestamp DESC LIMIT 60`;
+
+        if (recentEvents.length === 0) {
+          systemPrompt = `You are the Brain — the organizational understanding engine. The user is looking at the Timeline lens scoped to "${label}". There are no recorded events in this period. Let them know the journal is quiet for this window, and suggest broadening the range.`;
+        } else {
+          const evSummary = recentEvents.map((e: any) =>
+            `[${new Date(e.timestamp).toISOString()}] ${e.category} / ${e.actor}: ${e.summary}`
+          ).join("\n");
+          systemPrompt = `You are the Brain — the organizational understanding engine. The user is looking at the Timeline lens scoped to "${label}". Here are the recorded events in this window:\n\n${evSummary}\n\n## Rules\n- Answer based on this event record.\n- Summarize patterns, pivots, and outcomes when asked.\n- Keep responses concise but grounded in the evidence above.`;
+        }
+      } else if (lensScope?.featureId && !featureId) {
+        // Feature lens scope without an explicit featureId in the body — use lensScope
+        const sql = getClient();
+        const fid = lensScope.featureId;
+        const featureRows = await sql`SELECT * FROM features WHERE id = ${fid}`;
+        const featureName = featureRows[0]?.name ?? "Unknown Feature";
+
+        const sessionRows = await sql`
+          SELECT s.id FROM feature_sessions fs
+          JOIN sessions s ON s.id = fs.session_id
+          WHERE fs.feature_id = ${fid}
+          ORDER BY s.started_at ASC NULLS LAST`;
+
+        const digests = [];
+        for (const row of sessionRows) {
+          try {
+            const digest = await loadDigest(row.id);
+            digests.push(digest);
+          } catch { /* skip */ }
+        }
+
+        if (digests.length === 0) {
+          systemPrompt = `You are the Brain scoped to the feature "${featureName}". No session digests are available yet for this feature. The user may need to tag sessions to it first.`;
+        } else {
+          const sessionContexts = digests.map((d, i) => {
+            const prompt = buildSystemPrompt(d);
+            const digestStart = prompt.indexOf("## Session Digest");
+            return `### Session ${i + 1}\n${digestStart >= 0 ? prompt.slice(digestStart) : prompt}`;
+          }).join("\n\n---\n\n");
+
+          systemPrompt = `You are the Brain scoped to the feature "${featureName}". You have access to ${digests.length} session digests for this feature.\n\n${sessionContexts}\n\n## Rules\n- Answer based on the evidence in the digests.\n- Quote the developer's actual words when available.\n- If asked about something not covered, say so.`;
         }
       } else {
         systemPrompt = `You are an execution memory assistant for AI-assisted development sessions. The user hasn't selected a specific feature or session yet. Help them navigate — suggest they select a feature or session from the sidebar to start exploring.`;

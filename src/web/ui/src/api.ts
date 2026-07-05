@@ -208,6 +208,10 @@ export async function* streamChat(
     featureId?: string;
     sessionId?: string;
     contextItems?: ChatContextItem[];
+    lensScope?: {
+      featureId?: string;
+      timeRange?: { since: string; until: string; label: string };
+    };
   } = {},
 ): AsyncGenerator<{ type: string; content?: string }> {
   const res = await fetch(`${BASE}/api/chat`, {
