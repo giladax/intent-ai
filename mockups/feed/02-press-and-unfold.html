@@ -368,100 +368,100 @@
       intent-ai · feat/repo-brain · sun jul 5<br>
       <a href="01-the-feed.html">‹ the feed</a> · <a href="03-feature-page.html">feature page ›</a>
     </div>
-    <div class="hint rise" style="animation-delay:.7s">press <b>any story</b> — the stream scrolls, and its overview materializes as new content in the flow</div>
+    <div class="hint rise" style="animation-delay:.7s">expand <b>any story</b> — the overview appears below it in the same stream, and the Brain asks a follow-up</div>
 
     <div class="stream">
 
       <!-- the now edge -->
-      <div class="now-edge rise" style="animation-delay:.5s" aria-hidden="true">
-        <div class="line"></div>
-        <div class="lab"><span>the now edge</span><span>river last moved <b>sat 21:16</b></span></div>
+      <div class=”now-edge rise” style=”animation-delay:.5s” aria-hidden=”true”>
+        <div class=”line”></div>
+        <div class=”lab”><span>last updated</span><span>sat 21:16 · <b>9 sessions digested</b></span></div>
       </div>
 
       <!-- lead: the org overview, written by the brain -->
-      <header class="edition rise" style="animation-delay:.65s">
-        <span><span class="k">THE FEED</span> · ORG LENS</span>
-        <span>EDITION NO. 9 · SUNDAY, JULY 5</span>
+      <header class=”edition rise” style=”animation-delay:.65s”>
+        <span><span class=”k”>THE FEED</span> · ORG LENS</span>
+        <span>UPDATE 9 · SUNDAY, JULY 5</span>
       </header>
 
-      <article class="lead">
-        <h1 id="headline" aria-label="The Brain stopped taking its own word for it."></h1>
-        <p class="lede rise" style="animation-delay:2.6s">
-          Three hundred events in forty-eight hours — the loudest weekend this river has run —
-          and nearly all of it pushes one direction: <b>proof</b>. You audited how the pipeline
-          reads and <span class="handle" onclick="unfold('digest')">rewrote it to read deliberately</span>.
-          You rewired confidence to come from <span class="handle" onclick="unfold('mcp')">verified evidence</span>
-          instead of the extractor's self-esteem. And you made an agent dogfood the whole loop —
-          ask the Brain a question it could only answer if the last three weeks actually stuck.
-          <span class="dim">It answered.</span>
+      <article class=”lead”>
+        <h1 id=”headline” aria-label=”Digest quality was unverified for weeks. This weekend we audited it and rewrote the pipeline.”></h1>
+        <p class=”lede rise” style=”animation-delay:2.6s”>
+          300 events in 48 hours, and most of them point the same direction: making the system
+          checkable. You audited how the pipeline reads and
+          <span class=”handle” onclick=”unfold(‘digest’)”>rewrote it to read in two passes</span>.
+          You wired confidence to <span class=”handle” onclick=”unfold(‘mcp’)”>verified evidence</span>
+          instead of the extractor’s own score. Then you put an agent in the hot seat —
+          ask the Brain a question it could only answer if the last three weeks of digestion
+          actually worked. <span class=”dim”>It answered.</span>
         </p>
-        <p class="byline rise" style="animation-delay:3s">
-          — <b>written by the brain</b> from 9 sessions · every sentence walks back to a transcript line
+        <p class=”byline rise” style=”animation-delay:3s”>
+          — <b>written by the brain</b> from 9 sessions · every sentence traces to a transcript line
         </p>
       </article>
 
       <!-- trending -->
-      <div class="trendhead rise" style="animation-delay:3.2s">
-        <span class="ember"></span> TRENDING NOW <span class="rule"></span>
-        <span class="note">heat = events, recency-weighted</span>
+      <div class=”trendhead rise” style=”animation-delay:3.2s”>
+        <span class=”ember”></span> MOST ACTIVE <span class=”rule”></span>
+        <span class=”note”>heat = events, recency-weighted</span>
       </div>
 
-      <button class="story rise" style="animation-delay:3.35s" data-accent="vermilion"
-              id="story-digest" onclick="unfold('digest')">
-        <span class="kick" style="color:var(--vermilion)"><span class="sq" style="background:var(--vermilion)"></span>PIPELINE · 48 HOURS OF HEAT</span>
-        <h2>At 1:14 a.m. you told the pipeline it wasn't good enough. By dusk it read like an editor.</h2>
-        <p class="dek">
-          A Friday-night fidelity audit became a Saturday rewrite: two-phase deliberative
-          reading in, the 3-event overlap out — judged <i>“worse than noise.”</i> Meanwhile the
-          scheduler quietly digested its first sessions with no human in the loop.
+      <button class=”story rise” style=”animation-delay:3.35s” data-accent=”vermilion”
+              id=”story-digest” onclick=”unfold(‘digest’)”>
+        <span class=”kick” style=”color:var(--vermilion)”><span class=”sq” style=”background:var(--vermilion)”></span>PIPELINE · 48 HOURS OF ACTIVITY</span>
+        <h2>Digest quality was unverified for weeks — yesterday we audited it and rewrote the pipeline. Evidence is now checkable.</h2>
+        <p class=”dek”>
+          A Friday-night fidelity audit turned into a Saturday rewrite: two-pass deliberative
+          reading in, the 3-event overlap out — verdict: <i>”worse than noise.”</i> The
+          scheduler ran its first unattended digests the same night.
         </p>
-        <span class="foot">
-          <span class="heat" data-heat="7,9,12,10,8,11,9" aria-hidden="true"></span>
-          <span>191 events fri · 109 sat · still warm</span>
-          <span class="press">PRESS TO UNFOLD <span class="ar">↓</span></span>
+        <span class=”foot”>
+          <span class=”heat” data-heat=”7,9,12,10,8,11,9” aria-hidden=”true”></span>
+          <span>191 events fri · 109 sat · still active</span>
+          <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
         </span>
       </button>
 
-      <button class="story rise" style="animation-delay:3.5s" data-accent="marigold"
-              id="story-ui" onclick="unfold('ui')">
-        <span class="kick" style="color:#B57B14"><span class="sq" style="background:var(--marigold)"></span>DASHBOARD · REBUILT FOUR TIMES</span>
-        <h2>Four redesigns in two days. The last one demanded color.</h2>
-        <p class="dek">
-          Friday morning rejected “lanes” for the Journal; by noon every page spoke ink-and-paper.
-          Saturday’s purge removed ~2,600 lines of orphaned design — and at 19:46 you overrode
-          the AI’s motion restraint. This feed is what that argument produced.
+      <button class=”story rise” style=”animation-delay:3.5s” data-accent=”marigold”
+              id=”story-ui” onclick=”unfold(‘ui’)”>
+        <span class=”kick” style=”color:#B57B14”><span class=”sq” style=”background:var(--marigold)”></span>DASHBOARD · REBUILT FOUR TIMES</span>
+        <h2>Four redesigns in two days. The last one added color and motion the earlier versions had explicitly ruled out.</h2>
+        <p class=”dek”>
+          Friday morning dropped the “lanes” layout for a feed-first design; by noon every page
+          matched. Saturday’s cleanup removed ~2,600 lines of unused code — then at 19:46 you
+          pushed back on the AI’s “motion restraint” constraint. What you’re reading now is the result.
         </p>
-        <span class="foot">
-          <span class="heat" data-heat="5,8,11,7,10,6,9" aria-hidden="true"></span>
-          <span>last moved sat 19:46 · hot</span>
-          <span class="press">PRESS TO UNFOLD <span class="ar">↓</span></span>
+        <span class=”foot”>
+          <span class=”heat” data-heat=”5,8,11,7,10,6,9” aria-hidden=”true”></span>
+          <span>last activity sat 19:46 · active</span>
+          <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
         </span>
       </button>
 
-      <button class="story rise" style="animation-delay:3.65s" data-accent="cobalt"
-              id="story-mcp" onclick="unfold('mcp')">
-        <span class="kick" style="color:var(--cobalt)"><span class="sq" style="background:var(--cobalt)"></span>MCP · PROOF OF LOOP</span>
-        <h2>An agent asked the Brain how things work — and got a real answer.</h2>
-        <p class="dek">
-          The dogfood test passed at 16:54 Saturday: a subagent queried the brain and returned a
-          complete, structured answer. Along the way, confidence became something derived from
-          verified evidence — 485 tests agree.
+      <button class=”story rise” style=”animation-delay:3.65s” data-accent=”cobalt”
+              id=”story-mcp” onclick=”unfold(‘mcp’)”>
+        <span class=”kick” style=”color:var(--cobalt)”><span class=”sq” style=”background:var(--cobalt)”></span>MCP · END-TO-END TEST</span>
+        <h2>An agent asked the Brain how this system works — and got a complete answer from the digests.</h2>
+        <p class=”dek”>
+          The test passed at 16:54 Saturday: a subagent with no context queried the brain and
+          got a structured answer back. Confidence scores are now derived from evidence
+          verification — 485 tests pass.
         </p>
-        <span class="foot">
-          <span class="heat" data-heat="4,6,9,7,8,5,7" aria-hidden="true"></span>
-          <span>72 moments · warm</span>
-          <span class="press">PRESS TO UNFOLD <span class="ar">↓</span></span>
+        <span class=”foot”>
+          <span class=”heat” data-heat=”4,6,9,7,8,5,7” aria-hidden=”true”></span>
+          <span>72 moments · active</span>
+          <span class=”press”>EXPAND <span class=”ar”>↓</span></span>
         </span>
       </button>
 
-      <aside class="briefs rise" style="animation-delay:3.85s">
-        <div class="bh">ALSO IN THE RIVER</div>
-        <p class="brief"><b>29 tables touched real Postgres for the first time.</b> The broken
-          8-migration chain is gone, replaced by a baseline; a write race now dies against a
-          partial unique index. <span class="t">storage · fri 15:32 · cooling</span></p>
-        <p class="brief"><b>One thing I can’t verify from inside:</b> the API key in <code>.env</code>
-          went invalid mid-dogfood (401). Synthesis retried three times and gave up politely.
-          <span class="t">unknown · sat 16:54</span></p>
+      <aside class=”briefs rise” style=”animation-delay:3.85s”>
+        <div class=”bh”>ALSO THIS WEEK</div>
+        <p class=”brief”><b>29 tables connected to real Postgres for the first time.</b> The broken
+          8-migration chain is gone, replaced by a clean baseline; a write race now fails against a
+          partial unique index. <span class=”t”>storage · fri 15:32 · cooling</span></p>
+        <p class=”brief”><b>One gap the Brain can’t close on its own:</b> the API key in <code>.env</code>
+          went invalid mid-test (401). Synthesis retried three times and stopped.
+          <span class=”t”>unresolved · sat 16:54</span></p>
       </aside>
 
       <!-- presses extend the stream here — content and conversation, same medium -->
@@ -473,130 +473,130 @@
       <div class="ask rise" style="animation-delay:1.2s">
         <span class="scopetag" id="scopetag"></span>
         <span class="brand-dot" aria-hidden="true" id="branddot"></span>
-        <input type="text" id="askinput" placeholder="Ask the feed anything — or press a story to unfold it…" aria-label="Ask the brain">
+        <input type="text" id="askinput" placeholder="Ask the Brain anything — or expand a story…" aria-label="Ask the brain">
         <span class="enter">⏎</span>
       </div>
     </div>
   </main>
 
   <!-- ============ UNFOLD CONTENT — the brain's deeper cuts ============ -->
-  <template id="tpl-digest">
-    <section class="unfold" data-accent="vermilion">
-      <div class="stem" aria-hidden="true"></div>
-      <div class="speaker u u1">brain · unfolding: <span class="scope">the digestion rewrite</span></div>
-      <h3 class="u u2">It started with an audit, and ended with a new way to read.</h3>
-      <p class="body u u3">
-        Friday night the fidelity audit landed its core: a scoring engine, 10/10 new tests, the
-        full suite at 321. Twenty minutes later you interrupted the running plan —
-        <q>I want you to rewrite</q> — and at 1:14 a.m. went further:
-        <q>seems to me this flow is not good enough.</q> The audit agreed. Its central finding:
-        all four audited sessions fit inside a single context window, worst case ~58k of 200k
-        tokens — <span class="dim">so the chunking, the overlap, and the machinery built to clean
-        up after them were solving a problem that no longer exists.</span> The 3-event overlap
-        got the verdict of the weekend: <q>worse than noise — it’s negative value.</q>
+  <template id=”tpl-digest”>
+    <section class=”unfold” data-accent=”vermilion”>
+      <div class=”stem” aria-hidden=”true”></div>
+      <div class=”speaker u u1”>brain · <span class=”scope”>digest pipeline</span></div>
+      <h3 class=”u u2”>The audit found the pipeline solving a problem that no longer exists. The rewrite fixes that.</h3>
+      <p class=”body u u3”>
+        Friday night the fidelity audit delivered its core finding: a scoring engine, 10 new tests,
+        full suite green at 321. Twenty minutes later the plan got interrupted mid-run —
+        <q>I want you to rewrite</q> — and at 1:14 a.m. Saturday the challenge went deeper:
+        <q>seems to me this flow is not good enough.</q> The audit backed you up. All four audited
+        sessions fit inside a single context window — worst case ~58k of 200k tokens —
+        <span class=”dim”>so the chunking, the overlap, and all the cleanup machinery around them
+        were solving a problem that no longer exists.</span> The 3-event overlap drew the clearest
+        verdict: <q>worse than noise — it’s negative value.</q>
       </p>
-      <p class="body u u4">
-        The replacement is <b>two-phase deliberative reading</b> — a draft read that holds
-        provisional commits and open questions, then a retrospective revision once the whole
-        session is known. An E1b control arm is queued to isolate what actually helps, and E0 is
-        held until the topology proposal lands. <span class="dim">While all this was argued, the
-        scheduler proved the other half:</span> at 22:26 Friday it fired on its own for the first
-        time, and by Saturday night had digested nine catch-ups with nobody watching.
+      <p class=”body u u4”>
+        The replacement is <b>two-pass deliberative reading</b> — a draft pass that holds
+        provisional calls and open questions, then a retrospective revision once the full session
+        is known. An E1b control arm is queued to isolate what actually helps, and E0 is on hold
+        until the topology proposal lands. <span class=”dim”>While the reading approach was being
+        worked out, the scheduler proved the other half:</span> at 22:26 Friday it fired on its
+        own for the first time, and by Saturday night it had run nine catch-up sessions with
+        nobody watching.
       </p>
-      <div class="cites u u5">
-        <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>pivot · sat 01:14</span>
-        <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>“worse than noise” · sat 15:45</span>
-        <span class="chip"><span class="dot" style="background:var(--moss)"></span>scheduler · fri 22:26</span>
-        <span class="chip"><span class="dot" style="background:var(--moss)"></span>321/321 tests</span>
+      <div class=”cites u u5”>
+        <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>pivot · sat 01:14</span>
+        <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>”worse than noise” · sat 15:45</span>
+        <span class=”chip”><span class=”dot” style=”background:var(--moss)”></span>scheduler · fri 22:26</span>
+        <span class=”chip”><span class=”dot” style=”background:var(--moss)”></span>321/321 tests</span>
       </div>
-      <div class="ask-turn u u6">
-        <div class="speaker" style="margin-bottom:10px">brain · asking</div>
-        <p class="q">Want the decision trail behind this? Three pivots led from the 1 a.m.
-          challenge to the first unattended digest — I can walk you through them.
-          <span class="waiting" aria-label="the brain is waiting"><i></i><i></i><i></i></span></p>
-        <div class="cites" style="margin-bottom:0">
-          <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>walk the trail</span>
-          <span class="chip"><span class="dot" style="background:var(--ink-40)"></span>what does E1b control for?</span>
-          <a class="chip" href="03-feature-page.html"><span class="dot" style="background:var(--cobalt)"></span>open the feature page ↗</a>
+      <div class=”ask-turn u u6”>
+        <div class=”speaker” style=”margin-bottom:10px”>brain · asking</div>
+        <p class=”q”>Three decisions between the 1 a.m. challenge and the first unattended digest.
+          Want to walk through them?
+          <span class=”waiting” aria-label=”brain is waiting”><i></i><i></i><i></i></span></p>
+        <div class=”cites” style=”margin-bottom:0”>
+          <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>show the decisions</span>
+          <span class=”chip”><span class=”dot” style=”background:var(--ink-40)”></span>what does E1b test?</span>
+          <a class=”chip” href=”03-feature-page.html”><span class=”dot” style=”background:var(--cobalt)”></span>open feature page ↗</a>
         </div>
       </div>
-      <p class="openline u u7">the stream stays open — ask below, or press another story above</p>
+      <p class=”openline u u7”>ask anything below · or expand another story above</p>
     </section>
   </template>
 
-  <template id="tpl-ui">
-    <section class="unfold" data-accent="marigold">
-      <div class="stem" aria-hidden="true"></div>
-      <div class="speaker u u1">brain · unfolding: <span class="scope">four redesigns, one weekend</span></div>
-      <h3 class="u u2">The interface kept losing arguments until it learned to breathe.</h3>
-      <p class="body u u3">
-        Rebuild one: the observability agent rejected the handoff’s “lanes” framing and delivered
-        <b>the Journal</b> — the river as the page. Rebuild two, by 12:43 Friday:
-        <q>the entire app now speaks the Journal’s language</q>, every page redrawn in
-        ink-and-paper editorial primitives. Rebuild three, Saturday 16:43: the CPO purge — a
-        masthead journal-first shell, ~2,600 lines of orphaned Topic-era design excised.
-        <span class="dim">Rebuild four began at 19:46, when you overrode the AI’s
-        “motion restraint” constraint — explicitly demanding colors, animations, energy.</span>
+  <template id=”tpl-ui”>
+    <section class=”unfold” data-accent=”marigold”>
+      <div class=”stem” aria-hidden=”true”></div>
+      <div class=”speaker u u1”>brain · <span class=”scope”>dashboard</span></div>
+      <h3 class=”u u2”>Four redesigns in one weekend. Each one rejected something the previous version had treated as fixed.</h3>
+      <p class=”body u u3”>
+        Rebuild one: the observability agent rejected the “lanes” layout from the handoff and
+        shipped <b>the feed</b> — the activity stream as the main page. Rebuild two, by 12:43
+        Friday: <q>the entire app now speaks the same design language</q>, every page redrawn
+        with the same editorial primitives. Rebuild three, Saturday 16:43 — the cleanup pass:
+        a feed-first shell, ~2,600 lines of code from the old Topic system removed.
+        <span class=”dim”>Rebuild four started at 19:46, when you pushed back on the AI’s
+        “motion restraint” constraint and asked for color, animation, and energy instead.</span>
       </p>
-      <p class="body u u4">
-        The constraint I now hold: <b>beautiful, a bit gamified, still servable top-down</b> —
-        C-level review to engineer level. What you are reading is the first artifact produced
-        under it.
+      <p class=”body u u4”>
+        The design brief I’m now working from: <b>engaging enough for a founder, clear enough for
+        an engineer</b>. What you’re reading is the first thing built to that brief.
       </p>
-      <div class="cites u u5">
-        <span class="chip"><span class="dot" style="background:var(--marigold)"></span>journal concept · fri 11:35</span>
-        <span class="chip"><span class="dot" style="background:var(--marigold)"></span>purge · sat 16:43</span>
-        <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>motion override · sat 19:46</span>
+      <div class=”cites u u5”>
+        <span class=”chip”><span class=”dot” style=”background:var(--marigold)”></span>feed concept · fri 11:35</span>
+        <span class=”chip”><span class=”dot” style=”background:var(--marigold)”></span>cleanup · sat 16:43</span>
+        <span class=”chip”><span class=”dot” style=”background:var(--vermilion)”></span>motion override · sat 19:46</span>
       </div>
-      <div class="ask-turn u u6">
-        <div class="speaker" style="margin-bottom:10px">brain · asking</div>
-        <p class="q">The motion-restraint override is the newest design constraint on record.
-          Want to see the three it replaced?
-          <span class="waiting" aria-label="the brain is waiting"><i></i><i></i><i></i></span></p>
-        <div class="cites" style="margin-bottom:0">
-          <span class="chip"><span class="dot" style="background:var(--marigold)"></span>show the retired constraints</span>
-          <span class="chip"><span class="dot" style="background:var(--ink-40)"></span>what got purged?</span>
+      <div class=”ask-turn u u6”>
+        <div class=”speaker” style=”margin-bottom:10px”>brain · asking</div>
+        <p class=”q”>The motion override is the most recent design decision on record.
+          Want to see what it replaced?
+          <span class=”waiting” aria-label=”brain is waiting”><i></i><i></i><i></i></span></p>
+        <div class=”cites” style=”margin-bottom:0”>
+          <span class=”chip”><span class=”dot” style=”background:var(--marigold)”></span>show what was replaced</span>
+          <span class=”chip”><span class=”dot” style=”background:var(--ink-40)”></span>what got removed?</span>
         </div>
       </div>
-      <p class="openline u u7">the stream stays open — ask below, or press another story above</p>
+      <p class=”openline u u7”>ask anything below · or expand another story above</p>
     </section>
   </template>
 
-  <template id="tpl-mcp">
-    <section class="unfold" data-accent="cobalt">
-      <div class="stem" aria-hidden="true"></div>
-      <div class="speaker u u1">brain · unfolding: <span class="scope">the dogfood proof</span></div>
-      <h3 class="u u2">The loop closed: a stranger asked, and the Brain knew.</h3>
-      <p class="body u u3">
-        Saturday 16:54, a subagent with no context queried the brain and returned a complete,
-        structured answer to <q>how does this work?</q> — the first end-to-end proof that what
-        gets digested can be served back. The path there had two surprises: <b>src/mcp/server.ts
-        already existed</b>, a file-based implementation better than the spec being written to
-        replace it; and <b>confidence is now derived</b> — computed from evidence verification,
-        not the extractor’s self-assessment — wired into <span class="handle">brain_search</span>
-        and <span class="handle">brain_feature_context</span>, 485 tests passing, 18 of them new.
+  <template id=”tpl-mcp”>
+    <section class=”unfold” data-accent=”cobalt”>
+      <div class=”stem” aria-hidden=”true”></div>
+      <div class=”speaker u u1”>brain · <span class=”scope”>mcp server</span></div>
+      <h3 class=”u u2”>An agent with no prior context asked how this system works. The digests answered it.</h3>
+      <p class=”body u u3”>
+        Saturday 16:54, a subagent queried the brain and returned a complete, structured answer
+        to <q>how does this work?</q> — the first end-to-end test that what gets digested can be
+        served back usefully. Two things were unexpected along the way: <b>src/mcp/server.ts
+        already existed</b>, a working implementation better than the spec that was being written
+        to replace it; and <b>confidence scores are now derived</b> — computed from evidence
+        verification, not the extractor’s own rating — wired into <span class=”handle”>brain_search</span>
+        and <span class=”handle”>brain_feature_context</span>, 485 tests passing, 18 new.
       </p>
-      <p class="body u u4">
-        <span class="dim">One struggle worth keeping visible:</span> the API key in
-        <code>.env</code> went invalid mid-test — synthesis failed 401 three times before the
-        agent routed around it. The loop held anyway.
+      <p class=”body u u4”>
+        <span class=”dim”>One issue still open:</span> the API key in <code>.env</code> went
+        invalid mid-test — synthesis hit a 401 three times before the agent worked around it.
+        The test passed anyway, but the key hasn’t been confirmed in every environment.
       </p>
-      <div class="cites u u5">
-        <span class="chip"><span class="dot" style="background:var(--cobalt)"></span>dogfood · sat 16:54</span>
-        <span class="chip"><span class="dot" style="background:var(--moss)"></span>derived confidence · sat 16:19</span>
-        <span class="chip"><span class="dot" style="background:var(--amber)"></span>401 · known unknown</span>
+      <div class=”cites u u5”>
+        <span class=”chip”><span class=”dot” style=”background:var(--cobalt)”></span>test passed · sat 16:54</span>
+        <span class=”chip”><span class=”dot” style=”background:var(--moss)”></span>derived confidence · sat 16:19</span>
+        <span class=”chip”><span class=”dot” style=”background:var(--amber)”></span>401 · open issue</span>
       </div>
-      <div class="ask-turn u u6">
-        <div class="speaker" style="margin-bottom:10px">brain · asking</div>
-        <p class="q">I can’t verify from inside whether the rotated key reached every
+      <div class=”ask-turn u u6”>
+        <div class=”speaker” style=”margin-bottom:10px”>brain · asking</div>
+        <p class=”q”>I can’t confirm from the digests whether the rotated key reached every
           environment. Want me to list everywhere it’s read from?
-          <span class="waiting" aria-label="the brain is waiting"><i></i><i></i><i></i></span></p>
-        <div class="cites" style="margin-bottom:0">
-          <span class="chip"><span class="dot" style="background:var(--cobalt)"></span>yes — trace the key</span>
-          <span class="chip"><span class="dot" style="background:var(--ink-40)"></span>show the dogfood transcript</span>
+          <span class=”waiting” aria-label=”brain is waiting”><i></i><i></i><i></i></span></p>
+        <div class=”cites” style=”margin-bottom:0”>
+          <span class=”chip”><span class=”dot” style=”background:var(--cobalt)”></span>yes — trace the key</span>
+          <span class=”chip”><span class=”dot” style=”background:var(--ink-40)”></span>show the test transcript</span>
         </div>
       </div>
-      <p class="openline u u7">the stream stays open — ask below, or press another story above</p>
+      <p class=”openline u u7”>ask anything below · or expand another story above</p>
     </section>
   </template>
 
@@ -604,7 +604,7 @@
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Word-by-word headline — a thought completing.
-  const words = ['The','Brain','stopped','taking','its','own','word','for','it.'];
+  const words = ['Digest','quality','was','unverified','for','weeks.','This','weekend','we','audited','it','and','rewrote','the','pipeline.'];
   const h = document.getElementById('headline');
   words.forEach((word,i)=>{
     const s = document.createElement('span');
@@ -637,15 +637,15 @@
 
   // ============ THE HOOK: press → the stream scrolls and the story materializes ============
   const SCOPES={
-    digest:{tag:'◉ THE DIGESTION REWRITE', color:'var(--vermilion)', ph:'Ask about the digestion rewrite…'},
-    ui:    {tag:'◉ FOUR REDESIGNS',        color:'var(--marigold)',  ph:'Ask about the redesigns…', ink:true},
-    mcp:   {tag:'◉ THE DOGFOOD PROOF',     color:'var(--cobalt)',    ph:'Ask about the MCP proof…'}
+    digest:{tag:'◉ DIGEST PIPELINE', color:'var(--vermilion)', ph:'Ask about the pipeline rewrite…'},
+    ui:    {tag:'◉ DASHBOARD',       color:'var(--marigold)',  ph:'Ask about the redesigns…', ink:true},
+    mcp:   {tag:'◉ MCP SERVER',      color:'var(--cobalt)',    ph:'Ask about the MCP test…'}
   };
   function unfold(id){
     const card=document.getElementById('story-'+id);
     const already=card.classList.contains('pressed');
     card.classList.add('pressed');
-    card.querySelector('.press').innerHTML='UNFOLDED <span class="ar">●</span> BELOW';
+    card.querySelector('.press').innerHTML='EXPANDED <span class="ar">●</span> BELOW';
     let node=document.querySelector('.unfold[data-id="'+id+'"]');
     if(!already && !node){
       node=document.getElementById('tpl-'+id).content.firstElementChild.cloneNode(true);
@@ -665,7 +665,7 @@
   function clearScope(e){
     e.stopPropagation();
     document.body.classList.remove('scoped');
-    document.getElementById('askinput').placeholder='Ask the feed anything — or press a story to unfold it…';
+    document.getElementById('askinput').placeholder='Ask the Brain anything — or expand a story…';
   }
 
   // Demo: this page shows the press mid-flight. ?pressed=1 jumps straight there;

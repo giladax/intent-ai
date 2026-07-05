@@ -25,26 +25,32 @@ Pressing anything — a trending story, a handle in the lede — does not naviga
    ("Ask about the digestion rewrite…"), × returns to the whole feed. Multiple presses
    stack — the stream is infinite by construction.
 
-## The editorial voice
+## Voice rules (binding on all user-facing copy)
 
-The Brain writes the feed; these are its style rules, all demonstrated with real corpus
-material (9 sessions, 484 events, 347 moments — the Jul 3–4 story: 191 + 109 = 300
-events in 48 hours):
+Internal development metaphors — river, sittings, ink, correspondence, editions — are
+vocabulary for building this product, not for talking to users. User-facing copy follows
+these rules:
 
-- **Written like it knows the reader.** Second person, specific: "At 1:14 a.m. *you*
-  told the pipeline it wasn't good enough." Never "activity was detected."
-- **Every claim walks back to a transcript line.** Quotes are verbatim from moments
-  ("worse than noise — it's negative value"), timestamps are real (scheduler · fri
-  22:26), and evidence chips under each unfold are the citations. The byline says so.
-- **Headlines are verdicts, not labels.** "The reader learned to slow down," not
-  "Digest Pipeline Update." A headline must survive being read aloud to a C-level and
-  to the engineer who lived it.
-- **Tension before resolution.** Lead with the challenge or the pivot; land on what
-  held (tests passing, the scheduler firing unattended). Struggles stay visible — the
-  401 key failure is a brief, not a secret.
-- **Terse per the essence principle.** A trending dek is ≤3 sentences; an unfold is two
-  paragraphs; the lede is one. The chat is where depth lives — the Brain offers it as a
-  question, never dumps it.
+- **State the value plainly.** Say what happened and why it matters. Never be clever
+  about the product itself. The test: would a straight-talking founder say this out loud
+  to a colleague? If not, rewrite it.
+- **Tell the story, then leave a door open.** Lead with the real event or finding; close
+  with a concrete question or unresolved thread that makes the reader want more. Not
+  "the conversation never ends" — that's posturing. A real question ("Want to see what
+  the audit caught?") works.
+- **Every claim traces to evidence.** Quotes are verbatim from session moments; timestamps
+  are real; evidence chips are the citations. Keep all data points — they are the
+  credibility. Never invent or round.
+- **Headlines carry the actual news.** "Digest quality was unverified for weeks — yesterday
+  we audited it and rewrote the pipeline" beats "The reader learned to slow down." A
+  headline must survive being read aloud to a founder and to the engineer who did the work.
+- **Second person, specific.** "At 1:14 a.m. you told the pipeline it wasn't good enough."
+  Never "activity was detected."
+- **Terse.** A story card dek is ≤3 sentences; an expanded section is two paragraphs;
+  the lead is one. The chat is where depth lives — the Brain offers it as a question,
+  never as a dump.
+- **Micro-labels: plain verbs win.** "Approve" / "Dismiss" over "Seal" / "Pull". "Expand"
+  over "Unfold". If the label makes sense without knowing the metaphor, it's right.
 
 ## The trending heat model
 

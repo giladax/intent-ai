@@ -371,14 +371,14 @@
           <span class="heatlab"><span class="heat" data-heat="6,9,12,10,8,11,9" aria-hidden="true"></span> hot · 48h</span>
         </div>
 
-        <h1 id="headline" aria-label="The reader learned to slow down."></h1>
+        <h1 id="headline" aria-label="The pipeline was fast. The audit found it wasn't right."></h1>
 
         <p class="standfirst rise" style="animation-delay:1.9s">
-          This is the machinery that turns raw session transcripts into moments the org can
-          search — parse, read, extract, emit. <span class="dim">On Saturday it stopped trusting
-          its own speed:</span> a fidelity audit found its cleverest parts solving a problem
-          that no longer exists, and the rewrite that followed taught it to read the way an
-          editor does — twice.
+          This is the pipeline that turns raw session transcripts into searchable moments —
+          parse, read, extract, emit. <span class="dim">On Saturday it got audited:</span>
+          the fidelity scoring found its most "clever" parts solving a problem that no longer
+          exists, and the rewrite that followed changed how it reads sessions — two passes
+          instead of one.
         </p>
 
         <div class="stateband rise" style="animation-delay:2.15s">
@@ -405,14 +405,14 @@
         </p>
 
         <p class="body rise" style="animation-delay:2.65s">
-          The replacement is <b>two-phase deliberative reading</b>: a draft read that holds
-          provisional commits and open questions, then a retrospective revision once the whole
-          session is known. An <span class="handle">E1b control arm</span> — sitting-sized
-          chunks, zero overlap, richer carried header — is queued to isolate what actually
-          helps, and E0, the first live run, is held until the topology proposal lands.
-          <span class="dim">While the reading was being rethought, the schedule proved
-          itself:</span> at 22:26 Friday the scheduler fired on its own for the first time, and
-          by Saturday night it had digested nine catch-up sessions with nobody watching.
+          The replacement is <b>two-pass deliberative reading</b>: a draft pass that holds
+          provisional calls and open questions, then a retrospective revision once the full
+          session is known. An <span class="handle">E1b control arm</span> — session-sized
+          chunks, zero overlap, richer context header — is queued to isolate what actually
+          helps, and E0, the first live run, is on hold until the topology proposal lands.
+          <span class="dim">While the reading approach was being redesigned, the scheduler
+          proved itself:</span> at 22:26 Friday it fired on its own for the first time, and
+          by Saturday night it had run nine catch-up sessions with nobody watching.
         </p>
 
         <div class="openq rise" style="animation-delay:2.85s">
@@ -422,10 +422,10 @@
         </div>
       </article>
 
-      <!-- the seam: the page ends, the conversation doesn't -->
+      <!-- the seam: overview above, chat continues below -->
       <div class="seam rise" style="animation-delay:3.1s" aria-hidden="true">
         <div class="line"></div>
-        <div class="lab">THE PAGE ENDS · THE CONVERSATION DOESN’T</div>
+        <div class="lab">OVERVIEW ABOVE · KEEP ASKING BELOW</div>
       </div>
 
       <!-- chat begins, already scoped to this feature -->
@@ -434,13 +434,14 @@
         <section class="turn-brain rise" style="animation-delay:3.4s" id="opening-turn">
           <div class="speaker">brain · <span class="scope">lens: feature / digest pipeline</span></div>
           <p class="brainline" style="margin-bottom:18px">
-            I’m holding one thing open here: E1b hasn’t run, so the rewrite’s central
-            bet is still unproven at scale. And one thing waits for your ink:
+            One thing is still unresolved: E1b hasn’t run, so the rewrite hasn’t been
+            tested on sessions larger than a single context window. And one update is
+            waiting for your review:
           </p>
 
           <!-- pending approval card — part of the Brain’s opening turn -->
           <div class="seal-card rise" style="animation-delay:3.7s" id="card">
-            <span class="tag" id="cardTag">AWAITING YOUR STAMP</span>
+            <span class="tag" id="cardTag">NEEDS YOUR APPROVAL</span>
             <h2>Digest Pipeline &amp; Understanding Stage</h2>
             <div class="vline">understanding <b>v3</b> <span class="arrow">→</span> <b>v4</b> · drafted from 4 verified moments · jul 4, 22:26–sat 20:11</div>
             <div class="delta">
@@ -456,17 +457,17 @@
               <button class="chip"><span class="dot" style="background:var(--moss)"></span>archive · 801849a</button>
             </div>
             <div class="actions">
-              <button class="btn btn-seal" onclick="seal()">Seal into memory</button>
-              <button class="btn btn-ghost">Pull the thread</button>
+              <button class="btn btn-seal" onclick="seal()">Approve</button>
+              <button class="btn btn-ghost">Dismiss</button>
             </div>
-            <div class="stamp">SEALED · v4</div>
+            <div class="stamp">APPROVED · v4</div>
           </div>
 
           <!-- quiet follow-on after seal -->
           <section class="closing-after-seal" style="margin-top:16px; flex-direction:column; gap:10px">
             <div class="speaker">brain · <span class="scope">lens: feature / digest pipeline</span></div>
-            <p class="brainline" style="font-style:italic; color:var(--ink-60)">Sealed. Want me to line up what E0 needs before it can fire?
-              <span class="waiting" aria-label="the brain is waiting"><i></i><i></i><i></i></span></p>
+            <p class="brainline" style="font-style:italic; color:var(--ink-60)">Approved. Want me to show what E0 still needs before it can run?
+              <span class="waiting" aria-label="brain is waiting"><i></i><i></i><i></i></span></p>
           </section>
 
           <!-- open question chips (before seal, replaced by follow-on after) -->
@@ -515,7 +516,7 @@
 
 <script>
   // Headline materializes word by word.
-  const words=['The','reader','learned','to','slow','down.'];
+  const words=['The','pipeline','was','fast.','The','audit','found','it','wasn\'t','right.'];
   const h=document.getElementById('headline');
   words.forEach((word,i)=>{
     const s=document.createElement('span');
@@ -537,7 +538,7 @@
   function seal(){
     if(document.body.classList.contains('sealed')) return;
     document.body.classList.add('sealed');
-    setTimeout(()=>{ document.getElementById('cardTag').textContent = 'SEALED INTO MEMORY'; }, 550);
+    setTimeout(()=>{ document.getElementById('cardTag').textContent = 'APPROVED'; }, 550);
     // hide pre-seal suggestion chips
     const chips = document.getElementById('pre-seal-chips');
     if(chips){ chips.style.transition='opacity .45s'; chips.style.opacity='0'; setTimeout(()=>chips.style.display='none', 500); }
