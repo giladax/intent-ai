@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brain — Feature Page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ FEATURE LENS — top-level editorial page, then the chat begins ============ */
+  :root{
+    --paper:#EFE5CE; --paper-2:#ECE7D9; --ink:#1C1A15; --ink-60:rgba(28,26,21,.6);
+    --ink-40:rgba(28,26,21,.4); --ink-25:rgba(28,26,21,.25); --ink-12:rgba(28,26,21,.12);
+    --ink-06:rgba(28,26,21,.06);
+    --cobalt:#2B49D8; --vermilion:#D8492B; --marigold:#ECA636;
+    --moss:#2E6B58; --amber:#B4681E; --bone:#F5F1E8;
+    --ease:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
+    --rail-w:172px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Hanken Grotesk',sans-serif; font-size:15px;
+    display:grid; grid-template-columns:var(--rail-w) 1fr; overflow:hidden;
+  }
+  ::selection{background:var(--ink); color:var(--paper)}
+
+  @keyframes rise{
+    from{opacity:0; transform:translateY(16px) scale(.985); filter:blur(10px)}
+    to{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}
+  }
+  .rise{animation:rise .8s var(--ease) both}
+  @keyframes word{
+    from{opacity:0; transform:translateY(.35em); filter:blur(6px)}
+    to{opacity:1; transform:translateY(0); filter:blur(0)}
+  }
+  .w{display:inline-block; animation:word .55s var(--ease) both}
+  @keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.28);opacity:1}}
+  @keyframes emberbreathe{
+    0%,100%{transform:scale(1); opacity:.9; box-shadow:0 0 0 0 rgba(216,73,43,.35)}
+    50%{transform:scale(1.25); opacity:1; box-shadow:0 0 0 5px rgba(216,73,43,0)}
+  }
+  @keyframes tickwave{0%,100%{transform:scaleY(.72); opacity:.55}50%{transform:scaleY(1); opacity:1}}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:300% 0}}
+  @keyframes waitdot{0%,100%{opacity:.25}30%{opacity:1}}
+  @keyframes needpulse{0%,100%{box-shadow:0 0 0 0 rgba(180,104,30,.5)}55%{box-shadow:0 0 0 7px rgba(180,104,30,0)}}
+
+  /* =================== LENS RAIL — focused on FEATURE =================== */
+  .rail{
+    height:100vh; display:flex; flex-direction:column; padding:22px 16px 18px;
+    border-right:1px solid var(--ink-12); background:var(--paper);
+  }
+  .wordmark{font-weight:800; font-size:22px; letter-spacing:-.02em; display:flex; align-items:center; gap:8px; margin-bottom:26px}
+  .wordmark .pulse{width:8px;height:8px;border-radius:50%;background:var(--moss);animation:breathe 5.4s ease-in-out infinite}
+  .lenses{display:flex; flex-direction:column; gap:10px; flex:1; min-height:0}
+  .lens{
+    position:relative; border-radius:16px; min-height:88px; padding:12px 13px;
+    display:flex; flex-direction:column; cursor:pointer; border:none; text-align:left;
+    font-family:inherit; width:100%; overflow:hidden;
+    transition:opacity .6s var(--ease), filter .6s var(--ease), transform .6s var(--ease), min-height .65s var(--ease);
+  }
+  .lens .num{font-family:'Spline Sans Mono',monospace; font-size:11px; font-weight:500; letter-spacing:.08em}
+  .lens .mark{position:absolute; top:11px; right:13px; font-size:13px; line-height:1; transition:transform .45s var(--ease)}
+  .lens .label{margin-top:auto; font-weight:800; font-size:14px; letter-spacing:.01em; line-height:1.1; text-transform:uppercase}
+  .lens .sub{font-family:'Spline Sans Mono',monospace; font-size:9.5px; margin-top:4px; opacity:.75; letter-spacing:.04em}
+  .lens--org{background:var(--ink); color:var(--bone)}
+  .lens--org .sub{color:rgba(245,241,232,.7)}
+  .lens--feature{background:var(--cobalt); color:var(--bone)}
+  .lens--timeline{background:var(--vermilion); color:var(--bone)}
+  .lens--team{background:var(--marigold); color:var(--ink)}
+  .lens--soon .label::after{
+    content:'SOON'; font-family:'Spline Sans Mono',monospace; font-size:8px; font-weight:500;
+    vertical-align:super; margin-left:5px; letter-spacing:.12em; opacity:.7;
+  }
+  .lens--ghost{
+    background:transparent; border:1.5px dashed var(--ink-25); color:var(--ink-40);
+    min-height:60px; justify-content:center; align-items:flex-start; gap:3px; padding-top:12px;
+  }
+  .lens--ghost .glabel{font-family:'Spline Sans Mono',monospace; font-size:10px; letter-spacing:.1em; font-weight:500}
+  .lens--ghost .gsub{font-family:'Spline Sans Mono',monospace; font-size:8.5px; letter-spacing:.06em; opacity:.75}
+  .rail-foot{margin-top:14px; font-family:'Spline Sans Mono',monospace; font-size:9.5px; color:var(--ink-40); letter-spacing:.05em; line-height:1.7}
+
+  /* focused state: the rail fades around the choice */
+  .rail.focused .lens:not(.is-focus):not(.lens--ghost){opacity:.26; filter:grayscale(.45) saturate(.7); transform:scale(.975)}
+  .rail.focused .lens--ghost{opacity:.35}
+  .rail.focused .lens.is-focus{min-height:314px}
+  .rail.focused .is-focus .mark{transform:rotate(90deg)}
+  .lens .flist{
+    list-style:none; margin-top:12px; padding-top:10px; border-top:1px solid rgba(245,241,232,.28);
+    display:flex; flex-direction:column; gap:2px; opacity:0; transition:opacity .5s var(--ease) .25s;
+  }
+  .rail.focused .is-focus .flist{opacity:1}
+  .flist li{
+    display:flex; align-items:baseline; gap:6px;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; letter-spacing:.02em;
+    padding:5px 7px; border-radius:8px; color:rgba(245,241,232,.78); cursor:pointer;
+    opacity:0; transform:translateY(8px);
+    transition:opacity .5s var(--ease), transform .5s var(--ease), background .3s var(--ease);
+    white-space:nowrap; overflow:hidden;
+  }
+  .flist li .n{margin-left:auto; opacity:.6}
+  .flist li:hover{background:rgba(245,241,232,.12)}
+  .flist li.sel{background:rgba(245,241,232,.18); color:var(--bone); font-weight:600}
+  .flist li.sel::before{content:'●'; font-size:6px; align-self:center; color:var(--bone)}
+  .rail.focused .is-focus .flist li{opacity:1; transform:translateY(0)}
+  .rail.focused .is-focus .flist li:nth-child(1){transition-delay:.28s}
+  .rail.focused .is-focus .flist li:nth-child(2){transition-delay:.36s}
+  .rail.focused .is-focus .flist li:nth-child(3){transition-delay:.44s}
+  .rail.focused .is-focus .flist li:nth-child(4){transition-delay:.52s}
+  .rail.focused .is-focus .flist li:nth-child(5){transition-delay:.6s}
+  .rail.focused .is-focus .flist li:nth-child(6){transition-delay:.68s}
+
+  /* =================== THE PAGE =================== */
+  .main{position:relative; height:100vh; overflow-y:auto; scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){.main{scroll-behavior:auto}}
+  .meta-top{
+    position:fixed; top:20px; right:26px; font-family:'Spline Sans Mono',monospace;
+    font-size:10px; color:var(--ink-40); letter-spacing:.06em; z-index:5; text-align:right;
+    background:rgba(239,229,206,.88); backdrop-filter:blur(6px);
+    padding:8px 11px; border-radius:10px;
+  }
+  .meta-top a{color:var(--ink-60); text-decoration:none; border-bottom:1px dashed var(--ink-25)}
+  .meta-top a:hover{color:var(--cobalt); border-color:var(--cobalt)}
+  .stream{max-width:680px; margin:0 auto; padding:58px 32px 210px; display:flex; flex-direction:column}
+
+  .kick{
+    display:flex; align-items:center; gap:10px; margin-bottom:18px;
+    font-family:'Spline Sans Mono',monospace; font-size:10px; font-weight:600;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--cobalt);
+  }
+  .kick .sq{width:9px; height:9px; border-radius:2.5px; background:var(--cobalt)}
+  .kick .rule{flex:1; height:1px; background:var(--ink-12)}
+  .kick .heatlab{color:var(--ink-40); font-weight:400; letter-spacing:.06em; display:inline-flex; align-items:center; gap:8px}
+  .heat{display:inline-flex; align-items:flex-end; gap:2px; height:11px}
+  .heat i{width:3px; border-radius:1px; background:var(--vermilion); transform-origin:bottom; animation:tickwave 3.8s ease-in-out infinite}
+
+  h1{font-weight:800; font-size:clamp(32px,4vw,46px); line-height:1.06; letter-spacing:-.028em; margin-bottom:18px; max-width:16ch}
+  .standfirst{font-size:17.5px; line-height:1.66; color:var(--ink); max-width:56ch; margin-bottom:22px}
+  .standfirst .dim{color:var(--ink-60)}
+  .handle{text-decoration:underline dashed var(--ink-40); text-underline-offset:4px; cursor:pointer; transition:color .3s var(--ease)}
+  .handle:hover{color:var(--cobalt)}
+
+  .stateband{
+    display:flex; gap:18px; flex-wrap:wrap; align-items:center;
+    border:1.5px solid var(--ink); border-radius:14px; background:#F6EEDA;
+    box-shadow:4px 4px 0 0 var(--cobalt);
+    padding:13px 18px; margin-bottom:34px;
+    font-family:'Spline Sans Mono',monospace; font-size:10.5px; letter-spacing:.04em; color:var(--ink-60);
+  }
+  .stateband b{color:var(--ink); font-weight:600}
+  .stateband .open{color:var(--amber); font-weight:600; display:inline-flex; align-items:center; gap:7px}
+  .stateband .open::before{content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); animation:needpulse 5.4s ease-in-out infinite}
+
+  .body{font-size:16px; line-height:1.7; max-width:58ch; margin-bottom:18px}
+  .body .dim{color:var(--ink-60)}
+  .body q{font-style:italic}
+  .crosshead{
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; font-weight:600; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--ink-40); margin:14px 0 12px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .crosshead .rule{flex:1; height:1px; background:var(--ink-12)}
+
+  .openq{
+    border:1.5px solid var(--amber); border-radius:14px; padding:15px 18px; margin:8px 0 10px;
+    background:rgba(180,104,30,.05); max-width:58ch;
+  }
+  .openq .oh{
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; font-weight:600; letter-spacing:.16em;
+    color:var(--amber); text-transform:uppercase; margin-bottom:7px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .openq .oh::before{content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); animation:needpulse 5.4s ease-in-out infinite}
+  .openq p{font-size:14.5px; line-height:1.6; color:var(--ink)}
+
+  /* ---------- the seam: page becomes conversation ---------- */
+  .seam{margin:42px 0 34px}
+  .seam .line{
+    height:2px; border-radius:2px;
+    background:linear-gradient(90deg, var(--ink-12) 0%, var(--moss) 42%, #7FB89F 50%, var(--moss) 58%, var(--ink-12) 100%);
+    background-size:200% 100%; animation:shimmer 7s linear infinite;
+  }
+  .seam .lab{
+    margin-top:9px; font-family:'Spline Sans Mono',monospace; font-size:9.5px;
+    letter-spacing:.16em; color:var(--ink-40); text-transform:uppercase; text-align:center;
+  }
+
+  /* ---------- chat ---------- */
+  .chat{display:flex; flex-direction:column; gap:32px}
+  .speaker{
+    display:flex; align-items:center; gap:7px;
+    font-family:'Spline Sans Mono',monospace; font-size:10px; letter-spacing:.14em;
+    color:var(--ink-40); text-transform:uppercase; margin-bottom:12px;
+  }
+  .speaker::before{content:''; width:7px; height:7px; border-radius:2px; background:var(--moss)}
+  .speaker .scope{color:var(--cobalt); font-weight:600}
+  .turn-brain .q{font-weight:700; font-size:17px; line-height:1.55; max-width:50ch}
+  .brainline{font-size:16px; line-height:1.68; max-width:58ch}
+  .brainline .dim{color:var(--ink-60)}
+  .turn-user{align-self:flex-end; max-width:75%}
+  .turn-user .who{
+    text-align:right; font-family:'Spline Sans Mono',monospace; font-size:9.5px;
+    color:var(--ink-40); letter-spacing:.1em; margin-bottom:6px; text-transform:uppercase;
+  }
+  .turn-user .bubble{
+    background:var(--ink); color:var(--paper); font-size:15.5px; line-height:1.5;
+    padding:13px 18px; border-radius:20px 20px 5px 20px;
+  }
+  .cites{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'Spline Sans Mono',monospace; font-size:10.5px; letter-spacing:.03em;
+    border:1px solid var(--ink-25); border-radius:99px; padding:5px 11px; cursor:pointer;
+    background:transparent; color:var(--ink-60); text-decoration:none;
+    transition:background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease);
+  }
+  .chip .dot{width:6px; height:6px; border-radius:50%}
+  .chip:hover{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+  .waiting{display:inline-flex; align-items:center; gap:5px; margin-left:2px}
+  .waiting i{width:4px; height:4px; border-radius:50%; background:var(--ink-40); animation:waitdot 1.8s ease-in-out infinite}
+  .waiting i:nth-child(2){animation-delay:.25s}
+  .waiting i:nth-child(3){animation-delay:.5s}
+
+  /* ---------- ask bar (scoped) ---------- */
+  .askwrap{
+    position:fixed; bottom:0; left:var(--rail-w); right:0; padding:22px 32px 26px;
+    display:flex; justify-content:center; pointer-events:none;
+    background:linear-gradient(to top, var(--paper) 45%, transparent);
+  }
+  .ask{
+    pointer-events:auto; width:min(620px,100%); display:flex; align-items:center; gap:10px;
+    background:#FAF4E4; border:1.5px solid var(--cobalt); border-radius:99px; padding:12px 16px 12px 12px;
+    box-shadow:0 10px 30px -14px rgba(28,26,21,.28);
+    transition:transform .4s var(--ease), box-shadow .4s var(--ease);
+  }
+  .ask:focus-within{transform:translateY(-3px)}
+  .scopetag{
+    display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+    font-family:'Spline Sans Mono',monospace; font-size:9.5px; font-weight:600; letter-spacing:.08em;
+    background:var(--cobalt); color:var(--bone); border-radius:99px; padding:7px 12px;
+  }
+  .scopetag .x{opacity:.65; cursor:pointer; font-size:11px}
+  .scopetag .x:hover{opacity:1}
+  .ask input{flex:1; border:none; outline:none; background:transparent; font-family:inherit; font-size:15px; color:var(--ink); min-width:0}
+  .ask input::placeholder{color:var(--ink-40)}
+  .ask .enter{font-family:'Spline Sans Mono',monospace; font-size:10px; color:var(--ink-40); border:1px solid var(--ink-12); border-radius:6px; padding:3px 7px}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important; animation-iteration-count:1!important;
+      transition-duration:.01ms!important; transition-delay:0s!important}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ LENS RAIL — FEATURE focused, digest pipeline selected ============ -->
+  <nav class="rail focused" id="rail" aria-label="Lenses">
+    <div class="wordmark">brain.<span class="pulse"></span></div>
+    <div class="lenses">
+      <button class="lens lens--org" onclick="location.href='01-the-feed.html'">
+        <span class="num">00</span><span class="mark">↗</span>
+        <span class="label">Org</span>
+        <span class="sub">back to the feed</span>
+      </button>
+      <button class="lens lens--feature is-focus">
+        <span class="num">01</span><span class="mark">↗</span>
+        <span class="label" style="margin-top:14px">Feature</span>
+        <span class="sub">6 under watch</span>
+        <ul class="flist" aria-label="Features">
+          <li>storage schema <span class="n">203</span></li>
+          <li>dashboard &amp; journal <span class="n">195</span></li>
+          <li>team loop <span class="n">177</span></li>
+          <li>event backbone <span class="n">139</span></li>
+          <li class="sel">digest pipeline <span class="n">106</span></li>
+          <li>mcp server <span class="n">72</span></li>
+        </ul>
+      </button>
+      <button class="lens lens--timeline">
+        <span class="num">02</span><span class="mark">↗</span>
+        <span class="label">Timeline</span>
+        <span class="sub">jun 5 — today</span>
+      </button>
+      <button class="lens lens--team lens--soon">
+        <span class="num">03</span><span class="mark">↗</span>
+        <span class="label">Team</span>
+        <span class="sub">1 human · n agents</span>
+      </button>
+      <button class="lens lens--ghost" title="Lenses shaped by your seat in the company — coming">
+        <span class="glabel">+ ROLE LENS</span>
+        <span class="gsub">exec · product · eng — soon</span>
+      </button>
+    </div>
+    <div class="rail-foot">9 sessions<br>484 events<br>347 moments</div>
+  </nav>
+
+  <!-- ============ FEATURE PAGE, THEN THE CHAT ============ -->
+  <main class="main">
+    <div class="meta-top">
+      intent-ai · feat/repo-brain · sun jul 5<br>
+      <a href="01-the-feed.html">‹ the feed</a> · <a href="02-press-and-unfold.html">‹ press-and-unfold</a>
+    </div>
+
+    <div class="stream">
+
+      <!-- the feature's top-level page: its story, its state, its heat -->
+      <article>
+        <div class="kick rise" style="animation-delay:.2s">
+          <span class="sq"></span> FEATURE / DIGEST PIPELINE &amp; UNDERSTANDING STAGE
+          <span class="rule"></span>
+          <span class="heatlab"><span class="heat" data-heat="6,9,12,10,8,11,9" aria-hidden="true"></span> hot · 48h</span>
+        </div>
+
+        <h1 id="headline" aria-label="The reader learned to slow down."></h1>
+
+        <p class="standfirst rise" style="animation-delay:1.9s">
+          This is the machinery that turns raw session transcripts into moments the org can
+          search — parse, read, extract, emit. <span class="dim">On Saturday it stopped trusting
+          its own speed:</span> a fidelity audit found its cleverest parts solving a problem
+          that no longer exists, and the rewrite that followed taught it to read the way an
+          editor does — twice.
+        </p>
+
+        <div class="stateband rise" style="animation-delay:2.15s">
+          <span>understanding <b>v3</b></span>
+          <span><b>106</b> moments</span>
+          <span><b>2</b> sessions</span>
+          <span><b>9</b> unattended digests this weekend</span>
+          <span>last moved <b>sat 20:11</b></span>
+          <span class="open">1 OPEN QUESTION</span>
+        </div>
+
+        <div class="crosshead rise" style="animation-delay:2.35s">THE STORY SO FAR <span class="rule"></span></div>
+
+        <p class="body rise" style="animation-delay:2.5s">
+          Friday night the audit landed its core: a fidelity scoring engine, 10/10 new tests,
+          the suite green at 321. Twenty minutes later the plan got interrupted mid-execution —
+          <q>I want you to rewrite</q> — and at 1:14 a.m. Saturday the challenge went to the
+          foundations: <q>seems to me this flow is not good enough.</q>
+          <span class="dim">The audit sided with you.</span> All four audited sessions fit inside
+          a single context window — worst case ~58k of 200k tokens — so the chunking, the
+          overlap, and the machinery built to clean up after them were weight without work.
+          The 3-event overlap drew the sharpest verdict on record:
+          <q>worse than noise — it’s negative value.</q>
+        </p>
+
+        <p class="body rise" style="animation-delay:2.65s">
+          The replacement is <b>two-phase deliberative reading</b>: a draft read that holds
+          provisional commits and open questions, then a retrospective revision once the whole
+          session is known. An <span class="handle">E1b control arm</span> — sitting-sized
+          chunks, zero overlap, richer carried header — is queued to isolate what actually
+          helps, and E0, the first live run, is held until the topology proposal lands.
+          <span class="dim">While the reading was being rethought, the schedule proved
+          itself:</span> at 22:26 Friday the scheduler fired on its own for the first time, and
+          by Saturday night it had digested nine catch-up sessions with nobody watching.
+        </p>
+
+        <div class="openq rise" style="animation-delay:2.85s">
+          <div class="oh">THE OPEN QUESTION</div>
+          <p>Deliberative reading is only proven on sessions that fit one context window.
+             Does it hold when they don’t? <b>E1b is the experiment that answers this.</b></p>
+        </div>
+      </article>
+
+      <!-- the seam: the page ends, the conversation doesn't -->
+      <div class="seam rise" style="animation-delay:3.1s" aria-hidden="true">
+        <div class="line"></div>
+        <div class="lab">THE PAGE ENDS · THE CONVERSATION DOESN’T</div>
+      </div>
+
+      <!-- chat begins, already scoped to this feature -->
+      <div class="chat">
+
+        <section class="turn-brain rise" style="animation-delay:3.4s">
+          <div class="speaker">brain · <span class="scope">lens: feature / digest pipeline</span></div>
+          <p class="q">I’m holding one thing open here: E1b hasn’t run, so the rewrite’s central
+            bet is still unproven at scale. Want me to line up what E0 needs before it can fire?
+            <span class="waiting" aria-label="the brain is waiting"><i></i><i></i><i></i></span></p>
+          <div class="cites">
+            <span class="chip"><span class="dot" style="background:var(--cobalt)"></span>yes — what blocks E0?</span>
+            <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>show the 1 a.m. pivot</span>
+          </div>
+        </section>
+
+        <div class="turn-user rise" style="animation-delay:4.2s">
+          <div class="who">gilad</div>
+          <div class="bubble">What did the fidelity audit actually change?</div>
+        </div>
+
+        <section class="turn-brain rise" style="animation-delay:5s">
+          <div class="speaker">brain · <span class="scope">lens: feature / digest pipeline</span></div>
+          <p class="brainline">
+            Three things, in order of weight. <b>Reading became two-phase</b> — draft, then
+            retrospective revision — because a session read once, linearly, kept committing to
+            early wrong impressions. <b>The 3-event overlap is gone</b>, with the machinery that
+            cleaned up its duplicates; the audit showed it produced negative value. And
+            <b>fidelity is now scored</b> — the digest grades its own faithfulness to the raw
+            transcript, so drift in the reader shows up as a number, not a feeling.
+            <span class="dim">Raw sessions are archived to <code>.intent/</code> so every score
+            can be re-checked against the source.</span>
+          </p>
+          <div class="cites">
+            <span class="chip"><span class="dot" style="background:var(--moss)"></span>scoring core · fri 23:23</span>
+            <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>pivot · sat 01:14</span>
+            <span class="chip"><span class="dot" style="background:var(--vermilion)"></span>“worse than noise” · sat 15:45</span>
+            <span class="chip"><span class="dot" style="background:var(--moss)"></span>archive · commit 801849a</span>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="askwrap">
+      <div class="ask rise" style="animation-delay:1.2s">
+        <span class="scopetag">◉ DIGEST PIPELINE <span class="x" title="back to the whole brain" onclick="location.href='01-the-feed.html'">×</span></span>
+        <input type="text" placeholder="Ask within Digest Pipeline &amp; Understanding Stage…" aria-label="Ask within this feature">
+        <span class="enter">⏎</span>
+      </div>
+    </div>
+  </main>
+
+<script>
+  // Headline materializes word by word.
+  const words=['The','reader','learned','to','slow','down.'];
+  const h=document.getElementById('headline');
+  words.forEach((word,i)=>{
+    const s=document.createElement('span');
+    s.className='w'; s.textContent=word;
+    s.style.animationDelay=(0.55+i*0.18)+'s';
+    h.appendChild(s);
+    if(i<words.length-1) h.appendChild(document.createTextNode(' '));
+  });
+  // Heat ticks — breathing, phase-shifted.
+  document.querySelectorAll('.heat[data-heat]').forEach(el=>{
+    el.dataset.heat.split(',').forEach((v,i)=>{
+      const t=document.createElement('i');
+      t.style.height=Math.min(11,+v)+'px';
+      t.style.animationDelay=(i*0.35)+'s';
+      el.appendChild(t);
+    });
+  });
+</script>
+</body>
+</html>
