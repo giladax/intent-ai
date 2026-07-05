@@ -1606,7 +1606,40 @@ ${sessionContexts}
           systemPrompt = `You are Quire scoped to the feature "${featureName}". You have access to ${digests.length} session digests for this feature.\n\n${sessionContexts}\n\n## Rules\n- Answer based on the evidence in the digests.\n- Quote the developer's actual words when available.\n- If asked about something not covered, say so.`;
         }
       } else {
-        systemPrompt = `You are an execution memory assistant for AI-assisted development sessions. The user hasn't selected a specific feature or session yet. Help them navigate — suggest they select a feature or session from the sidebar to start exploring.`;
+        // No explicit scope — merge server-held attention for ambient context
+        try {
+          const { readAttention } = await import("../storage/attention-store.js");
+          const attnResult = await readAttention();
+          if (attnResult && !attnResult.stale && attnResult.state && typeof attnResult.state === "object") {
+            const attn = attnResult.state;
+            const parts: string[] = [];
+            if (attn.lens?.featureName) {
+              parts.push(`The user is currently looking at the "${attn.lens.featureName}" feature lens.`);
+            } else if (attn.lens?.type === "timeline") {
+              parts.push("The user is looking at the Timeline lens.");
+            } else if (attn.surface === "feed") {
+              parts.push("The user is viewing the feed (no specific lens active).");
+            }
+            if (attn.openSessionId) {
+              parts.push(`Session ${attn.openSessionId.slice(0, 8)} is open.`);
+              try {
+                const sess = await loadDigest(attn.openSessionId);
+                const prompt = buildSystemPrompt(sess);
+                const start = prompt.indexOf("## Session Digest");
+                parts.push(start >= 0 ? prompt.slice(start, start + 1500) : prompt.slice(0, 1500));
+              } catch { /* session may not be digested */ }
+            }
+            if (parts.length > 0) {
+              systemPrompt = `You are Quire — the organizational understanding engine. ${parts.join(" ")}\n\n## Rules\n- Ground answers in the available context.\n- Keep responses concise.\n- Acknowledge what the user appears to be looking at only when it materially scopes your answer — no creepy narration.`;
+            } else {
+              systemPrompt = `You are an execution memory assistant for AI-assisted development sessions. The user hasn't selected a specific feature or session yet. Help them navigate — suggest they select a feature or session from the sidebar to start exploring.`;
+            }
+          } else {
+            systemPrompt = `You are an execution memory assistant for AI-assisted development sessions. The user hasn't selected a specific feature or session yet. Help them navigate — suggest they select a feature or session from the sidebar to start exploring.`;
+          }
+        } catch {
+          systemPrompt = `You are an execution memory assistant for AI-assisted development sessions. The user hasn't selected a specific feature or session yet. Help them navigate — suggest they select a feature or session from the sidebar to start exploring.`;
+        }
       }
 
       // Set up SSE
@@ -1652,6 +1685,34 @@ ${sessionContexts}
       if (!res.headersSent) {
         res.status(500).json({ error: String(err) });
       }
+    }
+  });
+
+  // ── Attention state (shared attention v1) ─────────────────────────────
+  // UI reports debounced view-state here; MCP brain_attention reads via DB.
+  // Fire-and-forget from UI: never 500 on write failure.
+  app.put("/api/attention", async (req, res) => {
+    try {
+      const body = req.body;
+      if (!body || typeof body.ts !== "number") {
+        res.status(400).json({ error: "ts required" });
+        return;
+      }
+      const { writeAttention } = await import("../storage/attention-store.js");
+      await writeAttention(body);
+      res.json({ ok: true });
+    } catch {
+      res.json({ ok: true });
+    }
+  });
+
+  app.get("/api/attention", async (_req, res) => {
+    try {
+      const { readAttention } = await import("../storage/attention-store.js");
+      const result = await readAttention();
+      res.json(result ?? { state: null, stale: true, updatedAt: null });
+    } catch {
+      res.json({ state: null, stale: true, updatedAt: null });
     }
   });
 
