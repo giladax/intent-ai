@@ -158,7 +158,7 @@ export async function queryTrendingInputs(db: PostgresJsDatabase<Record<string, 
     LIMIT 10
   `);
 
-  return (rows as Array<{feature_id: string; feature_name: string; events: HeatEvent[] | null}>)
+  return (rows as unknown as Array<{feature_id: string; feature_name: string; events: HeatEvent[] | null}>)
     .filter(r => r.events && r.events.length > 0)
     .map(r => ({
       featureId: r.feature_id,
@@ -254,7 +254,7 @@ export async function getCachedFeed(db: PostgresJsDatabase<Record<string, never>
   const { eq } = await import("drizzle-orm");
 
   const currentCountResult = await db.execute(drizzleSql`SELECT COUNT(*)::integer as cnt FROM activity_events`);
-  const eventCount = Number((currentCountResult as Array<{cnt: number}>)[0]?.cnt ?? 0);
+  const eventCount = Number((currentCountResult as unknown as Array<{cnt: number}>)[0]?.cnt ?? 0);
 
   const rows = await db.select().from(feedCache).where(eq(feedCache.id, "org")).limit(1);
   if (rows.length === 0) return { feed: null, eventCount };
@@ -300,7 +300,7 @@ export async function getFeedOrCompose(db: PostgresJsDatabase<Record<string, nev
 
   // Force refresh: clear cache and recompose
   const currentCountResult = await db.execute(drizzleSql`SELECT COUNT(*)::integer as cnt FROM activity_events`);
-  const eventCount = Number((currentCountResult as Array<{cnt: number}>)[0]?.cnt ?? 0);
+  const eventCount = Number((currentCountResult as unknown as Array<{cnt: number}>)[0]?.cnt ?? 0);
   const inputs = await queryTrendingInputs(db);
   const now = new Date();
   const ranked = rankTrending(inputs, now);

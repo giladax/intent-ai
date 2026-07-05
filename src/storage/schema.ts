@@ -475,3 +475,15 @@ export const activityEvents = pgTable("activity_events", {
   index("idx_ae_repo_branch").on(t.repo, t.branch),
   index("idx_ae_feature_review").on(t.featureId, t.reviewStatus),
 ]);
+
+// ── Feed Cache ─────────────────────────────────────────────────────────
+// Presentation cache for the LLM-composed editorial feed. Keyed by lens
+// ('org' for the org-level feed). This is NOT a fact table — clear it
+// freely; it recomposes automatically on next /api/feed request.
+
+export const feedCache = pgTable("feed_cache", {
+  id: text("id").primaryKey(),          // 'org' for the org-level feed
+  payload: jsonb("payload").notNull(),  // FeedComposed JSON — presentation cache, NOT fact
+  composedAt: timestamp("composed_at", { withTimezone: true }).notNull(),
+  eventCountAtCompose: integer("event_count_at_compose").notNull().default(0),
+});
