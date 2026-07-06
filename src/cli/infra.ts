@@ -42,6 +42,18 @@ export function up(): void {
     `);" 2>/dev/null || true`,
   );
 
+  // Startup guard: ensure attention_state exists even if the migration was
+  // added after the DB was first initialised (covers installs that skipped 0005).
+  run(
+    `docker compose exec -T db psql -U intent -d intent -c ` +
+    `"CREATE TABLE IF NOT EXISTS attention_state (` +
+    `id text PRIMARY KEY DEFAULT 'current', ` +
+    `state jsonb NOT NULL, ` +
+    `updated_at timestamptz NOT NULL DEFAULT now()` +
+    `); ` +
+    `INSERT INTO attention_state (id, state) VALUES ('current', '{}') ON CONFLICT DO NOTHING;" 2>/dev/null || true`,
+  );
+
   console.log("Database is up and migrated.");
 }
 

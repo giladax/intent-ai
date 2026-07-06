@@ -487,3 +487,14 @@ export const feedCache = pgTable("feed_cache", {
   composedAt: timestamp("composed_at", { withTimezone: true }).notNull(),
   eventCountAtCompose: integer("event_count_at_compose").notNull().default(0),
 });
+
+// ── Attention State (shared attention v1) ──────────────────────────────
+// Single-row cross-process bridge: the web server writes the user's current
+// view-state (PUT /api/attention); the MCP server reads it (brain_attention).
+// One slot ('current') for the single-user v1 — NOT a fact table.
+
+export const attentionState = pgTable("attention_state", {
+  id: text("id").primaryKey().default("current"),
+  state: jsonb("state").notNull(),      // AttentionState JSON (src/storage/attention-store.ts)
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
