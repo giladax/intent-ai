@@ -54,6 +54,26 @@ export function storyAccent(index: number): "vermilion" | "marigold" | "cobalt" 
 }
 
 /**
+ * Split a lede paragraph into a headline (first sentence) + the rest.
+ * Long first sentences break at the em-dash — headlines stay short.
+ * Backward-compat path: used only when the composed payload predates the
+ * explicit `lede.headline` field (F1).
+ */
+export function splitLede(text: string): { headline: string; rest: string } {
+  const m = text.match(/^(.+?[.!?])\s+(.*)$/s);
+  let headline = m && m[1].length >= 12 ? m[1] : text;
+  let rest = m && m[1].length >= 12 ? m[2] : "";
+  if (headline.length > 110) {
+    const dash = headline.indexOf(" — ");
+    if (dash > 20) {
+      rest = headline.slice(dash + 3).replace(/^./, (c) => c.toUpperCase()) + (rest ? " " + rest : "");
+      headline = headline.slice(0, dash) + ".";
+    }
+  }
+  return { headline, rest };
+}
+
+/**
  * Derive 7 deterministic heat-tick heights (px, 2–11) from a heat score.
  * Pseudo-varied so the ticks read as ambient life, not a chart.
  */

@@ -9,8 +9,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import "./LensChatMain.css";
-import { streamChat, fetchLensOpening, type FeedComposed } from "../api";
-import type { ChatMessage } from "../types";
+import { streamChat, fetchLensOpening, fetchSessions, type FeedComposed } from "../api";
+import type { ChatMessage, Session } from "../types";
 import type { LensType } from "./LensRail";
 import { FeedStream, type PressedStory } from "./FeedStream";
 
@@ -65,6 +65,10 @@ function buildLensScopeContext(
 function renderMarkdown(text: string): React.ReactNode[] {
   return text.split("\n\n").map((para, i) => {
     const cleaned = para
+      // Escape raw HTML first — the model's output is not trusted markup.
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
       .replace(/^#{1,3}\s+/gm, "")  // strip headers
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/^[-*]\s+/gm, "• ");  // list dashes to bullets
@@ -72,6 +76,45 @@ function renderMarkdown(text: string): React.ReactNode[] {
       <p key={i} className="lc-brainline" style={{ marginBottom: "14px" }} dangerouslySetInnerHTML={{ __html: cleaned }} />
     );
   });
+}
+
+// ── Opening paragraphs with an in-place "more" affordance ─────────────
+// Long understanding text collapses to 3 paragraphs; "more" expands inline.
+
+const OPENING_COLLAPSE_COUNT = 3;
+
+function OpeningParagraphs({
+  turn,
+  expanded,
+  onExpand,
+}: {
+  turn: string | null;
+  expanded: boolean;
+  onExpand: () => void;
+}) {
+  if (!turn) return null;
+  const paras = turn
+    .replace(/\[s:[a-f0-9]+\]/gi, "")
+    .replace(/\.\s*\./g, ".")
+    .trim()
+    .split("\n\n")
+    .filter((p) => p.trim().length > 0);
+  const collapsed = !expanded && paras.length > OPENING_COLLAPSE_COUNT;
+  const shown = collapsed ? paras.slice(0, OPENING_COLLAPSE_COUNT) : paras;
+  return (
+    <>
+      {shown.map((para, i) => (
+        <p key={i} className="lc-brainline" style={{ marginBottom: "14px" }}>
+          {para}
+        </p>
+      ))}
+      {collapsed && (
+        <button className="lc-more" onClick={onExpand}>
+          more · {paras.length - OPENING_COLLAPSE_COUNT} paragraph{paras.length - OPENING_COLLAPSE_COUNT === 1 ? "" : "s"} ↓
+        </button>
+      )}
+    </>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -125,12 +168,16 @@ export function LensChatMain({
   const [streaming, setStreaming] = useState(false);
   const [openingTurn, setOpeningTurn] = useState<string | null>(null);
   const [openingLoading, setOpeningLoading] = useState(false);
+  const [openingExpanded, setOpeningExpanded] = useState(false);
+  const [timelineSessions, setTimelineSessions] = useState<Session[] | null>(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
   // Seeded opening — fetched when a feature is selected. The opening IS the
   // chat's first turn: understanding + recent insights + pending count.
   useEffect(() => {
+    setOpeningExpanded(false);
     if (!selectedFeatureId) {
       setOpeningTurn(null);
       setOpeningLoading(false);
@@ -153,6 +200,40 @@ export function LensChatMain({
       cancelled = true;
     };
   }, [selectedFeatureId]);
+
+  // Timeline seeded opening — a real sessions list for the selected window.
+  // Same mechanic as the feature opening: select a lens value, get a first turn.
+  useEffect(() => {
+    if (focusedLens !== "timeline" || !selectedTimeRange) {
+      setTimelineSessions(null);
+      setTimelineLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setTimelineLoading(true);
+    fetchSessions()
+      .then((sessions) => {
+        if (cancelled) return;
+        const now = new Date();
+        const since = new Date(now);
+        if (selectedTimeRange === "today") since.setHours(0, 0, 0, 0);
+        else since.setDate(since.getDate() - 7);
+        const inWindow = sessions.filter((s) => {
+          const t = s.started_at ?? s.created_at;
+          return t ? new Date(t).getTime() >= since.getTime() : false;
+        });
+        setTimelineSessions(inWindow.slice(0, 8));
+      })
+      .catch(() => {
+        if (!cancelled) setTimelineSessions([]); // fail-safe: empty list, chat still works
+      })
+      .finally(() => {
+        if (!cancelled) setTimelineLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [focusedLens, selectedTimeRange]);
 
   // Scroll to bottom after new messages
   useEffect(() => {
@@ -259,16 +340,11 @@ export function LensChatMain({
                   <span /><span />
                 </div>
               ) : (
-                openingTurn
-                  ?.replace(/\[s:[a-f0-9]+\]/gi, "")
-                  .replace(/\.\s*\./g, ".")
-                  .trim()
-                  ?.split("\n\n")
-                  .map((para, i) => (
-                    <p key={i} className="lc-brainline" style={{ marginBottom: "14px" }}>
-                      {para}
-                    </p>
-                  ))
+                <OpeningParagraphs
+                  turn={openingTurn}
+                  expanded={openingExpanded}
+                  onExpand={() => setOpeningExpanded(true)}
+                />
               )}
             </section>
             <div className="feed-seam" aria-hidden="true" />
@@ -279,6 +355,56 @@ export function LensChatMain({
                 onReject={onReject}
               />
             )}
+          </>
+        )}
+
+        {/* Timeline seeded opening — the window's sessions as a clickable list.
+            One mechanic at every altitude: select a lens value, get a first turn. */}
+        {focusedLens === "timeline" && selectedTimeRange && (
+          <>
+            <section className="lc-turn-brain lc-rise" aria-label="Timeline opening">
+              <div className="lc-speaker">
+                Quire{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : ""}
+              </div>
+              {timelineLoading ? (
+                <div className="fs-skel" aria-label="Loading sessions">
+                  <span /><span />
+                </div>
+              ) : timelineSessions && timelineSessions.length > 0 ? (
+                <>
+                  <p className="lc-brainline">
+                    {timelineSessions.length} session{timelineSessions.length === 1 ? "" : "s"} recorded{" "}
+                    {selectedTimeRange === "today" ? "today" : "this week"}. The record, newest first:
+                  </p>
+                  <div className="lc-sessionlist">
+                    {timelineSessions.map((s) => (
+                      <button
+                        key={s.id}
+                        className="lc-sessionrow"
+                        onClick={() => onSessionClick?.(s.id)}
+                        title="Open session"
+                      >
+                        <span className="lc-sessionrow-date">
+                          {s.started_at
+                            ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                            : "—"}
+                          {s.session_shape ? ` · ${s.session_shape}` : ""}
+                        </span>
+                        <span className="lc-sessionrow-sum">
+                          {s.narrative_summary ?? "No narrative yet — digested without a summary."}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="lc-brainline">
+                  Nothing recorded {selectedTimeRange === "today" ? "today" : "this week"} yet — new
+                  sessions will appear here as they are digested.
+                </p>
+              )}
+            </section>
+            <div className="feed-seam" aria-hidden="true" />
           </>
         )}
 

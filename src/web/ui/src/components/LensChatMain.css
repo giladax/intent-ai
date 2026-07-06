@@ -419,6 +419,76 @@
   animation: lc-rise 0.8s var(--lc-ease) both;
 }
 
+/* ── Timeline opening — the window's sessions as a clickable ledger ──── */
+
+.lc-sessionlist {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--lc-ink-12);
+  margin-top: 4px;
+}
+
+.lc-sessionrow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 4px;
+  border: none;
+  border-bottom: 1px solid var(--lc-ink-12);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--lc-ink);
+  transition: background 0.25s var(--lc-ease);
+}
+
+.lc-sessionrow:hover {
+  background: rgba(28, 26, 21, 0.04);
+}
+
+.lc-sessionrow-date {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--lc-ink-40);
+  text-transform: uppercase;
+}
+
+.lc-sessionrow-sum {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--lc-ink-60);
+  max-width: 58ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* In-place "more" affordance for long opening turns */
+.lc-more {
+  align-self: flex-start;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lc-ink-60);
+  background: transparent;
+  border: 1px solid var(--lc-ink-25);
+  border-radius: 99px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.3s var(--lc-ease), color 0.3s var(--lc-ease), border-color 0.3s var(--lc-ease);
+}
+
+.lc-more:hover {
+  background: var(--lc-ink);
+  color: var(--lc-paper);
+  border-color: var(--lc-ink);
+}
+
 @media (min-width: 1600px) {
   .lc-chat { max-width: 860px; }
   .lc-chat:has(.feed-stream) { max-width: 860px; }

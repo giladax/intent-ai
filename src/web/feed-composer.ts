@@ -114,6 +114,57 @@ export interface FeedComposed {
   trending: FeedStory[];
 }
 
+// ── Deterministic fallback copy (pure — unit-testable without DB/LLM) ──
+
+/** Strip the `[category] ` prefix that queryFeatureEvidence prepends. */
+function stripCategoryPrefix(summary: string): string {
+  return summary.replace(/^\[[^\]]*\]\s*/, "");
+}
+
+/** First sentence of a summary, capped at maxWords. Empty string when unusable. */
+function firstSentence(summary: string | undefined, maxWords: number): string {
+  if (!summary) return "";
+  return stripCategoryPrefix(summary)
+    .split(/[.!?]/)[0]
+    ?.trim()
+    .split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ") ?? "";
+}
+
+/**
+ * Story headline fallback — built from the top event summary, NEVER the
+ * feature name (the feature name already lives in the kick line above the h2).
+ * Only when there is no evidence at all does the feature name return.
+ */
+export function buildFallbackStoryHeadline(summaries: string[], featureName: string): string {
+  const sentence = firstSentence(summaries[0], 12);
+  return sentence ? `${sentence}.` : featureName;
+}
+
+/** Org-lede headline fallback — first sentence of the hottest feature's top event. */
+export function buildFallbackLedeHeadline(summaries: string[] | undefined, featureCount: number): string {
+  const sentence = firstSentence(summaries?.[0], 10);
+  return sentence ? `${sentence}.` : `${featureCount} active features.`;
+}
+
+/**
+ * Deep-cut fallback for the unfold — assembled from the REMAINING event
+ * summaries (those after the first, which the dek already used), so the
+ * press always reveals new information. Returns undefined when there is
+ * nothing beyond the dek to show.
+ */
+export function buildFallbackDeep(summaries: string[]): { deepHeadline?: string; deep?: string } {
+  const remaining = summaries.slice(1, 5).map(stripCategoryPrefix).filter(Boolean);
+  if (remaining.length === 0) return {};
+  const deep = remaining.length > 2
+    ? `${remaining.slice(0, 2).join(" ")}\n\n${remaining.slice(2).join(" ")}`
+    : remaining.join(" ");
+  const headSentence = firstSentence(summaries[1], 12);
+  return {
+    deepHeadline: headSentence ? `${headSentence}.` : undefined,
+    deep,
+  };
+}
+
 // ── Server-only: DB query + LLM composition ────────────────────────────
 // These require a live DB + Anthropic API key. Not tested via unit tests.
 
@@ -263,13 +314,8 @@ export async function composeFeedEditorial(
   // Call 1: org lede
   // Deterministic fallback for headline: first sentence of top event summary, ≤10 words
   const topEv = evidenceByFeature?.get(topItems[0]?.featureId ?? "");
-  const fallbackLedeHeadline = topEv?.summaries[0]
-    ?.replace(/^\[[^\]]*\]\s*/, "")
-    .split(/[.!?]/)[0]
-    ?.trim()
-    .split(" ").slice(0, 10).join(" ") ?? `${trendingItems.length} active features.`;
   let lede: FeedLede = {
-    headline: fallbackLedeHeadline,
+    headline: buildFallbackLedeHeadline(topEv?.summaries, trendingItems.length),
     text: `${orgName} has active work across ${trendingItems.length} features.`,
     citedSessionIds: [],
   };
@@ -299,13 +345,7 @@ Return JSON: { "headline": "...", "body": "...", "citedSessionIds": [] }`,
     trendingItems.slice(0, 5).map(async (item, idx) => {
       const ev = evidenceByFeature?.get(item.featureId);
       // Build headline from top event summary, never the feature name (already in kick line).
-      const fallbackHeadline = ev?.summaries[0]
-        ?.replace(/^\[[^\]]*\]\s*/, "")  // strip category prefix
-        .split(/[.!?]/)[0]               // first sentence
-        ?.trim()
-        .split(" ").slice(0, 12).join(" ") + "."
-        || item.featureName;
-      let headline = fallbackHeadline;
+      let headline = buildFallbackStoryHeadline(ev?.summaries ?? [], item.featureName);
       const summaryRaw = ev?.summaries[0]?.replace(/^\[[^\]]*\]\s*/, "").slice(0, 200).trimEnd() ?? "";
       const summaryPart = summaryRaw
         ? (summaryRaw.match(/[.!?]$/) ? summaryRaw : summaryRaw + ".")
@@ -319,13 +359,7 @@ Return JSON: { "headline": "...", "body": "...", "citedSessionIds": [] }`,
       let deep: string | undefined;
 
       // Deterministic deep: assemble from remaining event summaries (those after the first)
-      const remainingSummaries = ev?.summaries.slice(1, 5).map((s) => s.replace(/^\[[^\]]*\]\s*/, "")) ?? [];
-      const deepFallback = remainingSummaries.length > 0
-        ? remainingSummaries.slice(0, 2).join(" ") + (remainingSummaries.length > 2 ? "\n\n" + remainingSummaries.slice(2).join(" ") : "")
-        : undefined;
-      const deepHeadlineFallback = ev?.summaries[1]
-        ?.replace(/^\[[^\]]*\]\s*/, "")
-        .split(/[.!?]/)[0]?.trim().split(" ").slice(0, 12).join(" ");
+      const { deepHeadline: deepHeadlineFallback, deep: deepFallback } = buildFallbackDeep(ev?.summaries ?? []);
 
       if (idx < 2) {
         try {
@@ -349,9 +383,13 @@ Return JSON: { "headline": "...", "dek": "...", "openQuestion": "...", "deepHead
             headline = storyResult.headline;
             dek = storyResult.dek;
             openQuestion = storyResult.openQuestion;
-            deepHeadline = storyResult.deepHeadline;
-            deep = storyResult.deep;
           }
+          // Deep cut: take the model's version only when present and voice-clean;
+          // otherwise assemble from the remaining evidence summaries.
+          const deepClean = storyResult.deep && !containsBannedWords(storyResult.deep)
+            && storyResult.deepHeadline && !containsBannedWords(storyResult.deepHeadline);
+          deepHeadline = deepClean ? storyResult.deepHeadline : deepHeadlineFallback;
+          deep = deepClean ? storyResult.deep : deepFallback;
           // Only trust ids from our DB evidence — any extra model ids are fabricated.
           if (storyResult.citedSessionIds.length > 0 && ev?.sessionIds?.length) {
             const knownSet = new Set(ev.sessionIds);

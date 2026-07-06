@@ -188,7 +188,12 @@ function AppShell() {
           <DropdownMenu>
             <DropdownMenuTrigger render={<button className="ink-mast-wordmark" title="Switch project" />}>
               <Feather className="size-3.5" style={{ color: "var(--j-ink-soft)" }} />
-              <span>{selectedProject?.name ?? "Quire"}</span>
+              <span>Quire.</span>
+              {selectedProject && (
+                <span className="ink-chrome" style={{ fontSize: "0.66rem", opacity: 0.65 }}>
+                  {selectedProject.name}
+                </span>
+              )}
               <ChevronDown className="size-3 opacity-50" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
