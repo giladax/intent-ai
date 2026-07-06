@@ -1,0 +1,14 @@
+import { chromium } from "playwright-core";
+const browser = await chromium.launch({ channel: "chrome", headless: true });
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+const page = await ctx.newPage();
+await page.goto("http://localhost:3471", { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+await page.locator(".lc-ledger-toggle").click();
+await page.waitForTimeout(1500);
+const wordmark = await page.locator(".ink-mast-wordmark").textContent();
+console.log("classic wordmark:", wordmark?.trim());
+const backLabel = await page.getByText("← Feed").count();
+console.log("back-to-feed label present:", backLabel);
+await page.screenshot({ path: ".superpowers/sdd/shots-feed-impl/final2-classic.png" });
+await browser.close();

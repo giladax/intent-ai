@@ -117,3 +117,37 @@ All 19 fixes implemented. Build passes (`vite build` clean). TypeScript type che
 | `src/web/ui/src/components/LensRail.css` | F10, F18 |
 | `src/web/ui/src/components/NotifButton.tsx` | F14, F16, F19 |
 | `src/web/ui/src/App.tsx` | F14 |
+
+---
+
+## Follow-up wave (same day) — functional gaps + verification
+
+### F3 (part 2) — Timeline lens seeded opening: a real sessions list
+- `LensChatMain.tsx`: when `focusedLens === "timeline" && selectedTimeRange`, fetches `/api/sessions` (existing `fetchSessions()` — no new endpoint needed), filters client-side to the window (today = start-of-day; week = 7 days), caps at 8
+- Renders as a first turn: speaker line ("QUIRE · LENS: TIMELINE / THIS WEEK"), a count brainline, then a clickable session ledger (`.lc-sessionlist` / `.lc-sessionrow`) — date + shape kicker, 2-line-clamped narrative summary
+- Row click navigates to the session detail page via the existing `onSessionClick` prop
+- Honest empty state when the window has no sessions; skeleton while loading; fail-safe to empty list
+- New CSS in `LensChatMain.css` (`.lc-sessionlist`, `.lc-sessionrow*`) matches the editorial grammar
+
+### Truncated-text expand affordance
+- `OpeningParagraphs` component: feature-lens opening turns longer than 3 paragraphs collapse to 3 + an in-place `more · N paragraphs ↓` button (`.lc-more`); expansion state resets when the feature changes
+- Citation-token stripping (`[s:xxxx]`) moved into the same component
+
+### Bug fixes found during this pass
+- **`"undefined."` headline leak:** the F6 fallback `summaries[0]?...split(...).join(" ") + "."` evaluated to the literal string `"undefined."` when a feature had no evidence, so the `|| featureName` guard never fired. Extracted pure helpers (`buildFallbackStoryHeadline`, `buildFallbackLedeHeadline`, `buildFallbackDeep`) with correct empty-evidence handling; regression-tested.
+- **Voice-rule gap on the deep cut:** LLM `deep`/`deepHeadline` are now scanned with `containsBannedWords` and fall back to the deterministic assembly when banned or missing (previously they bypassed the guard).
+- **XSS hardening:** `renderMarkdown` now HTML-escapes the model output before the `**bold**` → `<strong>` conversion (it feeds `dangerouslySetInnerHTML`).
+
+### F14 completion — classic masthead wordmark
+- Classic wordmark now reads **"Quire."** with the project name (`intent-ai`) as small repo meta beside it; project-switcher dropdown behavior unchanged. Verified live: masthead reads "Quire. intent-ai", toggles are "Ledger ↗" / "← Feed".
+
+### Tests (new)
+- `tests/web/feed-fallback-copy.test.ts` — 13 tests: story-headline fallback (news-first, ≤12 words, category-prefix stripping, feature-name only when no evidence, `undefined.` regression), lede-headline fallback, deep-cut fallback (built from *remaining* summaries, 2-paragraph split, deepHeadline from second summary, empty when nothing beyond the dek)
+- `tests/web/feed-stream.test.ts` — 4 new `splitLede` backward-compat tests (`splitLede` moved to `feed-stream-utils.ts` and exported)
+- **Full suite: 806/806 passing** (was 790 before the wave + 16 new)
+
+### Verification (live app, playwright + installed Chrome)
+- `final2-1440.png` / `final2-1728.png` in `.superpowers/sdd/shots-feed-impl/`, captured after `document.fonts.ready`
+- Measured geometry: `.feed-stream` **680px** at both viewports (was shrink-wrapped 568.4); `.lc-chat` 744px @1440, **860px @1728**; org h1 renders **2 lines** with a real ≤10-word headline (was 11 lines)
+- Timeline flow probed end-to-end (`final2-timeline.png`): lens focus dims the feed to opacity 0.35 (still mounted), "this week" seeds 3 real session rows, row click lands on the session detail page, scope tag ◉ THIS WEEK and placeholder "Ask within this week…" agree (F4)
+- Classic shell probed (`final2-classic.png`): wordmark "Quire.", "← Feed" toggle present
