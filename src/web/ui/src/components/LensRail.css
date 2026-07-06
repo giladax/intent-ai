@@ -206,7 +206,7 @@
 }
 
 .lc-lens--focused {
-  min-height: 322px;
+  min-height: 106px;
 }
 
 /* Feature list inside focused lens */
@@ -232,7 +232,6 @@
   border-radius: 8px;
   color: rgba(245, 241, 232, 0.78);
   cursor: pointer;
-  white-space: nowrap;
   overflow: hidden;
   transition: background 0.3s var(--lc-ease);
 }
@@ -256,13 +255,19 @@
 
 .lc-flist-name {
   flex: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 .lc-flist-n {
   margin-left: auto;
   opacity: 0.6;
+  min-width: 2ch;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 /* Amber pulse indicator */

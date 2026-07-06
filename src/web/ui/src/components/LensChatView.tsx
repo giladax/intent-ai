@@ -124,6 +124,13 @@ export function LensChatView({ features, projectId, onSessionClick }: LensChatVi
       setSelectedFeatureId(null);
       setSelectedFeatureName(null);
       setSelectedTimeRange(null);
+    } else if (lens === "timeline") {
+      // Switching to timeline — clear feature selection
+      setSelectedFeatureId(null);
+      setSelectedFeatureName(null);
+    } else if (lens === "feature") {
+      // Switching to feature — clear time range
+      setSelectedTimeRange(null);
     }
   }
 

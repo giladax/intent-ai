@@ -60,6 +60,20 @@ function buildLensScopeContext(
   return { featureId: null, timeRange: null };
 }
 
+// ── Markdown renderer for brain turns ────────────────────────────────
+
+function renderMarkdown(text: string): React.ReactNode[] {
+  return text.split("\n\n").map((para, i) => {
+    const cleaned = para
+      .replace(/^#{1,3}\s+/gm, "")  // strip headers
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/^[-*]\s+/gm, "• ");  // list dashes to bullets
+    return (
+      <p key={i} className="lc-brainline" style={{ marginBottom: "14px" }} dangerouslySetInnerHTML={{ __html: cleaned }} />
+    );
+  });
+}
+
 // ── Component ─────────────────────────────────────────────────────────
 
 interface LensChatMainProps {
@@ -151,6 +165,8 @@ export function LensChatMain({
   // lens from within the feed (the stream stays — presses extend it).
   // Rail-driven lens selection leaves feed mode (feature page instead).
   const feedMode = focusedLens === null || pressedStories.length > 0;
+  const feedVisible = feedMode || (focusedLens !== null && !selectedFeatureId && !selectedTimeRange);
+  const feedDimmed = feedVisible && !feedMode; // lens focused but nothing selected yet
 
   const scopeLabel = focusedLens === "feature" && selectedFeatureName
     ? `◉ ${selectedFeatureName.toUpperCase()}`
@@ -159,7 +175,7 @@ export function LensChatMain({
     : null;
 
   const speakerScope = focusedLens === "feature" && selectedFeatureName
-    ? `lens: feature / ${selectedFeatureName.toUpperCase()}`
+    ? selectedFeatureName.toUpperCase()
     : focusedLens === "timeline" && selectedTimeRange
     ? `lens: timeline / ${selectedTimeRange === "today" ? "TODAY" : "THIS WEEK"}`
     : null;
@@ -216,16 +232,18 @@ export function LensChatMain({
 
       <div className="lc-chat">
         {/* The feed — editorial org overview (replaces the arrival turn) */}
-        {feedMode && (
-          <FeedStream
-            feed={feed}
-            loading={feedLoading}
-            sessionsDigested={arrivalTotals.sessions}
-            pressedStories={pressedStories}
-            onStoryPress={onStoryPress}
-            notifSlot={notifSlot}
-            onSessionClick={onSessionClick}
-          />
+        {feedVisible && (
+          <div style={feedDimmed ? { opacity: 0.35, filter: "saturate(0.6)", transition: "opacity 0.4s, filter 0.4s", pointerEvents: "none" } : undefined}>
+            <FeedStream
+              feed={feed}
+              loading={feedLoading}
+              sessionsDigested={arrivalTotals.sessions}
+              pressedStories={pressedStories}
+              onStoryPress={onStoryPress}
+              notifSlot={notifSlot}
+              onSessionClick={onSessionClick}
+            />
+          </div>
         )}
 
         {/* Seeded opening — the feature lens's first turn (before any message):
@@ -241,11 +259,16 @@ export function LensChatMain({
                   <span /><span />
                 </div>
               ) : (
-                openingTurn?.split("\n\n").map((para, i) => (
-                  <p key={i} className="lc-brainline" style={{ marginBottom: "14px" }}>
-                    {para}
-                  </p>
-                ))
+                openingTurn
+                  ?.replace(/\[s:[a-f0-9]+\]/gi, "")
+                  .replace(/\.\s*\./g, ".")
+                  .trim()
+                  ?.split("\n\n")
+                  .map((para, i) => (
+                    <p key={i} className="lc-brainline" style={{ marginBottom: "14px" }}>
+                      {para}
+                    </p>
+                  ))
               )}
             </section>
             <div className="feed-seam" aria-hidden="true" />
@@ -280,9 +303,9 @@ export function LensChatMain({
               <div className="lc-speaker">
                 Quire{speakerScope ? <> · <span className="lc-scope">{speakerScope}</span></> : " · just now"}
               </div>
-              <p className="lc-brainline">
-                {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
-              </p>
+              {m.content
+                ? renderMarkdown(m.content)
+                : (streaming && i === messages.length - 1 ? <p className="lc-brainline">…</p> : null)}
             </div>
           )
         ))}
@@ -293,7 +316,7 @@ export function LensChatMain({
         <div className={`lc-ask${scopeLabel ? " lc-ask--scoped" : ""} lc-rise`} style={{ animationDelay: "1.1s" }}>
           <span className="lc-brand-dot" aria-hidden="true" />
           {scopeLabel && (
-            <button className="lc-scopetag" onClick={onClearScope} title="Clear lens scope">
+            <button className="lc-scopetag" onClick={onClearScope} title={selectedFeatureName ?? "Clear lens scope"}>
               {scopeLabel} <span className="lc-x" aria-hidden="true">×</span>
             </button>
           )}
@@ -302,8 +325,10 @@ export function LensChatMain({
             type="text"
             value={input}
             placeholder={
-              scopeLabel
-                ? `Ask within ${selectedFeatureName ?? selectedTimeRange ?? "this lens"}…`
+              focusedLens === "feature" && selectedFeatureName
+                ? `Ask within ${selectedFeatureName}…`
+                : focusedLens === "timeline" && selectedTimeRange
+                ? `Ask within ${selectedTimeRange === "today" ? "today" : "this week"}…`
                 : "Ask Quire anything — or expand a story…"
             }
             aria-label="Ask Quire"

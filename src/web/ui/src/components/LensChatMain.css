@@ -23,11 +23,14 @@
 .lc-chat {
   max-width: 660px;
   margin: 0 auto;
-  padding: 16vh 32px 190px;
+  padding: 16vh 32px clamp(80px, 15vh, 190px);
   display: flex;
   flex-direction: column;
   gap: 38px;
 }
+
+/* Widen container when feed is rendered */
+.lc-chat:has(.feed-stream) { max-width: 744px; }
 
 /* Brain turns */
 .lc-turn-brain {
@@ -183,7 +186,8 @@
   display: flex;
   justify-content: center;
   pointer-events: none;
-  background: linear-gradient(to top, var(--lc-paper) 45%, transparent);
+  background: linear-gradient(to top, var(--lc-paper) 62%, transparent);
+  backdrop-filter: blur(2px);
   z-index: 10;
 }
 
@@ -235,12 +239,16 @@
   border: none;
   cursor: pointer;
   animation: lc-rise 0.6s var(--lc-ease) both;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lc-x {
   opacity: 0.65;
   cursor: pointer;
   font-size: 11px;
+  flex-shrink: 0;
 }
 
 .lc-scopetag:hover .lc-x {
@@ -409,4 +417,10 @@
 /* Rise class for dynamic elements */
 .lc-rise {
   animation: lc-rise 0.8s var(--lc-ease) both;
+}
+
+@media (min-width: 1600px) {
+  .lc-chat { max-width: 860px; }
+  .lc-chat:has(.feed-stream) { max-width: 860px; }
+  .lc-ask { width: min(780px, 100%); }
 }
