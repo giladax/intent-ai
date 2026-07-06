@@ -87,8 +87,12 @@ export function FeedStream({
     );
   }
 
-  const { headline, rest } = splitLede(feed.lede.text);
+  // Use explicit headline field if present; fall back to splitLede for backward compat
+  const { headline: splitHeadlineText, rest: splitRest } = splitLede(feed.lede.text);
+  const headline = feed.lede.headline ?? splitHeadlineText;
+  const rest = feed.lede.headline ? feed.lede.text : splitRest;
   const headlineWords = headline.split(" ");
+  const isLongHeadline = headlineWords.length > 8;
   const pressedIds = new Set(pressedStories.map((p) => p.featureId));
   const storyByFeature = new Map(feed.trending.map((s) => [s.featureId, s]));
   const accentByFeature = new Map(
@@ -119,10 +123,10 @@ export function FeedStream({
 
       {/* lead: the org overview */}
       <article className="feed-lead">
-        <h1 aria-label={headline}>
+        <h1 aria-label={headline} data-long={isLongHeadline ? "" : undefined}>
           {headlineWords.map((word, i) => (
             <span key={i}>
-              <span className="fs-word" style={{ animationDelay: `${0.9 + i * 0.16}s` }}>
+              <span className="fs-word" style={{ animationDelay: `${Math.min(0.9 + i * 0.16, 2.8)}s` }}>
                 {word}
               </span>
               {i < headlineWords.length - 1 ? " " : ""}
@@ -132,7 +136,7 @@ export function FeedStream({
         {rest && (
           <p
             className="lede lc-rise"
-            style={{ animationDelay: `${Math.min(0.9 + headlineWords.length * 0.16, 2.6)}s` }}
+            style={{ animationDelay: `${Math.min(0.9 + headlineWords.length * 0.16, 2.8) + 0.2}s` }}
           >
             {rest}
           </p>
@@ -168,6 +172,25 @@ export function FeedStream({
         <p className="lede lc-rise" style={{ animationDelay: "3.2s", color: "var(--lc-ink-60)" }}>
           Nothing is trending yet — new sessions will surface here as they are digested.
         </p>
+      )}
+
+      {/* Briefs register — quick one-liners for context after the main cards */}
+      {feed.trending.length > 1 && (
+        <div className="feed-briefs lc-rise" style={{ animationDelay: `${3.5 + feed.trending.length * 0.15}s` }}>
+          <div className="feed-briefs-head">
+            <span className="rule" /> ALSO THIS WEEK <span className="rule" />
+          </div>
+          {feed.trending.slice(1).map((story) => (
+            <button
+              key={`brief-${story.featureId}`}
+              className="feed-brief-item"
+              onClick={() => onStoryPress(story.featureId, story.featureName)}
+            >
+              <span className="feed-brief-kick">{story.featureName.toUpperCase()}</span>
+              <span className="feed-brief-hed">{story.dek.split(/[.!?]/)[0].trim()}.</span>
+            </button>
+          ))}
+        </div>
       )}
 
       {/* the flow — presses extend the stream here */}
@@ -302,8 +325,12 @@ function UnfoldSection({ story, accent, onSessionClick }: { story: FeedStory; ac
       <div className="fs-speaker fs-u fs-u1">
         Quire · <span className="fs-scope">{story.featureName.toLowerCase()}</span>
       </div>
-      <h3 className="fs-u fs-u2">{story.headline}</h3>
-      <p className="fs-body fs-u fs-u3">{story.dek}</p>
+      <h3 className="fs-u fs-u2">
+        {(story.deepHeadline && story.deepHeadline !== story.headline) ? story.deepHeadline : story.headline}
+      </h3>
+      {(story.deep || story.dek).split("\n\n").map((para, i) => (
+        <p key={i} className="fs-body fs-u fs-u3" style={i > 0 ? { marginTop: "12px" } : undefined}>{para}</p>
+      ))}
       <div className="fs-cites fs-u fs-u5">
         <span className="fs-chip">
           <span className="fs-dot" style={{ background: ACCENT_VAR[accent] }} />

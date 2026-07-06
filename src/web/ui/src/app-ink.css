@@ -423,6 +423,13 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   animation: ink-page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Reading column — centered on the axis of the masthead. */
+.ink-reading-col {
+  max-width: 42rem;
+  margin-inline: auto;
+  padding-inline: 2rem;
+}
+
 /* Ask the Brain — the masthead's standing invitation */
 .ink-ask {
   display: inline-flex;
@@ -1065,7 +1072,7 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   0%,100% { transform:scaleY(.72); opacity:.55 }
   50%     { transform:scaleY(1); opacity:1 }
 }
-@keyframes shimmer {
+@keyframes lc-shimmer {
   0%   { background-position:-200% 0 }
   100% { background-position:300% 0 }
 }
@@ -1089,7 +1096,7 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   height:2px; border-radius:2px;
   background:linear-gradient(90deg,var(--lc-ink-12) 0%,var(--lc-moss) 42%,#7FB89F 50%,var(--lc-moss) 58%,var(--lc-ink-12) 100%);
   background-size:200% 100%;
-  animation:shimmer 7s linear infinite;
+  animation:lc-shimmer 7s linear infinite;
 }
 .feed-now-edge .lab {
   margin-top:8px; font-family:'Spline Sans Mono',monospace; font-size:9.5px;
@@ -1107,8 +1114,9 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
 .feed-edition .k { color:var(--lc-ink); font-weight:600 }
 .feed-lead h1 {
   font-weight:800; font-size:clamp(30px,3.8vw,44px); line-height:1.08;
-  letter-spacing:-.028em; margin-bottom:20px; max-width:15ch;
+  letter-spacing:-.028em; margin-bottom:20px; max-width:24ch;
 }
+.feed-lead h1[data-long] { font-size:clamp(26px,2.6vw,34px); }
 .feed-lead .lede { font-size:17.5px; line-height:1.68; max-width:58ch; color:var(--lc-ink) }
 .feed-lead .lede .dim { color:var(--lc-ink-60) }
 .feed-handle {
@@ -1280,7 +1288,7 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   height:2px; border-radius:2px; margin:40px 0 32px;
   background:linear-gradient(90deg,var(--lc-ink-12) 0%,var(--lc-moss) 42%,#7FB89F 50%,var(--lc-moss) 58%,var(--lc-ink-12) 100%);
   background-size:200% 100%;
-  animation:shimmer 7s linear infinite;
+  animation:lc-shimmer 7s linear infinite;
 }
 
 /* ---- state band (feature page) ---- */

@@ -152,12 +152,14 @@ export interface FeedStory {
   openQuestion: string;
   citedSessionIds: string[];
   actorInitials: string[];
+  deepHeadline?: string;
+  deep?: string;
 }
 
 export interface FeedComposed {
   editionNumber: number;
   composedAt: string;
-  lede: { text: string; citedSessionIds: string[] };
+  lede: { headline?: string; text: string; citedSessionIds: string[] };
   trending: FeedStory[];
 }
 
