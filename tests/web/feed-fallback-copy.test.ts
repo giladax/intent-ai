@@ -38,18 +38,25 @@ describe("buildFallbackStoryHeadline", () => {
   });
 });
 
-// F1: the org lede gets a real headline from the hottest feature's evidence.
+// F1: the org lede headline is always org-level (count-based), never feature-specific.
+// This prevents the triple-repetition bug where lede h1 = story h2 = story dek
+// (all three were built from the same top-feature summary[0]).
 describe("buildFallbackLedeHeadline", () => {
-  it("uses the first sentence of the top summary, capped at 10 words", () => {
+  it("returns org-level count headline regardless of summaries (avoids lede↔story repetition)", () => {
     const h = buildFallbackLedeHeadline(
       ["[outcome] The daemon was sinking events to a file and not the DB. Fixed."],
       3,
     );
-    expect(h).toBe("The daemon was sinking events to a file and not.");
+    // Must be org-level, not feature-specific text.
+    expect(h).toBe("3 active features.");
     expect(h.replace(/\.$/, "").split(" ").length).toBeLessThanOrEqual(10);
   });
 
-  it("falls back to the feature count when there is no evidence", () => {
+  it("returns singular '1 active feature' when featureCount is 1", () => {
+    expect(buildFallbackLedeHeadline(undefined, 1)).toBe("1 active feature.");
+  });
+
+  it("returns plural 'N active features' when featureCount > 1", () => {
     expect(buildFallbackLedeHeadline(undefined, 4)).toBe("4 active features.");
     expect(buildFallbackLedeHeadline([], 2)).toBe("2 active features.");
   });

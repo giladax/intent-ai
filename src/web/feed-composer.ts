@@ -116,18 +116,61 @@ export interface FeedComposed {
 
 // ── Deterministic fallback copy (pure — unit-testable without DB/LLM) ──
 
+/** Plural helper: returns `word` when n === 1, else `word + "s"`. */
+function pl(n: number, word: string): string {
+  return n === 1 ? word : `${word}s`;
+}
+
 /** Strip the `[category] ` prefix that queryFeatureEvidence prepends. */
 function stripCategoryPrefix(summary: string): string {
   return summary.replace(/^\[[^\]]*\]\s*/, "");
 }
 
-/** First sentence of a summary, capped at maxWords. Empty string when unusable. */
+/** First sentence of a summary, capped at maxWords with phrase-boundary truncation.
+ *
+ * Truncation strategy (applied only when the sentence exceeds maxWords):
+ *  1. Find the last clause/phrase boundary (—, :, ,) whose LEFT side is ≤ maxWords.
+ *     Use that as the cut point.
+ *  2. If no such boundary exists, use the maxWords word-boundary — but then drop
+ *     trailing dangling connectives (the, a, of, and, or, in, to, at, on, for, with).
+ *
+ * Returns empty string when unusable.
+ */
+const DANGLING_CONNECTIVES = new Set([
+  "the", "a", "an", "of", "and", "or", "in", "to", "at", "on", "for", "with",
+  "—", "but", "nor", "so", "yet", "by", "as",
+]);
+
 function firstSentence(summary: string | undefined, maxWords: number): string {
   if (!summary) return "";
-  return stripCategoryPrefix(summary)
+  const raw = stripCategoryPrefix(summary)
     .split(/[.!?]/)[0]
-    ?.trim()
-    .split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ") ?? "";
+    ?.trim() ?? "";
+  if (!raw) return "";
+
+  const words = raw.split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return words.join(" ");
+
+  // Need to truncate. Look for phrase/clause boundary markers within the budget.
+  // Scan words up to maxWords and find the rightmost boundary.
+  const BOUNDARY_RE = /[—:,]$/;
+  let boundaryIdx = -1;
+  for (let i = 0; i < maxWords; i++) {
+    if (BOUNDARY_RE.test(words[i])) boundaryIdx = i;
+  }
+
+  if (boundaryIdx >= 0) {
+    // Cut at boundary: strip the trailing punctuation char and end with period.
+    const cut = words.slice(0, boundaryIdx).join(" ").replace(/[—:,]$/, "");
+    if (cut.trim()) return cut.trim();
+  }
+
+  // No boundary — use word budget but drop trailing dangling connectives.
+  let end = maxWords;
+  while (end > 1 && DANGLING_CONNECTIVES.has(words[end - 1].toLowerCase().replace(/[.,;:!?—]$/, ""))) {
+    end--;
+  }
+  return words.slice(0, end).join(" ");
 }
 
 /**
@@ -140,10 +183,24 @@ export function buildFallbackStoryHeadline(summaries: string[], featureName: str
   return sentence ? `${sentence}.` : featureName;
 }
 
-/** Org-lede headline fallback — first sentence of the hottest feature's top event. */
-export function buildFallbackLedeHeadline(summaries: string[] | undefined, featureCount: number): string {
-  const sentence = firstSentence(summaries?.[0], 10);
-  return sentence ? `${sentence}.` : `${featureCount} active features.`;
+/**
+ * Org-lede fallback text — org-level synthesis: "Quire has active work across N feature(s)."
+ * Pure, no feature-specific content (avoids repeating the top story's evidence).
+ * Exported for testing.
+ */
+export function buildFallbackLedeFallbackText(featureCount: number, orgName = "Quire"): string {
+  return `${orgName} has active work across ${featureCount} ${pl(featureCount, "feature")}.`;
+}
+
+/**
+ * Org-lede headline fallback — always org-level (count-based), never feature-specific.
+ * This ensures the lede headline is DISTINCT from story[0]'s headline/dek,
+ * which is built from the same top-feature evidence.
+ * The `summaries` parameter is retained for API compat but is no longer used
+ * for the headline (it was the source of the lede↔story triple-repetition bug).
+ */
+export function buildFallbackLedeHeadline(_summaries: string[] | undefined, featureCount: number): string {
+  return `${featureCount} active ${pl(featureCount, "feature")}.`;
 }
 
 /**
@@ -312,11 +369,13 @@ export async function composeFeedEditorial(
   }).join("\n");
 
   // Call 1: org lede
-  // Deterministic fallback for headline: first sentence of top event summary, ≤10 words
-  const topEv = evidenceByFeature?.get(topItems[0]?.featureId ?? "");
+  // Deterministic fallback: org-level headline (count-based) + org-level text.
+  // Using the same top-feature summaries for both lede and story[0] produced
+  // triple-repetition on arrival (h1 + story h2 + story dek). The lede is now
+  // strictly org-level — distinct from any feature-specific story copy.
   let lede: FeedLede = {
-    headline: buildFallbackLedeHeadline(topEv?.summaries, trendingItems.length),
-    text: `${orgName} has active work across ${trendingItems.length} features.`,
+    headline: buildFallbackLedeHeadline(undefined, trendingItems.length),
+    text: buildFallbackLedeFallbackText(trendingItems.length, orgName),
     citedSessionIds: [],
   };
   try {
@@ -351,8 +410,8 @@ Return JSON: { "headline": "...", "body": "...", "citedSessionIds": [] }`,
         ? (summaryRaw.match(/[.!?]$/) ? summaryRaw : summaryRaw + ".")
         : "";
       let dek = summaryPart
-        ? `${summaryPart} ${item.eventCount} events in the last 48 hours.`
-        : `${item.eventCount} events in the last 48 hours.`;
+        ? `${summaryPart} ${item.eventCount} ${pl(item.eventCount, "event")} in the last 48 hours.`
+        : `${item.eventCount} ${pl(item.eventCount, "event")} in the last 48 hours.`;
       let openQuestion = "What comes next?";
       let citedSessionIds: string[] = ev?.sessionIds.slice(0, 3) ?? [];
       let deepHeadline: string | undefined;
