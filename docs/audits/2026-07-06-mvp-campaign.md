@@ -245,3 +245,23 @@ Judge provenance: all CVR verdicts carry `decidedBy: deterministic | judge`. Tas
 ## Operator Log
 
 Full session-by-session log: `.superpowers/sdd/campaign-operator-log.md`
+
+---
+
+## Correction Note (2026-07-07)
+
+**The interpretation in §"What the Data Reveals" item 2 and §"Per-Task Per-Arm Raw Results" §task-4 is factually wrong and must not be cited as evidence that "advisory context can't change behavior."**
+
+Specifically, this claim is false:
+
+> "The Brain context in the treatment arm stated the rule clearly … The Brain context was read (the treatment transcripts confirm brain_enter was called), but did not change the agent's Zod schema choices."
+
+**What actually happened:** All 5 treatment sessions called `brain_enter` (which returned an ambiguous 5-candidate list) and then `brain_feature_context(featureId, depth: "orientation")`. The Digest Pipeline Feature has **6** constraints. `formatFeatureOrientation` in `src/mcp/feature.ts` (lines 302–307 at the time of the campaign) included constraints only when there were ≤3. Every treatment session received exactly this line and nothing more:
+
+> `Constraints: 6 — call brain_feature_context("9e23fadf…", depth: "full") to see all.`
+
+**No session drilled to `depth: "full"`.** The constraint that would have prevented the violation — *"Evidence schema enforces .min(1) with no default — null confidence means the model didn't emit it, not that it defaulted"* — was never in any treatment agent's context. The treatment arm did not receive the rule; it received a count. The campaign's null result on CVR tested **serving-that-didn't-serve**, not the advisory-context hypothesis.
+
+**Fix applied 2026-07-07:** `formatFeatureOrientation` was corrected — all constraints now ride the orientation unconditionally regardless of count. The decimal-splitting sentence-splitter bug was also fixed. See commit `e06a556` and `docs/audits/2026-07-07-task4-postmortem.md` for the full causal analysis.
+
+**Rerun (task-4 only, 5+5 sessions, 2026-07-07):** The rerun results with the fixed serving mechanism are appended below under §Task-4 Rerun Results once available.
