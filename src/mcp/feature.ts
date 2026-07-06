@@ -276,8 +276,10 @@ export function formatCandidates(features: FeatureRecord[], reason: string): str
 }
 
 /**
- * Terse orientation block (~15 lines): verdict-grade understanding, constraints
- * (if ≤3), and drill handles so the agent can pull depth on demand.
+ * Terse orientation block (~15 lines): verdict-grade understanding, all
+ * constraints (always — they earn their tokens; elision was the bug that
+ * caused the 2026-07-07 campaign null result), and drill handles so the
+ * agent can pull depth on demand.
  * This is the default serve shape — orientation first, drill on demand.
  */
 export function formatFeatureOrientation(ctx: FeatureContextData): string {
@@ -287,23 +289,28 @@ export function formatFeatureOrientation(ctx: FeatureContextData): string {
   lines.push(`Feature: ${feature.name}  [id: ${feature.id}]`);
 
   // Verdict-grade understanding: first 2-3 sentences of assembled understanding.
+  // The sentence splitter uses a negative-lookbehind so it does not split on
+  // decimal numbers like "7.7" (the original /[^.!?]+[.!?]+/g regex split
+  // "~7. 7 hours" into two fragments, garbling numbers and wasting a slot).
   const understandingParts: string[] = [];
   if (feature.currentUnderstanding) understandingParts.push(feature.currentUnderstanding);
   for (const o of ctx.approvedObservations) understandingParts.push(o.summary);
   if (understandingParts.length > 0) {
     const full = understandingParts.join(" ");
-    // Split on sentence boundaries; take first 3 sentences.
-    const sentences = full.match(/[^.!?]+[.!?]+/g) ?? [full];
+    // Split on sentence-ending [.!?] followed by whitespace+uppercase or end-of-string.
+    // This avoids splitting decimal numbers like "7.7" or abbreviations mid-sentence.
+    const sentences = full.split(/(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
     const verdict = sentences.slice(0, 3).join(" ").trim();
     lines.push(`\nUnderstanding: ${verdict}`);
   }
 
-  // Constraints earn their tokens — always include if ≤3; skip if >3 (tell agent to drill).
-  if (feature.constraints.length > 0 && feature.constraints.length <= 3) {
+  // Constraints always ride the orientation — every constraint is a one-liner
+  // regardless of count. The ≤3 elision rule was a serving-policy bug: it
+  // gated the highest-value tokens behind a drill nobody took (post-mortem
+  // 2026-07-07). All constraints are served inline here.
+  if (feature.constraints.length > 0) {
     lines.push(`\nConstraints:`);
     for (const c of feature.constraints) lines.push(`  · ${c}`);
-  } else if (feature.constraints.length > 3) {
-    lines.push(`\nConstraints: ${feature.constraints.length} — call brain_feature_context("${feature.id}", depth: "full") to see all.`);
   }
 
   // Drill handles: counts + ids so the agent can pull exactly what it needs.

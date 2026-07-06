@@ -328,20 +328,37 @@ describe("formatting", () => {
     expect(text).toContain("brain_feature_context");
   });
 
-  it("formatFeatureOrientation suppresses constraints section when >3 and tells agent to drill", () => {
+  it("formatFeatureOrientation always shows ALL constraints regardless of count (bug fix: no ≤3 elision)", () => {
     const manyConstraints = {
       ...ctx,
       feature: {
         ...ctx.feature,
-        constraints: ["c1", "c2", "c3", "c4"],
+        constraints: ["c1", "c2", "c3", "c4", "c5", "c6"],
       },
     };
     const text = formatFeatureOrientation(manyConstraints);
-    // individual constraints not listed
-    expect(text).not.toContain("· c1");
-    // count + drill hint present
-    expect(text).toContain("4 —");
-    expect(text).toContain("depth");
+    // all constraints must appear — the ≤3 elision rule was removed
+    expect(text).toContain("· c1");
+    expect(text).toContain("· c4");
+    expect(text).toContain("· c6");
+    // no count-only placeholder
+    expect(text).not.toContain("— call brain_feature_context");
+  });
+
+  it("formatFeatureOrientation does not split decimal numbers in understanding verdict", () => {
+    const decimalCtx = {
+      ...ctx,
+      feature: {
+        ...ctx.feature,
+        currentUnderstanding: "The fidelity score was ~7.7 hours of work. A second sentence follows.",
+      },
+      approvedObservations: [],
+    };
+    const text = formatFeatureOrientation(decimalCtx);
+    // "7.7" must not be split across sentence slots — the number appears intact
+    expect(text).toContain("7.7");
+    // The understanding block should not garble "7" as a lone fragment
+    expect(text).not.toMatch(/~7\. \d/);
   });
 
   it("formatFeatureOrientation omits drill handles when no moments or sessions", () => {
