@@ -174,7 +174,7 @@ function AppShell() {
             textTransform: "uppercase",
           }}
         >
-          ledger ↗
+          Ledger ↗
         </button>
       </div>
     );
@@ -228,7 +228,7 @@ function AppShell() {
               title="Back to lens view"
               style={{ fontSize: "11px", opacity: 0.6 }}
             >
-              ← lens
+              ← Feed
             </button>
             {/* The intake — always reachable; urgent when sessions wait */}
             {selectedProject && (

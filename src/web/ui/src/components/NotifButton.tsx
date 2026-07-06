@@ -22,7 +22,7 @@ export function NotifButton({ unreadCount, onOpen, repo, branch }: NotifButtonPr
 
   const repoLabel = repo || branch
     ? `${repo || "—"} · ${branch || "—"}`
-    : "intent-ai · feat/repo-brain";
+    : "Quire · feat/repo-brain";
 
   return (
     <button className="notif-btn lc-rise" style={{ animationDelay: "0.6s" }} onClick={onOpen} aria-label="Notifications">
@@ -58,7 +58,8 @@ interface NotifCardProps {
 export function NotifCard({ notifications, lastSeen, onDismiss }: NotifCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const gapLabel = lastSeen ? `${hoursSince(lastSeen)} HOURS` : "FIRST VISIT";
+  const h = lastSeen ? hoursSince(lastSeen) : 0;
+  const gapLabel = lastSeen ? `${h} HOUR${h === 1 ? "" : "S"}` : "FIRST VISIT";
   const headliners = notifications.slice(0, 2).map((n) => n.text);
   const title = headliners.length > 0 ? headliners.join(" ") : "Nothing new since your last visit.";
   const count = notifications.length;
@@ -79,9 +80,14 @@ export function NotifCard({ notifications, lastSeen, onDismiss }: NotifCardProps
           {count > 2 && !expanded && (
             <button className="dismiss" onClick={() => setExpanded(true)}>EXPAND ↓</button>
           )}
-          <button className="dismiss" onClick={onDismiss}>
-            {expanded || count <= 2 ? "MARK READ" : "DISMISS"}
-          </button>
+          {count > 0 && (
+            <button className="dismiss" onClick={onDismiss}>
+              {expanded || count <= 2 ? "MARK READ" : "DISMISS"}
+            </button>
+          )}
+          {count === 0 && (
+            <button className="dismiss" onClick={onDismiss}>CLOSE</button>
+          )}
         </div>
       </div>
       {expanded && (
