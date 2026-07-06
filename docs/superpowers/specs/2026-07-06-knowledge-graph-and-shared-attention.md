@@ -11,3 +11,15 @@ Today's seeded features are implementation-shaped (technical areas). The owner's
 
 ## 3. Shared attention (the killer feature)
 The LLM should know the state of the UI — current lens, selected feature, open session, expanded stories — and context-fetch for chat based on it. AND a version of this is exposed over MCP: an agent mid-session can ask what the user is looking at right now and receive the same assembled context. One mental model: the in-app chat and external agents share the brain AND share the user's current attention. v1 shape: UI reports view-state (debounced) → server holds current attention state → chat context assembler merges it (extends the existing lensScope) → new additive MCP tool exposes attention + relevant context. MCP freeze note: additive tool only; existing brain_* tools untouched (campaign coherence).
+
+### 3.1 SHIPPED — v1 (2026-07-06, commits 019a323 · 5761023 · 3aa62fc · 474c2e0)
+
+- **View-state shape** (`AttentionState`, `src/storage/attention-store.ts`): `{ surface: "feed"|"classic", lens: null|{type, featureId?, featureName?, timeRange?}, expandedStoryIds, openSessionId, pendingApprovalVisible, ts }`.
+- **UI reporter**: `LensChatView` posts the state to `PUT /api/attention`, debounced 2s, fire-and-forget (a lost report never surfaces an error). Feed surface only in v1.
+- **Cross-process bridge**: single-row `attention_state` table (migration `drizzle/0005_attention_state.sql`, upsert on id `'current'`) — the web server and MCP server are separate processes, so the slot lives in Postgres, not memory. Survives restarts. Sentinel `{}` = no attention.
+- **Staleness**: attention older than 10 min (`STALE_MS`) is reported as stale, honestly marked in output.
+- **Chat merge** (`src/web/attention-context.ts` + `/api/chat`): merges only on the no-explicit-scope fallback path — an explicit lensScope/featureId/sessionId always wins. Essence principle: a few targeted lines, and the speaker acknowledges attention only when it materially scoped the answer (no creepy narration).
+- **MCP** (`brain_attention`, `src/mcp/server.ts` + pure formatter `src/mcp/attention-formatter.ts`): returns the attention state + the focused feature's orientation (drill handles included) + open-session narrative summary when present. No attention → honest "dashboard not open". Additive; instrumented like every other read (`mcp:attention` events).
+- **Verified live**: Playwright drove the feed, focused a feature lens; the real MCP server (separate stdio process) returned that lens's orientation. Report: `.superpowers/sdd/shared-attention-report.md` (local, gitignored).
+
+Deferred to v2: classic-shell reporting (`surface:"classic"`), expanded-story evidence in the chat merge, per-user slots (v1 is single-user), attention history ring (last 10).
