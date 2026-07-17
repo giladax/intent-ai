@@ -124,13 +124,18 @@ def build_mirror(adapter, store, state: dict) -> dict:
     }
 
 
+def _plural(n: int, noun: str) -> str:
+    """'1 promise' / '3 promises' — '(s)' reads as template residue."""
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
 def _coverage_sentence(areas: list[dict], uncovered: list[dict]) -> str:
     if not uncovered:
         return "Every recent change touched surface the contract covers."
     latest = uncovered[-1]
     return (
-        f"{len(uncovered)} recent change(s) touched surface no promise "
-        f"covers — most recently \"{latest['title'][:60]}\" (check "
+        f"{_plural(len(uncovered), 'recent change')} touched surface no "
+        f"promise covers — most recently \"{latest['title'][:60]}\" (check "
         f"#{latest['pr_number']}). Worth registering intent for that area?"
     )
 
@@ -141,10 +146,16 @@ def route_status_question(route: str, mirror: dict) -> dict:
         if mirror["all_clear"]:
             summary = "Nothing is currently contradicting or partially delivering a promise."
         else:
-            worst = mirror["red_flags"][0]
+            # "Worst" must mean worst: a contradiction outranks a partial
+            # delivery regardless of area iteration order.
+            worst = next(
+                (f for f in mirror["red_flags"] if f["health"] == HEALTH_LABELS["contradicts"]),
+                mirror["red_flags"][0],
+            )
+            n = len(mirror["red_flags"])
             summary = (
-                f"Yes — {len(mirror['red_flags'])} promise(s) need attention. "
-                f"Worst: {worst['statement'][:90]} ({worst['health']}, "
+                f"Yes — {_plural(n, 'promise')} need{'s' if n == 1 else ''} "
+                f"attention. Worst: {worst['statement'][:90]} ({worst['health']}, "
                 f"in {worst['area']}, since check #{worst['since_check']})."
             )
         return {"answer": summary, "red_flags": mirror["red_flags"]}
@@ -154,15 +165,22 @@ def route_status_question(route: str, mirror: dict) -> dict:
             "uncovered_changes": mirror["uncovered_changes"],
         }
     if route == "whats_changed":
-        recent = [c for c in mirror["recent_checks"] if c["intent_changes"] or c["verdict"] not in ("NO_MATERIAL_IMPACT",)]
+        recent = [
+            c
+            for c in mirror["recent_checks"]
+            if c["intent_changes"]
+            or c["verdict"] != Classification.NO_MATERIAL_IMPACT.value
+        ]
         summary = (
-            f"{len(mirror['recent_checks'])} recent checks; "
-            f"{len(recent)} moved intent state or need attention."
+            f"{_plural(len(mirror['recent_checks']), 'recent check')}; "
+            f"{len(recent)} moved a promise's status or need attention."
         )
         return {"answer": summary, "recent_checks": mirror["recent_checks"]}
     # overview
-    listing = "; ".join(f"{a['label']} ({a['promises']})" for a in mirror["areas"])
+    listing = "; ".join(
+        f"{a['label']} ({_plural(a['promises'], 'promise')})" for a in mirror["areas"]
+    )
     return {
-        "answer": f"{len(mirror['areas'])} product areas: {listing}.",
+        "answer": f"{_plural(len(mirror['areas']), 'product area')}: {listing}.",
         "areas": mirror["areas"],
     }

@@ -219,9 +219,10 @@ def extract_doc_paths(doc: str, tree: list[str]) -> list[str]:
     """Repo paths the intent document itself cites, validated against the
     tree — mechanical, like quote validation. A document that references
     its own code defines its own scope."""
-    tree_set = set(tree)
+    # The char class already excludes quoting/bracket characters, so
+    # matches need no trimming; tree membership is the only gate.
     candidates = re.findall(r"[\w.\-]+(?:/[\w.\-]+)+\.\w{1,6}", doc)
-    return sorted({c.strip("`'\"()") for c in candidates} & tree_set)
+    return sorted(set(candidates) & set(tree))
 
 
 def scope_from_doc_paths(doc_paths: list[str], tree: list[str]) -> list[str]:

@@ -90,7 +90,7 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
                     "pr_number": analysis.pr_number,
                     "title": title,
                     "verdict": analysis.classification.value,
-                "verdict_display": DISPLAY_LABELS[analysis.classification],
+                    "verdict_display": DISPLAY_LABELS[analysis.classification],
                     "summary": (
                         analysis.behavioral_delta.summary[:200]
                         if analysis.behavioral_delta
