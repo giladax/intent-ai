@@ -167,7 +167,22 @@ $("draftBtn").onclick = async ()=>{
 };
 
 function renderCards(){
-  $("cards").innerHTML = DRAFT.obligations.map((o,i)=>{
+  const byId = Object.fromEntries(DRAFT.obligations.map((o,i)=>[o.obligation_id,i]));
+  const groups = (DRAFT.groups && DRAFT.groups.length) ? DRAFT.groups
+    : [{group_id:"G1", label:"all", obligation_ids:DRAFT.obligations.map(o=>o.obligation_id), files:[]}];
+  $("cards").innerHTML = groups.map(g=>{
+    const bridgeNote = (DRAFT.bridges||[]).filter(b=>b.groups.includes(g.group_id));
+    return `<div style="margin:24px 0 10px; display:flex; gap:12px; align-items:baseline">
+      <span style="font-family:'Fraunces',serif; font-size:16px; color:var(--accent)">◉ ${g.group_id}</span>
+      <span style="letter-spacing:1px; text-transform:uppercase; font-size:11px">${esc(g.label)}</span>
+      <span style="color:var(--faint); font-size:10px">${g.obligation_ids.length} promises · ${g.files.length} control points${bridgeNote.length?` · ${bridgeNote.length} shared with other groups`:""}</span>
+    </div>` + g.obligation_ids.map(id=>cardHtml(byId[id])).join("");
+  }).join("");
+  if(DRAFT.notes && DRAFT.notes.length) $("cards").insertAdjacentHTML("beforeend",
+    `<div class="note">${DRAFT.notes.length} candidate(s) were dropped mechanically (provenance quote or path didn't resolve).</div>`);
+}
+function cardHtml(i){
+  return [DRAFT.obligations[i]].map((o)=>{
     const binds = DRAFT.bindings.map((b,j)=>({b,j})).filter(x=>x.b.obligation_id===o.obligation_id);
     return `<div class="ob-card" id="ob${i}">
       <div class="ob-head"><span class="id">${o.obligation_id}</span>
@@ -182,8 +197,6 @@ function renderCards(){
           <code>${x.b.path}</code> — ${x.b.relation} <span style="color:var(--faint)">(${esc(x.b.why)})</span></div>`).join("")}
       </div></div>`;
   }).join("");
-  if(DRAFT.notes.length) $("cards").insertAdjacentHTML("beforeend",
-    `<div class="note">${DRAFT.notes.length} candidate(s) were dropped mechanically (provenance quote or path didn't resolve).</div>`);
 }
 const REJ = new Set();
 function toggleOb(i){

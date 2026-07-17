@@ -1,0 +1,23 @@
+1:
+  base: d743c9c6523a1b3afc44b87f4b6627e181f357ef^
+  head: d743c9c6523a1b3afc44b87f4b6627e181f357ef
+  title: "feat(alignment): Quire Align \u2014 product-to-code alignment MVP (Python)"
+2:
+  base: 71a63e2f8a7146dd1158c40b766f5fe74f1161e5^
+  head: 71a63e2f8a7146dd1158c40b766f5fe74f1161e5
+  title: "docs(audits): correction note on task-4 null result \u2014 constraint was\
+    \ never served"
+3:
+  base: e06a556b4da689572f80837beb5140f553e0bfec^
+  head: e06a556b4da689572f80837beb5140f553e0bfec
+  title: 'fix(mcp): constraints always ride orientation; fix decimal sentence splitter'
+4:
+  base: 5efa0b18dd803f5b78372a3e14c72a6834c60001^
+  head: 5efa0b18dd803f5b78372a3e14c72a6834c60001
+  title: "docs(audit): task-4 post-mortem \u2014 why served constraints didn't change\
+    \ behavior"
+5:
+  base: d5f1c9ec9172078cc0d52c58d9bc98e883233c53^
+  head: d5f1c9ec9172078cc0d52c58d9bc98e883233c53
+  title: "docs(product): success definitions for the next steps \u2014 done/measured/falsified\
+    \ per thread"

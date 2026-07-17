@@ -1,0 +1,345 @@
+control_points:
+- control_point_id: CP-feature
+  role: enforcement
+  path: src/mcp/feature.ts
+  description: The MCP feature lookup logic is the primary site where zero or multiple Feature
+    matches must return a candidate list rather than silently guessing.
+- control_point_id: CP-server
+  role: enforcement
+  path: src/mcp/server.ts
+  description: MCP server exposes the brain.enter tool and must enforce returning candidate
+    lists when resolution is ambiguous.
+- control_point_id: CP-context
+  role: decision
+  path: src/mcp/context.ts
+  description: Context assembly for MCP calls determines how feature matching results are
+    structured and returned to the agent.
+- control_point_id: CP-obligations
+  role: decision
+  path: alignment/workspaces/intent-ai/obligations.yaml
+  description: Workspace obligations file captures the hard rule that ambiguous feature resolution
+    must return a candidate list.
+- control_point_id: CP-observe-events
+  role: enforcement
+  path: src/pipeline/observe-events.ts
+  description: Observation pipeline stage is the control point where pending observations
+    are held before human approval rather than auto-promoted.
+- control_point_id: CP-verify
+  role: enforcement
+  path: src/pipeline/understand/verify.ts
+  description: Verify step in the understanding pipeline gates observations before they can
+    be accepted into Current Understanding.
+- control_point_id: CP-index
+  role: enforcement
+  path: src/pipeline/understand/index.ts
+  description: Orchestrates the understand pipeline including the human-gated approval step
+    for observations.
+- control_point_id: CP-schema
+  role: enforcement
+  path: src/storage/schema.ts
+  description: Database schema defines the columns (session_id, actor) that capture provenance
+    on every write.
+- control_point_id: CP-queries
+  role: enforcement
+  path: src/storage/queries.ts
+  description: All write queries must pass session id and actor as provenance fields per this
+    obligation.
+- control_point_id: CP-types
+  role: configuration
+  path: src/adapters/types.ts
+  description: Defines the ActivityEvent and related types that carry session_id and actor
+    provenance fields.
+- control_point_id: CP-audit
+  role: enforcement
+  path: alignment/fixtures/refund-agent/repo/base/refund_agent/audit.py
+  description: Audit module captures actor and session provenance on writes in the fixture
+    reference implementation.
+- control_point_id: CP-instrument
+  role: enforcement
+  path: src/mcp/instrument.ts
+  description: Instrumentation layer is the primary control point for emitting activity_events
+    on every MCP call with tool, feature, hit/miss, and latency.
+- control_point_id: CP-emit-events
+  role: executor
+  path: src/pipeline/emit-events.ts
+  description: Emits activity events into the backbone, including MCP call events with required
+    fields.
+- control_point_id: CP-mvp-eval
+  role: enforcement
+  path: src/eval/mvp-eval.ts
+  description: MVP eval assembles treatment context and must source it exclusively from digested
+    sessions and approved observations.
+- control_point_id: CP-mvp-task-criteria
+  role: configuration
+  path: src/eval/mvp-task-criteria.ts
+  description: Defines the task criteria for the eval, which must not include hand-typed constraints
+    in Feature definitions.
+- control_point_id: CP-run_eval
+  role: enforcement
+  path: alignment/evals/run_eval.py
+  description: Eval runner assembles context for measurement and must enforce that all treatment
+    context comes from digested sessions and approved observations.
+- control_point_id: CP-dataset
+  role: enforcement
+  path: alignment/evals/dataset.py
+  description: Dataset assembly for evals must draw exclusively from approved observations
+    and digested sessions, not hand-typed constraints.
+- control_point_id: CP-cases
+  role: configuration
+  path: alignment/evals/cases.py
+  description: Eval cases define what context is assembled for measurement; must not allow
+    hand-typed Feature constraints.
+- control_point_id: CP-log-discovery
+  role: executor
+  path: src/utils/log-discovery.ts
+  description: Discovers raw session logs that must be copied to .intent/raw-sessions/ for
+    permanent preservation.
+- control_point_id: CP-session-digest
+  role: executor
+  path: src/pipeline/session-digest.ts
+  description: Session digest pipeline is the stage where raw logs must be copied to .intent/raw-sessions/
+    before processing.
+- control_point_id: CP-orchestrator
+  role: enforcement
+  path: src/pipeline/orchestrator.ts
+  description: Pipeline orchestrator must ensure raw session logs are copied to .intent/raw-sessions/
+    as part of every digestion run.
+- control_point_id: CP-
+  role: configuration
+  path: .mcp.json
+  description: MCP configuration file declares which tools are exposed; must list only Feature-keyed
+    tools with no legacy Topic tools.
+- control_point_id: CP-attention-formatter
+  role: enforcement
+  path: src/mcp/attention-formatter.ts
+  description: Attention formatter shapes MCP output and must produce structured content with
+    machine-readable ids, not prose.
+- control_point_id: CP-extract
+  role: enforcement
+  path: src/pipeline/understand/extract.ts
+  description: Extraction step must ground every piece of understanding in source artifacts
+    before it enters the system.
+- control_point_id: CP-weave
+  role: enforcement
+  path: src/pipeline/understand/weave.ts
+  description: Weave step assembles understanding from artifact-grounded extractions, enforcing
+    traceability.
+- control_point_id: CP-evidence
+  role: enforcement
+  path: alignment/quire_align/analysis/evidence.py
+  description: Evidence analysis module verifies that all claims trace back to artifacts,
+    enforcing the no-ungrounded-claims invariant.
+- control_point_id: CP-timeline
+  role: audit
+  path: alignment/quire_align/timeline.py
+  description: Timeline module tracks the sequence of understanding changes, enabling review
+    of deltas.
+- control_point_id: CP-transcript-metrics
+  role: enforcement
+  path: src/eval/transcript-metrics.ts
+  description: Transcript metrics must count all information-gathering tool calls including
+    brain_* MCP reads for the ETC metric.
+- control_point_id: CP-live-runner
+  role: executor
+  path: src/eval/live-runner.ts
+  description: Live eval runner collects tool call traces that feed into ETC calculation,
+    must capture all MCP reads.
+- control_point_id: CP-cvr-checks
+  role: audit
+  path: src/eval/cvr-checks.ts
+  description: CVR checks validate eval correctness including that ETC counts are not artificially
+    deflated by excluding MCP reads.
+- control_point_id: CP-CLAUDE
+  role: audit
+  path: CLAUDE.md
+  description: CLAUDE.md is one of the two documents the baseline arm receives; hold-out constraints
+    must not appear here.
+- control_point_id: CP-brain
+  role: audit
+  path: .repo/brain.md
+  description: .repo/brain.md is the second document the baseline arm receives; hold-out constraints
+    must not appear here.
+bindings:
+- obligation_id: OB-DRAFT-1
+  control_point_id: CP-feature
+  relation: enforces
+- obligation_id: OB-DRAFT-1
+  control_point_id: CP-server
+  relation: enforces
+- obligation_id: OB-DRAFT-1
+  control_point_id: CP-context
+  relation: decides
+- obligation_id: OB-DRAFT-1
+  control_point_id: CP-obligations
+  relation: decides
+- obligation_id: OB-DRAFT-2
+  control_point_id: CP-observe-events
+  relation: enforces
+- obligation_id: OB-DRAFT-2
+  control_point_id: CP-verify
+  relation: enforces
+- obligation_id: OB-DRAFT-2
+  control_point_id: CP-index
+  relation: enforces
+- obligation_id: OB-DRAFT-2
+  control_point_id: CP-obligations
+  relation: decides
+- obligation_id: OB-DRAFT-3
+  control_point_id: CP-schema
+  relation: enforces
+- obligation_id: OB-DRAFT-3
+  control_point_id: CP-queries
+  relation: enforces
+- obligation_id: OB-DRAFT-3
+  control_point_id: CP-types
+  relation: configures
+- obligation_id: OB-DRAFT-3
+  control_point_id: CP-audit
+  relation: enforces
+- obligation_id: OB-DRAFT-4
+  control_point_id: CP-instrument
+  relation: enforces
+- obligation_id: OB-DRAFT-4
+  control_point_id: CP-server
+  relation: executes
+- obligation_id: OB-DRAFT-4
+  control_point_id: CP-emit-events
+  relation: executes
+- obligation_id: OB-DRAFT-4
+  control_point_id: CP-queries
+  relation: executes
+- obligation_id: OB-DRAFT-4
+  control_point_id: CP-types
+  relation: configures
+- obligation_id: OB-DRAFT-5
+  control_point_id: CP-server
+  relation: enforces
+- obligation_id: OB-DRAFT-5
+  control_point_id: CP-feature
+  relation: enforces
+- obligation_id: OB-DRAFT-5
+  control_point_id: CP-obligations
+  relation: decides
+- obligation_id: OB-DRAFT-6
+  control_point_id: CP-mvp-eval
+  relation: enforces
+- obligation_id: OB-DRAFT-6
+  control_point_id: CP-mvp-task-criteria
+  relation: configures
+- obligation_id: OB-DRAFT-6
+  control_point_id: CP-run_eval
+  relation: enforces
+- obligation_id: OB-DRAFT-6
+  control_point_id: CP-dataset
+  relation: enforces
+- obligation_id: OB-DRAFT-6
+  control_point_id: CP-cases
+  relation: configures
+- obligation_id: OB-DRAFT-7
+  control_point_id: CP-log-discovery
+  relation: executes
+- obligation_id: OB-DRAFT-7
+  control_point_id: CP-session-digest
+  relation: executes
+- obligation_id: OB-DRAFT-7
+  control_point_id: CP-orchestrator
+  relation: enforces
+- obligation_id: OB-DRAFT-8
+  control_point_id: CP-server
+  relation: enforces
+- obligation_id: OB-DRAFT-8
+  control_point_id: CP-feature
+  relation: enforces
+- obligation_id: OB-DRAFT-8
+  control_point_id: CP-
+  relation: configures
+- obligation_id: OB-DRAFT-8
+  control_point_id: CP-obligations
+  relation: decides
+- obligation_id: OB-DRAFT-9
+  control_point_id: CP-feature
+  relation: enforces
+- obligation_id: OB-DRAFT-9
+  control_point_id: CP-server
+  relation: enforces
+- obligation_id: OB-DRAFT-9
+  control_point_id: CP-context
+  relation: decides
+- obligation_id: OB-DRAFT-10
+  control_point_id: CP-feature
+  relation: enforces
+- obligation_id: OB-DRAFT-10
+  control_point_id: CP-server
+  relation: enforces
+- obligation_id: OB-DRAFT-10
+  control_point_id: CP-attention-formatter
+  relation: enforces
+- obligation_id: OB-DRAFT-10
+  control_point_id: CP-types
+  relation: configures
+- obligation_id: OB-DRAFT-11
+  control_point_id: CP-queries
+  relation: enforces
+- obligation_id: OB-DRAFT-11
+  control_point_id: CP-schema
+  relation: configures
+- obligation_id: OB-DRAFT-11
+  control_point_id: CP-emit-events
+  relation: executes
+- obligation_id: OB-DRAFT-12
+  control_point_id: CP-extract
+  relation: enforces
+- obligation_id: OB-DRAFT-12
+  control_point_id: CP-verify
+  relation: enforces
+- obligation_id: OB-DRAFT-12
+  control_point_id: CP-weave
+  relation: enforces
+- obligation_id: OB-DRAFT-12
+  control_point_id: CP-schema
+  relation: configures
+- obligation_id: OB-DRAFT-12
+  control_point_id: CP-evidence
+  relation: enforces
+- obligation_id: OB-DRAFT-13
+  control_point_id: CP-verify
+  relation: enforces
+- obligation_id: OB-DRAFT-13
+  control_point_id: CP-observe-events
+  relation: enforces
+- obligation_id: OB-DRAFT-13
+  control_point_id: CP-emit-events
+  relation: executes
+- obligation_id: OB-DRAFT-13
+  control_point_id: CP-timeline
+  relation: observes
+- obligation_id: OB-DRAFT-14
+  control_point_id: CP-transcript-metrics
+  relation: enforces
+- obligation_id: OB-DRAFT-14
+  control_point_id: CP-mvp-eval
+  relation: enforces
+- obligation_id: OB-DRAFT-14
+  control_point_id: CP-mvp-task-criteria
+  relation: configures
+- obligation_id: OB-DRAFT-14
+  control_point_id: CP-live-runner
+  relation: executes
+- obligation_id: OB-DRAFT-14
+  control_point_id: CP-cvr-checks
+  relation: observes
+- obligation_id: OB-DRAFT-15
+  control_point_id: CP-CLAUDE
+  relation: observes
+- obligation_id: OB-DRAFT-15
+  control_point_id: CP-brain
+  relation: observes
+- obligation_id: OB-DRAFT-15
+  control_point_id: CP-mvp-eval
+  relation: enforces
+- obligation_id: OB-DRAFT-15
+  control_point_id: CP-mvp-task-criteria
+  relation: configures
+- obligation_id: OB-DRAFT-15
+  control_point_id: CP-run_eval
+  relation: enforces

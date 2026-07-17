@@ -31,6 +31,9 @@ class ReviewRequest(BaseModel):
 
 
 def create_app(store: Store | None = None) -> FastAPI:
+    from dotenv import load_dotenv
+
+    load_dotenv(pathlib.Path(__file__).parent.parent.parent / ".env")
     app = FastAPI(title="Quire Align", version="0.1.0")
     app.state.store = store or Store()
 
@@ -146,7 +149,22 @@ def create_app(store: Store | None = None) -> FastAPI:
                 all_obligations.append({**o.model_dump(), "source_reference": reference})
             all_bindings.extend(b.model_dump() for b in bindings)
             notes.extend(doc_notes)
-        return {"obligations": all_obligations, "bindings": all_bindings, "notes": notes}
+        from quire_align.propose import (
+            CandidateBinding,
+            CandidateObligation,
+            group_candidates,
+        )
+
+        grouped = group_candidates(
+            [CandidateObligation(**{k: v for k, v in o.items() if k != "source_reference"}) for o in all_obligations],
+            [CandidateBinding(**b) for b in all_bindings],
+        )
+        return {
+            "obligations": all_obligations,
+            "bindings": all_bindings,
+            "notes": notes,
+            **grouped,
+        }
 
     @app.post("/api/onboard/create")
     def onboard_create(request: dict):
