@@ -45,7 +45,13 @@ def _ignored(relpath: str) -> bool:
 
 
 def parse_frontmatter(text: str) -> tuple[dict, str]:
-    """Split a markdown document into (frontmatter dict, body)."""
+    """Split a markdown document into (frontmatter dict, body).
+
+    Limitation: naive ``---`` split — a ``---`` inside the frontmatter block
+    itself (e.g. a YAML document separator or a value containing the string)
+    truncates the frontmatter early. Fine for the simple
+    reference/version/status headers this MVP uses.
+    """
     if text.startswith("---"):
         parts = text.split("---", 2)
         if len(parts) == 3:
@@ -150,14 +156,15 @@ class FixtureWorkspace:
     def requirement_artifacts(self) -> list[ArtifactSnapshot]:
         artifacts = []
         for path in sorted((self.root / "requirements").glob("*.md")):
-            meta, _body = parse_frontmatter(path.read_text())
+            text = path.read_text()
+            meta, _body = parse_frontmatter(text)
             artifacts.append(
                 ArtifactSnapshot(
                     provider=self._manifest.requirements.provider,
                     reference=meta.get("reference", path.stem),
                     kind=ArtifactKind.REQUIREMENT,
                     uri=str(path),
-                    content=path.read_text(),
+                    content=text,
                     revision=str(meta.get("version", "")),
                     authority=_AUTHORITY_BY_STATUS.get(
                         str(meta.get("status", "")).lower(), Authority.UNKNOWN

@@ -79,6 +79,18 @@ class GitHubWorkspace:
         response.raise_for_status()
         return response
 
+    def _get_paginated(self, path: str) -> list[dict]:
+        """Collect every page of a list endpoint — GitHub caps a page at
+        100 items, and stopping there silently truncates large PRs."""
+        items: list[dict] = []
+        page = 1
+        while True:
+            batch = self._get(path, params={"per_page": 100, "page": page}).json()
+            items.extend(batch)
+            if len(batch) < 100:
+                return items
+            page += 1
+
     def get_pr(self, pr_number: int) -> PullRequest:
         data = self._get(f"/repos/{self.repo}/pulls/{pr_number}").json()
         body = data.get("body") or ""
@@ -101,9 +113,7 @@ class GitHubWorkspace:
         )
 
     def _files(self, pr_number: int) -> list[dict]:
-        return self._get(
-            f"/repos/{self.repo}/pulls/{pr_number}/files", params={"per_page": 100}
-        ).json()
+        return self._get_paginated(f"/repos/{self.repo}/pulls/{pr_number}/files")
 
     def changed_files(self, pr: PullRequest) -> list[str]:
         return sorted(f["filename"] for f in self._files(pr.number))
@@ -132,6 +142,14 @@ class GitHubWorkspace:
         data = self._get(
             f"/repos/{self.repo}/git/trees/{sha}", params={"recursive": "1"}
         ).json()
+        if data.get("truncated"):
+            # A truncated tree would make coverage / control-point existence
+            # checks silently wrong — fail loudly instead.
+            raise RuntimeError(
+                f"GitHub tree listing for {self.repo}@{sha[:12]} is truncated "
+                "(repo too large for the recursive trees API); refusing to "
+                "analyze against an incomplete file listing"
+            )
         return sorted(
             entry["path"] for entry in data.get("tree", []) if entry["type"] == "blob"
         )
@@ -141,10 +159,7 @@ class GitHubWorkspace:
     def publish_comment(self, pr: PullRequest, body: str, marker: str) -> str:
         """Upsert the alignment comment on the PR: update our existing
         marker-tagged comment in place, or create one. Returns the comment URL."""
-        existing = self._get(
-            f"/repos/{self.repo}/issues/{pr.number}/comments",
-            params={"per_page": 100},
-        ).json()
+        existing = self._get_paginated(f"/repos/{self.repo}/issues/{pr.number}/comments")
         ours = next((c for c in existing if marker in (c.get("body") or "")), None)
         if ours is not None:
             response = self.session.patch(

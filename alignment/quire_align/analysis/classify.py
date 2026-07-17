@@ -118,10 +118,9 @@ def classify(
         classification = Classification.UNKNOWN
     elif not material and not removed_enforcement:
         classification = Classification.NO_MATERIAL_IMPACT
-    elif removed_enforcement or any(
-        kind_by_id.get(i.obligation_id) == ObligationKind.HARD_RULE
-        for i in contradictions
-    ) or contradictions:
+    elif removed_enforcement or contradictions:
+        # Any contradiction is OFF_INTENT (hard-rule contradictions are a
+        # subset — the previous extra hard-rule clause was redundant).
         classification = Classification.OFF_INTENT
     elif not related or uncovered:
         # Loud drift only when the change touched governed territory — a

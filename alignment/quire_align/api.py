@@ -5,14 +5,13 @@ from __future__ import annotations
 import pathlib
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from quire_align.adapters.fixture import FixtureWorkspace
+from quire_align import workspace as workspace_mod
 from quire_align.models import ReviewState
 from quire_align.store import Store
 
-FIXTURES = pathlib.Path(__file__).parent.parent / "fixtures"
-WORKSPACES = pathlib.Path(__file__).parent.parent / "workspaces"
+WORKSPACES = workspace_mod.WORKSPACES
 STATIC = pathlib.Path(__file__).parent / "static"
 
 
@@ -30,52 +29,91 @@ class ReviewRequest(BaseModel):
     note: str = ""
 
 
-def create_app(store: Store | None = None) -> FastAPI:
-    from dotenv import load_dotenv
+class OnboardScanRequest(BaseModel):
+    repo: str
 
-    load_dotenv(pathlib.Path(__file__).parent.parent.parent / ".env")
+
+class OnboardDraftRequest(BaseModel):
+    repo: str
+    docs: list[str]
+
+
+class RegroupRequest(BaseModel):
+    obligations: list[dict]
+    bindings: list[dict]
+    constraints: dict | None = None
+
+
+class OnboardCreateRequest(BaseModel):
+    repo: str
+    workflow_id: str
+    sources: list[dict]
+    obligations: list[dict]
+    control_points: list[dict]
+    bindings: list[dict]
+    sweep_commits: list[dict] = Field(default_factory=list)
+    grouping_constraints: dict | None = None
+
+
+class AliasRequest(BaseModel):
+    term: str
+    anchor: str
+
+
+def create_app(store: Store | None = None) -> FastAPI:
+    workspace_mod.load_env()
     app = FastAPI(title="Quire Align", version="0.1.0")
     app.state.store = store or Store()
 
     def _adapter(workspace: str):
-        path = pathlib.Path(workspace)
-        for candidate in (path, FIXTURES / workspace, WORKSPACES / workspace):
-            if (candidate / "workflow.yaml").exists():
-                path = candidate
-                break
-        else:
-            raise HTTPException(400, f"no workflow.yaml under {workspace}")
-        import yaml
+        try:
+            return workspace_mod.build_adapter(workspace)
+        except FileNotFoundError as error:
+            raise HTTPException(400, str(error))
 
-        provider = yaml.safe_load((path / "workflow.yaml").read_text())[
-            "repositories"
-        ][0]["provider"]
-        if provider == "git":
-            from quire_align.adapters.git import GitWorkspace
-
-            return GitWorkspace(path)
-        return FixtureWorkspace(path)
+    def _workspace_dir(workspace: str) -> pathlib.Path:
+        try:
+            return workspace_mod.resolve_workspace_dir(workspace)
+        except FileNotFoundError as error:
+            raise HTTPException(400, str(error))
 
     @app.post("/analyses")
     def run(request: AnalyzeRequest):
         from quire_align.analysis.graph import run_analysis
 
         if request.offline:
-            from quire_align.canned import fake_for_pr
+            from quire_align.canned import fake_for_pr, known_pr_numbers
 
-            llm = fake_for_pr(request.pr_number)
+            try:
+                llm = fake_for_pr(request.pr_number)
+            except KeyError:
+                raise HTTPException(
+                    400,
+                    f"offline=true uses canned model outputs, and PR "
+                    f"{request.pr_number} has none (known: {known_pr_numbers()})",
+                )
         else:
             from quire_align.analysis.llm import AnthropicAlignmentLLM
 
             llm = AnthropicAlignmentLLM()
-        analysis = run_analysis(
-            _adapter(request.workspace),
-            request.pr_number,
-            llm=llm,
-            store=app.state.store,
-            variant=request.variant,
-            force=request.force,
-        )
+        adapter = _adapter(request.workspace)
+        try:
+            analysis = run_analysis(
+                adapter,
+                request.pr_number,
+                llm=llm,
+                store=app.state.store,
+                variant=request.variant,
+                force=request.force,
+            )
+        except HTTPException:
+            raise
+        except Exception as error:
+            # Adapter (git/GitHub) or LLM failure — an upstream problem,
+            # not a bad request: surface it as a gateway-style error.
+            raise HTTPException(
+                502, f"analysis failed against an upstream dependency: {error}"
+            )
         return analysis
 
     @app.get("/analyses/{analysis_id}")
@@ -108,10 +146,14 @@ def create_app(store: Store | None = None) -> FastAPI:
     # -- proactive onboarding wizard ----------------------------------------
 
     @app.post("/api/onboard/scan")
-    def onboard_scan(request: dict):
+    def onboard_scan(request: OnboardScanRequest):
+        # Trust note: the repo path is taken as-is from the request. This is
+        # a local, operator-facing tool (bound to 127.0.0.1 by default) —
+        # exposing it beyond localhost would let callers point the scanner
+        # at arbitrary filesystem paths.
         from quire_align.onboard import recent_commits, scan_intent_sources
 
-        repo = pathlib.Path(request["repo"]).expanduser().resolve()
+        repo = pathlib.Path(request.repo).expanduser().resolve()
         if not repo.exists():
             raise HTTPException(400, f"no such repo: {repo}")
         return {
@@ -122,18 +164,22 @@ def create_app(store: Store | None = None) -> FastAPI:
         }
 
     @app.post("/api/onboard/draft")
-    def onboard_draft(request: dict):
+    def onboard_draft(request: OnboardDraftRequest):
         from quire_align.propose import (
+            CandidateBinding,
+            CandidateObligation,
             ProposerLLM,
+            group_candidates,
+            mint_control_point_id,
             repo_tree,
             select_context_files,
             validate_candidates,
         )
 
-        repo = pathlib.Path(request["repo"]).expanduser().resolve()
+        repo = pathlib.Path(request.repo).expanduser().resolve()
         llm = ProposerLLM()
         all_obligations, all_bindings, notes = [], [], []
-        for doc_rel in request["docs"]:
+        for doc_rel in request.docs:
             doc = (repo / doc_rel).read_text()
             reference = pathlib.Path(doc_rel).stem
             candidates = llm.extract_obligations(doc)
@@ -149,67 +195,89 @@ def create_app(store: Store | None = None) -> FastAPI:
                 all_obligations.append({**o.model_dump(), "source_reference": reference})
             all_bindings.extend(b.model_dump() for b in bindings)
             notes.extend(doc_notes)
-        from quire_align.propose import (
-            CandidateBinding,
-            CandidateObligation,
-            group_candidates,
-        )
+
+        # Control-point ids are minted HERE, server-side, from the full path
+        # — clients consume these ids and must never derive their own (the
+        # old client-side stem derivation diverged and collided).
+        control_points: dict[str, dict] = {}
+        for binding in all_bindings:
+            cp_id = mint_control_point_id(binding["path"])
+            binding["control_point_id"] = cp_id
+            control_points.setdefault(
+                cp_id,
+                {
+                    "control_point_id": cp_id,
+                    "role": binding["role"],
+                    "path": binding["path"],
+                    **({"symbol": binding["symbol"]} if binding.get("symbol") else {}),
+                    "description": binding["why"],
+                },
+            )
 
         grouped = group_candidates(
-            [CandidateObligation(**{k: v for k, v in o.items() if k != "source_reference"}) for o in all_obligations],
-            [CandidateBinding(**b) for b in all_bindings],
+            [
+                CandidateObligation(
+                    **{k: v for k, v in o.items() if k != "source_reference"}
+                )
+                for o in all_obligations
+            ],
+            [
+                CandidateBinding(
+                    **{k: v for k, v in b.items() if k != "control_point_id"}
+                )
+                for b in all_bindings
+            ],
         )
         return {
             "obligations": all_obligations,
             "bindings": all_bindings,
+            "control_points": list(control_points.values()),
             "notes": notes,
             **grouped,
         }
 
     @app.post("/api/onboard/regroup")
-    def onboard_regroup(request: dict):
+    def onboard_regroup(request: RegroupRequest):
         """Re-run grouping with the human's accumulated constraints
         (rename/merge/split edits). Stateless: constraints live client-side
         until create persists them with the workspace."""
         from quire_align.grouping import GroupingConstraints, group_contract
 
         return group_contract(
-            request["obligations"],
-            request["bindings"],
-            constraints=GroupingConstraints.model_validate(
-                request.get("constraints") or {}
-            ),
+            request.obligations,
+            request.bindings,
+            constraints=GroupingConstraints.model_validate(request.constraints or {}),
         )
 
     @app.post("/api/onboard/create")
-    def onboard_create(request: dict):
+    def onboard_create(request: OnboardCreateRequest):
         from quire_align.onboard import write_workspace
 
-        repo = pathlib.Path(request["repo"]).expanduser().resolve()
+        repo = pathlib.Path(request.repo).expanduser().resolve()
         out = write_workspace(
             WORKSPACES,
-            request["workflow_id"],
+            request.workflow_id,
             repo,
-            request["sources"],
-            request["obligations"],
-            request["control_points"],
-            request["bindings"],
-            request.get("sweep_commits", []),
+            request.sources,
+            request.obligations,
+            request.control_points,
+            request.bindings,
+            request.sweep_commits,
         )
-        if request.get("grouping_constraints"):
+        if request.grouping_constraints:
             import yaml as _yaml
 
             # The human's grouping edits are training signal — persist them
             # with the workspace so future re-proposals replay them.
             (out / "groups.yaml").write_text(
                 _yaml.safe_dump(
-                    {"constraints": request["grouping_constraints"]}, sort_keys=False
+                    {"constraints": request.grouping_constraints}, sort_keys=False
                 )
             )
         return {
-            "workspace": request["workflow_id"],
+            "workspace": request.workflow_id,
             "path": str(out),
-            "sweep_prs": list(range(1, len(request.get("sweep_commits", [])) + 1)),
+            "sweep_prs": list(range(1, len(request.sweep_commits) + 1)),
         }
 
     @app.get("/onboard")
@@ -219,12 +287,6 @@ def create_app(store: Store | None = None) -> FastAPI:
         return HTMLResponse((STATIC / "onboard.html").read_text())
 
     # -- community card: their word → everything we know --------------------
-
-    def _workspace_dir(workspace: str) -> pathlib.Path:
-        for candidate in (pathlib.Path(workspace), FIXTURES / workspace, WORKSPACES / workspace):
-            if (candidate / "workflow.yaml").exists():
-                return candidate
-        raise HTTPException(400, f"no workflow.yaml under {workspace}")
 
     @app.get("/api/ask/{workspace}")
     def ask(workspace: str, q: str, llm: bool = True):
@@ -260,11 +322,11 @@ def create_app(store: Store | None = None) -> FastAPI:
         }
 
     @app.post("/api/ask/{workspace}/alias")
-    def confirm_alias(workspace: str, request: dict):
+    def confirm_alias(workspace: str, request: AliasRequest):
         from quire_align.ask import save_alias
 
-        save_alias(_workspace_dir(workspace), request["term"], request["anchor"])
-        return {"saved": {request["term"]: request["anchor"]}}
+        save_alias(_workspace_dir(workspace), request.term, request.anchor)
+        return {"saved": {request.term: request.anchor}}
 
     # -- intent timeline (demo surface) -----------------------------------
 

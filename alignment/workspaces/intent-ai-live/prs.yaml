@@ -1,3 +1,5 @@
+# Local commit ranges analyzed as PRs: number → {base, head, title}.
+# Add an entry and run `analyze intent-ai-live <number>` to check a commit.
 1:
   base: d743c9c6523a1b3afc44b87f4b6627e181f357ef^
   head: d743c9c6523a1b3afc44b87f4b6627e181f357ef

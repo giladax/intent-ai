@@ -38,11 +38,18 @@ adjudicating borderline pairs. It never determines the structure.
 from __future__ import annotations
 
 import math
-import re
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import NamedTuple
 
 from pydantic import BaseModel, Field
+
+from quire_align.text import (
+    cosine_similarity,
+    jaccard_similarity,
+    tf_idf_vectors,
+    tokenize,
+)
 
 RELATION_WEIGHTS = {
     "decides": 1.0,
@@ -79,63 +86,63 @@ class GroupingConstraints(BaseModel):
     )
 
 
+class Endpoint(NamedTuple):
+    """A node in the bipartite obligation↔file graph."""
+
+    kind: str  # "obligation" | "file"
+    key: str  # obligation_id or repo path
+
+
 @dataclass
 class _Edge:
-    """Typed endpoints: ("o", obligation_id) or ("f", path). Binding edges
-    are o–f; text-similarity edges are o–o (first-class edges — vocabulary
-    kinship groups obligations even with disjoint files)."""
+    """Binding edges are obligation–file; text-similarity edges are
+    obligation–obligation (first-class edges — vocabulary kinship groups
+    obligations even with disjoint files)."""
 
-    u: tuple
-    v: tuple
+    u: Endpoint
+    v: Endpoint
     weight: float
     relation: str
 
-    def endpoints(self):
+    def endpoints(self) -> tuple[Endpoint, Endpoint]:
         return (self.u, self.v)
 
-    def obligations(self):
-        return [k for t, k in (self.u, self.v) if t == "o"]
+    def obligations(self) -> list[str]:
+        return [e.key for e in (self.u, self.v) if e.kind == "obligation"]
 
-    def files(self):
-        return [k for t, k in (self.u, self.v) if t == "f"]
+    def files(self) -> list[str]:
+        return [e.key for e in (self.u, self.v) if e.kind == "file"]
 
 
 @dataclass
-class _Ctx:
-    ob_vocab: dict[str, dict[str, float]]  # tf-idf vectors
-    ob_section: dict[str, str]
-    neighbors: dict[tuple, set[tuple]]  # full-graph adjacency
+class _SimilarityContext:
+    """Precomputed material every edge-pair similarity lookup needs."""
+
+    ob_vocab: dict[str, dict[str, float]]  # obligation id → tf-idf vector
+    ob_section: dict[str, str]  # obligation id → source section
+    neighbors: dict[Endpoint, set[Endpoint]]  # full-graph adjacency
 
 
-def _terms(text: str) -> list[str]:
-    return [t for t in re.findall(r"[a-z]{4,}", text.lower()) if t not in _STOP]
+class _UnionFind:
+    """Path-halving union-find over edge indices (single-linkage merges)."""
+
+    def __init__(self, n: int) -> None:
+        self._parent = list(range(n))
+
+    def find(self, x: int) -> int:
+        while self._parent[x] != x:
+            self._parent[x] = self._parent[self._parent[x]]
+            x = self._parent[x]
+        return x
+
+    def union(self, a: int, b: int) -> None:
+        self._parent[self.find(a)] = self.find(b)
 
 
-def _tfidf(docs: dict[str, list[str]]) -> dict[str, dict[str, float]]:
-    df: dict[str, int] = defaultdict(int)
-    for terms in docs.values():
-        for t in set(terms):
-            df[t] += 1
-    n = max(len(docs), 1)
-    out = {}
-    for key, terms in docs.items():
-        tf: dict[str, int] = defaultdict(int)
-        for t in terms:
-            tf[t] += 1
-        vec = {t: c * math.log(1 + n / df[t]) for t, c in tf.items()}
-        norm = math.sqrt(sum(v * v for v in vec.values())) or 1.0
-        out[key] = {t: v / norm for t, v in vec.items()}
-    return out
-
-
-def _cosine(a: dict[str, float], b: dict[str, float]) -> float:
-    if len(b) < len(a):
-        a, b = b, a
-    return sum(v * b.get(t, 0.0) for t, v in a.items())
-
-
-def _jaccard(a: set, b: set) -> float:
-    return len(a & b) / max(len(a | b), 1)
+def _content_words(text: str) -> list[str]:
+    """Grouping vocabulary: content words ≥4 chars plus digit-bearing
+    tokens ("$50", "24h") minus grouping stopwords."""
+    return tokenize(text, min_len=4, keep_digits=True, stopwords=_STOP)
 
 
 def _path_proximity(f1: str, f2: str) -> float:
@@ -148,18 +155,18 @@ def _path_proximity(f1: str, f2: str) -> float:
     return shared / max(len(p1), len(p2), 1)
 
 
-def _node_prior(x: tuple, y: tuple, ctx: _Ctx) -> float:
-    if x[0] == "o" and y[0] == "o":
-        prior = _cosine(ctx.ob_vocab[x[1]], ctx.ob_vocab[y[1]])
-        if ctx.ob_section.get(x[1]) and ctx.ob_section.get(x[1]) == ctx.ob_section.get(y[1]):
+def _node_prior(x: Endpoint, y: Endpoint, ctx: _SimilarityContext) -> float:
+    if x.kind == "obligation" and y.kind == "obligation":
+        prior = cosine_similarity(ctx.ob_vocab[x.key], ctx.ob_vocab[y.key])
+        if ctx.ob_section.get(x.key) and ctx.ob_section.get(x.key) == ctx.ob_section.get(y.key):
             prior = min(1.0, prior + _SECTION_BONUS)
         return prior
-    if x[0] == "f" and y[0] == "f":
-        return _path_proximity(x[1], y[1])
+    if x.kind == "file" and y.kind == "file":
+        return _path_proximity(x.key, y.key)
     return 0.0  # mixed endpoints: rely on neighborhood Jaccard
 
 
-def _edge_similarity(e1: _Edge, e2: _Edge, ctx: _Ctx) -> float:
+def _edge_similarity(e1: _Edge, e2: _Edge, ctx: _SimilarityContext) -> float:
     shared = set(e1.endpoints()) & set(e2.endpoints())
     if not shared:
         return 0.0
@@ -168,7 +175,7 @@ def _edge_similarity(e1: _Edge, e2: _Edge, ctx: _Ctx) -> float:
     y = next(n for n in e2.endpoints() if n != k)
     if x == y:
         return 1.0  # parallel edges (binding + text edge on same pair)
-    jac = _jaccard(ctx.neighbors[x], ctx.neighbors[y])
+    jac = jaccard_similarity(ctx.neighbors[x], ctx.neighbors[y])
     base = (1 - _TEXT_BLEND) * jac + _TEXT_BLEND * _node_prior(x, y, ctx)
     # Weighted link communities: weak relations (verifies) attract weakly —
     # a shared e2e suite must not fuse unrelated concerns.
@@ -204,7 +211,7 @@ def _violates_cannot_link(
 
 
 def _cluster_edges(
-    edges: list[_Edge], ctx: _Ctx, cannot: list[list[str]]
+    edges: list[_Edge], ctx: _SimilarityContext, cannot: list[list[str]]
 ) -> list[set[int]]:
     """Single-linkage over edge similarity; cut = best partition density
     among cut levels that respect cannot-link constraints."""
@@ -217,18 +224,12 @@ def _cluster_edges(
                 pairs.append((s, i, j))
     pairs.sort(reverse=True)
 
-    parent = list(range(m))
-
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
+    components = _UnionFind(m)
 
     def snapshot() -> list[set[int]]:
         comps: dict[int, set[int]] = defaultdict(set)
         for i in range(m):
-            comps[find(i)].add(i)
+            comps[components.find(i)].add(i)
         return list(comps.values())
 
     best, best_score = snapshot(), -1.0
@@ -241,7 +242,7 @@ def _cluster_edges(
         # merge every pair at this similarity level, then evaluate the cut
         while k < len(pairs) and pairs[k][0] >= level - 1e-9:
             _, i, j = pairs[k]
-            parent[find(i)] = find(j)
+            components.union(i, j)
             k += 1
         cut = snapshot()
         if _violates_cannot_link(cut, edges, cannot):
@@ -265,8 +266,8 @@ def group_contract(
     known = set(ids)
     edges = [
         _Edge(
-            ("o", b["obligation_id"]),
-            ("f", b["path"]),
+            Endpoint("obligation", b["obligation_id"]),
+            Endpoint("file", b["path"]),
             RELATION_WEIGHTS.get(b["relation"], 0.5),
             b["relation"],
         )
@@ -274,7 +275,9 @@ def group_contract(
         if b["obligation_id"] in known
     ]
 
-    ob_vocab = _tfidf({o["obligation_id"]: _terms(o["statement"]) for o in obligations})
+    ob_vocab = tf_idf_vectors(
+        {o["obligation_id"]: _content_words(o["statement"]) for o in obligations}
+    )
     # Text-similarity edges: vocabulary kinship is a first-class edge, so
     # obligations with disjoint files can still share a community.
     # Constraint-aware construction: never create an edge that contains a
@@ -284,11 +287,13 @@ def group_contract(
         for b in ids[i + 1 :]:
             if frozenset((a, b)) in forbidden:
                 continue
-            cos = _cosine(ob_vocab[a], ob_vocab[b])
+            cos = cosine_similarity(ob_vocab[a], ob_vocab[b])
             if cos >= _TEXT_EDGE_MIN:
-                edges.append(_Edge(("o", a), ("o", b), cos, "similar"))
+                edges.append(
+                    _Edge(Endpoint("obligation", a), Endpoint("obligation", b), cos, "similar")
+                )
 
-    ctx = _Ctx(
+    ctx = _SimilarityContext(
         ob_vocab=ob_vocab,
         ob_section={o["obligation_id"]: o.get("source_section", "") for o in obligations},
         neighbors=defaultdict(set),
@@ -308,6 +313,9 @@ def group_contract(
                 best_i, best_w = ci, w
         return best_i
 
+    # NOTE: this loop mutates `communities` in place (merge then pop), which
+    # invalidates indices computed before the mutation — safe only because
+    # `dominant` is recomputed from the current list on every iteration.
     for a, b in constraints.must_link:
         ca, cb = dominant(a, communities), dominant(b, communities)
         if ca is not None and cb is not None and ca != cb:

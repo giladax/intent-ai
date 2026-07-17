@@ -210,6 +210,11 @@ def build_nodes(adapter, llm, store, config: AnalyzerConfig) -> dict:
             state.bindings,
             state.control_points,
             state.changed_files,
+            eval_globs=[
+                glob
+                for source in adapter.manifest().eval_sources
+                for glob in source.paths
+            ],
         )
         return {"coverage": coverage}
 
@@ -275,12 +280,16 @@ def build_nodes(adapter, llm, store, config: AnalyzerConfig) -> dict:
             ],
             missing_evidence=state.missing_evidence,
             evidence_valid=state.evidence_valid,
+            dropped_citations=state.dropped_citations,
             human_review_required=review_required,
             review_reasons=state.review_reasons,
             review_state=ReviewState.PENDING if review_required else ReviewState.NOT_REQUIRED,
             artifact_snapshot_ids=[a.snapshot_id for a in state.artifacts],
         )
-        analysis.comment_markdown = render_comment(analysis)
+        analysis.comment_markdown = render_comment(
+            analysis,
+            statements_by_id={o.obligation_id: o.statement for o in state.obligations},
+        )
         if store is not None:
             store.save_snapshots(state.artifacts)
             store.save_contract(state.contract)

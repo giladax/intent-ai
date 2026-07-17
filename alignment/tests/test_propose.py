@@ -79,7 +79,6 @@ def test_propose_validates_provenance_and_paths(tmp_path):
         FIXTURE_PRD,
         FIXTURE_REPO,
         tmp_path / "draft",
-        "refund-agent",
         "refund-policy-prd",
         llm=FakeProposer(_candidates(), _bindings()),
     )

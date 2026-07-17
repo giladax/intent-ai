@@ -17,9 +17,8 @@ Two hard rules:
 
 from __future__ import annotations
 
-import re
-
 from quire_align.manifest import WorkflowManifest
+from quire_align.text import tokenize
 from quire_align.models import (
     ArtifactSnapshot,
     Authority,
@@ -35,8 +34,9 @@ _RETRIEVAL_MIN_OVERLAP = 3
 
 
 def _lexical_overlap(query: str, content: str) -> int:
-    query_terms = {t for t in re.findall(r"[a-z]{4,}", query.lower())}
-    content_terms = {t for t in re.findall(r"[a-z]{4,}", content.lower())}
+    # keep_digits: "$50" / "24h" are real vocabulary in product requirements.
+    query_terms = set(tokenize(query, min_len=4, keep_digits=True))
+    content_terms = set(tokenize(content, min_len=4, keep_digits=True))
     return len(query_terms & content_terms)
 
 

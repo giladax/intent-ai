@@ -1,4 +1,5 @@
 # Approved intent sources, read from the repo checkout.
+# status governs authority: only `approved` sources feed the analyzer.
 - reference: brain-prd
   path: docs/prd.md
   status: approved

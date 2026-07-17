@@ -79,26 +79,6 @@ def build_delta_prompt(
     )
 
 
-def extract_section(content: str, anchor: str) -> str:
-    """Pull one markdown section (heading tagged `{#anchor}`) out of an
-    artifact, so the model judges against the approved text itself rather
-    than a work item's paraphrase of it."""
-    if not anchor:
-        return ""
-    tag = "{" + anchor + "}"
-    lines = content.splitlines()
-    start = next((i for i, line in enumerate(lines) if tag in line), None)
-    if start is None:
-        return ""
-    level = len(lines[start]) - len(lines[start].lstrip("#"))
-    body = [lines[start]]
-    for line in lines[start + 1 :]:
-        if line.startswith("#") and (len(line) - len(line.lstrip("#"))) <= level:
-            break
-        body.append(line)
-    return "\n".join(body).strip()
-
-
 def build_impact_prompt(
     obligation: Obligation,
     delta: BehavioralDelta,

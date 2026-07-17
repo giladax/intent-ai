@@ -30,6 +30,11 @@ def fake_for_pr(pr_number: int) -> FakeAlignmentLLM:
     return _BUILDERS[pr_number]()
 
 
+def known_pr_numbers() -> list[int]:
+    """Fixture PRs that have canned outputs (the only ones --offline supports)."""
+    return sorted(_BUILDERS)
+
+
 def _pr101_partial() -> FakeAlignmentLLM:
     """Demo: policy moved to $100, guard still at $50 -> PARTIAL."""
     return FakeAlignmentLLM(
@@ -368,6 +373,12 @@ def _pr108_missing_coverage() -> FakeAlignmentLLM:
     return _pr102_aligned()
 
 
+def _pr110_abstain() -> FakeAlignmentLLM:
+    # Conflicting approved sources: context resolution abstains before any
+    # LLM call is made, so a bare fake with no canned outputs suffices.
+    return FakeAlignmentLLM()
+
+
 _BUILDERS = {
     101: _pr101_partial,
     102: _pr102_aligned,
@@ -378,6 +389,6 @@ _BUILDERS = {
     107: _pr107_config_drift,
     108: _pr108_missing_coverage,
     109: _pr102_aligned,  # same change set as 102; the stale ticket is the distractor
-    110: FakeAlignmentLLM,  # context abstains before any LLM call is made
+    110: _pr110_abstain,
     111: _pr111_ungoverned,
 }

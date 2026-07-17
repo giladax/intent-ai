@@ -10,63 +10,59 @@
 
 from __future__ import annotations
 
-import json
 import pathlib
 
 import typer
-from dotenv import load_dotenv
 
-from quire_align.adapters.fixture import FixtureWorkspace
+from quire_align import workspace as workspace_mod
 from quire_align.models import ReviewState
 from quire_align.store import Store
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
-_ROOT = pathlib.Path(__file__).parent.parent
-FIXTURES = _ROOT / "fixtures"
-
-# ANTHROPIC_API_KEY / LANGSMITH_* live in the repo-root .env.
-load_dotenv(_ROOT.parent / ".env")
-load_dotenv()
+# ANTHROPIC_API_KEY / LANGSMITH_* / GITHUB_TOKEN live in the repo-root .env.
+workspace_mod.load_env()
 
 
 def _adapter(workspace: str):
-    path = pathlib.Path(workspace)
-    for candidate in (path, FIXTURES / workspace, _ROOT / "workspaces" / workspace):
-        if (candidate / "workflow.yaml").exists():
-            path = candidate
-            break
-    else:
-        raise typer.BadParameter(f"no workflow.yaml under {workspace}")
-    import yaml as _yaml
-
-    provider = _yaml.safe_load((path / "workflow.yaml").read_text())["repositories"][0][
-        "provider"
-    ]
-    if provider == "git":
-        from quire_align.adapters.git import GitWorkspace
-
-        return GitWorkspace(path)
-    return FixtureWorkspace(path)
+    try:
+        return workspace_mod.build_adapter(workspace)
+    except FileNotFoundError as error:
+        raise typer.BadParameter(str(error))
 
 
 def _llm(offline: bool, pr_number: int):
     if offline:
-        from quire_align.canned import fake_for_pr
+        from quire_align.canned import fake_for_pr, known_pr_numbers
 
-        return fake_for_pr(pr_number)
+        try:
+            return fake_for_pr(pr_number)
+        except KeyError:
+            raise typer.BadParameter(
+                f"--offline uses canned model outputs, and PR {pr_number} has "
+                f"none. Fixture PRs with canned outputs: {known_pr_numbers()}. "
+                "Drop --offline to run real inference."
+            )
     from quire_align.analysis.llm import AnthropicAlignmentLLM
 
     return AnthropicAlignmentLLM()
 
 
 def _print_analysis(analysis) -> None:
+    from quire_align.analysis.render import DISPLAY_LABELS
+
     typer.echo(analysis.comment_markdown)
     typer.echo("")
+    label = DISPLAY_LABELS[analysis.classification]
+    if analysis.human_review_required:
+        verdict = f"Verdict: {label} — needs a human ({analysis.review_state.value})."
+    else:
+        verdict = f"Verdict: {label} — no review needed."
+    typer.secho(verdict, fg=typer.colors.CYAN)
     typer.secho(
-        f"classification={analysis.classification.value} "
-        f"review={'REQUIRED (' + analysis.review_state.value + ')' if analysis.human_review_required else 'not required'} "
-        f"analysis_id={analysis.analysis_id}",
+        f"Analysis id: {analysis.analysis_id} — revisit it with "
+        f"`show {analysis.analysis_id}`, or record a decision with "
+        f"`review {analysis.analysis_id} approved --reviewer <you>`.",
         fg=typer.colors.CYAN,
     )
 
@@ -82,13 +78,14 @@ def analyze(
         False, help="post/update the verdict comment on the PR (loud verdicts only)"
     ),
     publish_all: bool = typer.Option(
-        False, help="with --publish: also post quiet verdicts (aligned/ungoverned/no-impact)"
+        False,
+        help="with --publish: also post quiet verdicts (aligned / not covered / no product impact)",
     ),
     db: str = typer.Option("", help="database URL (default sqlite file)"),
 ):
-    """Analyze one PR against its workflow's approved obligations."""
+    """Check one PR against its workflow's approved promises."""
     from quire_align.analysis.graph import run_analysis
-    from quire_align.analysis.render import LOUD_CLASSIFICATIONS, MARKER
+    from quire_align.analysis.render import DISPLAY_LABELS, LOUD_CLASSIFICATIONS, MARKER
 
     adapter = _adapter(workspace)
     store = Store(url=db or None)
@@ -114,8 +111,8 @@ def analyze(
             typer.secho(f"published: {url}", fg=typer.colors.GREEN)
         else:
             typer.secho(
-                f"quiet verdict ({analysis.classification.value}) — not posted "
-                "(use --publish-all to post anyway)",
+                f"quiet verdict ({DISPLAY_LABELS[analysis.classification]}) — "
+                "not posted (use --publish-all to post anyway)",
                 fg=typer.colors.YELLOW,
             )
 
@@ -150,7 +147,10 @@ def show(
     store = Store(url=db or None)
     analysis = store.get_analysis(analysis_id)
     if analysis is None:
-        typer.secho(f"no analysis {analysis_id}", fg=typer.colors.RED)
+        typer.secho(
+            f"No analysis with id {analysis_id} — run `list` to see stored analyses.",
+            fg=typer.colors.RED,
+        )
         raise typer.Exit(1)
     if as_json:
         typer.echo(analysis.model_dump_json(indent=2))
@@ -165,17 +165,24 @@ def list_cmd(
     db: str = typer.Option("", help="database URL"),
 ):
     """List stored analyses."""
+    from quire_align.analysis.render import DISPLAY_LABELS
+
     store = Store(url=db or None)
     analyses = store.list_analyses(
         repository=repository or None, pr_number=pr if pr >= 0 else None
     )
-    for a in analyses:
-        typer.echo(
-            f"{a.analysis_id}  {a.repository}#{a.pr_number} @ {a.head_sha[:10]}  "
-            f"{a.classification.value:<18} review={a.review_state.value}"
-        )
     if not analyses:
-        typer.echo("(none)")
+        typer.echo("No analyses stored yet — run `analyze <workspace> <pr>` first.")
+        return
+    typer.secho(
+        f"{'analysis id':<26}{'PR':<42}{'verdict':<20}review", fg=typer.colors.CYAN
+    )
+    for a in analyses:
+        pr_cell = f"{a.repository}#{a.pr_number} @ {a.head_sha[:10]}"
+        typer.echo(
+            f"{a.analysis_id:<26}{pr_cell:<42}"
+            f"{DISPLAY_LABELS[a.classification]:<20}{a.review_state.value}"
+        )
 
 
 @app.command()
@@ -192,7 +199,14 @@ def review(
         review_state = ReviewState(state)
     except ValueError:
         raise typer.BadParameter("state must be one of: approved, rejected, pending")
-    analysis = store.update_review(analysis_id, review_state, reviewer, note)
+    try:
+        analysis = store.update_review(analysis_id, review_state, reviewer, note)
+    except KeyError:
+        typer.secho(
+            f"No analysis with id {analysis_id} — run `list` to see stored analyses.",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
     typer.secho(
         f"{analysis.analysis_id} review={analysis.review_state.value} by {reviewer}",
         fg=typer.colors.GREEN,
@@ -202,13 +216,12 @@ def review(
 @app.command()
 def propose(
     doc: str = typer.Argument(help="path to an approved intent document"),
-    repo: str = typer.Option(".", help="repository root to scan for control points"),
+    repo: str = typer.Option(".", help="repository root to scan for code locations"),
     out: str = typer.Option(..., help="output workspace dir for the draft contract"),
-    workflow_id: str = typer.Option("draft-workflow"),
     reference: str = typer.Option("", help="source reference name (defaults to doc stem)"),
 ):
-    """Draft a contract from an intent doc + repo: candidate obligations with
-    verbatim provenance quotes and proposed code bindings, written as
+    """Draft a contract from an intent doc + repo: candidate promises with
+    verbatim provenance quotes and proposed code locations, written as
     *.draft.yaml for human approval. Machines propose; humans approve."""
     from quire_align.propose import propose_contract
 
@@ -217,11 +230,10 @@ def propose(
         doc_path,
         pathlib.Path(repo),
         pathlib.Path(out),
-        workflow_id,
         reference or doc_path.stem,
     )
     typer.secho(
-        f"drafted {len(obligations)} obligations, {len(bindings)} bindings → {out}",
+        f"drafted {len(obligations)} promises, {len(bindings)} code bindings → {out}",
         fg=typer.colors.GREEN,
     )
     for o in obligations:
@@ -230,15 +242,36 @@ def propose(
         for path in bound:
             typer.echo(f"      ↳ {path}")
     if notes:
-        typer.secho(f"  {len(notes)} candidates dropped (see proposal-notes.txt)", fg=typer.colors.YELLOW)
+        typer.secho(
+            f"  {len(notes)} candidate(s) set aside — their quotes or paths "
+            "didn't check out (details in proposal-notes.txt)",
+            fg=typer.colors.YELLOW,
+        )
     typer.echo("Review, edit, then rename *.draft.yaml → *.yaml to approve.")
+
+
+_RESOLUTION_METHOD_LABELS = {
+    "alias": "saved alias",
+    "label": "exact name match",
+    "lexical": "matched by name",
+    "llm": "best guess",
+}
+
+_HEALTH_DISPLAY = {
+    "unobserved": "no evidence yet",
+    "satisfies": "satisfied",
+    "partially_satisfies": "partially satisfied",
+    "contradicts": "contradicted",
+}
 
 
 @app.command()
 def ask(
     workspace: str = typer.Argument(help="workspace dir or name"),
     query: str = typer.Argument(help="a term in your org's vocabulary, e.g. 'payments'"),
-    no_llm: bool = typer.Option(False, help="deterministic rungs only (no LLM translation)"),
+    no_llm: bool = typer.Option(
+        False, help="answer without the LLM fallback (saved-alias and name matches only)"
+    ),
     save: bool = typer.Option(False, help="confirm the resolution as a durable alias"),
 ):
     """Resolve a term from the org's dialect to a product area and show
@@ -252,11 +285,7 @@ def ask(
     )
 
     adapter = _adapter(workspace)
-    ws_dir = pathlib.Path(workspace)
-    if not (ws_dir / "workflow.yaml").exists():
-        for candidate in (FIXTURES / workspace, _ROOT / "workspaces" / workspace):
-            if (candidate / "workflow.yaml").exists():
-                ws_dir = candidate
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
     state = load_group_state(ws_dir, adapter)
     obligations = [
         {"obligation_id": o.obligation_id, "statement": o.statement}
@@ -266,16 +295,20 @@ def ask(
         query, state, obligations, llm_pick=None if no_llm else haiku_pick
     )
     if resolution["group"] is None:
+        nearest = ", ".join(resolution["alternatives"]) or "none"
         typer.secho(
-            f"'{query}' didn't resolve; nearest: {resolution['alternatives'] or 'none'}",
+            f"Couldn't match '{query}' to a product area. Closest areas: {nearest}. "
+            "Try a different word, or teach it: resolve a related term and "
+            "confirm with --save.",
             fg=typer.colors.YELLOW,
         )
         raise typer.Exit(1)
     group = resolution["group"]
     card = community_card(adapter, Store(), group, state)
+    method = _RESOLUTION_METHOD_LABELS.get(resolution["method"], resolution["method"])
+    confidence = f" ({int(resolution['confidence'] * 100)}%)" if resolution["confidence"] < 1 else ""
     typer.secho(
-        f"◉ {card['group_id']} “{card['label']}” — via {resolution['method']} "
-        f"(confidence {resolution['confidence']})",
+        f"◉ “{card['label']}” ({card['group_id']}) — {method}{confidence}",
         fg=typer.colors.CYAN,
     )
     if card["aliases"]:
@@ -285,11 +318,14 @@ def ask(
         health = ob["health"]["status"]
         mark = {"satisfies": "🟢", "partially_satisfies": "🟡", "contradicts": "🔴"}.get(health, "⚪")
         weight = f" ({int(ob['weight'] * 100)}%)" if ob["weight"] < 1 else ""
-        typer.echo(f"   {mark} {ob['obligation_id']}{weight} [{health}] {ob.get('statement', '')[:76]}")
-    typer.echo(f"\n  Control points: {len(card['files'])} files"
-               + (f", {len(card['bridges'])} bridged to other areas" if card["bridges"] else ""))
+        health_label = _HEALTH_DISPLAY.get(health, health.replace("_", " "))
+        typer.echo(
+            f"   {mark} {ob['obligation_id']}{weight} [{health_label}] {ob.get('statement', '')[:76]}"
+        )
+    typer.echo(f"\n  Code locations: {len(card['files'])} files"
+               + (f", {len(card['bridges'])} shared with other areas" if card["bridges"] else ""))
     if card["recent_events"]:
-        typer.echo("  Recent digestions touching this area:")
+        typer.echo("  Recent checks touching this area:")
         for e in card["recent_events"][-4:]:
             typer.echo(f"   · #{e['pr_number']} {e['verdict']:18} {e['title'][:56]}")
     if card["open_findings"]:

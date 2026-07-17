@@ -17,14 +17,19 @@ that lexically match the obligation vocabulary. No repo-wide indexing.
 
 from __future__ import annotations
 
+import json
+import logging
 import pathlib
 import re
 import subprocess
 
-import json
-
 import yaml
 from pydantic import BaseModel, Field, field_validator
+
+from quire_align.llm_retry import invoke_with_retry
+from quire_align.text import tokenize
+
+logger = logging.getLogger(__name__)
 
 
 def _coerce_json_list(value):
@@ -91,26 +96,8 @@ class ProposerLLM:
         self._obligations = base.with_structured_output(ObligationCandidates)
         self._bindings = base.with_structured_output(BindingCandidates)
 
-    @staticmethod
-    def _invoke_with_retry(model, prompt: str, attempts: int = 3):
-        last_error: Exception | None = None
-        for attempt in range(attempts):
-            try:
-                return model.invoke(prompt)
-            except Exception as error:  # malformed structured output — retry with feedback
-                last_error = error
-                prompt = (
-                    prompt
-                    + "\n\nIMPORTANT: your previous response failed validation "
-                    f"({str(error)[:200]}). The `candidates` field must be a "
-                    "proper JSON ARRAY of objects — never a JSON-encoded "
-                    "string — and any double quotes inside string values must "
-                    "be escaped."
-                )
-        raise last_error
-
     def extract_obligations(self, doc: str) -> ObligationCandidates:
-        return self._invoke_with_retry(
+        return invoke_with_retry(
             self._obligations,
             "Extract candidate PRODUCT OBLIGATIONS from this document: atomic, "
             "testable behavioral promises about what the system may, must, or "
@@ -141,7 +128,7 @@ class ProposerLLM:
         promises = "\n".join(
             f"- {o.obligation_id} ({o.kind}): {o.statement}" for o in obligations
         )
-        return self._invoke_with_retry(
+        return invoke_with_retry(
             self._bindings,
             "For each product obligation below, propose the CONTROL POINTS in "
             "this repository that decide, enforce, execute, configure, "
@@ -232,8 +219,17 @@ def repo_tree(repo: pathlib.Path) -> list[str]:
             for p in repo.rglob("*")
             if p.is_file() and not any(part in _SKIP_PARTS for part in p.parts)
         ]
-    paths = [p for p in paths if p.endswith(_CODE_SUFFIXES)]
-    return sorted(paths)[:_MAX_TREE_PATHS]
+    paths = sorted(p for p in paths if p.endswith(_CODE_SUFFIXES))
+    if len(paths) > _MAX_TREE_PATHS:
+        # Bounded by design, but never silently: the model only sees the
+        # first _MAX_TREE_PATHS paths (sorted), so bindings into the tail
+        # of a large repo cannot be proposed.
+        logger.warning(
+            "repo tree truncated: %d code files, only the first %d shown to the proposer",
+            len(paths),
+            _MAX_TREE_PATHS,
+        )
+    return paths[:_MAX_TREE_PATHS]
 
 
 def select_context_files(
@@ -243,7 +239,9 @@ def select_context_files(
     vocabulary = {
         term
         for candidate in candidates
-        for term in re.findall(r"[a-z]{4,}", candidate.statement.lower())
+        # keep_digits: limits like "$50" are exactly the values worth
+        # locating in code and config.
+        for term in tokenize(candidate.statement, min_len=4, keep_digits=True)
     }
 
     def score(path: str) -> int:
@@ -294,9 +292,17 @@ def validate_candidates(
     return kept_obligations, kept_bindings, notes
 
 
+def mint_control_point_id(path: str) -> str:
+    """Stable control-point id derived from the FULL repo path — the stem
+    alone collides (``a/config.py`` vs ``b/config.py``) and diverged from
+    the client-side derivation. Ids are minted server-side only; clients
+    consume, never derive."""
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", path).strip("-")
+    return f"CP-{slug}"
+
+
 def write_draft(
     out_dir: pathlib.Path,
-    workflow_id: str,
     source_reference: str,
     obligations: list[CandidateObligation],
     bindings: list[CandidateBinding],
@@ -327,7 +333,7 @@ def write_draft(
     control_points: dict[str, dict] = {}
     binding_rows = []
     for binding in bindings:
-        cp_id = f"CP-{pathlib.Path(binding.path).stem}"
+        cp_id = mint_control_point_id(binding.path)
         control_points.setdefault(
             cp_id,
             {
@@ -364,7 +370,6 @@ def propose_contract(
     doc_path: pathlib.Path,
     repo: pathlib.Path,
     out_dir: pathlib.Path,
-    workflow_id: str,
     source_reference: str,
     llm=None,
 ) -> tuple[list[CandidateObligation], list[CandidateBinding], list[str]]:
@@ -379,5 +384,5 @@ def propose_contract(
     obligations, bindings, notes = validate_candidates(
         obligation_candidates, binding_candidates, doc, tree
     )
-    write_draft(out_dir, workflow_id, source_reference, obligations, bindings, notes)
+    write_draft(out_dir, source_reference, obligations, bindings, notes)
     return obligations, bindings, notes

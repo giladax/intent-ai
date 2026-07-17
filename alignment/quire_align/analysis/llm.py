@@ -17,6 +17,7 @@ from quire_align.analysis.prompts import (
     build_impact_prompt,
     build_intent_prompt,
 )
+from quire_align.llm_retry import invoke_with_retry
 from quire_align.models import (
     BehavioralDelta,
     DeclaredIntent,
@@ -68,7 +69,7 @@ class AnthropicAlignmentLLM:
         self._impact_model = reasoning.with_structured_output(ObligationImpact)
 
     def parse_intent(self, pr: PullRequest, issue: Issue | None) -> DeclaredIntent:
-        return self._intent_model.invoke(build_intent_prompt(pr, issue))
+        return invoke_with_retry(self._intent_model, build_intent_prompt(pr, issue))
 
     def infer_delta(
         self,
@@ -77,8 +78,8 @@ class AnthropicAlignmentLLM:
         declared: DeclaredIntent,
         code_context: dict[str, str],
     ) -> BehavioralDelta:
-        return self._delta_model.invoke(
-            build_delta_prompt(pr, diff, declared, code_context)
+        return invoke_with_retry(
+            self._delta_model, build_delta_prompt(pr, diff, declared, code_context)
         )
 
     def assess_obligation(
@@ -90,10 +91,11 @@ class AnthropicAlignmentLLM:
         coverage_note: str,
         source_excerpt: str = "",
     ) -> ObligationImpact:
-        result = self._impact_model.invoke(
+        result = invoke_with_retry(
+            self._impact_model,
             build_impact_prompt(
                 obligation, delta, diff, code_context, coverage_note, source_excerpt
-            )
+            ),
         )
         # The id comes from us, not the model — never trust echo-back.
         result.obligation_id = obligation.obligation_id

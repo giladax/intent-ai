@@ -1,6 +1,8 @@
 # Approved behavioral obligations for the Brain MCP serving loop,
 # extracted from docs/prd.md (Brain PRD v0.3.x — "Supported flow" and the
 # measurement provenance rules).
+# `revision` pins the exact wording an analysis judged against — bump it
+# whenever a statement changes so history stays replayable.
 obligations:
   - obligation_id: OB-BRAIN-201
     kind: hard_rule

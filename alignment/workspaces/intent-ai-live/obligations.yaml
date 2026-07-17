@@ -1,38 +1,41 @@
+# Approved product promises (obligations).
+# `revision` pins the exact wording an analysis judged against — bump it
+# whenever a statement changes so history stays replayable.
 obligations:
-- obligation_id: OB-DRAFT-1
+- obligation_id: INTENT-001
   kind: hard_rule
   statement: "When brain.enter resolves zero or more than one Feature match, the system must\
     \ return a candidate list for the agent to pick \u2014 it must never silently guess."
   source_reference: prd
   source_section: "MVP \u2014 Week 1 / Supported flow"
   revision: onboard-1
-- obligation_id: OB-DRAFT-2
+- obligation_id: INTENT-002
   kind: hard_rule
   statement: No observation may be automatically promoted to Current Understanding; every
     pending observation must pass through a human approve/reject/edit step.
   source_reference: prd
   source_section: "MVP \u2014 Week 1 / Supported flow"
   revision: onboard-1
-- obligation_id: OB-DRAFT-3
+- obligation_id: INTENT-003
   kind: hard_rule
   statement: Every write to the system must capture session id and actor as provenance.
   source_reference: prd
   source_section: MCP Surface
   revision: onboard-1
-- obligation_id: OB-DRAFT-4
+- obligation_id: INTENT-004
   kind: hard_rule
   statement: Every MCP call must emit an activity_event recording the tool, feature, hit/miss,
     and latency.
   source_reference: prd
   source_section: MCP Surface
   revision: onboard-1
-- obligation_id: OB-DRAFT-5
+- obligation_id: INTENT-005
   kind: hard_rule
   statement: Brain must never edit the source documents held in external systems of record.
   source_reference: prd
   source_section: Organizational Lifecycle
   revision: onboard-1
-- obligation_id: OB-DRAFT-6
+- obligation_id: INTENT-006
   kind: hard_rule
   statement: "All treatment context used in the measurement eval must be assembled exclusively\
     \ from digested sessions and approved Observations \u2014 no constraint may be hand-typed\
@@ -40,7 +43,7 @@ obligations:
   source_reference: prd
   source_section: "MVP \u2014 Week 1 / Measurement harness"
   revision: onboard-1
-- obligation_id: OB-DRAFT-7
+- obligation_id: INTENT-007
   kind: hard_rule
   statement: Every digested log must be copied to .intent/raw-sessions/ (re-copied as it grows)
     so that raw session evidence is permanently preserved and never lost to Claude Code's
@@ -48,7 +51,7 @@ obligations:
   source_reference: prd
   source_section: Vision (v0.3.2 amendments)
   revision: onboard-1
-- obligation_id: OB-DRAFT-8
+- obligation_id: INTENT-008
   kind: hard_rule
   statement: The MCP surface must expose only the Feature ontology; the legacy Topic tools
     must be retired or re-keyed onto Feature so that an agent never sees two competing vocabularies
@@ -56,21 +59,21 @@ obligations:
   source_reference: prd
   source_section: MCP Surface
   revision: onboard-1
-- obligation_id: OB-DRAFT-9
+- obligation_id: INTENT-009
   kind: hard_rule
   statement: Ambiguity in task resolution must always return a candidate list; the system
     must never auto-select a single fuzzy match above a threshold as a silent guess.
   source_reference: prd
   source_section: MCP Surface
   revision: onboard-1
-- obligation_id: OB-DRAFT-10
+- obligation_id: INTENT-010
   kind: hard_rule
   statement: Candidate lists and ids returned by the MCP surface must be structured content,
     not prose that an agent must parse ids out of.
   source_reference: prd
   source_section: MCP Surface
   revision: onboard-1
-- obligation_id: OB-DRAFT-11
+- obligation_id: INTENT-011
   kind: permission
   statement: "An agent may perform write operations (create/update Features, manage file\u2194\
     Feature map, approve/reject/edit observations, comment) on the human's behalf, provided\
@@ -78,27 +81,27 @@ obligations:
   source_reference: prd
   source_section: MCP Surface
   revision: onboard-1
-- obligation_id: OB-DRAFT-12
+- obligation_id: INTENT-012
   kind: invariant
   statement: Every piece of understanding must trace back to artifacts; no ungrounded claims
     may exist in the system.
   source_reference: prd
   source_section: Product Principles
   revision: onboard-1
-- obligation_id: OB-DRAFT-13
+- obligation_id: INTENT-013
   kind: invariant
   statement: Understanding must change only through reviewable deltas and never silently.
   source_reference: prd
   source_section: Product Principles
   revision: onboard-1
-- obligation_id: OB-DRAFT-14
+- obligation_id: INTENT-014
   kind: hard_rule
   statement: The efficiency metric (ETC) must count all information-gathering tool calls including
     brain_* MCP reads; brain MCP reads must not be excluded from the count.
   source_reference: prd
   source_section: "MVP \u2014 Week 1 / Measurement harness"
   revision: onboard-1
-- obligation_id: OB-DRAFT-15
+- obligation_id: INTENT-015
   kind: hard_rule
   statement: A hold-out constraint is only valid for the eval if it appears in no document
     the baseline arm receives (CLAUDE.md, .repo/brain.md).

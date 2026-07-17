@@ -1,3 +1,6 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
 control_points:
 - control_point_id: CP-feature
   role: enforcement
@@ -160,186 +163,186 @@ control_points:
   description: .repo/brain.md is the second document the baseline arm receives; hold-out constraints
     must not appear here.
 bindings:
-- obligation_id: OB-DRAFT-1
+- obligation_id: INTENT-001
   control_point_id: CP-feature
   relation: enforces
-- obligation_id: OB-DRAFT-1
+- obligation_id: INTENT-001
   control_point_id: CP-server
   relation: enforces
-- obligation_id: OB-DRAFT-1
+- obligation_id: INTENT-001
   control_point_id: CP-context
   relation: decides
-- obligation_id: OB-DRAFT-1
+- obligation_id: INTENT-001
   control_point_id: CP-obligations
   relation: decides
-- obligation_id: OB-DRAFT-2
+- obligation_id: INTENT-002
   control_point_id: CP-observe-events
   relation: enforces
-- obligation_id: OB-DRAFT-2
+- obligation_id: INTENT-002
   control_point_id: CP-verify
   relation: enforces
-- obligation_id: OB-DRAFT-2
+- obligation_id: INTENT-002
   control_point_id: CP-index
   relation: enforces
-- obligation_id: OB-DRAFT-2
+- obligation_id: INTENT-002
   control_point_id: CP-obligations
   relation: decides
-- obligation_id: OB-DRAFT-3
+- obligation_id: INTENT-003
   control_point_id: CP-schema
   relation: enforces
-- obligation_id: OB-DRAFT-3
+- obligation_id: INTENT-003
   control_point_id: CP-queries
   relation: enforces
-- obligation_id: OB-DRAFT-3
+- obligation_id: INTENT-003
   control_point_id: CP-types
   relation: configures
-- obligation_id: OB-DRAFT-3
+- obligation_id: INTENT-003
   control_point_id: CP-audit
   relation: enforces
-- obligation_id: OB-DRAFT-4
+- obligation_id: INTENT-004
   control_point_id: CP-instrument
   relation: enforces
-- obligation_id: OB-DRAFT-4
+- obligation_id: INTENT-004
   control_point_id: CP-server
   relation: executes
-- obligation_id: OB-DRAFT-4
+- obligation_id: INTENT-004
   control_point_id: CP-emit-events
   relation: executes
-- obligation_id: OB-DRAFT-4
+- obligation_id: INTENT-004
   control_point_id: CP-queries
   relation: executes
-- obligation_id: OB-DRAFT-4
+- obligation_id: INTENT-004
   control_point_id: CP-types
   relation: configures
-- obligation_id: OB-DRAFT-5
+- obligation_id: INTENT-005
   control_point_id: CP-server
   relation: enforces
-- obligation_id: OB-DRAFT-5
+- obligation_id: INTENT-005
   control_point_id: CP-feature
   relation: enforces
-- obligation_id: OB-DRAFT-5
+- obligation_id: INTENT-005
   control_point_id: CP-obligations
   relation: decides
-- obligation_id: OB-DRAFT-6
+- obligation_id: INTENT-006
   control_point_id: CP-mvp-eval
   relation: enforces
-- obligation_id: OB-DRAFT-6
+- obligation_id: INTENT-006
   control_point_id: CP-mvp-task-criteria
   relation: configures
-- obligation_id: OB-DRAFT-6
+- obligation_id: INTENT-006
   control_point_id: CP-run_eval
   relation: enforces
-- obligation_id: OB-DRAFT-6
+- obligation_id: INTENT-006
   control_point_id: CP-dataset
   relation: enforces
-- obligation_id: OB-DRAFT-6
+- obligation_id: INTENT-006
   control_point_id: CP-cases
   relation: configures
-- obligation_id: OB-DRAFT-7
+- obligation_id: INTENT-007
   control_point_id: CP-log-discovery
   relation: executes
-- obligation_id: OB-DRAFT-7
+- obligation_id: INTENT-007
   control_point_id: CP-session-digest
   relation: executes
-- obligation_id: OB-DRAFT-7
+- obligation_id: INTENT-007
   control_point_id: CP-orchestrator
   relation: enforces
-- obligation_id: OB-DRAFT-8
+- obligation_id: INTENT-008
   control_point_id: CP-server
   relation: enforces
-- obligation_id: OB-DRAFT-8
+- obligation_id: INTENT-008
   control_point_id: CP-feature
   relation: enforces
-- obligation_id: OB-DRAFT-8
+- obligation_id: INTENT-008
   control_point_id: CP-
   relation: configures
-- obligation_id: OB-DRAFT-8
+- obligation_id: INTENT-008
   control_point_id: CP-obligations
   relation: decides
-- obligation_id: OB-DRAFT-9
+- obligation_id: INTENT-009
   control_point_id: CP-feature
   relation: enforces
-- obligation_id: OB-DRAFT-9
+- obligation_id: INTENT-009
   control_point_id: CP-server
   relation: enforces
-- obligation_id: OB-DRAFT-9
+- obligation_id: INTENT-009
   control_point_id: CP-context
   relation: decides
-- obligation_id: OB-DRAFT-10
+- obligation_id: INTENT-010
   control_point_id: CP-feature
   relation: enforces
-- obligation_id: OB-DRAFT-10
+- obligation_id: INTENT-010
   control_point_id: CP-server
   relation: enforces
-- obligation_id: OB-DRAFT-10
+- obligation_id: INTENT-010
   control_point_id: CP-attention-formatter
   relation: enforces
-- obligation_id: OB-DRAFT-10
+- obligation_id: INTENT-010
   control_point_id: CP-types
   relation: configures
-- obligation_id: OB-DRAFT-11
+- obligation_id: INTENT-011
   control_point_id: CP-queries
   relation: enforces
-- obligation_id: OB-DRAFT-11
+- obligation_id: INTENT-011
   control_point_id: CP-schema
   relation: configures
-- obligation_id: OB-DRAFT-11
+- obligation_id: INTENT-011
   control_point_id: CP-emit-events
   relation: executes
-- obligation_id: OB-DRAFT-12
+- obligation_id: INTENT-012
   control_point_id: CP-extract
   relation: enforces
-- obligation_id: OB-DRAFT-12
+- obligation_id: INTENT-012
   control_point_id: CP-verify
   relation: enforces
-- obligation_id: OB-DRAFT-12
+- obligation_id: INTENT-012
   control_point_id: CP-weave
   relation: enforces
-- obligation_id: OB-DRAFT-12
+- obligation_id: INTENT-012
   control_point_id: CP-schema
   relation: configures
-- obligation_id: OB-DRAFT-12
+- obligation_id: INTENT-012
   control_point_id: CP-evidence
   relation: enforces
-- obligation_id: OB-DRAFT-13
+- obligation_id: INTENT-013
   control_point_id: CP-verify
   relation: enforces
-- obligation_id: OB-DRAFT-13
+- obligation_id: INTENT-013
   control_point_id: CP-observe-events
   relation: enforces
-- obligation_id: OB-DRAFT-13
+- obligation_id: INTENT-013
   control_point_id: CP-emit-events
   relation: executes
-- obligation_id: OB-DRAFT-13
+- obligation_id: INTENT-013
   control_point_id: CP-timeline
   relation: observes
-- obligation_id: OB-DRAFT-14
+- obligation_id: INTENT-014
   control_point_id: CP-transcript-metrics
   relation: enforces
-- obligation_id: OB-DRAFT-14
+- obligation_id: INTENT-014
   control_point_id: CP-mvp-eval
   relation: enforces
-- obligation_id: OB-DRAFT-14
+- obligation_id: INTENT-014
   control_point_id: CP-mvp-task-criteria
   relation: configures
-- obligation_id: OB-DRAFT-14
+- obligation_id: INTENT-014
   control_point_id: CP-live-runner
   relation: executes
-- obligation_id: OB-DRAFT-14
+- obligation_id: INTENT-014
   control_point_id: CP-cvr-checks
   relation: observes
-- obligation_id: OB-DRAFT-15
+- obligation_id: INTENT-015
   control_point_id: CP-CLAUDE
   relation: observes
-- obligation_id: OB-DRAFT-15
+- obligation_id: INTENT-015
   control_point_id: CP-brain
   relation: observes
-- obligation_id: OB-DRAFT-15
+- obligation_id: INTENT-015
   control_point_id: CP-mvp-eval
   relation: enforces
-- obligation_id: OB-DRAFT-15
+- obligation_id: INTENT-015
   control_point_id: CP-mvp-task-criteria
   relation: configures
-- obligation_id: OB-DRAFT-15
+- obligation_id: INTENT-015
   control_point_id: CP-run_eval
   relation: enforces

@@ -1,4 +1,4 @@
-"""Intent timeline: replayable history of how digestion events (PR analyses)
+"""Intent timeline: replayable history of how checks (PR analyses)
 affected the understood intent state.
 
 Every analysis is already persisted with a timestamp, per-obligation impacts,
@@ -36,10 +36,14 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
     prev_contract: str | None = None
 
     for analysis in ordered:
+        # The PR may no longer be resolvable (fixture dir gone, commit
+        # rebased away, network/API failure) — the timeline still renders,
+        # just without a title. RequestException subclasses OSError, so the
+        # GitHub adapter is covered too.
         title = ""
         try:
             title = adapter.get_pr(analysis.pr_number).title
-        except Exception:
+        except (FileNotFoundError, KeyError, RuntimeError, OSError):
             pass
 
         changes = []
@@ -65,7 +69,7 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
                 confidence=impact.confidence,
             )
 
-        # A re-digestion of the same PR supersedes its earlier finding.
+        # A re-check of the same PR supersedes its earlier finding.
         open_findings = [f for f in open_findings if f["pr_number"] != analysis.pr_number]
         if analysis.classification in _FINDING_VERDICTS:
             open_findings.append(

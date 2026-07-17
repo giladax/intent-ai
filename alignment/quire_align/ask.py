@@ -24,16 +24,22 @@ The card itself is pure assembly over data the store already holds.
 from __future__ import annotations
 
 import pathlib
-import re
 
 import yaml
 from pydantic import BaseModel, Field
 
 from quire_align.grouping import GroupingConstraints, group_contract
+from quire_align.text import tokenize
 from quire_align.timeline import build_timeline
 
+# Roughly "one in five query terms found in the community's vocabulary".
+# Below this, lexical overlap is noise and rung 3 (LLM translation) is
+# worth its call; above it, the deterministic answer stands on its own.
 _LEXICAL_RESOLVE_MIN = 0.18
-_LEXICAL_MARGIN = 1.5  # top score must beat runner-up by this factor
+# The top community must beat the runner-up by this factor — a near-tie
+# means the term is genuinely ambiguous, so we fall through to the LLM
+# rung (or return unresolved) rather than guess between neighbors.
+_LEXICAL_MARGIN = 1.5
 
 
 class TermPick(BaseModel):
@@ -77,7 +83,7 @@ def load_group_state(workspace_dir: pathlib.Path, adapter) -> dict:
 
 
 def _query_terms(q: str) -> set[str]:
-    return {t for t in re.findall(r"[a-z0-9]{3,}", q.lower())}
+    return set(tokenize(q, min_len=3, keep_digits=True))
 
 
 def _group_vocab(group: dict, obligations_by_id: dict) -> set[str]:
@@ -124,7 +130,7 @@ def resolve_term(
                 "group": top[1],
                 "method": "lexical",
                 "confidence": round(min(top[0] * 2, 0.95), 2),
-                "alternatives": [g["group_id"] for _, g in scored[1:3] if _ > 0],
+                "alternatives": [g["group_id"] for score, g in scored[1:3] if score > 0],
             }
 
     # Rung 3 — LLM translation among existing groups only (heuristic).
@@ -148,14 +154,14 @@ def resolve_term(
                 "group": by_anchor[pick.anchor],
                 "method": "llm",
                 "confidence": round(pick.confidence, 2),
-                "alternatives": [g["group_id"] for _, g in scored[:2] if _ > 0],
+                "alternatives": [g["group_id"] for score, g in scored[:2] if score > 0],
             }
 
     return {
         "group": None,
         "method": "unresolved",
         "confidence": 0.0,
-        "alternatives": [g["group_id"] for s, g in scored[:3] if s > 0],
+        "alternatives": [g["group_id"] for score, g in scored[:3] if score > 0],
     }
 
 
@@ -178,11 +184,6 @@ def community_card(adapter, store, group: dict, state: dict) -> dict:
     member_ids = set(group["obligation_ids"])
     obligations_by_id = {o["obligation_id"]: o for o in timeline["obligations"]}
 
-    def _touches(event: dict) -> bool:
-        if member_ids & {c["obligation_id"] for c in event["changes"]}:
-            return True
-        return False
-
     recent = [
         {
             "pr_number": e["pr_number"],
@@ -192,7 +193,7 @@ def community_card(adapter, store, group: dict, state: dict) -> dict:
             "changes": [c for c in e["changes"] if c["obligation_id"] in member_ids],
         }
         for e in events
-        if _touches(e)
+        if member_ids & {c["obligation_id"] for c in e["changes"]}
     ][-8:]
 
     open_findings = []

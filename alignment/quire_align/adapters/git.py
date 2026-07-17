@@ -5,8 +5,9 @@ Any base/head commit range in a local repository becomes an analyzable
 obligations, bindings, issues — same YAML layout as fixture workspaces)
 plus:
 
-    requirements_index.yaml   which repo files are approved intent sources
+    sources.yaml              which repo files are approved intent sources
                               [{reference, path, status, version}]
+                              (legacy name requirements_index.yaml still read)
     prs.yaml                  pr_number → {base, head, title?, body?, issue?}
                               (title/body default to the head commit message)
 
@@ -115,10 +116,14 @@ class GitWorkspace(FixtureWorkspace):
             if line
         )
 
-    # -- approved intent from the requirements index -------------------------
+    # -- approved intent from the sources index -------------------------------
 
     def requirement_artifacts(self) -> list[ArtifactSnapshot]:
-        index_path = self.root / "requirements_index.yaml"
+        # sources.yaml is the current name; requirements_index.yaml is the
+        # legacy one — keep reading it so existing workspaces don't break.
+        index_path = self.root / "sources.yaml"
+        if not index_path.exists():
+            index_path = self.root / "requirements_index.yaml"
         if not index_path.exists():
             return super().requirement_artifacts()
         artifacts = []

@@ -25,6 +25,9 @@ from quire_align.models import (
     ReviewState,
 )
 
+# Default DB lives next to the package (alignment/quire_align.db) so every
+# CLI/API invocation from any cwd shares one store. Override with the
+# QUIRE_ALIGN_DB env var or an explicit url (tests pass tmp sqlite urls).
 _DEFAULT_DB = pathlib.Path(__file__).parent.parent / "quire_align.db"
 
 
@@ -156,6 +159,10 @@ class Store:
         reviewer: str,
         note: str = "",
     ) -> PRAnalysis:
+        # NOTE: read-modify-write across two sessions, not atomic — two
+        # concurrent reviewers can race and the last save wins. Acceptable
+        # for a single-operator MVP; a real deployment would do this in one
+        # transaction (SELECT ... FOR UPDATE / compare-and-swap).
         analysis = self.get_analysis(analysis_id)
         if analysis is None:
             raise KeyError(f"no analysis {analysis_id}")

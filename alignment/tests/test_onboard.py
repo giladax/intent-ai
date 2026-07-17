@@ -67,7 +67,10 @@ def test_write_workspace_produces_loadable_git_workspace(tmp_path):
 
     workspace = GitWorkspace(out)
     assert workspace.repository() == "acme-app"
-    assert [o.obligation_id for o in workspace.obligations()] == ["OB-1"]
+    # draft ids are re-minted at approval time — human-facing, workflow-scoped
+    assert [o.obligation_id for o in workspace.obligations()] == ["ACMEAP-001"]
+    binding = workspace.bindings()[0]
+    assert binding.obligation_id == "ACMEAP-001"
     artifacts = workspace.requirement_artifacts()
     assert artifacts[0].authority.value == "approved"
     pr = workspace.get_pr(1)

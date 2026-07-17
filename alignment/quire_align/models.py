@@ -384,6 +384,9 @@ class PRAnalysis(BaseModel):
     matched_control_points: list[str] = Field(default_factory=list)
     missing_evidence: list[str] = Field(default_factory=list)
     evidence_valid: bool = True
+    # Citations that failed verbatim validation and were removed before
+    # rendering — an audit trail of how much the model fabricated.
+    dropped_citations: int = 0
 
     human_review_required: bool = False
     review_reasons: list[ReviewReason] = Field(default_factory=list)

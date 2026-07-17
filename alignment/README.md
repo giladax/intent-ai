@@ -1,9 +1,11 @@
-# Quire Align — product-to-code alignment for production agents (Python MVP)
+# Quire Align — product-to-code alignment (Python MVP)
 
 Given a pull request, determine: which approved product obligations it may
 affect, what behavioral change the implementation introduces, whether that
 change aligns with approved product intent, and which tests/evals/guards are
-missing. Not a code reviewer — a behavioral-alignment checker.
+missing. Not a code reviewer — a behavioral-alignment checker for shipped
+product behavior (the demo fixture happens to be an LLM refund agent, but
+any repo with approved intent docs works).
 
 This is the Python prototype of the repo's Phase-2 "alignment" thesis
 (see `docs/prd.md`), self-contained under `alignment/`.
@@ -20,7 +22,7 @@ inference), `LANGSMITH_API_KEY` / `LANGSMITH_TRACING` (tracing + evals),
 
 ```bash
 cd alignment
-python3 -m pytest                      # 58 tests, all offline (no API calls)
+python3 -m pytest                      # 85 tests, all offline (no API calls)
 ```
 
 ## Demo
@@ -57,7 +59,8 @@ python3 -m quire_align.cli analyze intent-ai 1     # the 2026-07-07 "constraints
                                                    # always ride orientation" fix
 ```
 
-Retroactive sweep of five real commits (live inference, 2026-07-16):
+Replay of five recent real commits (the "retroactive sweep"; live
+inference, 2026-07-16):
 
 | PR | Commit | Verdict |
 |---|---|---|
@@ -83,13 +86,13 @@ python3 -m quire_align.cli serve --port 8321
 ```
 
 Four acts, the system leads at every step: **Scan** (point at a repo — it
-finds candidate intent sources itself, ranked by promise density, and lines
-up recent commits), **Draft** (mines the chosen sources into obligation
-cards with verbatim provenance, live inference), **Approve** (the only
-human step — edit/reject cards, toggle bindings; the session is the
-approval act), **First light** (writes the approved workspace and replays
-the last commits against the new contract, verdicts appearing per commit,
-ending at that workspace's intent ledger).
+finds candidate intent sources itself, ranked by how many product promises
+they contain, and lines up recent commits), **Draft** (mines the chosen
+sources into obligation cards with verbatim provenance, live inference),
+**Approve** (the only human step — edit/reject cards, toggle bindings; the
+session is the approval act), **First results** (writes the approved
+workspace and replays the last commits against the new contract, verdicts
+appearing per commit, ending at that workspace's intent ledger).
 
 ## Intent ledger (time-travel demo surface)
 
@@ -98,10 +101,10 @@ python3 -m quire_align.cli serve --port 8321
 # open http://127.0.0.1:8321/intent/intent-ai   (or /intent/refund-agent)
 ```
 
-Every digestion (PR analysis) is an event on a scrubbable timeline: pick any
+Every check (PR analysis) is an event on a scrubbable timeline: pick any
 event to see the intent state *as of that moment* (per-obligation status
-lamps, since-which-digestion, confidence), the exact effect of that
-digestion (state transitions with reasoning), contract-revision markers
+lamps, since-which-check, confidence), the exact effect of that
+check (state transitions with reasoning), contract-revision markers
 (⟡ when the obligation set changed), and the open intent-inbox at that
 point. The page polls; to demo live: merge/commit → add a base/head entry
 to the workspace `prs.yaml` → `analyze <workspace> <n>` → the event appears
@@ -138,7 +141,8 @@ fixture PR dir + one entry in `evals/cases.py`.
 ## How it works
 
 ```
-load PR → snapshot artifacts → resolve product context (5-rung ladder)
+load PR → snapshot artifacts → resolve product context (5-rung ladder: a
+fixed priority order of intent sources, most authoritative first)
 → load obligations (contract snapshot + idempotency cache check)
 → parse declared intent (Haiku) → collect diff → match control points (deterministic)
 → gather bounded code context → infer behavioral delta (Sonnet, structured)
@@ -210,25 +214,26 @@ verified fixes generalize.
   scored 99/99** (11 cases × 9 evaluators, zero failures of any evaluator
   on any case). Re-run the sweep after any prompt or contract change:
   `for i in $(seq 8); do python3 -u evals/run_eval.py --live; done`.
-- **Registry-first semantics** (`strict_binding_gate`): obligations whose
-  registered control points are untouched are deterministically unrelated.
-  A violation smuggled through an unregistered file surfaces as
-  POSSIBLE_DRIFT (review required), not OFF_INTENT — bindings are the
-  registry, drift is the catch-all. `exhaustive-v1` disables the gate.
+- **Registry-first semantics** (`strict_binding_gate` — the "binding gate":
+  an obligation whose registered code locations are all untouched by the PR
+  is marked unrelated deterministically, with no LLM call). A violation
+  smuggled through an unregistered file surfaces as POSSIBLE_DRIFT (review
+  required), not OFF_INTENT — bindings are the registry, drift is the
+  catch-all. `exhaustive-v1` disables the gate.
 - Retrieval rung is lexical overlap, not embeddings — fine at fixture scale,
   a stand-in beyond it.
 - Enforcement-removal detection is structural (deleted file/symbol/call
   site); a semantically neutered guard body would need the LLM path.
 - Bindings are hand-curated in `bindings.yaml`; no assisted onboarding yet.
-- One repository per workflow; GitHub adapter has no pagination beyond 100
-  changed files; comment publishing to GitHub is rendered but not posted.
+- One repository per workflow.
 - Obligation comparison is one LLM call per candidate obligation (fine at
   5–15; would want batching beyond).
 
 ## Next highest-value increment
 
-The live analyzer now matches expectations on all 10 cases. Next: post
-`comment_markdown` to real PRs behind `--publish`, and wire a real repo's
-manifest + obligations to dogfood on this very repository — real PRs will
-grow the regression set (new fixture dir + `evals/cases.py` entry per
-reviewed mistake) far better than more synthetic cases would.
+The live analyzer now matches expectations on all 10 cases, and
+`--publish` posts `comment_markdown` to real PRs for `github`-provider
+workspaces. Next: wire a real repo's manifest + obligations to dogfood on
+this very repository — real PRs will grow the regression set (new fixture
+dir + `evals/cases.py` entry per reviewed mistake) far better than more
+synthetic cases would.

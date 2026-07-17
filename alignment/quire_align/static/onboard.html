@@ -80,14 +80,14 @@ a{color:var(--accent)}
   <div class="step on" id="st0">1 · Scan</div>
   <div class="step" id="st1">2 · Draft</div>
   <div class="step" id="st2">3 · Approve</div>
-  <div class="step" id="st3">4 · First light</div>
+  <div class="step" id="st3">4 · First results</div>
 </div>
 <main>
 
 <!-- STEP 1 -->
 <section id="s0">
   <h2>Point at a repository</h2>
-  <div class="sub">We'll find your intent sources for you — documents ranked by promise density —<br>
+  <div class="sub">We'll find your intent sources for you — documents ranked by how many product promises they contain —<br>
   and line up recent commits to replay against the contract you approve.</div>
   <div class="row">
     <input type="text" id="repoInput" placeholder="/path/to/repo" value="">
@@ -110,7 +110,7 @@ a{color:var(--accent)}
   <div id="draftStatus" class="status"><span class="spin"></span>mining promises from your sources… (~a minute per document)</div>
   <div id="cards"></div>
   <div id="createRow" class="row hidden">
-    <span style="color:var(--dim)">workflow id</span>
+    <span style="color:var(--dim)">workspace name</span>
     <input type="text" id="wfId" style="width:220px">
     <button class="primary" id="createBtn">Approve contract & continue →</button>
   </div>
@@ -118,11 +118,11 @@ a{color:var(--accent)}
 
 <!-- STEP 4 -->
 <section id="s2" class="hidden">
-  <h2>First light — replay recent history</h2>
-  <div class="sub">Your contract is live. Now watch it judge the last commits — value before your next PR even opens.</div>
+  <h2>First results — see it judge your recent commits</h2>
+  <div class="sub">Your contract is live. Now watch it judge your last commits — value before your next PR even opens.</div>
   <div id="sweep"></div>
   <div class="row">
-    <button class="primary" id="runSweep">Run retroactive sweep (live inference)</button>
+    <button class="primary" id="runSweep">Check the last 5 commits</button>
     <a id="ledgerLink" class="hidden">open the intent ledger →</a>
   </div>
 </section>
@@ -130,6 +130,15 @@ a{color:var(--accent)}
 </main>
 <script>
 let SCAN=null, DRAFT=null, WSID=null, SWEEP_PRS=[];
+
+// Display labels only — API enum values are unchanged.
+const VERDICT = {ALIGNED:"ALIGNED", PARTIAL:"PARTIAL", POSSIBLE_DRIFT:"POSSIBLE DRIFT",
+  OFF_INTENT:"CONTRADICTS INTENT", UNKNOWN:"NEEDS REVIEW", UNGOVERNED:"NOT COVERED",
+  NO_MATERIAL_IMPACT:"NO PRODUCT IMPACT"};
+const KIND_TIP = {
+  hard_rule:"hard rule — something the product must never break",
+  permission:"permission — behavior the product explicitly allows",
+  invariant:"invariant — a property that must stay true as the code changes"};
 
 const $=id=>document.getElementById(id);
 function step(n){
@@ -147,7 +156,7 @@ $("scanBtn").onclick = async ()=>{
   const max = Math.max(...SCAN.sources.map(s=>s.score), 1);
   $("sources").innerHTML = SCAN.sources.map((s,i)=>`
     <div class="card"><input type="checkbox" data-i="${i}" ${i<2?"checked":""}>
-      <div class="body"><div class="path">${s.path}</div>
+      <div class="body"><div class="path">${esc(s.path)}</div>
       <div class="why">${s.promise_hits} promise signals · ${s.words} words — “${esc(s.preview)}…”</div>
       <div class="bar"><i style="width:${Math.round(100*s.score/max)}%"></i></div></div></div>`).join("");
   $("scanOut").classList.remove("hidden");
@@ -157,8 +166,13 @@ $("draftBtn").onclick = async ()=>{
   const docs = [...document.querySelectorAll("#sources input:checked")].map(cb=>SCAN.sources[+cb.dataset.i].path);
   if(!docs.length){ alert("pick at least one source"); return; }
   step(1); $("draftStatus").classList.remove("hidden");
+  $("draftStatus").innerHTML = `<span class="spin"></span>mining promises from your sources… (~a minute per document)`;
   const r = await fetch("/api/onboard/draft",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({repo:SCAN.repo, docs})});
+  if(!r.ok){
+    $("draftStatus").innerHTML = `<span style="color:var(--bad)">Drafting failed — ${esc((await r.text()).slice(0,300))}. Go back and try again.</span>`;
+    return;
+  }
   DRAFT = await r.json();
   $("draftStatus").classList.add("hidden");
   step(2); renderCards();
@@ -175,6 +189,11 @@ function primaryGroup(obId, groups){
   return best;
 }
 
+function groupLabel(gid, groups){
+  const g = groups.find(x=>x.group_id===gid);
+  return (g && g.label) ? g.label : (gid || "");
+}
+
 function renderCards(){
   const byId = Object.fromEntries(DRAFT.obligations.map((o,i)=>[o.obligation_id,i]));
   const groups = (DRAFT.groups && DRAFT.groups.length) ? DRAFT.groups
@@ -187,36 +206,38 @@ function renderCards(){
       const home = primaryGroup(m.obligation_id, groups);
       if(home !== g.group_id)
         return `<div class="bind" style="padding:6px 14px; border:1px dashed var(--line); margin-bottom:8px">
-          ↳ ${m.obligation_id} <span style="color:var(--faint)">also lives here · weight ${m.weight} (primary in ${home})</span></div>`;
+          ↳ ${esc(m.obligation_id)} <span style="color:var(--faint)">also lives here · ${Math.round(m.weight*100)}% related — mainly in ${esc(groupLabel(home, groups))}</span></div>`;
       const extra = (m.weight < 1)
-        ? `<span style="color:var(--ungov); font-size:10px"> · ${Math.round(m.weight*100)}% here, also in ${groups.filter(x=>x.group_id!==g.group_id && (x.members||[]).some(y=>y.obligation_id===m.obligation_id)).map(x=>x.group_id).join(", ")}</span>`
+        ? `<span style="color:var(--ungov); font-size:10px"> · ${Math.round(m.weight*100)}% here, also in ${groups.filter(x=>x.group_id!==g.group_id && (x.members||[]).some(y=>y.obligation_id===m.obligation_id)).map(x=>esc(x.label||x.group_id)).join(", ")}</span>`
         : "";
       return cardHtml(byId[m.obligation_id], extra, m.obligation_id);
     }).join("");
     return `<div style="margin:24px 0 10px; display:flex; gap:12px; align-items:baseline">
-      <input type="checkbox" class="gsel" data-anchor="${g.anchor}" title="select for merge" style="accent-color:var(--accent)">
-      <span style="font-family:'Fraunces',serif; font-size:16px; color:var(--accent)">◉ ${g.group_id}</span>
-      <input type="text" value="${esc(g.label)}" data-anchor="${g.anchor}" class="glabel"
+      <input type="checkbox" class="gsel" data-anchor="${esc(g.anchor)}" title="select for merge" style="accent-color:var(--accent)">
+      <span style="font-family:'Fraunces',serif; font-size:16px; color:var(--accent)">◉</span>
+      <input type="text" value="${esc(g.label)}" data-anchor="${esc(g.anchor)}" class="glabel"
         style="width:280px; background:none; border:none; border-bottom:1px dashed var(--line); color:var(--paper); font:inherit; letter-spacing:1px; text-transform:uppercase; font-size:11px">
-      <span style="color:var(--faint); font-size:10px">${(g.members||[]).length} promises · ${g.files.length} control points${bridgeNote.length?` · ${bridgeNote.length} bridged files`:""}</span>
+      <span style="color:var(--faint); font-size:10px">${esc(g.group_id)}</span>
+      <span style="color:var(--faint); font-size:10px">${(g.members||[]).length} promises · ${g.files.length} code locations${bridgeNote.length?` · ${bridgeNote.length} files shared with other areas`:""}</span>
     </div>` + rows;
   }).join("");
   $("cards").insertAdjacentHTML("beforeend", `
     <div class="row" style="margin-top:18px">
       <button class="ghost" onclick="mergeSelected()">Merge selected groups</button>
       <button class="ghost" onclick="extractSelected()">Extract checked promises to new group</button>
-      <span style="color:var(--faint); font-size:10px">edits retrain the grouping — they persist with your workspace</span>
+      <span style="color:var(--faint); font-size:10px">your edits update the grouping and are saved with your workspace</span>
     </div>`);
   document.querySelectorAll(".glabel").forEach(inp=>{
     inp.onchange = ()=>{ CONSTRAINTS.labels[inp.dataset.anchor] = inp.value; regroup(); };
   });
   if(DRAFT.notes && DRAFT.notes.length) $("cards").insertAdjacentHTML("beforeend",
-    `<div class="note">${DRAFT.notes.length} candidate(s) were dropped mechanically (provenance quote or path didn't resolve).</div>`);
+    `<div class="note">${DRAFT.notes.length} suggestion(s) were left out because their source quote or file path couldn't be verified.</div>`);
 }
 
 async function regroup(){
   const r = await fetch("/api/onboard/regroup",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({obligations:DRAFT.obligations, bindings:DRAFT.bindings, constraints:CONSTRAINTS})});
+  if(!r.ok){ alert("Regrouping failed: " + await r.text()); return; }
   const out = await r.json();
   DRAFT.groups = out.groups; DRAFT.bridges = out.bridges;
   renderCards();
@@ -244,16 +265,16 @@ function cardHtml(i, extraBadge, obId){
   return [DRAFT.obligations[i]].map((o)=>{
     const binds = DRAFT.bindings.map((b,j)=>({b,j})).filter(x=>x.b.obligation_id===o.obligation_id);
     return `<div class="ob-card" id="ob${i}">
-      <div class="ob-head"><input type="checkbox" class="xsel" data-ob="${o.obligation_id}" title="select to extract" style="accent-color:var(--ungov)"><span class="id">${o.obligation_id}</span>${extraBadge||""}
-        <span class="kind ${o.kind}">${o.kind.replace("_"," ")}</span>
-        <span style="color:var(--faint);font-size:11px">from ${o.source_reference}</span>
+      <div class="ob-head"><input type="checkbox" class="xsel" data-ob="${esc(o.obligation_id)}" title="select to extract" style="accent-color:var(--ungov)"><span class="id">${esc(o.obligation_id)}</span>${extraBadge||""}
+        <span class="kind ${esc(o.kind)}" title="${esc(KIND_TIP[o.kind]||"")}">${esc((o.kind||"").replace("_"," "))}</span>
+        <span style="color:var(--faint);font-size:11px">from ${esc(o.source_reference)}</span>
         <span class="actions">
           <button class="ghost" onclick="toggleOb(${i})" id="tg${i}">reject</button></span></div>
       <div class="ob-body">
         <textarea id="txt${i}">${esc(o.statement)}</textarea>
         <div class="quote">“${esc(o.source_quote)}”</div>
         ${binds.map(x=>`<div class="bind"><input type="checkbox" checked data-j="${x.j}">
-          <code>${x.b.path}</code> — ${x.b.relation} <span style="color:var(--faint)">(${esc(x.b.why)})</span></div>`).join("")}
+          <code>${esc(x.b.path)}</code> — ${esc(x.b.relation)} <span style="color:var(--faint)">(${esc(x.b.why)})</span></div>`).join("")}
       </div></div>`;
   }).join("");
 }
@@ -271,7 +292,8 @@ $("createBtn").onclick = async ()=>{
     .filter(b=>approvedIds.has(b.obligation_id));
   const cps = {}; const bindRows = [];
   for(const b of checkedBinds){
-    const cpId = "CP-" + b.path.split("/").pop().split(".")[0];
+    // Prefer the server-minted control point id; fall back to the legacy stem only if absent.
+    const cpId = b.control_point_id || ("CP-" + b.path.split("/").pop().split(".")[0]);
     cps[cpId] = cps[cpId] || {control_point_id:cpId, role:b.role, path:b.path, ...(b.symbol?{symbol:b.symbol}:{}), description:b.why};
     bindRows.push({obligation_id:b.obligation_id, control_point_id:cpId, relation:b.relation});
   }
@@ -290,11 +312,12 @@ $("createBtn").onclick = async ()=>{
     body:JSON.stringify({workflow_id:$("wfId").value, repo:SCAN.repo, sources, obligations,
       control_points:Object.values(cps), bindings:bindRows, sweep_commits:sweep,
       grouping_constraints:CONSTRAINTS})});
+  if(!r.ok){ alert("Creating the workspace failed: " + await r.text()); return; }
   const out = await r.json();
   WSID = out.workspace; SWEEP_PRS = out.sweep_prs;
   step(3);
   $("sweep").innerHTML = SCAN.commits.slice(0,5).map((c,i)=>`
-    <div class="sweep-row"><span class="sha">${c.sha.slice(0,8)}</span> ${esc(c.subject)}
+    <div class="sweep-row"><span class="sha" title="${esc(c.sha)}">${esc(c.sha.slice(0,8))}</span> ${esc(c.subject)}
       <span class="verdict" id="v${i+1}">—</span></div>`).join("");
   $("ledgerLink").href = `/intent/${WSID}`;
 };
@@ -306,14 +329,15 @@ $("runSweep").onclick = async ()=>{
     try{
       const r = await fetch("/analyses",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({workspace:WSID, pr_number:n})});
+      if(!r.ok){ $("v"+n).textContent = "error"; continue; }
       const a = await r.json();
-      $("v"+n).textContent = (a.classification||"error").replace(/_/g," ");
+      $("v"+n).textContent = VERDICT[a.classification] || (a.classification||"error").replace(/_/g," ");
     }catch(e){ $("v"+n).textContent = "error"; }
   }
   $("ledgerLink").classList.remove("hidden");
 };
 
-function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 </script>
 </body>
 </html>

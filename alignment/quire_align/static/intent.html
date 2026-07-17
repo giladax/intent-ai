@@ -153,19 +153,42 @@ footer{padding:10px 32px; color:var(--faint); font-size:10px; border-top:1px sol
   <div class="ledger" id="ledger"></div>
   <div class="stage" id="stage"></div>
 </div>
-<footer>every verdict pinned to head SHA + contract snapshot · state at T = fold of digestion events ≤ T · ⟡ marks an intent revision</footer>
-<div class="newpill" id="newpill">new digestion ↓</div>
+<footer>Every verdict is recorded against the exact commit and contract version it was judged under. Scrub the timeline to see intent state at any moment. ⟡ = the product intent itself changed.</footer>
+<div class="newpill" id="newpill">new check ↓</div>
 
 <script>
 const WS = "__WORKSPACE__";
 let DATA = null, SEL = -1, LIVE = true;
 
 const KIND = {hard_rule:"⚖ hard rule", permission:"✓ permission", invariant:"∞ invariant"};
-const WORD = {satisfies:"SATISFIED", partially_satisfies:"PARTIAL", contradicts:"CONTRADICTED", unobserved:"UNOBSERVED"};
+const KIND_TIP = {
+  hard_rule:"hard rule — something the product must never break",
+  permission:"permission — behavior the product explicitly allows",
+  invariant:"invariant — a property that must stay true as the code changes"};
+const WORD = {satisfies:"SATISFIED", partially_satisfies:"PARTIAL", contradicts:"CONTRADICTED", unobserved:"NO EVIDENCE YET"};
+// Display labels only — CSS classes and API enum values keep their original spellings.
+const VERDICT = {ALIGNED:"ALIGNED", PARTIAL:"PARTIAL", POSSIBLE_DRIFT:"POSSIBLE DRIFT",
+  OFF_INTENT:"CONTRADICTS INTENT", UNKNOWN:"NEEDS REVIEW", UNGOVERNED:"NOT COVERED",
+  NO_MATERIAL_IMPACT:"NO PRODUCT IMPACT"};
+const METHOD = {lexical:"matched by name", llm:"best guess", alias:"saved alias"};
+
+function vlabel(v){ return VERDICT[v] || (v||"").replace(/_/g," "); }
+function sha8(s){ return (s||"").slice(0,8); }
+function contractV(id){
+  const i = DATA && DATA.contract_versions ? DATA.contract_versions.indexOf(id) : -1;
+  return i >= 0 ? `Contract v${i+1}` : `Contract ⟡${sha8(id)}`;
+}
 
 async function load(){
-  const r = await fetch(`/api/intent/${WS}/timeline`);
-  const fresh = await r.json();
+  let fresh;
+  try{
+    const r = await fetch(`/api/intent/${WS}/timeline`);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    fresh = await r.json();
+  }catch(err){
+    if(!DATA) document.getElementById("meta").textContent = "couldn't reach the server — retrying…";
+    return;
+  }
   const grew = DATA && fresh.events.length > DATA.events.length;
   const first = !DATA;
   DATA = fresh;
@@ -181,10 +204,10 @@ function renderAll(){ renderMeta(); renderRail(); renderLedger(); renderStage();
 function renderMeta(){
   const d = DATA;
   document.getElementById("meta").innerHTML =
-    `<b>${d.workflow_id}</b> · ${d.repository} · ${d.obligations.length} obligations · ${d.events.length} digestions`;
-  const cur = SEL >= 0 ? d.events[SEL].contract_id : null;
-  document.getElementById("contracts").innerHTML = d.contract_versions.map(c =>
-    `<span class="contract-chip ${c===cur?"current":""}" title="contract snapshot">⟡ ${c.slice(0,8)}</span>`).join("");
+    `<b>${esc(d.workflow_id)}</b> · ${esc(d.repository)} · ${d.obligations.length} promises · ${d.events.length} checks`;
+  const cur = SEL >= 0 && d.events.length ? d.events[SEL].contract_id : null;
+  document.getElementById("contracts").innerHTML = d.contract_versions.map((c,i) =>
+    `<span class="contract-chip ${c===cur?"current":""}" title="${esc(c)}">⟡ Contract v${i+1}</span>`).join("");
 }
 
 function renderRail(){
@@ -194,12 +217,12 @@ function renderRail(){
     const t = document.createElement("div");
     t.className = "tick" + (i===SEL?" sel":"") + (e.contract_changed?" revised":"");
     t.style.background = tickColor(e.verdict);
-    t.title = `#${e.pr_number} ${e.verdict}`;
+    t.title = `#${e.pr_number} ${vlabel(e.verdict)}`;
     t.onclick = ()=>{ select(i); };
     rail.appendChild(t);
   });
   document.getElementById("pos").textContent =
-    SEL>=0 ? `event ${SEL+1} / ${DATA.events.length} — ${new Date(DATA.events[SEL].ts).toLocaleString()}` : "";
+    SEL>=0 && DATA.events.length ? `event ${SEL+1} / ${DATA.events.length} — ${new Date(DATA.events[SEL].ts).toLocaleString()}` : "";
   document.getElementById("liveBtn").className = "live" + (LIVE?" on":"");
 }
 
@@ -212,20 +235,26 @@ function tickColor(v){
 function renderLedger(){
   const box = document.getElementById("ledger");
   box.innerHTML = "";
+  if(!DATA.events.length){
+    box.innerHTML = `<div class="ev" style="cursor:default"><span class="empty" style="color:var(--faint);font-style:italic">
+      No checks yet — this ledger fills up as commits are checked against your contract.</span></div>`;
+    return;
+  }
   DATA.events.forEach((e,i)=>{
     if(e.contract_changed){
       const m = document.createElement("div");
       m.className = "revision-marker";
-      m.textContent = `⟡ intent revised — contract ${e.contract_id.slice(0,8)}`;
+      m.textContent = `⟡ intent revised — ${contractV(e.contract_id)}`;
+      m.title = e.contract_id;
       box.appendChild(m);
     }
     const div = document.createElement("div");
     div.className = "ev" + (i===SEL?" sel":"");
     div.innerHTML = `
-      <div class="when">${new Date(e.ts).toLocaleString()} · ${e.head_sha}</div>
+      <div class="when">${new Date(e.ts).toLocaleString()} · <span title="${esc(e.head_sha)}">${esc(sha8(e.head_sha))}</span></div>
       <div class="head"><span class="prn">#${e.pr_number}</span>
-        <span class="badge b-${e.verdict}">${e.verdict.replace(/_/g," ")}</span>
-        ${e.review_required?`<span class="badge" style="color:var(--paper);border:1px solid var(--line)">review: ${e.review_state}</span>`:""}
+        <span class="badge b-${e.verdict}">${vlabel(e.verdict)}</span>
+        ${e.review_required?`<span class="badge" style="color:var(--paper);border:1px solid var(--line)">review: ${esc(e.review_state)}</span>`:""}
       </div>
       <div class="title">${esc(e.title) || "(no title)"}</div>`;
     div.onclick = ()=>{ select(i); };
@@ -239,37 +268,43 @@ function renderStage(){
   if(SEL<0){ return; }
   const e = DATA.events[SEL];
   const changedIds = new Set(e.changes.map(c=>c.obligation_id));
+  const stmtById = Object.fromEntries(DATA.obligations.map(o=>[o.obligation_id, o.statement||""]));
+  const claims = e.missing_evidence;
   let html = `
-    <h2>State after digestion #${e.pr_number} — ${esc(e.title)||""}</h2>
-    <div class="sub">head <b>${e.head_sha}</b> · contract ⟡${e.contract_id.slice(0,8)} · ${e.missing_evidence} missing-evidence item(s)</div>
-    <div class="effect"><h3>Effect of this digestion on intent</h3>`;
+    <h2>State after check #${e.pr_number} — ${esc(e.title)||""}</h2>
+    <div class="sub">head <b title="${esc(e.head_sha)}">${esc(sha8(e.head_sha))}</b> · <span title="${esc(e.contract_id)}">${contractV(e.contract_id)}</span> · ${claims} claim${claims===1?"":"s"} not yet verified</div>
+    <div class="effect"><h3>Effect of this check on intent</h3>`;
   if(e.changes.length){
-    html += e.changes.map(c=>`
-      <div class="change"><span class="ob">${c.obligation_id}</span>
+    html += e.changes.map(c=>{
+      const stmt = stmtById[c.obligation_id] || "";
+      const short = stmt.length > 72 ? stmt.slice(0,72)+"…" : stmt;
+      return `
+      <div class="change"><span class="ob" title="${esc(stmt)}">${esc(short)||esc(c.obligation_id)} <span style="color:var(--faint);font-weight:400">(${esc(c.obligation_id)})</span></span>
         <span class="state-word s-${c.from}">${WORD[c.from]||c.from}</span>
         <span class="arrow">──▶</span>
         <span class="state-word s-${c.to}">${WORD[c.to]||c.to}</span>
-        <span class="why">${esc(c.reasoning)}</span></div>`).join("");
+        <span class="why">${esc(c.reasoning)}</span></div>`;
+    }).join("");
   } else {
-    html += `<div class="noeffect">no change to understood intent${e.verdict==="UNGOVERNED"?" — ungoverned surface, routed to inbox":""}</div>`;
+    html += `<div class="noeffect">no change to understood intent${e.verdict==="UNGOVERNED"?" — not covered by the product contract, routed to inbox":""}</div>`;
   }
   html += `</div><div class="grid">`;
   for(const ob of DATA.obligations){
     const st = e.state_after[ob.obligation_id] || {status:"unobserved"};
     html += `
       <div class="ob-card ${changedIds.has(ob.obligation_id)?"changed":""}">
-        <div class="top"><span class="id">${ob.obligation_id}</span>
-          <span class="kind">${KIND[ob.kind]||ob.kind}</span>
+        <div class="top"><span class="id">${esc(ob.obligation_id)}</span>
+          <span class="kind" title="${esc(KIND_TIP[ob.kind]||"")}">${KIND[ob.kind]||esc(ob.kind)}</span>
           <span class="status s-${st.status}"><span class="lamp l-${st.status}"></span>${WORD[st.status]||st.status}</span></div>
         <p>${esc(ob.statement)}</p>
-        <div class="cps">${ob.control_points.map(cp=>`<span>${cp.relation}</span> ${cp.path}`).join("<br>")}</div>
-        ${st.since?`<div class="since">since digestion #${st.since}${st.confidence?` · conf ${st.confidence.toFixed(2)}`:""}</div>`:""}
+        <div class="cps">${ob.control_points.map(cp=>`<span>${esc(cp.relation)}</span> ${esc(cp.path)}`).join("<br>")}</div>
+        ${st.since?`<div class="since">since check #${st.since}${st.confidence?` · confidence ${Math.round(st.confidence*100)}%`:""}</div>`:""}
       </div>`;
   }
   html += `</div><div class="inbox"><h3>Intent inbox — open findings at this moment</h3>`;
   if(e.open_findings.length){
     html += e.open_findings.map(f=>`
-      <div class="item"><b>#${f.pr_number}</b> ${f.verdict.replace(/_/g," ")} — ${esc(f.title)}<br>
+      <div class="item"><b>#${f.pr_number}</b> ${vlabel(f.verdict)} — ${esc(f.title)}<br>
       <span style="font-size:11px">${esc(f.summary)}</span></div>`).join("");
   } else {
     html += `<div class="empty">nothing awaiting a human decision</div>`;
@@ -283,7 +318,7 @@ function select(i){
   document.getElementById("newpill").style.display = "none";
   renderAll();
 }
-function esc(s){ return (s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 document.getElementById("prev").onclick = ()=> SEL>0 && select(SEL-1);
 document.getElementById("next").onclick = ()=> SEL<DATA.events.length-1 && select(SEL+1);
@@ -302,20 +337,31 @@ document.getElementById("askBox").addEventListener("keydown", async ev=>{
   if(!q){ box.style.display="none"; return; }
   box.style.display = "block";
   box.innerHTML = `<span style="color:var(--dim)">resolving “${esc(q)}”…</span>`;
-  const r = await fetch(`/api/ask/${WS}?q=${encodeURIComponent(q)}`);
-  const d = await r.json();
+  let d;
+  try{
+    const r = await fetch(`/api/ask/${WS}?q=${encodeURIComponent(q)}`);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    d = await r.json();
+  }catch(err){
+    box.innerHTML = `<span style="color:var(--bad)">Couldn't reach the server to answer that — try again in a moment.</span>`;
+    return;
+  }
   if(!d.card){
-    box.innerHTML = `<span style="color:var(--warn)">“${esc(q)}” didn't resolve.</span>
-      <span style="color:var(--faint)"> nearest: ${(d.resolution.alternatives||[]).join(", ")||"—"}</span>`;
+    const alts = (d.resolution.alternatives||[]).map(esc).join(", ");
+    box.innerHTML = `<span style="color:var(--warn)">We couldn't match “${esc(q)}” to a product area.</span>
+      <span style="color:var(--faint)"> ${alts ? `closest matches: ${alts}` : "no close matches — try the name of a feature or file"}</span>`;
     return;
   }
   const c = d.card;
+  const conf = d.resolution.confidence;
+  const how = `${METHOD[d.resolution.method]||esc(d.resolution.method)}${(conf||conf===0)?` (${Math.round(conf*100)}%)`:""}`;
   const lamp = s=>({satisfies:"l-satisfies",partially_satisfies:"l-partially_satisfies",contradicts:"l-contradicts"}[s]||"l-unobserved");
   box.innerHTML = `
     <div style="display:flex; gap:14px; align-items:baseline; margin-bottom:10px">
-      <span style="font-family:'Fraunces',serif; font-size:17px; color:var(--accent)">◉ ${c.group_id} “${esc(c.label)}”</span>
-      <span style="color:var(--faint); font-size:11px">via ${d.resolution.method} · confidence ${d.resolution.confidence}</span>
-      ${d.resolution.method!=="alias" ? `<button onclick="saveAlias('${esc(q)}','${c.anchor}')"
+      <span style="font-family:'Fraunces',serif; font-size:17px; color:var(--accent)">◉ “${esc(c.label)}”</span>
+      <span style="color:var(--faint); font-size:11px">${esc(c.group_id)}</span>
+      <span style="color:var(--faint); font-size:11px">${how}</span>
+      ${d.resolution.method!=="alias" ? `<button id="saveAliasBtn" data-term="${esc(q)}" data-anchor="${esc(c.anchor)}"
         style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);
         padding:2px 9px;cursor:pointer;border-radius:2px">✓ remember “${esc(q)}” = this area</button>`:""}
       <span style="margin-left:auto;color:var(--faint);font-size:10px;cursor:pointer" onclick="this.parentElement.parentElement.style.display='none'">✕ close</span>
@@ -323,17 +369,19 @@ document.getElementById("askBox").addEventListener("keydown", async ev=>{
     <div style="display:flex; gap:26px; flex-wrap:wrap">
       <div style="flex:2; min-width:340px">${c.obligations.map(o=>`
         <div style="padding:4px 0; font-size:12px"><span class="lamp ${lamp(o.health.status)}"></span>
-          <b>${o.obligation_id}</b>${o.weight<1?` <span style="color:var(--ungov);font-size:10px">${Math.round(o.weight*100)}%</span>`:""}
+          <b>${esc(o.obligation_id)}</b>${o.weight<1?` <span style="color:var(--ungov);font-size:10px">${Math.round(o.weight*100)}%</span>`:""}
           <span style="color:var(--dim)">${esc((o.statement||"").slice(0,90))}</span></div>`).join("")}</div>
       <div style="flex:1; min-width:240px; font-size:11px; color:var(--dim)">
-        <div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin-bottom:5px">CONTROL POINTS</div>
-        ${c.files.slice(0,8).map(f=>`<div>${f}</div>`).join("")}
+        <div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin-bottom:5px">WHERE IT LIVES IN CODE</div>
+        ${c.files.slice(0,8).map(f=>`<div>${esc(f)}</div>`).join("")}
         ${c.open_findings.length?`<div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin:10px 0 5px">OPEN FINDINGS</div>
-          ${c.open_findings.map(f=>`<div style="color:var(--warn)">⚑ #${f.pr_number} ${f.verdict.replace(/_/g," ")} — ${esc(f.title).slice(0,50)}</div>`).join("")}`:""}
-        ${c.recent_events.length?`<div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin:10px 0 5px">RECENT DIGESTIONS</div>
-          ${c.recent_events.slice(-4).map(e=>`<div>#${e.pr_number} ${e.verdict.replace(/_/g," ")} ${esc(e.title).slice(0,44)}</div>`).join("")}`:""}
+          ${c.open_findings.map(f=>`<div style="color:var(--warn)">⚑ #${f.pr_number} ${vlabel(f.verdict)} — ${esc(f.title).slice(0,50)}</div>`).join("")}`:""}
+        ${c.recent_events.length?`<div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin:10px 0 5px">RECENT CHECKS</div>
+          ${c.recent_events.slice(-4).map(e=>`<div>#${e.pr_number} ${vlabel(e.verdict)} ${esc(e.title).slice(0,44)}</div>`).join("")}`:""}
       </div>
     </div>`;
+  const btn = document.getElementById("saveAliasBtn");
+  if(btn) btn.addEventListener("click", ()=> saveAlias(btn.dataset.term, btn.dataset.anchor));
 });
 async function saveAlias(term, anchor){
   await fetch(`/api/ask/${WS}/alias`,{method:"POST",headers:{"Content-Type":"application/json"},
@@ -342,7 +390,7 @@ async function saveAlias(term, anchor){
 }
 
 load();
-setInterval(load, 4000);
+setInterval(()=>{ load().catch(()=>{}); }, 4000);
 </script>
 </body>
 </html>

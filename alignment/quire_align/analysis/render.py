@@ -1,17 +1,33 @@
-"""Concise GitHub-comment renderer for a PRAnalysis."""
+"""Concise GitHub-comment renderer for a PRAnalysis.
+
+Display vocabulary lives here (badges + DISPLAY_LABELS) so the CLI and the
+comment agree. Display strings only — Classification enum VALUES are
+persisted and compared in evals, and never change here.
+"""
 
 from __future__ import annotations
 
 from quire_align.models import Classification, ImpactRelation, PRAnalysis
 
 _BADGES = {
-    Classification.NO_MATERIAL_IMPACT: "⚪ No material impact",
+    Classification.NO_MATERIAL_IMPACT: "⚪ No product impact",
     Classification.ALIGNED: "🟢 Aligned",
     Classification.PARTIAL: "🟡 Partial",
     Classification.POSSIBLE_DRIFT: "🟠 Possible drift",
-    Classification.OFF_INTENT: "🔴 Off intent",
-    Classification.UNKNOWN: "⚫ Unknown",
-    Classification.UNGOVERNED: "🏳️ Ungoverned surface",
+    Classification.OFF_INTENT: "🔴 Contradicts intent",
+    Classification.UNKNOWN: "⚫ Needs review",
+    Classification.UNGOVERNED: "⚪ Not covered by the product contract",
+}
+
+# Human-facing labels for classification values (enum values stay stable).
+DISPLAY_LABELS = {
+    Classification.NO_MATERIAL_IMPACT: "NO PRODUCT IMPACT",
+    Classification.ALIGNED: "ALIGNED",
+    Classification.PARTIAL: "PARTIAL",
+    Classification.POSSIBLE_DRIFT: "POSSIBLE DRIFT",
+    Classification.OFF_INTENT: "CONTRADICTS INTENT",
+    Classification.UNKNOWN: "NEEDS REVIEW",
+    Classification.UNGOVERNED: "NOT COVERED",
 }
 
 # Verdicts that warrant a PR comment; the rest stay quiet (green check /
@@ -32,8 +48,23 @@ _RELATION_LABEL = {
     ImpactRelation.UNRELATED: "unrelated",
 }
 
+_MAX_STATEMENT_CHARS = 90
 
-def render_comment(analysis: PRAnalysis) -> str:
+
+def _promise_cell(obligation_id: str, statements_by_id: dict[str, str] | None) -> str:
+    """Statement-first promise cell; the id rides along in parens."""
+    statement = " ".join((statements_by_id or {}).get(obligation_id, "").split())
+    if not statement:
+        return obligation_id
+    if len(statement) > _MAX_STATEMENT_CHARS:
+        statement = statement[: _MAX_STATEMENT_CHARS - 1] + "…"
+    statement = statement.replace("|", "\\|")
+    return f"{statement} ({obligation_id})"
+
+
+def render_comment(
+    analysis: PRAnalysis, statements_by_id: dict[str, str] | None = None
+) -> str:
     lines: list[str] = [MARKER]
     lines.append(f"## {_BADGES[analysis.classification]} — product alignment")
     if analysis.classification == Classification.UNGOVERNED:
@@ -55,7 +86,7 @@ def render_comment(analysis: PRAnalysis) -> str:
         if i.relation != ImpactRelation.UNRELATED
     ]
     if related:
-        lines.append("| Obligation | Relation | Why |")
+        lines.append("| Promise | Effect | Why |")
         lines.append("|---|---|---|")
         for impact in related:
             evidence = "; ".join(
@@ -69,20 +100,21 @@ def render_comment(analysis: PRAnalysis) -> str:
             if evidence:
                 reason = f"{reason} ({evidence})"
             lines.append(
-                f"| {impact.obligation_id} | {_RELATION_LABEL[impact.relation]} | {reason} |"
+                f"| {_promise_cell(impact.obligation_id, statements_by_id)} "
+                f"| {_RELATION_LABEL[impact.relation]} | {reason} |"
             )
         lines.append("")
 
     if analysis.context and analysis.context.abstained:
-        lines.append(f"**Abstained:** {analysis.context.abstain_reason}")
+        lines.append(f"**No verdict — needs a human:** {analysis.context.abstain_reason}")
         lines.append("")
     if analysis.context and analysis.context.rejected:
         rejected = ", ".join(analysis.context.rejected)
-        lines.append(f"**Rejected sources:** {rejected}")
+        lines.append(f"**Out-of-date sources ignored:** {rejected}")
         lines.append("")
 
     if analysis.missing_evidence:
-        lines.append("**Missing evidence:**")
+        lines.append("**Claims not yet verified:**")
         for item in analysis.missing_evidence:
             lines.append(f"- {item}")
         lines.append("")
@@ -93,9 +125,10 @@ def render_comment(analysis: PRAnalysis) -> str:
         lines.append("")
 
     lines.append(
-        f"<sub>PR #{analysis.pr_number} @ `{analysis.head_sha[:12]}` · "
-        f"contract `{analysis.contract_snapshot_id}` · "
+        f"<sub>PR #{analysis.pr_number} @ commit `{analysis.head_sha[:12]}` · "
+        f"contract version `{analysis.contract_snapshot_id}` · "
         f"analyzer v{analysis.analyzer_version} · "
-        f"analysis `{analysis.analysis_id}`</sub>"
+        f"analysis `{analysis.analysis_id}` "
+        "(reply id — use it with the review command)</sub>"
     )
     return "\n".join(lines)

@@ -8,6 +8,7 @@ symbol or call-site gone), not semantic.
 from __future__ import annotations
 
 import fnmatch
+import re
 
 from quire_align.models import ControlPoint, ControlPointRole, PullRequest
 
@@ -37,10 +38,11 @@ def _symbol_present(content: str, symbol: str) -> bool:
     """Structural check that a bound symbol still exists in a file.
 
     Symbols are `Class.method` or bare function/class names; we check for
-    the `def`/`class` declaration of each component.
+    the `def`/`class` declaration of each component with word boundaries —
+    a plain substring check would let `def check_all` satisfy `check`.
     """
     for part in symbol.split("."):
-        if f"def {part}" not in content and f"class {part}" not in content:
+        if not re.search(rf"\b(?:def|class)\s+{re.escape(part)}\b", content):
             return False
     return True
 
@@ -60,6 +62,14 @@ def detect_removed_enforcement(
     """
     removed: list[str] = []
     changed = set(changed_files)
+    # Scan the diff once; per control point we only look through these.
+    diff_lines = diff.splitlines()
+    removed_lines = [
+        line for line in diff_lines if line.startswith("-") and not line.startswith("---")
+    ]
+    added_lines = [
+        line for line in diff_lines if line.startswith("+") and not line.startswith("+++")
+    ]
     for cp in control_points:
         if cp.role != ControlPointRole.ENFORCEMENT:
             continue
@@ -76,14 +86,8 @@ def detect_removed_enforcement(
                 continue
         if cp.symbol:
             call = cp.symbol.split(".")[-1] + "("
-            dropped = any(
-                line.startswith("-") and not line.startswith("---") and call in line
-                for line in diff.splitlines()
-            )
-            readded = any(
-                line.startswith("+") and not line.startswith("+++") and call in line
-                for line in diff.splitlines()
-            )
+            dropped = any(call in line for line in removed_lines)
+            readded = any(call in line for line in added_lines)
             if dropped and not readded:
                 removed.append(cp.control_point_id)
     return removed

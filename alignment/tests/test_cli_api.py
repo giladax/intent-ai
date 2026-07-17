@@ -22,7 +22,7 @@ def test_cli_analyze_offline_and_show_and_review(db_url):
     )
     assert result.exit_code == 0, result.output
     assert "🟡 Partial" in result.output
-    match = re.search(r"analysis_id=(\w+)", result.output)
+    match = re.search(r"Analysis id: (\w+)", result.output)
     analysis_id = match.group(1)
 
     result = runner.invoke(cli_app, ["show", analysis_id, "--db", db_url])
