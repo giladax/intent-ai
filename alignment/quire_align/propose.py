@@ -119,6 +119,7 @@ class ProposerLLM:
         obligations: list[CandidateObligation],
         tree: list[str],
         file_contents: dict[str, str],
+        doc_paths: list[str] | None = None,
     ) -> BindingCandidates:
         listing = "\n".join(tree)
         files = "\n\n".join(
@@ -127,6 +128,15 @@ class ProposerLLM:
         )
         promises = "\n".join(
             f"- {o.obligation_id} ({o.kind}): {o.statement}" for o in obligations
+        )
+        mentioned = (
+            "## Locations the source document itself references\n"
+            + "\n".join(f"- {p}" for p in doc_paths)
+            + "\nThe document's own citations are the strongest signal of "
+            "where its promises live — prefer these locations and their "
+            "neighbors.\n\n"
+            if doc_paths
+            else ""
         )
         return invoke_with_retry(
             self._bindings,
@@ -137,6 +147,7 @@ class ProposerLLM:
             "precision over coverage — omit an obligation rather than guess. "
             "Include test/eval files as `verifies` bindings when they cover "
             "the promise.\n\n"
+            f"{mentioned}"
             f"## Obligations\n{promises}\n\n"
             f"## Repository files\n{listing}\n\n"
             f"## Selected file contents\n{files}",
@@ -150,7 +161,7 @@ class FakeProposer:
     def extract_obligations(self, doc: str) -> ObligationCandidates:
         return self._o
 
-    def propose_bindings(self, obligations, tree, file_contents) -> BindingCandidates:
+    def propose_bindings(self, obligations, tree, file_contents, doc_paths=None) -> BindingCandidates:
         return self._b
 
 
@@ -202,6 +213,29 @@ def _normalize_quote(text: str) -> str:
     text = re.sub(r"[*_`#>\[\]()\"'“”‘’]", "", text)
     text = text.replace("—", "-").replace("–", "-")
     return " ".join(text.split())
+
+
+def extract_doc_paths(doc: str, tree: list[str]) -> list[str]:
+    """Repo paths the intent document itself cites, validated against the
+    tree — mechanical, like quote validation. A document that references
+    its own code defines its own scope."""
+    tree_set = set(tree)
+    candidates = re.findall(r"[\w.\-]+(?:/[\w.\-]+)+\.\w{1,6}", doc)
+    return sorted({c.strip("`'\"()") for c in candidates} & tree_set)
+
+
+def scope_from_doc_paths(doc_paths: list[str], tree: list[str]) -> list[str]:
+    """Scope the binding search space to the regions the document cites:
+    the top-level directories of its referenced paths (plus their test
+    dirs, which share the top level). Empty when the doc cites nothing —
+    full-tree behavior is the fallback, so uncited docs lose nothing."""
+    if not doc_paths:
+        return tree
+    prefixes = {p.split("/")[0] for p in doc_paths}
+    # tests conventionally live beside or above the cited code
+    prefixes |= {"tests", "test"} & {p.split("/")[0] for p in tree}
+    scoped = [p for p in tree if p.split("/")[0] in prefixes]
+    return scoped or tree
 
 
 def repo_tree(repo: pathlib.Path) -> list[str]:
@@ -386,12 +420,14 @@ def propose_contract(
     doc = doc_path.read_text()
     obligation_candidates = llm.extract_obligations(doc)
     tree = repo_tree(repo)
-    contents = select_context_files(repo, tree, obligation_candidates.candidates)
+    doc_paths = extract_doc_paths(doc, tree)
+    scoped_tree = scope_from_doc_paths(doc_paths, tree)
+    contents = select_context_files(repo, scoped_tree, obligation_candidates.candidates)
     binding_candidates = llm.propose_bindings(
-        obligation_candidates.candidates, tree, contents
+        obligation_candidates.candidates, scoped_tree, contents, doc_paths=doc_paths
     )
     obligations, bindings, notes = validate_candidates(
-        obligation_candidates, binding_candidates, doc, tree
+        obligation_candidates, binding_candidates, doc, scoped_tree
     )
     write_draft(out_dir, source_reference, obligations, bindings, notes)
     return obligations, bindings, notes

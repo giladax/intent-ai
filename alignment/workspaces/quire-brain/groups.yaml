@@ -1,0 +1,10 @@
+constraints:
+  labels:
+    QUIREB-003: Write Governance
+    QUIREB-002: Feature Serving
+    QUIREB-001: Source-of-Truth Boundaries
+    QUIREB-011: Understanding Governance
+    QUIREB-005: Session Evidence
+    QUIREB-010: Grounding & Traceability
+  must_link: []
+  cannot_link: []

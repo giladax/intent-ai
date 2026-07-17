@@ -1,0 +1,33 @@
+# Local commit ranges analyzed as PRs: number → {base, head, title}.
+# Add an entry and run `analyze <workspace> <number>` to check a commit.
+1:
+  base: ec441629549958cdab9c1911b74528c9e467c588^
+  head: ec441629549958cdab9c1911b74528c9e467c588
+  title: 'fix(alignment): duplicate LLM-emitted obligation ids crashed drafting'
+2:
+  base: b74f9d01c300f72580aba2baa145decc65ada6a2^
+  head: b74f9d01c300f72580aba2baa145decc65ada6a2
+  title: "chore(alignment): quality loop \u2014 bootstrap review log at 8fb61ca"
+3:
+  base: 8fb61cab9deb813c86ccf577bca53eb84100f4eb^
+  head: 8fb61cab9deb813c86ccf577bca53eb84100f4eb
+  title: 'refactor(alignment): quality + language pass from dual agent review'
+4:
+  base: cfb00d84cf452e4e1b662249de9d57d019f7573f^
+  head: cfb00d84cf452e4e1b662249de9d57d019f7573f
+  title: "feat(alignment): community card \u2014 org-dialect resolution + assembled\
+    \ area view"
+5:
+  base: 54ecbd921c58f789f5be2cb61ecb7c94655ccf4e^
+  head: 54ecbd921c58f789f5be2cb61ecb7c94655ccf4e
+  title: "feat(alignment): weighted overlapping grouping \u2014 link communities +\
+    \ constrained clustering"
+6:
+  base: e06a556^
+  head: e06a556
+7:
+  base: 3aa62fc^
+  head: 3aa62fc
+8:
+  base: 474c2e0^
+  head: 474c2e0

@@ -104,3 +104,18 @@ def test_repo_tree_and_context_selection():
     contents = select_context_files(FIXTURE_REPO, tree, _candidates().candidates)
     assert any("policy" in path for path in contents)
     assert len(contents) <= 10
+
+
+def test_doc_cited_paths_scope_the_binding_search():
+    from quire_align.propose import extract_doc_paths, scope_from_doc_paths
+
+    tree = ["src/mcp/server.ts", "src/pipeline/run.ts", "alignment/quire_align/cli.py",
+            "tests/mcp/server.test.ts", "docs/prd.md"]
+    doc = "The brain serves via `src/mcp/server.ts` (see src/pipeline/run.ts)."
+    cited = extract_doc_paths(doc, tree)
+    assert cited == ["src/mcp/server.ts", "src/pipeline/run.ts"]
+    scoped = scope_from_doc_paths(cited, tree)
+    assert "alignment/quire_align/cli.py" not in scoped  # off-topic region excluded
+    assert "tests/mcp/server.test.ts" in scoped  # tests ride along
+    # a doc citing nothing keeps the full tree — no behavior change
+    assert scope_from_doc_paths([], tree) == tree

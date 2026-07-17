@@ -169,9 +169,11 @@ def create_app(store: Store | None = None) -> FastAPI:
             CandidateBinding,
             CandidateObligation,
             ProposerLLM,
+            extract_doc_paths,
             group_candidates,
             mint_control_point_id,
             repo_tree,
+            scope_from_doc_paths,
             select_context_files,
             validate_candidates,
         )
@@ -184,12 +186,14 @@ def create_app(store: Store | None = None) -> FastAPI:
             reference = pathlib.Path(doc_rel).stem
             candidates = llm.extract_obligations(doc)
             tree = repo_tree(repo)
-            contents = select_context_files(repo, tree, candidates.candidates)
+            doc_paths = extract_doc_paths(doc, tree)
+            scoped_tree = scope_from_doc_paths(doc_paths, tree)
+            contents = select_context_files(repo, scoped_tree, candidates.candidates)
             binding_candidates = llm.propose_bindings(
-                candidates.candidates, tree, contents
+                candidates.candidates, scoped_tree, contents, doc_paths=doc_paths
             )
             obligations, bindings, doc_notes = validate_candidates(
-                candidates, binding_candidates, doc, tree
+                candidates, binding_candidates, doc, scoped_tree
             )
             for o in obligations:
                 all_obligations.append({**o.model_dump(), "source_reference": reference})
@@ -254,7 +258,7 @@ def create_app(store: Store | None = None) -> FastAPI:
         from quire_align.onboard import write_workspace
 
         repo = pathlib.Path(request.repo).expanduser().resolve()
-        out = write_workspace(
+        out, id_map = write_workspace(
             WORKSPACES,
             request.workflow_id,
             repo,
@@ -268,11 +272,25 @@ def create_app(store: Store | None = None) -> FastAPI:
             import yaml as _yaml
 
             # The human's grouping edits are training signal — persist them
-            # with the workspace so future re-proposals replay them.
+            # with the workspace. Approval re-mints obligation ids, so every
+            # id-keyed constraint must be remapped or it silently orphans.
+            raw = request.grouping_constraints
+            remapped = {
+                "labels": {
+                    id_map.get(anchor, anchor): label
+                    for anchor, label in (raw.get("labels") or {}).items()
+                },
+                "must_link": [
+                    [id_map.get(a, a), id_map.get(b, b)]
+                    for a, b in (raw.get("must_link") or [])
+                ],
+                "cannot_link": [
+                    [id_map.get(a, a), id_map.get(b, b)]
+                    for a, b in (raw.get("cannot_link") or [])
+                ],
+            }
             (out / "groups.yaml").write_text(
-                _yaml.safe_dump(
-                    {"constraints": request.grouping_constraints}, sort_keys=False
-                )
+                _yaml.safe_dump({"constraints": remapped}, sort_keys=False)
             )
         return {
             "workspace": request.workflow_id,

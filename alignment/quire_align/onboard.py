@@ -196,7 +196,7 @@ def write_workspace(
         "# Add an entry and run `analyze <workspace> <number>` to check a commit.\n"
         + yaml.safe_dump(prs, sort_keys=False)
     )
-    return out
+    return out, id_map
 
 
 def _relative(from_dir: pathlib.Path, to: pathlib.Path) -> str:

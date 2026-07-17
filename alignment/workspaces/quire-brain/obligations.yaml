@@ -1,0 +1,87 @@
+# Approved product promises (obligations). `revision` pins the exact
+# wording an analysis judged against — bump it whenever a statement
+# changes so history stays replayable.
+obligations:
+- obligation_id: QUIREB-001
+  kind: hard_rule
+  statement: Brain must never edit the source documents in external systems.
+  source_reference: prd
+  source_section: Organizational Lifecycle
+  revision: onboard-1
+- obligation_id: QUIREB-002
+  kind: hard_rule
+  statement: When resolving a Feature from a file or task and there are zero or more than
+    one match, Brain must return a candidate list rather than silently selecting a match.
+  source_reference: prd
+  source_section: "MVP \u2014 Week 1 / Supported flow"
+  revision: onboard-1
+- obligation_id: QUIREB-003
+  kind: hard_rule
+  statement: Every write operation must capture session id and actor as provenance.
+  source_reference: prd
+  source_section: MCP Surface
+  revision: onboard-1
+- obligation_id: QUIREB-004
+  kind: hard_rule
+  statement: Every MCP call must emit an activity_event recording the tool, feature, hit/miss,
+    and latency.
+  source_reference: prd
+  source_section: MCP Surface
+  revision: onboard-1
+- obligation_id: QUIREB-005
+  kind: hard_rule
+  statement: Every digested log must be copied to .intent/raw-sessions/ so that raw session
+    evidence is preserved beyond Claude Code's ~30-day purge.
+  source_reference: prd
+  source_section: Status block / v0.3.2 amendments
+  revision: onboard-1
+- obligation_id: QUIREB-006
+  kind: hard_rule
+  statement: Candidate lists and ids returned by the MCP surface must be structured content,
+    not prose that an agent must parse ids out of.
+  source_reference: prd
+  source_section: MCP Surface
+  revision: onboard-1
+- obligation_id: QUIREB-007
+  kind: hard_rule
+  statement: The served MCP surface must speak Feature only; legacy Topic tools over .repo/
+    markdown must be retired or re-keyed onto Feature so that an agent never sees two competing
+    vocabularies and two data stores in one tool list.
+  source_reference: prd
+  source_section: MCP Surface
+  revision: onboard-1
+- obligation_id: QUIREB-008
+  kind: hard_rule
+  statement: Observations must not be automatically promoted to Current Understanding; a human
+    must approve, reject, or edit each pending observation through a review UI.
+  source_reference: prd
+  source_section: "MVP \u2014 Week 1 / Supported flow"
+  revision: onboard-1
+- obligation_id: QUIREB-009
+  kind: permission
+  statement: "Agents may perform write operations (create/update Features, manage file\u2194\
+    Feature map, approve/reject/edit observations, comment) on the human's behalf, provided\
+    \ every such action carries explicit actor attribution."
+  source_reference: prd
+  source_section: MCP Surface
+  revision: onboard-1
+- obligation_id: QUIREB-010
+  kind: invariant
+  statement: Every piece of understanding must trace back to artifacts; no ungrounded claims
+    may exist in the system.
+  source_reference: prd
+  source_section: Product Principles
+  revision: onboard-1
+- obligation_id: QUIREB-011
+  kind: invariant
+  statement: Understanding must change only through reviewable deltas, never silently.
+  source_reference: prd
+  source_section: Product Principles
+  revision: onboard-1
+- obligation_id: QUIREB-012
+  kind: hard_rule
+  statement: Brain must not store source artifacts; external systems of record stay external
+    and Brain owns only the understanding, evidence, and relationships derived from them.
+  source_reference: prd
+  source_section: Product Principles
+  revision: onboard-1

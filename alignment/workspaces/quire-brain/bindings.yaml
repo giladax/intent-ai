@@ -1,0 +1,204 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
+control_points:
+- control_point_id: CP-repo-brain-md
+  role: decision
+  path: .repo/brain.md
+  description: Brain.md defines the product scope and explicitly states Brain owns only understanding/relationships
+    derived from external artifacts, not the artifacts themselves.
+- control_point_id: CP-docs-specs-2026-07-03-brain-api-review-md
+  role: decision
+  path: docs/specs/2026-07-03-brain-api-review.md
+  description: API review spec defines which operations Brain exposes and constrains it to
+    read-only access of external source documents.
+- control_point_id: CP-src-mcp-server-ts
+  role: enforcement
+  path: src/mcp/server.ts
+  description: MCP server is the surface through which Brain acts on external systems; absence
+    of write-to-source tools here enforces the no-edit constraint.
+- control_point_id: CP-src-mcp-feature-ts
+  role: enforcement
+  path: src/mcp/feature.ts
+  description: Feature resolution logic must return a candidate list when zero or multiple
+    matches are found rather than silently selecting one.
+- control_point_id: CP-src-mcp-context-ts
+  role: configuration
+  path: src/mcp/context.ts
+  description: MCP context carries session id and actor identity that must be threaded into
+    every write operation for provenance.
+- control_point_id: CP-src-mcp-instrument-ts
+  role: enforcement
+  path: src/mcp/instrument.ts
+  description: Instrumentation layer wraps MCP calls and is the natural place to enforce provenance
+    capture on writes.
+- control_point_id: CP-src-adapters-types-ts
+  role: configuration
+  path: src/adapters/types.ts
+  description: Defines the ActivityEvent and related types that carry actor and session_id
+    fields required for provenance.
+- control_point_id: CP-src-pipeline-emit-events-ts
+  role: executor
+  path: src/pipeline/emit-events.ts
+  description: emit-events pipeline step handles persisting activity events including those
+    triggered by MCP calls.
+- control_point_id: CP-docs-plans-2026-07-03-observability-design-md
+  role: decision
+  path: docs/plans/2026-07-03-observability-design.md
+  description: Observability design plan specifies the requirement to emit activity_events
+    for every MCP call with the required fields.
+- control_point_id: CP-src-cli-digest-ts
+  role: executor
+  path: src/cli/digest.ts
+  description: Digest CLI command is the entry point for processing session logs and must
+    copy raw logs to .intent/raw-sessions/ before or during digestion.
+- control_point_id: CP-src-agents-digest-run-ts
+  role: executor
+  path: src/agents/digest/run.ts
+  description: Digest agent run orchestrates the digestion pipeline and is responsible for
+    preserving raw session evidence to .intent/raw-sessions/.
+- control_point_id: CP-docs-handoffs-2026-07-04-digest-quality-audit-handoff-md
+  role: decision
+  path: docs/handoffs/2026-07-04-digest-quality-audit-handoff.md
+  description: Digest quality audit handoff documents the raw-session preservation requirement
+    and the .intent/raw-sessions/ path convention.
+- control_point_id: CP-src-mcp-attention-formatter-ts
+  role: enforcement
+  path: src/mcp/attention-formatter.ts
+  description: Attention formatter controls how MCP responses are serialized; must produce
+    structured content not prose for candidate lists.
+- control_point_id: CP-src-pipeline-observe-events-ts
+  role: enforcement
+  path: src/pipeline/observe-events.ts
+  description: Observe-events pipeline step creates pending Observations and must not automatically
+    promote them to Current Understanding.
+- control_point_id: CP-docs-future-knowledge-md
+  role: decision
+  path: docs/future-knowledge.md
+  description: Future knowledge doc specifies the human-approval requirement for Observation
+    promotion as a core product invariant.
+- control_point_id: CP-src-eval-fidelity-ts
+  role: test_or_eval
+  path: src/eval/fidelity.ts
+  description: Fidelity eval checks that synthesized understanding is grounded in source evidence,
+    verifying the no-ungrounded-claims invariant.
+- control_point_id: CP-src-agents-digest-output-schema-ts
+  role: enforcement
+  path: src/agents/digest/output-schema.ts
+  description: "Digest output schema defines what the digestion pipeline stores \u2014 moments,\
+    \ narratives, observations \u2014 not raw source artifacts."
+bindings:
+- obligation_id: QUIREB-001
+  control_point_id: CP-repo-brain-md
+  relation: decides
+- obligation_id: QUIREB-001
+  control_point_id: CP-docs-specs-2026-07-03-brain-api-review-md
+  relation: decides
+- obligation_id: QUIREB-001
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-002
+  control_point_id: CP-src-mcp-feature-ts
+  relation: enforces
+- obligation_id: QUIREB-002
+  control_point_id: CP-src-mcp-server-ts
+  relation: executes
+- obligation_id: QUIREB-002
+  control_point_id: CP-docs-specs-2026-07-03-brain-api-review-md
+  relation: decides
+- obligation_id: QUIREB-003
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-003
+  control_point_id: CP-src-mcp-context-ts
+  relation: configures
+- obligation_id: QUIREB-003
+  control_point_id: CP-src-mcp-instrument-ts
+  relation: enforces
+- obligation_id: QUIREB-003
+  control_point_id: CP-src-adapters-types-ts
+  relation: configures
+- obligation_id: QUIREB-004
+  control_point_id: CP-src-mcp-instrument-ts
+  relation: enforces
+- obligation_id: QUIREB-004
+  control_point_id: CP-src-mcp-server-ts
+  relation: executes
+- obligation_id: QUIREB-004
+  control_point_id: CP-src-pipeline-emit-events-ts
+  relation: executes
+- obligation_id: QUIREB-004
+  control_point_id: CP-src-adapters-types-ts
+  relation: configures
+- obligation_id: QUIREB-004
+  control_point_id: CP-docs-plans-2026-07-03-observability-design-md
+  relation: decides
+- obligation_id: QUIREB-005
+  control_point_id: CP-src-cli-digest-ts
+  relation: executes
+- obligation_id: QUIREB-005
+  control_point_id: CP-src-agents-digest-run-ts
+  relation: executes
+- obligation_id: QUIREB-005
+  control_point_id: CP-docs-handoffs-2026-07-04-digest-quality-audit-handoff-md
+  relation: decides
+- obligation_id: QUIREB-006
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-006
+  control_point_id: CP-src-mcp-feature-ts
+  relation: enforces
+- obligation_id: QUIREB-006
+  control_point_id: CP-src-mcp-attention-formatter-ts
+  relation: enforces
+- obligation_id: QUIREB-007
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-007
+  control_point_id: CP-src-mcp-feature-ts
+  relation: executes
+- obligation_id: QUIREB-007
+  control_point_id: CP-docs-specs-2026-07-03-brain-api-review-md
+  relation: decides
+- obligation_id: QUIREB-008
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-008
+  control_point_id: CP-src-pipeline-observe-events-ts
+  relation: enforces
+- obligation_id: QUIREB-008
+  control_point_id: CP-docs-future-knowledge-md
+  relation: decides
+- obligation_id: QUIREB-009
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-009
+  control_point_id: CP-src-mcp-context-ts
+  relation: configures
+- obligation_id: QUIREB-009
+  control_point_id: CP-src-mcp-instrument-ts
+  relation: enforces
+- obligation_id: QUIREB-010
+  control_point_id: CP-src-pipeline-observe-events-ts
+  relation: enforces
+- obligation_id: QUIREB-010
+  control_point_id: CP-src-pipeline-emit-events-ts
+  relation: enforces
+- obligation_id: QUIREB-010
+  control_point_id: CP-src-eval-fidelity-ts
+  relation: verifies
+- obligation_id: QUIREB-011
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-011
+  control_point_id: CP-src-pipeline-observe-events-ts
+  relation: enforces
+- obligation_id: QUIREB-012
+  control_point_id: CP-repo-brain-md
+  relation: decides
+- obligation_id: QUIREB-012
+  control_point_id: CP-src-mcp-server-ts
+  relation: enforces
+- obligation_id: QUIREB-012
+  control_point_id: CP-src-agents-digest-output-schema-ts
+  relation: enforces

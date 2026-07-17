@@ -43,7 +43,7 @@ def test_write_workspace_produces_loadable_git_workspace(tmp_path):
         ["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True
     ).stdout.strip()
 
-    out = write_workspace(
+    out, id_map = write_workspace(
         tmp_path / "workspaces",
         "acme-app",
         repo,
@@ -65,6 +65,7 @@ def test_write_workspace_produces_loadable_git_workspace(tmp_path):
         sweep_commits=[{"sha": head, "subject": "raise limit"}],
     )
 
+    assert id_map == {"OB-1": "ACMEAP-001"}  # constraints get remapped with this
     workspace = GitWorkspace(out)
     assert workspace.repository() == "acme-app"
     # draft ids are re-minted at approval time — human-facing, workflow-scoped
