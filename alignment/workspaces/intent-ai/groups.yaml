@@ -1,2 +1,8 @@
 aliases:
   governance approvals: OB-BRAIN-204
+pair_hints:
+  OB-BRAIN-201|OB-BRAIN-202: same
+llm_labels:
+  OB-BRAIN-201: Constraint-Driven Feature Entry
+  OB-BRAIN-204: Feature-Only Surface
+  OB-BRAIN-205: Agent Activity Events

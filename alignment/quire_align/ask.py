@@ -54,12 +54,14 @@ class TermPick(BaseModel):
 
 def load_group_state(workspace_dir: pathlib.Path, adapter) -> dict:
     """Derive current groups from the approved contract + saved constraints."""
-    constraints, aliases = GroupingConstraints(), {}
+    constraints, aliases, llm_labels, pair_hints = GroupingConstraints(), {}, {}, {}
     groups_file = workspace_dir / "groups.yaml"
     if groups_file.exists():
         data = yaml.safe_load(groups_file.read_text()) or {}
         constraints = GroupingConstraints.model_validate(data.get("constraints") or {})
         aliases = data.get("aliases") or {}
+        llm_labels = data.get("llm_labels") or {}
+        pair_hints = data.get("pair_hints") or {}
     obligations = [
         {
             "obligation_id": o.obligation_id,
@@ -78,7 +80,10 @@ def load_group_state(workspace_dir: pathlib.Path, adapter) -> dict:
         for b in adapter.bindings()
         if b.control_point_id in cp_by_id
     ]
-    grouped = group_contract(obligations, bindings, constraints=constraints)
+    grouped = group_contract(
+        obligations, bindings, constraints=constraints,
+        llm_labels=llm_labels, pair_hints=pair_hints,
+    )
     return {**grouped, "aliases": aliases, "constraints": constraints}
 
 

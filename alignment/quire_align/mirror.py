@@ -26,9 +26,10 @@ HEALTH_LABELS = {
     UNOBSERVED: "no evidence yet",
 }
 
-# Status-shaped questions are about the org's situation, not a vocabulary
-# term. Deterministic patterns — the same trust rule as everywhere: routing
-# never depends on model judgment.
+# OFFLINE FALLBACK ONLY. Semantic routing belongs to the closed-enum LLM
+# classifier (graph_heuristics.RouteDecision) per the repo's no-regex-for-
+# semantics rule; these patterns serve when no model is available and are
+# known to keyword-collide (e.g. an area literally named "Coverage").
 _STATUS_PATTERNS: list[tuple[str, str]] = [
     (r"\b(violat|contradict|broken|breach|red\b|failing)", "whats_broken"),
     (r"\b(uncover|not cover|no (intent|contract|promise)|ungoverned|unwatched)", "whats_uncovered"),
@@ -37,8 +38,13 @@ _STATUS_PATTERNS: list[tuple[str, str]] = [
 ]
 
 
-def classify_question(q: str) -> str | None:
-    """Returns a status-route name, or None → term resolution."""
+def classify_question(q: str, router=None) -> str | None:
+    """Route a question: closed-enum LLM classifier when available (it can
+    pick among fixed routes, never invent one), regex fallback offline.
+    Returns a status-route name, or None → term resolution."""
+    if router is not None:
+        route = router(q)
+        return None if route == "term_lookup" else route
     text = q.lower()
     for pattern, route in _STATUS_PATTERNS:
         if re.search(pattern, text):

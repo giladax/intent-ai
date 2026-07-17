@@ -350,5 +350,25 @@ def serve(
     uvicorn.run(create_app(), host=host, port=port)
 
 
+@app.command()
+def enrich(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+):
+    """Run the LLM heuristic pass: name unnamed areas in product language
+    and adjudicate borderline promise pairs. Human renames always win;
+    results persist with the workspace."""
+    from quire_align.graph_heuristics import GraphHeuristics, enrich_workspace
+
+    adapter = _adapter(workspace)
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    out = enrich_workspace(ws_dir, adapter, GraphHeuristics())
+    typer.secho(f"adjudicated pairs: {len(out['pair_hints'])}", fg=typer.colors.CYAN)
+    for anchor, name in out["named"].items():
+        typer.echo(f"  named: {anchor} → “{name}”")
+    typer.echo("areas now:")
+    for g in out["groups"]:
+        typer.echo(f"  ◉ {g['label']} ({len(g['obligation_ids'])} promises)")
+
+
 if __name__ == "__main__":
     app()

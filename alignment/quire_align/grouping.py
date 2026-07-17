@@ -259,6 +259,8 @@ def group_contract(
     obligations: list[dict],
     bindings: list[dict],
     constraints: GroupingConstraints | None = None,
+    llm_labels: dict[str, str] | None = None,
+    pair_hints: dict[str, str] | None = None,
 ) -> dict:
     """Main entry. obligations: [{obligation_id, statement, source_section?}];
     bindings: [{obligation_id, path, relation}]. Returns groups with
@@ -287,11 +289,17 @@ def group_contract(
     # Constraint-aware construction: never create an edge that contains a
     # cannot-linked pair (Wagstaff-style — constraints shape the graph).
     forbidden = {frozenset(pair) for pair in constraints.cannot_link}
+    pair_hints = pair_hints or {}
     for i, a in enumerate(ids):
         for b in ids[i + 1 :]:
             if frozenset((a, b)) in forbidden:
                 continue
+            hint = pair_hints.get(f"{min(a, b)}|{max(a, b)}")
+            if hint == "different":
+                continue  # LLM-adjudicated apart (softer than a human cannot-link)
             cos = cosine_similarity(ob_vocab[a], ob_vocab[b])
+            if hint == "same":
+                cos = max(cos, 0.6)  # adjudicated together: guarantee the edge
             if cos >= _TEXT_EDGE_MIN:
                 edges.append(
                     _Edge(Endpoint("obligation", a), Endpoint("obligation", b), cos, "similar")
@@ -393,7 +401,10 @@ def group_contract(
         groups.append(
             {
                 "group_id": f"G{gi + 1}",
-                "label": constraints.labels.get(anchor, auto_label or "ungrouped"),
+                # precedence: human rename > LLM name > TF-IDF fallback
+                "label": constraints.labels.get(
+                    anchor, (llm_labels or {}).get(anchor, auto_label or "ungrouped")
+                ),
                 "anchor": anchor,
                 "members": members,
                 "obligation_ids": [m["obligation_id"] for m in members],

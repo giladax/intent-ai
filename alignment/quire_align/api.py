@@ -341,7 +341,15 @@ def create_app(store: Store | None = None) -> FastAPI:
 
         # Status-shaped questions get situation answers, never a single
         # force-resolved area card (PM interrogation failure #1/#3).
-        route = classify_question(q)
+        router = None
+        if llm:
+            try:
+                from quire_align.graph_heuristics import GraphHeuristics
+
+                router = GraphHeuristics().route_question
+            except Exception:
+                router = None  # no key / offline: regex fallback inside
+        route = classify_question(q, router=router)
         if route is not None:
             mirror_data = build_mirror(adapter, app.state.store, state)
             return {

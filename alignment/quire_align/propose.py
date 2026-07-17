@@ -176,6 +176,8 @@ def group_candidates(
     obligations: list[CandidateObligation],
     bindings: list[CandidateBinding],
     constraints=None,
+    llm_labels=None,
+    pair_hints=None,
 ) -> dict:
     from quire_align.grouping import group_contract
 
@@ -193,6 +195,8 @@ def group_candidates(
             for b in bindings
         ],
         constraints=constraints,
+        llm_labels=llm_labels,
+        pair_hints=pair_hints,
     )
 
 
