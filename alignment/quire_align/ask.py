@@ -157,11 +157,21 @@ def resolve_term(
                 "alternatives": [g["group_id"] for score, g in scored[:2] if score > 0],
             }
 
+    # An honest refusal still helps: name the nearest areas by label so the
+    # asker can rephrase (PM interrogation: "a blank stare, not a 'try
+    # these areas instead'").
+    nearest = [g for score, g in scored[:3] if score > 0] or [g for _, g in scored[:2]]
     return {
         "group": None,
         "method": "unresolved",
         "confidence": 0.0,
-        "alternatives": [g["group_id"] for score, g in scored[:3] if score > 0],
+        "alternatives": [g["group_id"] for g in nearest],
+        "message": (
+            "No area matches that term. Nearest areas: "
+            + "; ".join(f"{g['label']} ({g['group_id']})" for g in nearest)
+            + ". Ask with one of those names, or teach the term by "
+            "confirming a resolution."
+        ),
     }
 
 
@@ -172,6 +182,18 @@ def haiku_pick(prompt: str) -> TermPick:
         model="claude-haiku-4-5", temperature=0, max_tokens=512
     ).with_structured_output(TermPick)
     return model.invoke(prompt)
+
+
+def _health_view(entry: dict) -> dict:
+    """Health with the shared display vocabulary and an unambiguous
+    since_check field (PM confusion: "since: 7 — since WHAT?")."""
+    from quire_align.mirror import HEALTH_LABELS
+
+    return {
+        **entry,
+        "display": HEALTH_LABELS.get(entry.get("status", ""), entry.get("status", "")),
+        "since_check": entry.get("since"),
+    }
 
 
 def community_card(adapter, store, group: dict, state: dict) -> dict:
@@ -225,7 +247,7 @@ def community_card(adapter, store, group: dict, state: dict) -> dict:
             {
                 **obligations_by_id.get(ob_id, {"obligation_id": ob_id}),
                 "weight": weights.get(ob_id, 1.0),
-                "health": current.get(ob_id, {"status": "unobserved"}),
+                "health": _health_view(current.get(ob_id, {"status": "unobserved"})),
             }
             for ob_id in group["obligation_ids"]
         ],

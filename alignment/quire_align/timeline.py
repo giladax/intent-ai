@@ -14,7 +14,20 @@ form the open intent-inbox at that moment.
 
 from __future__ import annotations
 
+from quire_align.analysis.render import DISPLAY_LABELS
 from quire_align.models import Classification, ImpactRelation, PRAnalysis
+
+
+def _clip_sentence(text: str, limit: int = 240) -> str:
+    """Truncate at a sentence boundary — mid-sentence cuts read as bugs."""
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    for mark in (". ", "; "):
+        idx = cut.rfind(mark)
+        if idx > limit // 2:
+            return cut[: idx + 1]
+    return cut.rsplit(" ", 1)[0] + "…"
 
 UNOBSERVED = "unobserved"
 
@@ -60,7 +73,7 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
                         "obligation_id": impact.obligation_id,
                         "from": entry["status"],
                         "to": impact.relation.value,
-                        "reasoning": impact.reasoning[:240],
+                        "reasoning": _clip_sentence(impact.reasoning),
                     }
                 )
             entry.update(
@@ -77,6 +90,7 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
                     "pr_number": analysis.pr_number,
                     "title": title,
                     "verdict": analysis.classification.value,
+                "verdict_display": DISPLAY_LABELS[analysis.classification],
                     "summary": (
                         analysis.behavioral_delta.summary[:200]
                         if analysis.behavioral_delta
@@ -94,6 +108,7 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
                 "title": title,
                 "head_sha": analysis.head_sha[:10],
                 "verdict": analysis.classification.value,
+                "verdict_display": DISPLAY_LABELS[analysis.classification],
                 "review_required": analysis.human_review_required,
                 "review_state": analysis.review_state.value,
                 "contract_id": analysis.contract_snapshot_id,

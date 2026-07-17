@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Situation — __WORKSPACE__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=IBM+Plex+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0e100f;--panel:#151816;--panel2:#1b1f1c;--line:#2a2f2b;--paper:#e8e3d8;
+--dim:#8a8f88;--faint:#565b55;--ok:#7dd87d;--warn:#e8b054;--bad:#e05252;--ungov:#6b8fa3;--accent:#d8c08a}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--ink)}
+body{font-family:'IBM Plex Mono',monospace;color:var(--paper);font-size:13px;min-height:100vh;
+background:radial-gradient(1100px 460px at 70% -10%, rgba(216,192,138,.05), transparent 60%),var(--ink)}
+.masthead{display:flex;align-items:baseline;gap:20px;padding:26px 34px 16px;border-bottom:1px solid var(--line)}
+.masthead h1{font-family:'Fraunces',serif;font-weight:900;font-size:28px}
+.masthead h1 em{color:var(--accent);font-style:normal}
+.meta{color:var(--dim);font-size:12px}
+.nav{margin-left:auto;display:flex;gap:14px;font-size:11px}
+.nav a{color:var(--dim);text-decoration:none;border-bottom:1px dashed var(--line)}
+.nav a:hover{color:var(--accent)}
+main{max-width:1080px;margin:0 auto;padding:26px 34px 70px}
+h2{font-family:'Fraunces',serif;font-weight:600;font-size:17px;margin:26px 0 10px}
+.hero{border:1px solid var(--line);background:var(--panel);padding:18px 20px;margin-top:4px}
+.hero.red{border-color:rgba(224,82,82,.5)}
+.hero .head{font-family:'Fraunces',serif;font-size:19px;margin-bottom:8px}
+.hero.red .head{color:var(--bad)}
+.hero.ok .head{color:var(--ok)}
+.flag{padding:8px 0;border-top:1px dashed rgba(42,47,43,.8);font-size:12px}
+.flag:first-of-type{border-top:none}
+.flag b{color:var(--paper)}
+.flag .where{color:var(--faint);font-size:11px}
+.h-CONTRADICTED{color:var(--bad);font-weight:600}
+.h-partial{color:var(--warn);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
+.area{border:1px solid var(--line);background:var(--panel);padding:13px 15px;cursor:pointer}
+.area:hover{border-color:var(--accent)}
+.area .label{font-family:'Fraunces',serif;font-size:15px;margin-bottom:6px}
+.area .counts{font-size:11px;color:var(--dim);line-height:1.7}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+.d-ok{background:var(--ok)} .d-warn{background:var(--warn)} .d-bad{background:var(--bad)} .d-none{background:#4c524d}
+.inbox{border:1px solid rgba(107,143,163,.4);background:rgba(107,143,163,.07);padding:14px 16px}
+.inbox .item{padding:6px 0;font-size:12px;color:var(--dim);border-top:1px dashed rgba(42,47,43,.8)}
+.inbox .item:first-of-type{border-top:none}
+.inbox .item b{color:var(--paper)}
+.coverage{color:var(--dim);font-size:12px;border-left:2px solid var(--accent);padding:8px 14px;margin-top:16px;line-height:1.6}
+.checks{font-size:11px;color:var(--dim);line-height:1.9}
+.empty{color:var(--faint);font-style:italic}
+footer{padding:12px 34px;color:var(--faint);font-size:10px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="masthead">
+  <h1>Situation<em>·</em>Mirror</h1>
+  <div class="meta" id="meta">loading…</div>
+  <div class="nav">
+    <a id="ledgerLink">timeline ledger →</a>
+    <a href="/onboard">onboard another repo →</a>
+  </div>
+</div>
+<main>
+  <div class="hero" id="hero"><div class="head">loading the situation…</div></div>
+
+  <h2>Product areas</h2>
+  <div class="grid" id="areas"></div>
+
+  <h2>Waiting on a human</h2>
+  <div class="inbox" id="inbox"></div>
+
+  <div class="coverage" id="coverage"></div>
+
+  <h2>Recent checks</h2>
+  <div class="checks" id="checks"></div>
+</main>
+<footer>every claim traces to a commit, a contract version, and your own documents · the mirror shows deltas, not dashboards</footer>
+<script>
+const WS = "__WORKSPACE__";
+function esc(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+async function load(){
+  let d;
+  try{
+    const r = await fetch(`/api/mirror/${WS}`);
+    if(!r.ok) throw new Error(await r.text());
+    d = await r.json();
+  }catch(e){
+    document.getElementById("hero").innerHTML =
+      `<div class="head">couldn't reach the server — retrying…</div>`;
+    return;
+  }
+  document.getElementById("meta").textContent =
+    `${d.workspace} · ${d.areas.reduce((n,a)=>n+a.promises,0)} promises · ${d.checks_total} checks`;
+  document.getElementById("ledgerLink").href = `/intent/${WS}`;
+
+  const hero = document.getElementById("hero");
+  if(d.all_clear){
+    hero.className = "hero ok";
+    hero.innerHTML = `<div class="head">All promises hold.</div>
+      <div style="color:var(--dim);font-size:12px">Nothing is contradicting or partially delivering approved intent right now.</div>`;
+  }else{
+    hero.className = "hero red";
+    hero.innerHTML = `<div class="head">${d.red_flags.length} promise(s) need attention</div>` +
+      d.red_flags.map(f=>`<div class="flag">
+        <span class="${f.health==="CONTRADICTED"?"h-CONTRADICTED":"h-partial"}">${esc(f.health)}</span>
+        — <b>${esc(f.statement.slice(0,110))}</b>
+        <div class="where">${esc(f.area)} · since check #${f.since_check} · ${f.obligation_id}</div></div>`).join("");
+  }
+
+  document.getElementById("areas").innerHTML = d.areas.map(a=>{
+    const r = a.rollup;
+    return `<div class="area" onclick="location.href='/intent/${WS}'">
+      <div class="label">◉ ${esc(a.label)}</div>
+      <div class="counts">
+        ${r["satisfied"]?`<span class="dot d-ok"></span>${r["satisfied"]} satisfied<br>`:""}
+        ${r["partially delivered"]?`<span class="dot d-warn"></span>${r["partially delivered"]} partially delivered<br>`:""}
+        ${r["CONTRADICTED"]?`<span class="dot d-bad"></span>${r["CONTRADICTED"]} contradicted<br>`:""}
+        ${r["no evidence yet"]?`<span class="dot d-none"></span>${r["no evidence yet"]} no evidence yet`:""}
+      </div></div>`;
+  }).join("");
+
+  const inbox = document.getElementById("inbox");
+  inbox.innerHTML = d.open_findings.length
+    ? d.open_findings.map(f=>`<div class="item"><b>check #${f.pr_number}</b> ${esc((f.verdict||"").replace(/_/g," "))} — ${esc(f.title)}</div>`).join("")
+    : `<div class="empty">nothing awaiting a decision</div>`;
+
+  document.getElementById("coverage").textContent = d.coverage_sentence;
+
+  document.getElementById("checks").innerHTML = d.recent_checks.slice().reverse().map(c=>
+    `#${c.pr_number} ${esc(c.verdict_display)} — ${esc(c.title.slice(0,64))}`).join("<br>");
+}
+load();
+setInterval(()=>load().catch(()=>{}), 5000);
+</script>
+</body>
+</html>

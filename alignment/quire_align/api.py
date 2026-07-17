@@ -306,6 +306,22 @@ def create_app(store: Store | None = None) -> FastAPI:
 
     # -- community card: their word → everything we know --------------------
 
+    @app.get("/api/mirror/{workspace}")
+    def mirror(workspace: str):
+        from quire_align.ask import load_group_state
+        from quire_align.mirror import build_mirror
+
+        adapter = _adapter(workspace)
+        state = load_group_state(_workspace_dir(workspace), adapter)
+        return build_mirror(adapter, app.state.store, state)
+
+    @app.get("/mirror/{workspace}")
+    def mirror_page(workspace: str):
+        from fastapi.responses import HTMLResponse
+
+        html = (STATIC / "mirror.html").read_text()
+        return HTMLResponse(html.replace("__WORKSPACE__", workspace))
+
     @app.get("/api/ask/{workspace}")
     def ask(workspace: str, q: str, llm: bool = True):
         from quire_align.ask import (
@@ -314,9 +330,26 @@ def create_app(store: Store | None = None) -> FastAPI:
             load_group_state,
             resolve_term,
         )
+        from quire_align.mirror import (
+            build_mirror,
+            classify_question,
+            route_status_question,
+        )
 
         adapter = _adapter(workspace)
         state = load_group_state(_workspace_dir(workspace), adapter)
+
+        # Status-shaped questions get situation answers, never a single
+        # force-resolved area card (PM interrogation failure #1/#3).
+        route = classify_question(q)
+        if route is not None:
+            mirror_data = build_mirror(adapter, app.state.store, state)
+            return {
+                "query": q,
+                "resolution": {"method": "status", "route": route, "confidence": 1.0},
+                "status_answer": route_status_question(route, mirror_data),
+                "card": None,
+            }
         obligations = [
             {"obligation_id": o.obligation_id, "statement": o.statement}
             for o in adapter.obligations()
