@@ -1,0 +1,15 @@
+# Pinned to the versions already installed in the environment.
+langchain==1.2.15
+langchain-anthropic==1.3.4
+langchain-core==1.2.16
+langgraph==1.1.6
+langsmith==0.7.9
+pydantic==2.12.5
+SQLAlchemy==2.0.47
+typer==0.24.1
+fastapi==0.134.0
+uvicorn==0.41.0
+PyYAML==6.0.3
+requests==2.31.0
+python-dotenv==1.2.1
+pytest==9.0.2

@@ -1,0 +1,11 @@
+number: 108
+title: "Raise premium auto-refund limit to $100 (policy + guard)"
+body: |
+  Implements REF-42: premium, low-risk customers can now receive automatic
+  refunds up to $100 (PRD v3). Moves both the decision policy and the guard
+  ceiling. Tests to follow in a separate PR.
+author: dev-alice
+base_sha: fixbase0001
+head_sha: pr108head01
+issue: REF-42
+deleted_files: []

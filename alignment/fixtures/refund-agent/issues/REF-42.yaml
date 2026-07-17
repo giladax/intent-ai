@@ -1,0 +1,9 @@
+key: REF-42
+title: Raise premium auto-refund limit to $100
+requirements:
+  - refund-policy-prd
+body: >-
+  Product approved raising the premium-tier automatic refund limit from $50
+  to $100 for low-risk customers (PRD v3, section "Premium refunds"). Update
+  the decision policy, the tool-side guard ceiling, configuration, and test
+  coverage together — the guard must move with the policy.

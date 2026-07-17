@@ -1,0 +1,76 @@
+# Known implementation control points and their typed bindings to obligations.
+control_points:
+  - control_point_id: CP-policy
+    role: decision
+    path: refund_agent/policy.py
+    symbol: RefundPolicy.evaluate
+    description: Decides whether a refund is auto-approved, denied, or escalated.
+
+  - control_point_id: CP-guard
+    role: enforcement
+    path: refund_agent/guard.py
+    symbol: RefundToolGuard.check
+    description: Tool-side ceiling that independently blocks over-limit or unapproved refunds.
+
+  - control_point_id: CP-executor
+    role: executor
+    path: refund_agent/executor.py
+    symbol: RefundExecutor.execute
+    description: Side-effect executor that issues the refund via the payment API.
+
+  - control_point_id: CP-config
+    role: configuration
+    path: refund_agent/config/policy.yaml
+    description: Runtime configuration for guard ceiling and tier limits.
+
+  - control_point_id: CP-prompt
+    role: configuration
+    path: refund_agent/prompts/refund_agent_prompt.md
+    description: Operating prompt for the refund agent.
+
+  - control_point_id: CP-audit
+    role: audit
+    path: refund_agent/audit.py
+    symbol: emit_refund_decision
+    description: Emits an audit event for every refund decision.
+
+  - control_point_id: CP-test-policy
+    role: test_or_eval
+    path: tests/refunds/test_policy.py
+    description: Unit tests for refund decision policy limits and escalation.
+
+  - control_point_id: CP-test-guard
+    role: test_or_eval
+    path: tests/refunds/test_guard.py
+    description: Unit tests for the tool-side guard ceiling.
+
+  - control_point_id: CP-eval
+    role: test_or_eval
+    path: evals/refund_agent/eval_cases.yaml
+    description: Behavioral eval scenarios for the refund agent.
+
+bindings:
+  - {obligation_id: OB-101, control_point_id: CP-policy, relation: decides}
+  - {obligation_id: OB-101, control_point_id: CP-guard, relation: enforces}
+  - {obligation_id: OB-101, control_point_id: CP-config, relation: configures}
+  - {obligation_id: OB-101, control_point_id: CP-test-policy, relation: verifies}
+  - {obligation_id: OB-101, control_point_id: CP-eval, relation: verifies}
+
+  - {obligation_id: OB-102, control_point_id: CP-policy, relation: decides}
+  - {obligation_id: OB-102, control_point_id: CP-guard, relation: enforces}
+  - {obligation_id: OB-102, control_point_id: CP-prompt, relation: configures}
+  - {obligation_id: OB-102, control_point_id: CP-eval, relation: verifies}
+
+  - {obligation_id: OB-103, control_point_id: CP-guard, relation: enforces}
+  - {obligation_id: OB-103, control_point_id: CP-executor, relation: executes}
+  - {obligation_id: OB-103, control_point_id: CP-config, relation: configures}
+  - {obligation_id: OB-103, control_point_id: CP-test-guard, relation: verifies}
+
+  - {obligation_id: OB-104, control_point_id: CP-audit, relation: observes}
+  - {obligation_id: OB-104, control_point_id: CP-executor, relation: executes}
+
+  - {obligation_id: OB-105, control_point_id: CP-policy, relation: decides}
+  - {obligation_id: OB-105, control_point_id: CP-config, relation: configures}
+  - {obligation_id: OB-105, control_point_id: CP-test-policy, relation: verifies}
+
+  - {obligation_id: OB-107, control_point_id: CP-prompt, relation: configures}

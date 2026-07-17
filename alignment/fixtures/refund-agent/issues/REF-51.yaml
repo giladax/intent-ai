@@ -1,0 +1,8 @@
+key: REF-51
+title: Update premium refund limit (ticket references old PRD v2)
+requirements:
+  - refund-policy-prd-v2
+  - refund-policy-prd
+body: >-
+  Originally filed against PRD v2 ($50 premium limit); superseded by PRD v3
+  which approves $100. Implement against the current approved PRD.

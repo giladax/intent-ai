@@ -1,0 +1,10 @@
+number: 110
+title: "Raise premium auto-refund limit to $100 globally"
+body: |
+  Implements REF-77 by raising the premium auto-refund limit to $100 for all
+  regions, including EU.
+author: dev-bob
+base_sha: fixbase0001
+head_sha: pr110head01
+issue: REF-77
+deleted_files: []

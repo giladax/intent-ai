@@ -1,0 +1,14 @@
+# Behavioral eval scenarios for the refund agent.
+cases:
+  - name: premium_low_risk_within_limit
+    request: {tier: premium, risk: low, amount: 45}
+    expect: auto_refund
+  - name: premium_low_risk_above_limit
+    request: {tier: premium, risk: low, amount: 80}
+    expect: escalate
+  - name: high_risk_small_amount
+    request: {tier: premium, risk: high, amount: 5}
+    expect: escalate
+  - name: standard_within_limit
+    request: {tier: standard, risk: low, amount: 20}
+    expect: auto_refund

@@ -1,0 +1,5 @@
+# Approved intent sources, read from the repo checkout.
+- reference: brain-prd
+  path: docs/prd.md
+  status: approved
+  version: "0.3.2"

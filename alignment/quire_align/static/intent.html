@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Intent Ledger — __WORKSPACE__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=IBM+Plex+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e100f; --panel:#151816; --panel2:#1b1f1c; --line:#2a2f2b;
+  --paper:#e8e3d8; --dim:#8a8f88; --faint:#565b55;
+  --ok:#7dd87d; --warn:#e8b054; --drift:#e07840; --bad:#e05252;
+  --unk:#9aa0a6; --ungov:#6b8fa3; --none:#4c524d; --accent:#d8c08a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--ink)}
+body{
+  font-family:'IBM Plex Mono',monospace; color:var(--paper); font-size:13px;
+  background:
+    radial-gradient(1200px 500px at 80% -10%, rgba(216,192,138,.05), transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.008) 2px 4px),
+    var(--ink);
+  min-height:100vh;
+}
+.masthead{
+  display:flex; align-items:baseline; gap:24px; padding:26px 32px 18px;
+  border-bottom:1px solid var(--line);
+}
+.masthead h1{
+  font-family:'Fraunces',serif; font-weight:900; font-size:30px; letter-spacing:-.5px;
+}
+.masthead h1 em{color:var(--accent); font-style:normal}
+.meta{color:var(--dim); font-size:12px}
+.meta b{color:var(--paper); font-weight:600}
+.contracts{margin-left:auto; display:flex; gap:6px; align-items:center}
+.contract-chip{
+  border:1px solid var(--line); padding:3px 8px; font-size:11px; color:var(--dim);
+  border-radius:2px; background:var(--panel);
+}
+.contract-chip.current{border-color:var(--accent); color:var(--accent)}
+
+/* scrubber */
+.scrubber{padding:16px 32px 6px; border-bottom:1px solid var(--line); background:var(--panel)}
+.rail{display:flex; align-items:flex-end; gap:3px; height:44px; cursor:pointer}
+.tick{flex:1; min-width:6px; max-width:26px; background:var(--none); opacity:.55;
+  height:14px; transition:height .15s ease, opacity .15s; border-radius:1px 1px 0 0}
+.tick:hover{opacity:1}
+.tick.sel{height:40px; opacity:1; box-shadow:0 0 10px rgba(232,227,216,.25)}
+.tick.revised{border-top:3px solid var(--accent)}
+.scrub-row{display:flex; gap:14px; align-items:center; padding:8px 0 6px; color:var(--dim); font-size:11px}
+.scrub-row button{
+  font:inherit; background:none; border:1px solid var(--line); color:var(--paper);
+  padding:3px 10px; cursor:pointer; border-radius:2px;
+}
+.scrub-row button:hover{border-color:var(--accent); color:var(--accent)}
+.scrub-row .live{margin-left:auto}
+.scrub-row .live.on{border-color:var(--ok); color:var(--ok); animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.55}}
+
+.layout{display:grid; grid-template-columns:390px 1fr; min-height:calc(100vh - 170px)}
+
+/* ledger */
+.ledger{border-right:1px solid var(--line); overflow-y:auto; max-height:calc(100vh - 170px)}
+.ev{padding:12px 18px; border-bottom:1px solid rgba(42,47,43,.6); cursor:pointer; position:relative}
+.ev:hover{background:var(--panel)}
+.ev.sel{background:var(--panel2)}
+.ev.sel::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent)}
+.ev .when{color:var(--faint); font-size:10px; letter-spacing:.5px}
+.ev .head{display:flex; gap:8px; align-items:center; margin:3px 0}
+.ev .prn{color:var(--dim)}
+.ev .title{font-size:12px; color:var(--paper); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.badge{font-size:10px; padding:2px 7px; border-radius:2px; letter-spacing:.6px; font-weight:600; white-space:nowrap}
+.b-ALIGNED{background:rgba(125,216,125,.13); color:var(--ok); border:1px solid rgba(125,216,125,.35)}
+.b-PARTIAL{background:rgba(232,176,84,.13); color:var(--warn); border:1px solid rgba(232,176,84,.35)}
+.b-POSSIBLE_DRIFT{background:rgba(224,120,64,.13); color:var(--drift); border:1px solid rgba(224,120,64,.4)}
+.b-OFF_INTENT{background:rgba(224,82,82,.15); color:var(--bad); border:1px solid rgba(224,82,82,.4)}
+.b-UNKNOWN{background:rgba(154,160,166,.12); color:var(--unk); border:1px solid rgba(154,160,166,.3)}
+.b-UNGOVERNED{background:rgba(107,143,163,.12); color:var(--ungov); border:1px solid rgba(107,143,163,.3)}
+.b-NO_MATERIAL_IMPACT{background:rgba(76,82,77,.2); color:var(--none); border:1px solid var(--none)}
+.revision-marker{
+  padding:8px 18px; font-size:10px; letter-spacing:1.4px; color:var(--accent);
+  background:repeating-linear-gradient(-45deg, rgba(216,192,138,.06) 0 8px, transparent 8px 16px);
+  border-bottom:1px solid var(--line); text-transform:uppercase;
+}
+
+/* stage */
+.stage{padding:22px 30px; overflow-y:auto; max-height:calc(100vh - 170px)}
+.stage h2{font-family:'Fraunces',serif; font-weight:600; font-size:17px; margin-bottom:4px}
+.stage .sub{color:var(--dim); font-size:11px; margin-bottom:16px}
+.effect{border:1px solid var(--line); background:var(--panel); padding:14px 16px; margin-bottom:20px}
+.effect h3{font-size:11px; letter-spacing:1.4px; color:var(--accent); text-transform:uppercase; margin-bottom:9px}
+.change{display:flex; gap:10px; align-items:baseline; padding:5px 0; border-top:1px dashed rgba(42,47,43,.8)}
+.change:first-of-type{border-top:none}
+.change .ob{color:var(--paper); font-weight:600; min-width:86px}
+.state-word{font-weight:600}
+.s-satisfies{color:var(--ok)} .s-partially_satisfies{color:var(--warn)}
+.s-contradicts{color:var(--bad)} .s-unobserved{color:var(--faint)}
+.arrow{color:var(--faint)}
+.noeffect{color:var(--faint); font-style:italic}
+.change .why{color:var(--dim); font-size:11px; flex:1}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; margin-bottom:22px}
+.ob-card{border:1px solid var(--line); background:var(--panel); padding:12px 14px; position:relative; transition:border-color .2s}
+.ob-card.changed{border-color:var(--accent); animation:flash .9s ease}
+@keyframes flash{0%{background:rgba(216,192,138,.15)}100%{background:var(--panel)}}
+.ob-card .top{display:flex; gap:8px; align-items:baseline; margin-bottom:6px}
+.ob-card .kind{font-size:10px; color:var(--faint); letter-spacing:.8px; text-transform:uppercase}
+.ob-card .id{font-weight:600}
+.ob-card .status{margin-left:auto; font-size:11px; font-weight:600}
+.ob-card p{color:var(--dim); font-size:11px; line-height:1.55; margin-bottom:8px}
+.ob-card .cps{font-size:10px; color:var(--faint); line-height:1.7}
+.ob-card .cps span{color:var(--dim)}
+.ob-card .since{font-size:10px; color:var(--faint); margin-top:6px}
+.lamp{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px}
+.l-satisfies{background:var(--ok); box-shadow:0 0 8px rgba(125,216,125,.6)}
+.l-partially_satisfies{background:var(--warn); box-shadow:0 0 8px rgba(232,176,84,.6)}
+.l-contradicts{background:var(--bad); box-shadow:0 0 8px rgba(224,82,82,.7)}
+.l-unobserved{background:var(--none)}
+
+.inbox{border:1px solid rgba(107,143,163,.4); background:rgba(107,143,163,.07); padding:13px 16px}
+.inbox h3{font-size:11px; letter-spacing:1.4px; color:var(--ungov); text-transform:uppercase; margin-bottom:8px}
+.inbox .item{padding:4px 0; color:var(--dim); font-size:12px}
+.inbox .item b{color:var(--paper)}
+.inbox .empty{color:var(--faint); font-style:italic; font-size:12px}
+footer{padding:10px 32px; color:var(--faint); font-size:10px; border-top:1px solid var(--line); letter-spacing:.6px}
+.newpill{position:fixed; bottom:22px; right:26px; background:var(--accent); color:var(--ink);
+  padding:8px 14px; font-weight:600; cursor:pointer; border-radius:2px; display:none; box-shadow:0 4px 18px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+<div class="masthead">
+  <h1>Intent<em>·</em>Ledger</h1>
+  <div class="meta" id="meta">loading…</div>
+  <div class="contracts" id="contracts"></div>
+</div>
+
+<div class="scrubber">
+  <div class="rail" id="rail"></div>
+  <div class="scrub-row">
+    <button id="prev">◀ prev</button>
+    <button id="next">next ▶</button>
+    <span id="pos"></span>
+    <button class="live" id="liveBtn">● LIVE</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="ledger" id="ledger"></div>
+  <div class="stage" id="stage"></div>
+</div>
+<footer>every verdict pinned to head SHA + contract snapshot · state at T = fold of digestion events ≤ T · ⟡ marks an intent revision</footer>
+<div class="newpill" id="newpill">new digestion ↓</div>
+
+<script>
+const WS = "__WORKSPACE__";
+let DATA = null, SEL = -1, LIVE = true;
+
+const KIND = {hard_rule:"⚖ hard rule", permission:"✓ permission", invariant:"∞ invariant"};
+const WORD = {satisfies:"SATISFIED", partially_satisfies:"PARTIAL", contradicts:"CONTRADICTED", unobserved:"UNOBSERVED"};
+
+async function load(){
+  const r = await fetch(`/api/intent/${WS}/timeline`);
+  const fresh = await r.json();
+  const grew = DATA && fresh.events.length > DATA.events.length;
+  const first = !DATA;
+  DATA = fresh;
+  if(first){ SEL = DATA.events.length - 1; renderAll(); }
+  else if(grew){
+    if(LIVE){ SEL = DATA.events.length - 1; renderAll(); }
+    else { document.getElementById("newpill").style.display = "block"; renderRail(); }
+  }
+}
+
+function renderAll(){ renderMeta(); renderRail(); renderLedger(); renderStage(); }
+
+function renderMeta(){
+  const d = DATA;
+  document.getElementById("meta").innerHTML =
+    `<b>${d.workflow_id}</b> · ${d.repository} · ${d.obligations.length} obligations · ${d.events.length} digestions`;
+  const cur = SEL >= 0 ? d.events[SEL].contract_id : null;
+  document.getElementById("contracts").innerHTML = d.contract_versions.map(c =>
+    `<span class="contract-chip ${c===cur?"current":""}" title="contract snapshot">⟡ ${c.slice(0,8)}</span>`).join("");
+}
+
+function renderRail(){
+  const rail = document.getElementById("rail");
+  rail.innerHTML = "";
+  DATA.events.forEach((e,i)=>{
+    const t = document.createElement("div");
+    t.className = "tick" + (i===SEL?" sel":"") + (e.contract_changed?" revised":"");
+    t.style.background = tickColor(e.verdict);
+    t.title = `#${e.pr_number} ${e.verdict}`;
+    t.onclick = ()=>{ select(i); };
+    rail.appendChild(t);
+  });
+  document.getElementById("pos").textContent =
+    SEL>=0 ? `event ${SEL+1} / ${DATA.events.length} — ${new Date(DATA.events[SEL].ts).toLocaleString()}` : "";
+  document.getElementById("liveBtn").className = "live" + (LIVE?" on":"");
+}
+
+function tickColor(v){
+  return {ALIGNED:"var(--ok)",PARTIAL:"var(--warn)",POSSIBLE_DRIFT:"var(--drift)",
+    OFF_INTENT:"var(--bad)",UNKNOWN:"var(--unk)",UNGOVERNED:"var(--ungov)",
+    NO_MATERIAL_IMPACT:"var(--none)"}[v] || "var(--none)";
+}
+
+function renderLedger(){
+  const box = document.getElementById("ledger");
+  box.innerHTML = "";
+  DATA.events.forEach((e,i)=>{
+    if(e.contract_changed){
+      const m = document.createElement("div");
+      m.className = "revision-marker";
+      m.textContent = `⟡ intent revised — contract ${e.contract_id.slice(0,8)}`;
+      box.appendChild(m);
+    }
+    const div = document.createElement("div");
+    div.className = "ev" + (i===SEL?" sel":"");
+    div.innerHTML = `
+      <div class="when">${new Date(e.ts).toLocaleString()} · ${e.head_sha}</div>
+      <div class="head"><span class="prn">#${e.pr_number}</span>
+        <span class="badge b-${e.verdict}">${e.verdict.replace(/_/g," ")}</span>
+        ${e.review_required?`<span class="badge" style="color:var(--paper);border:1px solid var(--line)">review: ${e.review_state}</span>`:""}
+      </div>
+      <div class="title">${esc(e.title) || "(no title)"}</div>`;
+    div.onclick = ()=>{ select(i); };
+    box.appendChild(div);
+  });
+  const sel = box.querySelector(".ev.sel");
+  if(sel) sel.scrollIntoView({block:"nearest"});
+}
+
+function renderStage(){
+  if(SEL<0){ return; }
+  const e = DATA.events[SEL];
+  const changedIds = new Set(e.changes.map(c=>c.obligation_id));
+  let html = `
+    <h2>State after digestion #${e.pr_number} — ${esc(e.title)||""}</h2>
+    <div class="sub">head <b>${e.head_sha}</b> · contract ⟡${e.contract_id.slice(0,8)} · ${e.missing_evidence} missing-evidence item(s)</div>
+    <div class="effect"><h3>Effect of this digestion on intent</h3>`;
+  if(e.changes.length){
+    html += e.changes.map(c=>`
+      <div class="change"><span class="ob">${c.obligation_id}</span>
+        <span class="state-word s-${c.from}">${WORD[c.from]||c.from}</span>
+        <span class="arrow">──▶</span>
+        <span class="state-word s-${c.to}">${WORD[c.to]||c.to}</span>
+        <span class="why">${esc(c.reasoning)}</span></div>`).join("");
+  } else {
+    html += `<div class="noeffect">no change to understood intent${e.verdict==="UNGOVERNED"?" — ungoverned surface, routed to inbox":""}</div>`;
+  }
+  html += `</div><div class="grid">`;
+  for(const ob of DATA.obligations){
+    const st = e.state_after[ob.obligation_id] || {status:"unobserved"};
+    html += `
+      <div class="ob-card ${changedIds.has(ob.obligation_id)?"changed":""}">
+        <div class="top"><span class="id">${ob.obligation_id}</span>
+          <span class="kind">${KIND[ob.kind]||ob.kind}</span>
+          <span class="status s-${st.status}"><span class="lamp l-${st.status}"></span>${WORD[st.status]||st.status}</span></div>
+        <p>${esc(ob.statement)}</p>
+        <div class="cps">${ob.control_points.map(cp=>`<span>${cp.relation}</span> ${cp.path}`).join("<br>")}</div>
+        ${st.since?`<div class="since">since digestion #${st.since}${st.confidence?` · conf ${st.confidence.toFixed(2)}`:""}</div>`:""}
+      </div>`;
+  }
+  html += `</div><div class="inbox"><h3>Intent inbox — open findings at this moment</h3>`;
+  if(e.open_findings.length){
+    html += e.open_findings.map(f=>`
+      <div class="item"><b>#${f.pr_number}</b> ${f.verdict.replace(/_/g," ")} — ${esc(f.title)}<br>
+      <span style="font-size:11px">${esc(f.summary)}</span></div>`).join("");
+  } else {
+    html += `<div class="empty">nothing awaiting a human decision</div>`;
+  }
+  html += `</div>`;
+  document.getElementById("stage").innerHTML = html;
+}
+
+function select(i){
+  SEL = i; LIVE = (i === DATA.events.length-1);
+  document.getElementById("newpill").style.display = "none";
+  renderAll();
+}
+function esc(s){ return (s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+document.getElementById("prev").onclick = ()=> SEL>0 && select(SEL-1);
+document.getElementById("next").onclick = ()=> SEL<DATA.events.length-1 && select(SEL+1);
+document.getElementById("liveBtn").onclick = ()=> select(DATA.events.length-1);
+document.getElementById("newpill").onclick = ()=> select(DATA.events.length-1);
+document.addEventListener("keydown", ev=>{
+  if(ev.key==="ArrowLeft") SEL>0 && select(SEL-1);
+  if(ev.key==="ArrowRight") SEL<DATA.events.length-1 && select(SEL+1);
+});
+
+load();
+setInterval(load, 4000);
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+number: 105
+title: "Refactor: extract tier-limit helper in refund policy"
+body: |
+  Internal cleanup only — extracts a `_tier_limit` helper and improves
+  docstrings. No behavior change.
+author: dev-alice
+base_sha: fixbase0001
+head_sha: pr105head01
+issue: ""
+deleted_files: []

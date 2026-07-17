@@ -1,0 +1,11 @@
+number: 106
+title: "Remove redundant tool-side guard check"
+body: |
+  The decision policy already validates limits and approval state, so the
+  extra RefundToolGuard check in the executor is redundant work. Removing it
+  simplifies the execution path.
+author: dev-bob
+base_sha: fixbase0001
+head_sha: pr106head01
+issue: ""
+deleted_files: []

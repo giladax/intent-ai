@@ -1,0 +1,12 @@
+number: 109
+title: "Raise premium auto-refund limit to $100 per current PRD"
+body: |
+  Implements REF-51: premium low-risk auto-refunds up to $100 across policy,
+  guard ceiling, tests, and evals, per the current approved refund policy
+  PRD (v3). Note: the old ticket text still quotes the superseded $50 limit
+  from PRD v2 — v3 is authoritative.
+author: dev-dana
+base_sha: fixbase0001
+head_sha: pr109head01
+issue: REF-51
+deleted_files: []

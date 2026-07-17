@@ -1,0 +1,10 @@
+number: 111
+title: "Send refund status emails to customers"
+body: |
+  Customers now receive a status email when a refund is approved, escalated,
+  or denied. New notifications module; no changes to refund decision logic.
+author: dev-dana
+base_sha: fixbase0001
+head_sha: pr111head01
+issue: ""
+deleted_files: []

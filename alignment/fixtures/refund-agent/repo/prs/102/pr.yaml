@@ -1,0 +1,12 @@
+number: 102
+title: "Raise premium auto-refund limit to $100 (policy + guard + tests)"
+body: |
+  Implements REF-42 end to end: premium, low-risk customers can now receive
+  automatic refunds up to $100 (PRD v3, "Premium refunds"). Moves the
+  decision policy, the tool-side guard ceiling, configuration, unit tests,
+  and eval scenarios together so policy and enforcement stay consistent.
+author: dev-alice
+base_sha: fixbase0001
+head_sha: pr102head01
+issue: REF-42
+deleted_files: []

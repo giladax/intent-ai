@@ -1,0 +1,61 @@
+# Approved behavioral obligations for the Brain MCP serving loop,
+# extracted from docs/prd.md (Brain PRD v0.3.x — "Supported flow" and the
+# measurement provenance rules).
+obligations:
+  - obligation_id: OB-BRAIN-201
+    kind: hard_rule
+    statement: >-
+      Feature orientation served to an agent (brain_enter / feature context)
+      must always include the feature's constraints — constraints are part
+      of what Brain returns on entry, never elided or summarized away.
+    source_reference: brain-prd
+    source_section: "Supported flow, step 3"
+    revision: "0.3.2"
+
+  - obligation_id: OB-BRAIN-202
+    kind: hard_rule
+    statement: >-
+      When feature resolution finds zero or more than one matching Feature,
+      Brain returns the candidate list for the agent to pick — it never
+      silently guesses a feature.
+    source_reference: brain-prd
+    source_section: "Supported flow, step 2"
+    revision: "0.3.2"
+
+  - obligation_id: OB-BRAIN-203
+    kind: invariant
+    statement: >-
+      Every constraint, understanding line, and file pointer served in
+      treatment context must be derived from a digested session or an
+      approved Observation — never hand-authored into a Feature.
+    source_reference: brain-prd
+    source_section: "Derived is the load-bearing word"
+    revision: "0.3.2"
+
+  - obligation_id: OB-BRAIN-204
+    kind: hard_rule
+    statement: >-
+      Observations are never promoted to Feature understanding
+      automatically; promotion requires explicit human approve/reject.
+    source_reference: brain-prd
+    source_section: "Supported flow, step 6"
+    revision: "0.3.2"
+
+  - obligation_id: OB-BRAIN-206
+    kind: hard_rule
+    statement: >-
+      The served MCP surface speaks Feature only: legacy Topic-keyed tools
+      (brain_overview/search/get/traverse over .repo/ markdown) stay retired
+      — an agent must never see two competing vocabularies in one tool list.
+    source_reference: brain-prd
+    source_section: "One ontology"
+    revision: "0.3.2"
+
+  - obligation_id: OB-BRAIN-205
+    kind: invariant
+    statement: >-
+      Agent reports (Observation, Unknown, Tech debt, context-quality
+      rating) are stored as activity_events.
+    source_reference: brain-prd
+    source_section: "Supported flow, step 5"
+    revision: "0.3.2"
