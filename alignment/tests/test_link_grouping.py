@@ -124,3 +124,17 @@ def test_unbound_obligations_are_not_lost():
     out = group_contract(REFUNDS + [_ob(9, "totally standalone promise wording")], BINDINGS)
     all_members = {i for g in out["groups"] for i in g["obligation_ids"]}
     assert "OB-9" in all_members
+
+
+def test_duplicate_obligation_ids_do_not_crash_grouping():
+    # Regression: an LLM-emitted duplicate id used to create a self-loop
+    # text edge and crash _edge_similarity with StopIteration mid-draft.
+    obligations = [
+        _ob(1, "premium refund ceiling policy limit"),
+        _ob(1, "premium refund ceiling policy limit"),  # duplicate id
+        _ob(2, "audit events record decision rationale"),
+    ]
+    bindings = [_b("OB-1", "a/policy.py"), _b("OB-2", "b/audit.py")]
+    out = group_contract(obligations, bindings)
+    members = [i for g in out["groups"] for i in g["obligation_ids"]]
+    assert members.count("OB-1") == 1  # deduped, not doubled

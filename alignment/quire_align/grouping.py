@@ -171,10 +171,12 @@ def _edge_similarity(e1: _Edge, e2: _Edge, ctx: _SimilarityContext) -> float:
     if not shared:
         return 0.0
     k = next(iter(shared))
-    x = next(n for n in e1.endpoints() if n != k)
-    y = next(n for n in e2.endpoints() if n != k)
-    if x == y:
-        return 1.0  # parallel edges (binding + text edge on same pair)
+    x = next((n for n in e1.endpoints() if n != k), None)
+    y = next((n for n in e2.endpoints() if n != k), None)
+    if x is None or y is None or x == y:
+        # Parallel edges, or a degenerate self-loop (guarded against
+        # upstream, but similarity must stay total): maximal overlap.
+        return 1.0
     jac = jaccard_similarity(ctx.neighbors[x], ctx.neighbors[y])
     base = (1 - _TEXT_BLEND) * jac + _TEXT_BLEND * _node_prior(x, y, ctx)
     # Weighted link communities: weak relations (verifies) attract weakly —
@@ -262,7 +264,9 @@ def group_contract(
     bindings: [{obligation_id, path, relation}]. Returns groups with
     weighted overlapping membership, bridges, and unassigned obligations."""
     constraints = constraints or GroupingConstraints()
-    ids = [o["obligation_id"] for o in obligations]
+    # Defensive dedupe: duplicate ids upstream would create self-loop text
+    # edges and double-counted mass.
+    ids = list(dict.fromkeys(o["obligation_id"] for o in obligations))
     known = set(ids)
     edges = [
         _Edge(

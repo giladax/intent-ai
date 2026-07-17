@@ -272,8 +272,17 @@ def validate_candidates(
     notes: list[str] = []
     doc_normalized = _normalize_quote(doc)
     kept_obligations = []
+    seen_ids: set[str] = set()
     for candidate in obligations.candidates:
+        # Model-emitted ids are untrusted: a reused id corrupts grouping
+        # (self-loop edges) and bindings — same mechanical gate as quotes.
+        if candidate.obligation_id in seen_ids:
+            notes.append(
+                f"{candidate.obligation_id}: duplicate id emitted by the model — dropped"
+            )
+            continue
         if _normalize_quote(candidate.source_quote) in doc_normalized:
+            seen_ids.add(candidate.obligation_id)
             kept_obligations.append(candidate)
         else:
             notes.append(
