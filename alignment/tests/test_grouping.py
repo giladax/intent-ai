@@ -35,9 +35,13 @@ def test_groups_form_over_shared_files_and_vocabulary():
     out = group_candidates(obligations, bindings)
     groups = {g["group_id"]: set(g["obligation_ids"]) for g in out["groups"]}
 
-    # OB-1/OB-2 join via refund vocabulary; OB-3 joins them via guard.py
-    big = next(m for m in groups.values() if "OB-1" in m)
-    assert {"OB-1", "OB-2", "OB-3"} <= big
+    # OB-2 lives in two worlds: with OB-1 via refund vocabulary AND with
+    # OB-3 via the shared guard.py — soft membership, not transitive glue
+    # (v0's union semantics are superseded by weighted link communities).
+    homes_ob2 = [gid for gid, m in groups.items() if "OB-2" in m]
+    assert len(homes_ob2) == 2
+    assert any("OB-1" in groups[g] for g in homes_ob2)
+    assert any("OB-3" in groups[g] for g in homes_ob2)
     # OB-4 stands alone — different vocabulary, disjoint files
     assert any(m == {"OB-4"} for m in groups.values())
     # labels carry the shared vocabulary

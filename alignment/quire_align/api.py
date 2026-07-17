@@ -166,6 +166,21 @@ def create_app(store: Store | None = None) -> FastAPI:
             **grouped,
         }
 
+    @app.post("/api/onboard/regroup")
+    def onboard_regroup(request: dict):
+        """Re-run grouping with the human's accumulated constraints
+        (rename/merge/split edits). Stateless: constraints live client-side
+        until create persists them with the workspace."""
+        from quire_align.grouping import GroupingConstraints, group_contract
+
+        return group_contract(
+            request["obligations"],
+            request["bindings"],
+            constraints=GroupingConstraints.model_validate(
+                request.get("constraints") or {}
+            ),
+        )
+
     @app.post("/api/onboard/create")
     def onboard_create(request: dict):
         from quire_align.onboard import write_workspace
@@ -181,6 +196,16 @@ def create_app(store: Store | None = None) -> FastAPI:
             request["bindings"],
             request.get("sweep_commits", []),
         )
+        if request.get("grouping_constraints"):
+            import yaml as _yaml
+
+            # The human's grouping edits are training signal — persist them
+            # with the workspace so future re-proposals replay them.
+            (out / "groups.yaml").write_text(
+                _yaml.safe_dump(
+                    {"constraints": request["grouping_constraints"]}, sort_keys=False
+                )
+            )
         return {
             "workspace": request["workflow_id"],
             "path": str(out),

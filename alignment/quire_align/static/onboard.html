@@ -166,26 +166,85 @@ $("draftBtn").onclick = async ()=>{
   $("createRow").classList.remove("hidden");
 };
 
+const CONSTRAINTS = {must_link:[], cannot_link:[], labels:{}};
+
+function primaryGroup(obId, groups){
+  let best=null, bw=-1;
+  for(const g of groups) for(const m of (g.members||[]))
+    if(m.obligation_id===obId && m.weight>bw){ best=g.group_id; bw=m.weight; }
+  return best;
+}
+
 function renderCards(){
   const byId = Object.fromEntries(DRAFT.obligations.map((o,i)=>[o.obligation_id,i]));
   const groups = (DRAFT.groups && DRAFT.groups.length) ? DRAFT.groups
-    : [{group_id:"G1", label:"all", obligation_ids:DRAFT.obligations.map(o=>o.obligation_id), files:[]}];
+    : [{group_id:"G1", label:"all", anchor:DRAFT.obligations[0]?.obligation_id,
+       members:DRAFT.obligations.map(o=>({obligation_id:o.obligation_id, weight:1})),
+       obligation_ids:DRAFT.obligations.map(o=>o.obligation_id), files:[]}];
   $("cards").innerHTML = groups.map(g=>{
     const bridgeNote = (DRAFT.bridges||[]).filter(b=>b.groups.includes(g.group_id));
+    const rows = (g.members||[]).map(m=>{
+      const home = primaryGroup(m.obligation_id, groups);
+      if(home !== g.group_id)
+        return `<div class="bind" style="padding:6px 14px; border:1px dashed var(--line); margin-bottom:8px">
+          ↳ ${m.obligation_id} <span style="color:var(--faint)">also lives here · weight ${m.weight} (primary in ${home})</span></div>`;
+      const extra = (m.weight < 1)
+        ? `<span style="color:var(--ungov); font-size:10px"> · ${Math.round(m.weight*100)}% here, also in ${groups.filter(x=>x.group_id!==g.group_id && (x.members||[]).some(y=>y.obligation_id===m.obligation_id)).map(x=>x.group_id).join(", ")}</span>`
+        : "";
+      return cardHtml(byId[m.obligation_id], extra, m.obligation_id);
+    }).join("");
     return `<div style="margin:24px 0 10px; display:flex; gap:12px; align-items:baseline">
+      <input type="checkbox" class="gsel" data-anchor="${g.anchor}" title="select for merge" style="accent-color:var(--accent)">
       <span style="font-family:'Fraunces',serif; font-size:16px; color:var(--accent)">◉ ${g.group_id}</span>
-      <span style="letter-spacing:1px; text-transform:uppercase; font-size:11px">${esc(g.label)}</span>
-      <span style="color:var(--faint); font-size:10px">${g.obligation_ids.length} promises · ${g.files.length} control points${bridgeNote.length?` · ${bridgeNote.length} shared with other groups`:""}</span>
-    </div>` + g.obligation_ids.map(id=>cardHtml(byId[id])).join("");
+      <input type="text" value="${esc(g.label)}" data-anchor="${g.anchor}" class="glabel"
+        style="width:280px; background:none; border:none; border-bottom:1px dashed var(--line); color:var(--paper); font:inherit; letter-spacing:1px; text-transform:uppercase; font-size:11px">
+      <span style="color:var(--faint); font-size:10px">${(g.members||[]).length} promises · ${g.files.length} control points${bridgeNote.length?` · ${bridgeNote.length} bridged files`:""}</span>
+    </div>` + rows;
   }).join("");
+  $("cards").insertAdjacentHTML("beforeend", `
+    <div class="row" style="margin-top:18px">
+      <button class="ghost" onclick="mergeSelected()">Merge selected groups</button>
+      <button class="ghost" onclick="extractSelected()">Extract checked promises to new group</button>
+      <span style="color:var(--faint); font-size:10px">edits retrain the grouping — they persist with your workspace</span>
+    </div>`);
+  document.querySelectorAll(".glabel").forEach(inp=>{
+    inp.onchange = ()=>{ CONSTRAINTS.labels[inp.dataset.anchor] = inp.value; regroup(); };
+  });
   if(DRAFT.notes && DRAFT.notes.length) $("cards").insertAdjacentHTML("beforeend",
     `<div class="note">${DRAFT.notes.length} candidate(s) were dropped mechanically (provenance quote or path didn't resolve).</div>`);
 }
-function cardHtml(i){
+
+async function regroup(){
+  const r = await fetch("/api/onboard/regroup",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({obligations:DRAFT.obligations, bindings:DRAFT.bindings, constraints:CONSTRAINTS})});
+  const out = await r.json();
+  DRAFT.groups = out.groups; DRAFT.bridges = out.bridges;
+  renderCards();
+}
+
+function mergeSelected(){
+  const anchors = [...document.querySelectorAll(".gsel:checked")].map(cb=>cb.dataset.anchor);
+  if(anchors.length < 2){ alert("select two or more groups"); return; }
+  for(let i=1;i<anchors.length;i++) CONSTRAINTS.must_link.push([anchors[0], anchors[i]]);
+  regroup();
+}
+
+function extractSelected(){
+  const picked = [...document.querySelectorAll(".xsel:checked")].map(cb=>cb.dataset.ob);
+  if(!picked.length){ alert("check promises to extract (☐ next to the id)"); return; }
+  const groups = DRAFT.groups || [];
+  for(const ob of picked){
+    const home = groups.find(g=>g.group_id===primaryGroup(ob, groups));
+    if(home && home.anchor !== ob) CONSTRAINTS.cannot_link.push([ob, home.anchor]);
+  }
+  for(let i=1;i<picked.length;i++) CONSTRAINTS.must_link.push([picked[0], picked[i]]);
+  regroup();
+}
+function cardHtml(i, extraBadge, obId){
   return [DRAFT.obligations[i]].map((o)=>{
     const binds = DRAFT.bindings.map((b,j)=>({b,j})).filter(x=>x.b.obligation_id===o.obligation_id);
     return `<div class="ob-card" id="ob${i}">
-      <div class="ob-head"><span class="id">${o.obligation_id}</span>
+      <div class="ob-head"><input type="checkbox" class="xsel" data-ob="${o.obligation_id}" title="select to extract" style="accent-color:var(--ungov)"><span class="id">${o.obligation_id}</span>${extraBadge||""}
         <span class="kind ${o.kind}">${o.kind.replace("_"," ")}</span>
         <span style="color:var(--faint);font-size:11px">from ${o.source_reference}</span>
         <span class="actions">
@@ -229,7 +288,8 @@ $("createBtn").onclick = async ()=>{
   const sweep = SCAN.commits.slice(0,5);
   const r = await fetch("/api/onboard/create",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({workflow_id:$("wfId").value, repo:SCAN.repo, sources, obligations,
-      control_points:Object.values(cps), bindings:bindRows, sweep_commits:sweep})});
+      control_points:Object.values(cps), bindings:bindRows, sweep_commits:sweep,
+      grouping_constraints:CONSTRAINTS})});
   const out = await r.json();
   WSID = out.workspace; SWEEP_PRS = out.sweep_prs;
   step(3);

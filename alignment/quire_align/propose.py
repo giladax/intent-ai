@@ -168,100 +168,34 @@ class FakeProposer:
 
 
 # --------------------------------------------------------------------------
-# Semantic grouping — the blobs
-#
-# Candidates aren't a flat list: obligations, files, and (later) tickets and
-# sessions form a graph, and its densely-connected regions are the product's
-# real shape — proto-Features discovered from the org's own artifacts, not
-# imposed on them. v0 is deterministic: obligations connect when they share
-# a bound file or enough statement vocabulary; groups are the connected
-# components, and files bound across groups are reported as bridges (the
-# overlap). Overlapping soft membership (embeddings, co-change edges,
-# session evidence) is the v1 deepening.
+# Semantic grouping — delegates to the link-community engine in grouping.py
+# (overlapping weighted membership, constrained clustering; see that module
+# for the algorithmic design and citations).
 # --------------------------------------------------------------------------
-
-_VOCAB_JACCARD = 0.22
-_STOP = {
-    "must", "never", "always", "every", "system", "that", "with", "when",
-    "shall", "should", "only", "into", "from", "their", "this", "have",
-}
-
-
-def _vocab(statement: str) -> set[str]:
-    return {
-        t for t in re.findall(r"[a-z]{4,}", statement.lower()) if t not in _STOP
-    }
 
 
 def group_candidates(
-    obligations: list[CandidateObligation], bindings: list[CandidateBinding]
+    obligations: list[CandidateObligation],
+    bindings: list[CandidateBinding],
+    constraints=None,
 ) -> dict:
-    """Connected components over the obligation↔file↔vocabulary graph.
+    from quire_align.grouping import group_contract
 
-    Returns {"groups": [{group_id, label, obligation_ids, files}],
-             "bridges": [{path, groups}]} — bridges are the overlap: control
-    points serving more than one group."""
-    ids = [o.obligation_id for o in obligations]
-    parent = {i: i for i in ids}
-
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    def union(a, b):
-        parent[find(a)] = find(b)
-
-    # Verification bindings don't glue groups (a shared test suite spans
-    # many concerns); they surface as bridges instead.
-    files_by_ob: dict[str, set[str]] = {i: set() for i in ids}
-    glue_by_ob: dict[str, set[str]] = {i: set() for i in ids}
-    for b in bindings:
-        if b.obligation_id in files_by_ob:
-            files_by_ob[b.obligation_id].add(b.path)
-            if b.relation != "verifies":
-                glue_by_ob[b.obligation_id].add(b.path)
-
-    vocab_by_ob = {o.obligation_id: _vocab(o.statement) for o in obligations}
-    for i, a in enumerate(ids):
-        for b in ids[i + 1 :]:
-            shared_glue = glue_by_ob[a] & glue_by_ob[b]
-            va, vb = vocab_by_ob[a], vocab_by_ob[b]
-            jaccard = len(va & vb) / max(len(va | vb), 1)
-            if shared_glue or jaccard >= _VOCAB_JACCARD:
-                union(a, b)
-
-    members: dict[str, list[str]] = {}
-    for i in ids:
-        members.setdefault(find(i), []).append(i)
-
-    groups = []
-    file_groups: dict[str, set[int]] = {}
-    for gi, (_, ob_ids) in enumerate(sorted(members.items(), key=lambda kv: -len(kv[1]))):
-        group_files = sorted(set().union(*(files_by_ob[i] for i in ob_ids)) or set())
-        for path in group_files:
-            file_groups.setdefault(path, set()).add(gi)
-        # label = the group's most shared vocabulary
-        counts: dict[str, int] = {}
-        for i in ob_ids:
-            for term in vocab_by_ob[i]:
-                counts[term] = counts.get(term, 0) + 1
-        label = " / ".join(t for t, _ in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:3])
-        groups.append(
+    return group_contract(
+        [
             {
-                "group_id": f"G{gi + 1}",
-                "label": label or "ungrouped",
-                "obligation_ids": sorted(ob_ids),
-                "files": group_files,
+                "obligation_id": o.obligation_id,
+                "statement": o.statement,
+                "source_section": o.source_section,
             }
-        )
-    bridges = [
-        {"path": path, "groups": sorted(f"G{g + 1}" for g in gset)}
-        for path, gset in sorted(file_groups.items())
-        if len(gset) > 1
-    ]
-    return {"groups": groups, "bridges": bridges}
+            for o in obligations
+        ],
+        [
+            {"obligation_id": b.obligation_id, "path": b.path, "relation": b.relation}
+            for b in bindings
+        ],
+        constraints=constraints,
+    )
 
 
 # --------------------------------------------------------------------------
