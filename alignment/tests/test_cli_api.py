@@ -72,3 +72,22 @@ def test_api_analyze_get_review(db_url):
     assert len(listed) == 1
 
     assert client.get("/analyses/doesnotexist").status_code == 404
+
+
+def test_main_guard_is_last_statement_in_cli_module():
+    """Regression guard: commands appended AFTER the __main__ guard still
+    register (typer decorators run at import), so the bug ships silently —
+    the module just reads as if the command were unreachable. Keep the
+    guard the final top-level statement so appends land above it."""
+    import ast
+    import inspect
+    import pathlib
+
+    import quire_align.cli as cli_module
+
+    tree = ast.parse(pathlib.Path(inspect.getfile(cli_module)).read_text())
+    last = tree.body[-1]
+    assert isinstance(last, ast.If) and "__main__" in ast.dump(last.test), (
+        "the `if __name__ == '__main__'` guard must be the last top-level "
+        "statement in cli.py — something was appended after it"
+    )

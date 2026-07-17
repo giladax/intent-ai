@@ -4,7 +4,7 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: fef74cd
+last-reviewed: 3ff6a97
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 
@@ -31,3 +31,52 @@ excludes quoting chars). Verified after the stall: 92 tests green, all
 three pages' JS syntax-checked. Backlog surfaced before stalling: none
 logged. Known follow-up (next tick): mirror.html duplicates esc() a third
 time — extract shared static/app.js.
+
+## 2026-07-18 — tick over fef74cd..3ff6a97 (graph heuristics)
+
+Engineering findings/fixes (Tier 1, applied):
+- api.py `/ask`: the bare `except Exception` around router construction
+  silently swallowed everything — the regex fallback IS the right offline
+  behavior, but a typo'd import or bad config looked identical to "no API
+  key". Now logs a warning with the exception type/message (logger added
+  to the module). Kept `except Exception` scope: ChatAnthropic
+  construction can raise several unrelated error types.
+- mirror.py `classify_question`: a router failure AT CALL TIME (network
+  drop after construction succeeded) propagated and 500'd the question.
+  Now degrades to the same regex fallback, logged with traceback. Test
+  added (`test_router_runtime_failure_falls_back_to_regex`).
+- grouping.py: magic `0.6` hint floor named `_HINT_SAME_COS` with
+  rationale relative to `_TEXT_EDGE_MIN`; the `"A|B"` pair-key convention
+  was built independently in two modules (`f"{a}|{b}"` vs
+  `f"{min...}|{max...}"`) — extracted `pair_hint_key()` in grouping.py,
+  used by both writer (graph_heuristics) and reader (group_contract).
+- cli.py __main__-guard bug class: recurrence guard added —
+  `test_main_guard_is_last_statement_in_cli_module` (AST check that the
+  guard is the final top-level statement; an appended command now fails
+  the suite instead of shipping silently).
+- FakeGraphHeuristics: `verdicts` comment said "(a_id, b_id) sorted
+  tuple" but the code keys by statements — comment corrected.
+
+Product-surface findings/fixes (Tier 1, applied):
+- `enrich` output claimed "adjudicated pairs: N" where N was the TOTAL
+  cached hints — a fully-cached rerun claimed work it didn't do.
+  enrich_workspace now also returns `new_pair_hints`; CLI prints
+  "adjudicated N new borderline pairs (M on file)".
+- `named: anchor → "None"` was possible when the LLM skipped a group —
+  None entries filtered out of `named`; a no-op naming pass now says
+  "every area already has a name" instead of printing nothing.
+- "(1 promises)" pluralization in the areas listing — reuses mirror's
+  `_plural` (precedent from the 07-18 tick).
+
+Backlog (too big for this tick):
+- api.py constructs `GraphHeuristics()` (a ChatAnthropic client) per /ask
+  request — cache on app.state or a module singleton.
+- adjudicate_borderline_pairs is silent when the per-run budget exhausts
+  with borderline pairs left; surface "K pairs remain, re-run enrich".
+- enrich_workspace regroups (load_group_state) twice and writes
+  groups.yaml twice per pass — harmless at current scale, could be one.
+- `_plural` is imported cross-module from mirror.py as a private helper —
+  promote to a small shared text/display module when a third caller
+  appears.
+
+99 tests green (97 + 2 new).

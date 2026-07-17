@@ -130,5 +130,16 @@ def test_enrich_workspace_names_and_persists(tmp_path):
         ws, adapter, FakeGraphHeuristics(names={"ACME-001": "Refund Limits"})
     )
     assert out["groups"][0]["label"] == "Refund Limits"
+    assert out["new_pair_hints"] == 0  # single promise → nothing to adjudicate
+    assert out["named"] == {"ACME-001": "Refund Limits"}
     persisted = yaml.safe_load((ws / "groups.yaml").read_text())
     assert persisted["llm_labels"]["ACME-001"] == "Refund Limits"
+
+
+def test_router_runtime_failure_falls_back_to_regex():
+    def broken_router(q):
+        raise RuntimeError("model unreachable mid-request")
+
+    # A router blowing up must degrade to regex routing, not propagate.
+    assert classify_question("is anything broken", router=broken_router) == "whats_broken"
+    assert classify_question("what is coverage", router=broken_router) is None

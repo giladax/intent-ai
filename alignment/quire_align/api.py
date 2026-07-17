@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import pathlib
 
 from fastapi import FastAPI, HTTPException
@@ -13,6 +14,8 @@ from quire_align.store import Store
 
 WORKSPACES = workspace_mod.WORKSPACES
 STATIC = pathlib.Path(__file__).parent / "static"
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyzeRequest(BaseModel):
@@ -347,8 +350,16 @@ def create_app(store: Store | None = None) -> FastAPI:
                 from quire_align.graph_heuristics import GraphHeuristics
 
                 router = GraphHeuristics().route_question
-            except Exception:
-                router = None  # no key / offline: regex fallback inside
+            except Exception as error:
+                # Degrading to the regex fallback is the intended offline
+                # behavior — but never silently: a typo'd import or bad
+                # config would otherwise look identical to "no API key".
+                logger.warning(
+                    "LLM question router unavailable (%s: %s) — "
+                    "falling back to regex routing",
+                    type(error).__name__,
+                    error,
+                )
         route = classify_question(q, router=router)
         if route is not None:
             mirror_data = build_mirror(adapter, app.state.store, state)

@@ -23,6 +23,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from quire_align.grouping import pair_hint_key
 from quire_align.llm_retry import invoke_with_retry
 from quire_align.text import cosine_similarity, tf_idf_vectors, tokenize
 
@@ -109,7 +110,7 @@ class GraphHeuristics:
 class FakeGraphHeuristics:
     def __init__(self, names=None, verdicts=None, routes=None):
         self.names = names or {}
-        self.verdicts = verdicts or {}  # (a_id, b_id) sorted tuple -> bool
+        self.verdicts = verdicts or {}  # (statement_a, statement_b) -> bool
         self.routes = routes or {}
 
     def name_areas(self, groups, statements):
@@ -140,7 +141,7 @@ def adjudicate_borderline_pairs(
     ids = sorted(vectors)
     for i, a in enumerate(ids):
         for b in ids[i + 1 :]:
-            key = f"{a}|{b}"
+            key = pair_hint_key(a, b)
             if key in hints or budget <= 0:
                 continue
             low, high = BORDERLINE_WINDOW
@@ -167,9 +168,8 @@ def enrich_workspace(workspace_dir, adapter, heuristics) -> dict:
         for o in adapter.obligations()
     ]
 
-    hints = adjudicate_borderline_pairs(
-        obligations, data.get("pair_hints") or {}, heuristics
-    )
+    existing_hints = data.get("pair_hints") or {}
+    hints = adjudicate_borderline_pairs(obligations, existing_hints, heuristics)
     data["pair_hints"] = hints
     groups_file.write_text(yaml.safe_dump(data, sort_keys=False))
 
@@ -185,6 +185,11 @@ def enrich_workspace(workspace_dir, adapter, heuristics) -> dict:
 
     return {
         "pair_hints": hints,
-        "named": {g["anchor"]: llm_labels.get(g["anchor"]) for g in unnamed},
+        "new_pair_hints": len(hints) - len(existing_hints),
+        "named": {
+            g["anchor"]: llm_labels[g["anchor"]]
+            for g in unnamed
+            if llm_labels.get(g["anchor"])  # a group the LLM skipped stays unnamed
+        },
         "groups": load_group_state(workspace_dir, adapter)["groups"],
     }

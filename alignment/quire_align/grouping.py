@@ -69,6 +69,9 @@ _MEMBERSHIP_FLOOR = 0.15
 _TEXT_BLEND = 0.45  # neighborhood Jaccard vs content prior
 _SECTION_BONUS = 0.25
 _TEXT_EDGE_MIN = 0.30  # cosine floor for first-class o–o similarity edges
+# An LLM "same area" verdict floors the pair's cosine here — comfortably
+# above _TEXT_EDGE_MIN, so the adjudicated edge always materializes.
+_HINT_SAME_COS = 0.60
 # Dendrogram cut floor: partition density is degenerate (zero) for small
 # tree-like communities, so merges below this similarity never happen.
 # This is THE tunable that accumulated human must/cannot-links calibrate.
@@ -84,6 +87,12 @@ class GroupingConstraints(BaseModel):
         default_factory=dict,
         description="anchor obligation id → human label for its group",
     )
+
+
+def pair_hint_key(a: str, b: str) -> str:
+    """Canonical order-independent key for the LLM pair-hint cache
+    (graph_heuristics writes it, group_contract reads it)."""
+    return f"{a}|{b}" if a <= b else f"{b}|{a}"
 
 
 class Endpoint(NamedTuple):
@@ -294,12 +303,12 @@ def group_contract(
         for b in ids[i + 1 :]:
             if frozenset((a, b)) in forbidden:
                 continue
-            hint = pair_hints.get(f"{min(a, b)}|{max(a, b)}")
+            hint = pair_hints.get(pair_hint_key(a, b))
             if hint == "different":
                 continue  # LLM-adjudicated apart (softer than a human cannot-link)
             cos = cosine_similarity(ob_vocab[a], ob_vocab[b])
             if hint == "same":
-                cos = max(cos, 0.6)  # adjudicated together: guarantee the edge
+                cos = max(cos, _HINT_SAME_COS)  # adjudicated together: guarantee the edge
             if cos >= _TEXT_EDGE_MIN:
                 edges.append(
                     _Edge(Endpoint("obligation", a), Endpoint("obligation", b), cos, "similar")

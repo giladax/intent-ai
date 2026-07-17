@@ -13,11 +13,14 @@ Built directly against the PM interrogation's three failures
 
 from __future__ import annotations
 
+import logging
 import re
 
 from quire_align.analysis.render import DISPLAY_LABELS
 from quire_align.models import Classification
 from quire_align.timeline import UNOBSERVED, build_timeline
+
+logger = logging.getLogger(__name__)
 
 HEALTH_LABELS = {
     "satisfies": "satisfied",
@@ -43,8 +46,16 @@ def classify_question(q: str, router=None) -> str | None:
     pick among fixed routes, never invent one), regex fallback offline.
     Returns a status-route name, or None → term resolution."""
     if router is not None:
-        route = router(q)
-        return None if route == "term_lookup" else route
+        try:
+            route = router(q)
+            return None if route == "term_lookup" else route
+        except Exception:
+            # A mid-request model failure must not 500 the question —
+            # degrade to the same regex fallback used when no key exists.
+            logger.warning(
+                "question router failed — falling back to regex routing",
+                exc_info=True,
+            )
     text = q.lower()
     for pattern, route in _STATUS_PATTERNS:
         if re.search(pattern, text):

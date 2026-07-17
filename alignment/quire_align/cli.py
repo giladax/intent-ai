@@ -358,16 +358,24 @@ def enrich(
     and adjudicate borderline promise pairs. Human renames always win;
     results persist with the workspace."""
     from quire_align.graph_heuristics import GraphHeuristics, enrich_workspace
+    from quire_align.mirror import _plural
 
     adapter = _adapter(workspace)
     ws_dir = workspace_mod.resolve_workspace_dir(workspace)
     out = enrich_workspace(ws_dir, adapter, GraphHeuristics())
-    typer.secho(f"adjudicated pairs: {len(out['pair_hints'])}", fg=typer.colors.CYAN)
-    for anchor, name in out["named"].items():
-        typer.echo(f"  named: {anchor} → “{name}”")
+    typer.secho(
+        f"adjudicated {_plural(out['new_pair_hints'], 'new borderline pair')} "
+        f"({len(out['pair_hints'])} on file)",
+        fg=typer.colors.CYAN,
+    )
+    if out["named"]:
+        for anchor, name in out["named"].items():
+            typer.echo(f"  named: {anchor} → “{name}”")
+    else:
+        typer.echo("  every area already has a name")
     typer.echo("areas now:")
     for g in out["groups"]:
-        typer.echo(f"  ◉ {g['label']} ({len(g['obligation_ids'])} promises)")
+        typer.echo(f"  ◉ {g['label']} ({_plural(len(g['obligation_ids']), 'promise')})")
 
 
 if __name__ == "__main__":
