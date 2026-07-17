@@ -218,6 +218,54 @@ def create_app(store: Store | None = None) -> FastAPI:
 
         return HTMLResponse((STATIC / "onboard.html").read_text())
 
+    # -- community card: their word → everything we know --------------------
+
+    def _workspace_dir(workspace: str) -> pathlib.Path:
+        for candidate in (pathlib.Path(workspace), FIXTURES / workspace, WORKSPACES / workspace):
+            if (candidate / "workflow.yaml").exists():
+                return candidate
+        raise HTTPException(400, f"no workflow.yaml under {workspace}")
+
+    @app.get("/api/ask/{workspace}")
+    def ask(workspace: str, q: str, llm: bool = True):
+        from quire_align.ask import (
+            community_card,
+            haiku_pick,
+            load_group_state,
+            resolve_term,
+        )
+
+        adapter = _adapter(workspace)
+        state = load_group_state(_workspace_dir(workspace), adapter)
+        obligations = [
+            {"obligation_id": o.obligation_id, "statement": o.statement}
+            for o in adapter.obligations()
+        ]
+        resolution = resolve_term(
+            q, state, obligations, llm_pick=haiku_pick if llm else None
+        )
+        card = (
+            community_card(adapter, app.state.store, resolution["group"], state)
+            if resolution["group"]
+            else None
+        )
+        return {
+            "query": q,
+            "resolution": {
+                **resolution,
+                "group": resolution["group"]["group_id"] if resolution["group"] else None,
+                "anchor": resolution["group"]["anchor"] if resolution["group"] else None,
+            },
+            "card": card,
+        }
+
+    @app.post("/api/ask/{workspace}/alias")
+    def confirm_alias(workspace: str, request: dict):
+        from quire_align.ask import save_alias
+
+        save_alias(_workspace_dir(workspace), request["term"], request["anchor"])
+        return {"saved": {request["term"]: request["anchor"]}}
+
     # -- intent timeline (demo surface) -----------------------------------
 
     @app.get("/api/intent/{workspace}/timeline")

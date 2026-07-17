@@ -132,8 +132,12 @@ footer{padding:10px 32px; color:var(--faint); font-size:10px; border-top:1px sol
 <div class="masthead">
   <h1>Intent<em>·</em>Ledger</h1>
   <div class="meta" id="meta">loading…</div>
+  <input type="text" id="askBox" placeholder="ask in your words… ⏎"
+    style="font:inherit; font-size:12px; background:var(--panel); border:1px solid var(--line);
+    color:var(--paper); padding:7px 12px; width:230px; border-radius:2px; margin-left:auto">
   <div class="contracts" id="contracts"></div>
 </div>
+<div id="askCard" style="display:none; border-bottom:1px solid var(--accent); background:var(--panel2); padding:16px 32px"></div>
 
 <div class="scrubber">
   <div class="rail" id="rail"></div>
@@ -289,6 +293,53 @@ document.addEventListener("keydown", ev=>{
   if(ev.key==="ArrowLeft") SEL>0 && select(SEL-1);
   if(ev.key==="ArrowRight") SEL<DATA.events.length-1 && select(SEL+1);
 });
+
+// --- ask: their word → community card ---------------------------------
+document.getElementById("askBox").addEventListener("keydown", async ev=>{
+  if(ev.key !== "Enter") return;
+  const q = ev.target.value.trim();
+  const box = document.getElementById("askCard");
+  if(!q){ box.style.display="none"; return; }
+  box.style.display = "block";
+  box.innerHTML = `<span style="color:var(--dim)">resolving “${esc(q)}”…</span>`;
+  const r = await fetch(`/api/ask/${WS}?q=${encodeURIComponent(q)}`);
+  const d = await r.json();
+  if(!d.card){
+    box.innerHTML = `<span style="color:var(--warn)">“${esc(q)}” didn't resolve.</span>
+      <span style="color:var(--faint)"> nearest: ${(d.resolution.alternatives||[]).join(", ")||"—"}</span>`;
+    return;
+  }
+  const c = d.card;
+  const lamp = s=>({satisfies:"l-satisfies",partially_satisfies:"l-partially_satisfies",contradicts:"l-contradicts"}[s]||"l-unobserved");
+  box.innerHTML = `
+    <div style="display:flex; gap:14px; align-items:baseline; margin-bottom:10px">
+      <span style="font-family:'Fraunces',serif; font-size:17px; color:var(--accent)">◉ ${c.group_id} “${esc(c.label)}”</span>
+      <span style="color:var(--faint); font-size:11px">via ${d.resolution.method} · confidence ${d.resolution.confidence}</span>
+      ${d.resolution.method!=="alias" ? `<button onclick="saveAlias('${esc(q)}','${c.anchor}')"
+        style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);
+        padding:2px 9px;cursor:pointer;border-radius:2px">✓ remember “${esc(q)}” = this area</button>`:""}
+      <span style="margin-left:auto;color:var(--faint);font-size:10px;cursor:pointer" onclick="this.parentElement.parentElement.style.display='none'">✕ close</span>
+    </div>
+    <div style="display:flex; gap:26px; flex-wrap:wrap">
+      <div style="flex:2; min-width:340px">${c.obligations.map(o=>`
+        <div style="padding:4px 0; font-size:12px"><span class="lamp ${lamp(o.health.status)}"></span>
+          <b>${o.obligation_id}</b>${o.weight<1?` <span style="color:var(--ungov);font-size:10px">${Math.round(o.weight*100)}%</span>`:""}
+          <span style="color:var(--dim)">${esc((o.statement||"").slice(0,90))}</span></div>`).join("")}</div>
+      <div style="flex:1; min-width:240px; font-size:11px; color:var(--dim)">
+        <div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin-bottom:5px">CONTROL POINTS</div>
+        ${c.files.slice(0,8).map(f=>`<div>${f}</div>`).join("")}
+        ${c.open_findings.length?`<div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin:10px 0 5px">OPEN FINDINGS</div>
+          ${c.open_findings.map(f=>`<div style="color:var(--warn)">⚑ #${f.pr_number} ${f.verdict.replace(/_/g," ")} — ${esc(f.title).slice(0,50)}</div>`).join("")}`:""}
+        ${c.recent_events.length?`<div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin:10px 0 5px">RECENT DIGESTIONS</div>
+          ${c.recent_events.slice(-4).map(e=>`<div>#${e.pr_number} ${e.verdict.replace(/_/g," ")} ${esc(e.title).slice(0,44)}</div>`).join("")}`:""}
+      </div>
+    </div>`;
+});
+async function saveAlias(term, anchor){
+  await fetch(`/api/ask/${WS}/alias`,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({term, anchor})});
+  document.getElementById("askBox").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter"}));
+}
 
 load();
 setInterval(load, 4000);

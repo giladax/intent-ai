@@ -235,6 +235,73 @@ def propose(
 
 
 @app.command()
+def ask(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+    query: str = typer.Argument(help="a term in your org's vocabulary, e.g. 'payments'"),
+    no_llm: bool = typer.Option(False, help="deterministic rungs only (no LLM translation)"),
+    save: bool = typer.Option(False, help="confirm the resolution as a durable alias"),
+):
+    """Resolve a term from the org's dialect to a product area and show
+    everything known about it: promises, health, files, open findings."""
+    from quire_align.ask import (
+        community_card,
+        haiku_pick,
+        load_group_state,
+        resolve_term,
+        save_alias,
+    )
+
+    adapter = _adapter(workspace)
+    ws_dir = pathlib.Path(workspace)
+    if not (ws_dir / "workflow.yaml").exists():
+        for candidate in (FIXTURES / workspace, _ROOT / "workspaces" / workspace):
+            if (candidate / "workflow.yaml").exists():
+                ws_dir = candidate
+    state = load_group_state(ws_dir, adapter)
+    obligations = [
+        {"obligation_id": o.obligation_id, "statement": o.statement}
+        for o in adapter.obligations()
+    ]
+    resolution = resolve_term(
+        query, state, obligations, llm_pick=None if no_llm else haiku_pick
+    )
+    if resolution["group"] is None:
+        typer.secho(
+            f"'{query}' didn't resolve; nearest: {resolution['alternatives'] or 'none'}",
+            fg=typer.colors.YELLOW,
+        )
+        raise typer.Exit(1)
+    group = resolution["group"]
+    card = community_card(adapter, Store(), group, state)
+    typer.secho(
+        f"◉ {card['group_id']} “{card['label']}” — via {resolution['method']} "
+        f"(confidence {resolution['confidence']})",
+        fg=typer.colors.CYAN,
+    )
+    if card["aliases"]:
+        typer.echo(f"  answers to: {', '.join(card['aliases'])}")
+    typer.echo("\n  Promises:")
+    for ob in card["obligations"]:
+        health = ob["health"]["status"]
+        mark = {"satisfies": "🟢", "partially_satisfies": "🟡", "contradicts": "🔴"}.get(health, "⚪")
+        weight = f" ({int(ob['weight'] * 100)}%)" if ob["weight"] < 1 else ""
+        typer.echo(f"   {mark} {ob['obligation_id']}{weight} [{health}] {ob.get('statement', '')[:76]}")
+    typer.echo(f"\n  Control points: {len(card['files'])} files"
+               + (f", {len(card['bridges'])} bridged to other areas" if card["bridges"] else ""))
+    if card["recent_events"]:
+        typer.echo("  Recent digestions touching this area:")
+        for e in card["recent_events"][-4:]:
+            typer.echo(f"   · #{e['pr_number']} {e['verdict']:18} {e['title'][:56]}")
+    if card["open_findings"]:
+        typer.secho("  Open findings (awaiting a human):", fg=typer.colors.YELLOW)
+        for f in card["open_findings"]:
+            typer.echo(f"   ⚑ #{f['pr_number']} {f['verdict']} — {f['title'][:60]}")
+    if save:
+        save_alias(ws_dir, query, group["anchor"])
+        typer.secho(f"\n  alias saved: '{query}' → {group['group_id']}", fg=typer.colors.GREEN)
+
+
+@app.command()
 def serve(
     port: int = typer.Option(8321),
     host: str = typer.Option("127.0.0.1"),
