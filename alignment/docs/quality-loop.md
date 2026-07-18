@@ -4,7 +4,7 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: e515b99
+last-reviewed: 21c2104
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 
@@ -98,3 +98,102 @@ will register and may then sweep for anything the dedicated pass left.
 Backlog carried forward: unchanged from previous tick (GraphHeuristics
 per-request construction; adjudication budget-exhaustion silence; double
 regroup/write in enrich_workspace; `_plural` promotion).
+
+## 2026-07-19 — tick over e515b99..21c2104 (teaching loop + eval overhaul)
+
+Reviewed the three code commits (f04ab74 dual-review application, e150ea0
+eval overhaul, 21c2104 teaching loop; bf187bb is workspace data, skipped).
+Respected as deliberate, not relitigated: the two independently-phrased
+Haiku complement judges; human=True bypassing cap/suppression;
+reason-aware suppression semantics; the eval-vs-test boundary
+(docs/evals-sweep-2026-07-19.md); prompt()-based dialogs.
+
+Engineering findings/fixes (Tier 1, applied):
+- api.py 404 details were repr-quoted: `HTTPException(404, str(error))`
+  on a KeyError renders `"no entity 'x'"` (str(KeyError) wraps the
+  message in repr quotes). Extracted `_detail()` to unwrap args[0]; used
+  by the teach and correct endpoints; test now asserts the detail reads
+  as a sentence. Verified the KeyError→404 / GraphIntegrityError→409
+  mapping is consistent across teach/correct/decide.
+- api.py graph_decide carried an unreachable action check —
+  DecisionRequest.action is a Literal (422 at the edge, pinned by
+  test_decision_api_rejects_unknown_action) and decide() re-checks for
+  non-HTTP callers. Dead branch removed, comment explains the layering.
+- api.py decided history sorted lexically by `decision.at` while the
+  fold deliberately parses instants (entity_graph._instant exists
+  BECAUSE lexical sort misorders non-UTC offsets). Added
+  `decided_proposals()` to entity_graph — history now uses the same
+  clock as the fold.
+- entity_graph.py append_proposals minted next_seq with a raw
+  `int(d.diff_id.split("-")[1])` (crashes on a malformed id) one screen
+  below the guarded `_diff_seq` helper — now reuses the helper.
+- `_now()` (api.py) and `_graph_now()` (cli.py) were identical
+  wall-clock 3-liners — single definition `entity_graph.now_iso()`
+  (docstring: the graph never reads the clock; edges stamp time).
+- teach.py: whitespace-collapse inlined three times — extracted
+  `_clean()`. `_append_human` claimed "this exact question is already
+  open in the inbox" even when the identical change had been APPROVED
+  (teaching the same word twice) — now distinguishes; new test
+  `test_teaching_the_same_word_twice_says_already_learned`.
+- entity_propose.py: module `logger` was defined and never used — dead
+  code, removed. `_wrong_scale` triple-inlined
+  `set(tokenize(..., min_len=3, keep_digits=True))` — extracted
+  `_token_set()` with a docstring noting the seed_quality eval's
+  `_norm_tokens` twin is DELIBERATE mirroring (mechanism and eval stay
+  independent; only the tokenizer rules are shared via quire_align.text).
+- `_plural` promoted (prior-backlog item, trigger met): the third caller
+  appeared — entity_propose._question hand-rolled its pluralization.
+  Now `text.plural()`, shared by mirror, the enrich CLI, and card
+  questions.
+- intent.html teachAlias fetched the graph with no error handling (an
+  unreachable server threw an uncaught rejection mid-gesture) — wrapped,
+  with a user-readable message. Script re-checked with node --check.
+
+Product-surface findings/fixes (Tier 1, applied):
+- suppression_reason leaked internals onto an operator surface:
+  "identical shape was rejected", "rejected as wrong_name", "rejected as
+  not_one_thing" → "an identical proposal was already rejected",
+  "rejected as the wrong name", "rejected as not one thing" ("shape" is
+  mechanism vocabulary; reason codes stay snake_case in the record, not
+  in prose). Tests updated to pin the display strings.
+- CLI propose-entities: "suppressed (rejected shape):" → "withheld:"
+  (each entry already carries its bracketed reason); the
+  `skipped_duplicate` report field was silently dropped from output —
+  now printed ("already asked (open or approved)"); "capped at 5"
+  hardcoded next to MAX_OPEN_PROPOSALS = 5 → interpolated; truncation
+  widened 70→100 so the reason clause survives.
+- Seed-card mechanics_note said "bindings are mechanical (tier 2)" —
+  "tier 2" is internal architecture; now "the file attachments come from
+  approved code links, not from reasoning — each is individually
+  removable in Edit".
+- Checked and deliberately kept: "shape and approve it in the inbox"
+  (plain-English verb, consistent across CLI and intent.html); inbox
+  opText verbs ("+ attach", "∅ supersede") — terse but legible in the
+  change-block context; reason-code CLI flag help showing raw codes
+  (they ARE the flag values).
+
+Backlog (Tier 2, not applied):
+- Carried from previous ticks: GraphHeuristics per-request construction
+  in /ask; adjudication budget-exhaustion silence; double regroup/write
+  in enrich_workspace. RESOLVED this tick: `_plural` promotion (now
+  text.plural).
+- Shared static/app.js (carried from 07-18, now three pages strong):
+  esc() duplicated in mirror/intent; the reviewer-identity prompt exists
+  twice with drifting wording (inbox `reviewer()` vs intent `whoami()`,
+  same localStorage key); JSON-POST-with-error-detail boilerplate
+  duplicated (inbox `post()` vs intent `teachPost()`). Also fold in:
+  inbox masthead hardcodes "(never more than 5)", and inbox load() has
+  no fetch error handling.
+- tests: test_teach.py and test_entity_propose.py each copytree the
+  refund-agent fixture into tmp_path with slight variations — promote a
+  writable-workspace fixture to conftest.py (which today only has the
+  read-only adapter).
+- teach.correct with verb part_of loads and folds the diff log once per
+  `_require_entity` call — harmless single-operator, wasteful pattern.
+- evals/seed_quality.eval_decision_sufficiency parses quote.source by
+  splitting on the "·" separator — couples the metric to
+  entity_propose's string formatting; a formatting change would silently
+  weaken the eval. Consider a structured source field on EvidenceQuote.
+
+152 tests green (151 + 1 new). intent.html JS syntax-checked
+(node --check, workspace token substituted).

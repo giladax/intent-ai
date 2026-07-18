@@ -358,7 +358,7 @@ def enrich(
     and adjudicate borderline promise pairs. Human renames always win;
     results persist with the workspace."""
     from quire_align.graph_heuristics import GraphHeuristics, enrich_workspace
-    from quire_align.mirror import _plural
+    from quire_align.text import plural as _plural
 
     adapter = _adapter(workspace)
     ws_dir = workspace_mod.resolve_workspace_dir(workspace)
@@ -379,9 +379,9 @@ def enrich(
 
 
 def _graph_now() -> str:
-    from datetime import datetime, timezone
+    from quire_align.entity_graph import now_iso
 
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return now_iso()
 
 
 @app.command()
@@ -418,6 +418,7 @@ def entities(workspace: str = typer.Argument(help="workspace dir or name")):
 def propose_entities(workspace: str = typer.Argument(help="workspace dir or name")):
     """LLM proposals that consolidate the derived areas into entities —
     open questions for the inbox; nothing mutates until a human approves."""
+    from quire_align.entity_graph import MAX_OPEN_PROPOSALS
     from quire_align.entity_propose import (
         EntityProposerLLM,
         haiku_doc_complement_judge,
@@ -432,15 +433,17 @@ def propose_entities(workspace: str = typer.Argument(help="workspace dir or name
     )
     typer.secho(
         f"proposed: {len(report['added'])} ({report['open']} now open, "
-        f"capped at 5)",
+        f"capped at {MAX_OPEN_PROPOSALS})",
         fg=typer.colors.CYAN,
     )
     for note in report["notes"]:
         typer.echo(f"  · {note}")
     for skipped in report["skipped_rejected_shape"]:
-        typer.echo(f"  suppressed (rejected shape): {skipped[:70]}")
+        typer.echo(f"  withheld: {skipped[:100]}")
+    for skipped in report["skipped_duplicate"]:
+        typer.echo(f"  already asked (open or approved): {skipped[:100]}")
     for skipped in report["skipped_cap"]:
-        typer.echo(f"  deferred (inbox full): {skipped[:70]}")
+        typer.echo(f"  deferred (inbox full): {skipped[:100]}")
     if report["unplaced"]:
         typer.secho(
             f"  no home proposed for: {', '.join(report['unplaced'])}",

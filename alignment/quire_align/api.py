@@ -455,9 +455,14 @@ def create_app(store: Store | None = None) -> FastAPI:
     # (PRD v1.0 — rule 5: these endpoints are the ONLY mutation path.)
 
     def _now() -> str:
-        from datetime import datetime, timezone
+        from quire_align.entity_graph import now_iso
 
-        return datetime.now(timezone.utc).isoformat(timespec="seconds")
+        return now_iso()
+
+    def _detail(error: KeyError) -> str:
+        # str(KeyError) wraps the message in repr quotes — unwrap it so the
+        # 404 detail reads as a sentence, not a Python artifact.
+        return str(error.args[0]) if error.args else "not found"
 
     # NOTE: the bare /api/graph/{workspace} route is registered LAST — its
     # greedy :path converter (workspaces are sometimes absolute dirs) would
@@ -466,6 +471,7 @@ def create_app(store: Store | None = None) -> FastAPI:
     @app.get("/api/graph/{workspace:path}/proposals")
     def graph_proposals(workspace: str):
         from quire_align.entity_graph import (
+            decided_proposals,
             graph_state,
             load_diffs,
             open_proposals,
@@ -505,10 +511,9 @@ def create_app(store: Store | None = None) -> FastAPI:
             ),
         }
 
-        decided = sorted(
-            (d for d in diffs if d.status != "open"),
-            key=lambda d: d.decision.at if d.decision else "",
-        )
+        # same decision-instant clock as the fold — a lexical sort would
+        # misorder legitimately-signed non-UTC offsets
+        decided = decided_proposals(diffs)
         return {
             # open_proposals orders by the same stakes number the label is
             # derived from — position and label agree by construction
@@ -544,8 +549,9 @@ def create_app(store: Store | None = None) -> FastAPI:
     def graph_decide(workspace: str, diff_id: str, request: DecisionRequest):
         from quire_align.entity_graph import GraphIntegrityError, decide
 
-        if request.action not in ("approved", "rejected"):
-            raise HTTPException(400, "action must be 'approved' or 'rejected'")
+        # request.action is a Literal — anything else already failed
+        # validation at the edge (422); decide() re-checks for non-HTTP
+        # callers.
         try:
             decided = decide(
                 _workspace_dir(workspace),
@@ -601,7 +607,7 @@ def create_app(store: Store | None = None) -> FastAPI:
                 ws_dir, request.term, request.by, _now(), note=request.note
             )
         except KeyError as error:
-            raise HTTPException(404, str(error))
+            raise HTTPException(404, _detail(error))
         except GraphIntegrityError as error:
             raise HTTPException(409, str(error))
 
@@ -625,7 +631,7 @@ def create_app(store: Store | None = None) -> FastAPI:
                 note=request.note,
             )
         except KeyError as error:
-            raise HTTPException(404, str(error))
+            raise HTTPException(404, _detail(error))
         except GraphIntegrityError as error:
             raise HTTPException(409, str(error))
 

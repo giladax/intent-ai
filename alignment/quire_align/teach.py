@@ -31,12 +31,18 @@ from quire_align.entity_graph import (
     Relate,
     Rename,
     append_proposals,
+    compute_shape_key,
     decide,
     graph_state,
     load_diffs,
     resolve_entity,
     slug_entity_id,
 )
+
+
+def _clean(text: str) -> str:
+    """Collapse whitespace — a taught word is its words, not its spacing."""
+    return " ".join(text.split())
 
 
 def _require_entity(workspace_dir: pathlib.Path, entity_id: str) -> dict:
@@ -56,8 +62,17 @@ def _append_human(
 ) -> GraphDiff:
     report = append_proposals(workspace_dir, [diff], now, human=True)
     if not report["added"]:
+        # The only skip a human proposal can hit is a duplicate shape —
+        # say which kind, because the right next step differs.
+        key = compute_shape_key(diff.operations)
+        still_open = any(
+            d.status == "open" and compute_shape_key(d.operations) == key
+            for d in load_diffs(workspace_dir)
+        )
         raise GraphIntegrityError(
             "this exact question is already open in the inbox — decide it there"
+            if still_open
+            else "the map already learned this — an identical change was approved"
         )
     return diff
 
@@ -68,7 +83,7 @@ def teach_alias(
     """One gesture: propose the alias and approve it, signed. The log
     keeps both halves of the receipt."""
     entity = _require_entity(workspace_dir, entity_id)
-    term = " ".join(term.split())
+    term = _clean(term)
     diff = GraphDiff(
         diff_id="",
         question=f"“{term}” is another name for {entity['name']} — taught by {by}",
@@ -86,7 +101,7 @@ def teach_create(
     """The propose-it path of a designed refusal: the map lacks a thing
     the human named. Opens a card — the human shapes and approves it in
     the inbox (Edit-first exists for exactly this)."""
-    term = " ".join(term.split())
+    term = _clean(term)
     state = graph_state(load_diffs(workspace_dir))
     if resolve_entity(state, term):
         raise GraphIntegrityError(
@@ -149,7 +164,7 @@ def correct(
         )
         operations = [Detach(entity_id=entity_id, kind=kind, ref=ref)]
     elif verb == "alias":
-        cleaned = [" ".join(t.split()) for t in (terms or []) if t.strip()]
+        cleaned = [_clean(t) for t in (terms or []) if t.strip()]
         if not cleaned:
             raise GraphIntegrityError("alias needs at least one term")
         listed = ", ".join(f"“{t}”" for t in cleaned)

@@ -13,7 +13,6 @@ whose quotes all fail is dropped, not rendered (rule 3).
 
 from __future__ import annotations
 
-import logging
 import pathlib
 
 from pydantic import BaseModel, Field
@@ -32,8 +31,7 @@ from quire_align.entity_graph import (
 )
 from quire_align.llm_retry import invoke_with_retry
 from quire_align.propose import _normalize_quote
-
-logger = logging.getLogger(__name__)
+from quire_align.text import plural, tokenize
 
 
 class EntityQuote(BaseModel):
@@ -190,6 +188,13 @@ def _validated(
     return kept, notes
 
 
+def _token_set(text: str) -> set[str]:
+    """The scale guard's vocabulary. The scope_honesty eval deliberately
+    re-implements the guard (mechanism and eval stay independent); only
+    the tokenizer rules are shared, via quire_align.text."""
+    return set(tokenize(text, min_len=3, keep_digits=True))
+
+
 def _wrong_scale(
     name: str,
     members: list[str],
@@ -200,18 +205,16 @@ def _wrong_scale(
     live session): an entity must be smaller than the map. Same thresholds
     as the scope_honesty eval — this is enforcement of a hard rule over an
     LLM finding, like quote validation."""
-    from quire_align.text import tokenize
-
-    name_tokens = set(tokenize(name, min_len=3, keep_digits=True))
+    name_tokens = _token_set(name)
     if not name_tokens:
         return None
-    if name_tokens <= set(tokenize(workspace_id, min_len=3, keep_digits=True)):
+    if name_tokens <= _token_set(workspace_id):
         return "the name is the workspace itself — an entity must be smaller than the map"
     total = len(statements_by_id)
     corpus_hits = sum(
         1
         for statement in statements_by_id.values()
-        if name_tokens & set(tokenize(statement, min_len=3, keep_digits=True))
+        if name_tokens & _token_set(statement)
     )
     if total and members and corpus_hits / total > 2 * (len(members) / total):
         return (
@@ -232,11 +235,11 @@ def _is_doc_path(path: str) -> bool:
 
 
 def _question(name: str, promises: int, code: int, docs: int) -> str:
-    parts = [f"{promises} promise{'s' if promises != 1 else ''}"]
+    parts = [plural(promises, "promise")]
     if code:
-        parts.append(f"{code} code location{'s' if code != 1 else ''}")
+        parts.append(plural(code, "code location"))
     if docs:
-        parts.append(f"{docs} document{'s' if docs != 1 else ''}")
+        parts.append(plural(docs, "document"))
     if len(parts) > 1:
         listed = ", ".join(parts[:-1]) + f" and {parts[-1]}"
     else:
@@ -377,8 +380,8 @@ def seed_proposals(
                 ],
                 operations=operations,
                 mechanics_note=(
-                    "bindings are mechanical (tier 2) — each is individually "
-                    "removable in Edit"
+                    "the file attachments come from approved code links, "
+                    "not from reasoning — each is individually removable in Edit"
                 ),
             ), entity_id))
 

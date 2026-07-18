@@ -71,6 +71,12 @@ def test_teach_alias_unknown_entity(ws):
         teach_alias(ws, "x", "ent-ghost", "dana", T1)
 
 
+def test_teaching_the_same_word_twice_says_already_learned(ws):
+    teach_alias(ws, "checkout", "ent-payments", "dana", T1)
+    with pytest.raises(GraphIntegrityError, match="already learned"):
+        teach_alias(ws, "checkout", "ent-payments", "sam", T1)
+
+
 def test_teach_create_opens_a_card_not_an_entity(ws):
     diff = teach_create(ws, "Risk Scoring", "dana", T1, note="How we score risk.")
     assert diff.status == "open"
@@ -170,6 +176,8 @@ def test_teach_and_ask_over_http(ws, tmp_path):
         "term": "x", "action": "alias", "entity_id": "ent-ghost", "by": "dana",
     })
     assert missing.status_code == 404
+    # the detail reads as a sentence, not a repr-quoted KeyError
+    assert missing.json()["detail"] == "no entity 'ent-ghost'"
 
 
 def test_forwarded_name_resolves_in_ask(ws, tmp_path):

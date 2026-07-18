@@ -117,7 +117,7 @@ def test_rejected_shape_never_returns(ws):
     again = append_proposals(ws, [proposal()], T2)
     assert again["added"] == []
     assert again["skipped_rejected_shape"] == [
-        "Create Payments? [identical shape was rejected]"
+        "Create Payments? [an identical proposal was already rejected]"
     ]
     # a different shape (new name) is a new question — allowed
     renamed = proposal(operations=[
@@ -140,7 +140,7 @@ def test_wrong_name_rejection_kills_the_name_not_the_grouping(ws):
     ])
     blocked = append_proposals(ws, [same_name_new_grouping], T2)
     assert blocked["added"] == []
-    assert "wrong_name" in blocked["skipped_rejected_shape"][0]
+    assert "wrong name" in blocked["skipped_rejected_shape"][0]
     same_grouping_new_name = proposal("Custody boundary?", [
         CreateEntity(entity_id="ent-custody", name="Custody Boundary"),
         Attach(entity_id="ent-custody", kind="promise", ref="OB-1"),
@@ -158,7 +158,7 @@ def test_not_one_thing_rejection_kills_the_grouping_not_the_name(ws):
     ])
     blocked = append_proposals(ws, [renamed_same_grouping], T2)
     assert blocked["added"] == []
-    assert "not_one_thing" in blocked["skipped_rejected_shape"][0]
+    assert "not one thing" in blocked["skipped_rejected_shape"][0]
     split_grouping = proposal("A split?", [
         CreateEntity(entity_id="ent-y", name="Payments Guard"),
         Attach(entity_id="ent-y", kind="promise", ref="OB-1"),

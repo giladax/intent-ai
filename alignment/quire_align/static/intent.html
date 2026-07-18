@@ -418,7 +418,15 @@ async function teachPost(path, body, outId){
 }
 async function teachAlias(term){
   const by = whoami(); if(!by) return;
-  const g = await (await fetch(`/api/graph/${WS}`)).json();
+  let g;
+  try{
+    const r = await fetch(`/api/graph/${WS}`);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    g = await r.json();
+  }catch(err){
+    document.getElementById("teachOut").textContent = " couldn't reach the server — try again in a moment";
+    return;
+  }
   const active = g.entities.filter(e=>e.status==="active");
   if(!active.length){ document.getElementById("teachOut").textContent=" no entities on the map yet — open a create card instead"; return; }
   const menu = active.map((e,i)=>`${i+1}. ${e.name}`).join("\n");

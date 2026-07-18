@@ -70,3 +70,10 @@ def cosine_similarity(a: dict[str, float], b: dict[str, float]) -> float:
 
 def jaccard_similarity(a: set, b: set) -> float:
     return len(a & b) / max(len(a | b), 1)
+
+
+def plural(n: int, noun: str) -> str:
+    """'1 promise' / '3 promises' — '(s)' reads as template residue.
+    Promoted from mirror.py once a third caller appeared (mirror, the
+    enrich CLI, entity-proposal card questions)."""
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"

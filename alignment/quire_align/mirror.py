@@ -18,6 +18,7 @@ import re
 
 from quire_align.analysis.render import DISPLAY_LABELS
 from quire_align.models import Classification
+from quire_align.text import plural as _plural
 from quire_align.timeline import UNOBSERVED, build_timeline
 
 logger = logging.getLogger(__name__)
@@ -139,11 +140,6 @@ def build_mirror(adapter, store, state: dict) -> dict:
         ],
         "coverage_sentence": _coverage_sentence(areas, uncovered),
     }
-
-
-def _plural(n: int, noun: str) -> str:
-    """'1 promise' / '3 promises' — '(s)' reads as template residue."""
-    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
 
 
 def _coverage_sentence(areas: list[dict], uncovered: list[dict]) -> str:

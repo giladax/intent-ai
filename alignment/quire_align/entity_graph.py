@@ -539,17 +539,17 @@ def _suppression(diffs: list[GraphDiff]) -> dict:
 def suppression_reason(proposal: GraphDiff, taught: dict) -> str | None:
     """Why a proposal may not return, or None if it may."""
     if compute_shape_key(proposal.operations) in taught["shapes"]:
-        return "identical shape was rejected"
+        return "an identical proposal was already rejected"
     for op in proposal.operations:
         if op.op == "create_entity" and _shape_norm(op.name) in taught["names"]:
-            return f"the name '{op.name}' was rejected as wrong_name"
+            return f"the name '{op.name}' was rejected as the wrong name"
     members = frozenset(
         op.ref
         for op in proposal.operations
         if op.op == "attach" and op.kind == "promise"
     )
     if members and members in taught["member_sets"]:
-        return "this exact grouping was rejected as not_one_thing"
+        return "this exact grouping was rejected as not one thing"
     return None
 
 
@@ -560,6 +560,26 @@ def open_proposals(diffs: list[GraphDiff]) -> list[GraphDiff]:
         (d for d in diffs if d.status == "open"),
         key=lambda d: (-d.stakes, _diff_seq(d.diff_id)),
     )
+
+
+def decided_proposals(diffs: list[GraphDiff]) -> list[GraphDiff]:
+    """Decided diffs, oldest decision first — ordered by the same
+    decision-instant clock as the fold, so history and state can never
+    disagree about order (a lexical sort would misorder non-UTC offsets)."""
+    epoch = datetime.min.replace(tzinfo=timezone.utc)
+    return sorted(
+        (d for d in diffs if d.status != "open"),
+        key=lambda d: (
+            _instant(d.decision.at) if d.decision else epoch,
+            _diff_seq(d.diff_id),
+        ),
+    )
+
+
+def now_iso() -> str:
+    """Wall-clock stamp for the edges (API/CLI). The graph itself never
+    reads the clock — every timestamp is passed in by the caller."""
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def append_proposals(
@@ -586,9 +606,7 @@ def append_proposals(
         compute_shape_key(d.operations) for d in diffs if d.status != "rejected"
     }
     capacity = MAX_OPEN_PROPOSALS - len(open_proposals(diffs))
-    next_seq = (
-        max((int(d.diff_id.split("-")[1]) for d in diffs), default=0) + 1
-    )
+    next_seq = max((_diff_seq(d.diff_id) for d in diffs), default=0) + 1
 
     added, skipped_shape, skipped_cap, skipped_dup = [], [], [], []
     for proposal in proposals:
