@@ -108,19 +108,25 @@ DETERMINISTIC_EVALUATORS = [
 
 
 def explanation_quality_judge(run, example):
-    """LLM judge for the rendered comment's explanation quality.
+    """LLM judge for DECISION SUFFICIENCY of the rendered comment.
 
-    Secondary by design: it grades readability/citation quality of the
-    comment, not correctness — correctness is owned by the deterministic
-    evaluators above.
+    Secondary by design: correctness is owned by the deterministic
+    evaluators above. The bar (from the 2026-07-19 CPO session): the
+    comment must carry enough for a cold reader to make the review
+    decision from the screen alone — every claim completing its chain
+    (what changed → which promise → quoted source → file → what to do).
     """
     from langchain_anthropic import ChatAnthropic
     from pydantic import BaseModel, Field
 
     class Grade(BaseModel):
         reasoning: str = Field(description="Why this grade")
-        clear_and_actionable: bool = Field(
-            description="Comment states what changed, which obligations, and what to do next"
+        decision_sufficient: bool = Field(
+            description="A reader with NO access to the repo or the PRD "
+            "could make the accept/escalate decision from this comment "
+            "alone: it names what changed, which promise it touches, "
+            "quotes the promise's source, cites the enforcing file, and "
+            "states the next action"
         )
 
     comment = _outputs(run).get("comment", "")
@@ -128,8 +134,10 @@ def explanation_quality_judge(run, example):
         model="claude-haiku-4-5", temperature=0, max_tokens=512
     ).with_structured_output(Grade)
     grade = judge.invoke(
-        "Grade this PR alignment comment for explanation quality only "
-        "(clarity, specificity, actionable next step). Do NOT grade whether "
-        f"the verdict is correct.\n\n{comment}"
+        "Grade this PR alignment comment for DECISION SUFFICIENCY only — "
+        "not whether the verdict is correct. Could a cold reader (no repo, "
+        "no PRD) make the accept/escalate decision from this text alone? "
+        "Missing links in the chain (claim without quoted source, verdict "
+        f"without file, finding without next action) fail it.\n\n{comment}"
     )
-    return {"score": int(grade.clear_and_actionable), "comment": grade.reasoning}
+    return {"score": int(grade.decision_sufficient), "comment": grade.reasoning}

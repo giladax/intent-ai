@@ -472,7 +472,58 @@ def _write_diffs(workspace_dir: pathlib.Path, diffs: list[GraphDiff]) -> None:
 
 
 def rejected_shape_keys(diffs: list[GraphDiff]) -> set[str]:
-    return {d.shape_key for d in diffs if d.status == "rejected"}
+    # Recomputed from operations, never read from the stored field — a
+    # shape-algorithm improvement must not un-suppress old rejections.
+    return {
+        compute_shape_key(d.operations) for d in diffs if d.status == "rejected"
+    }
+
+
+def _suppression(diffs: list[GraphDiff]) -> dict:
+    """What rejection taught us, read through its reason code (rule 6):
+    the exact shape is always dead; wrong_name also kills the NAME;
+    not_one_thing also kills the exact GROUPING of promises."""
+    names: set[str] = set()
+    member_sets: set[frozenset[str]] = set()
+    for d in diffs:
+        if d.status != "rejected" or d.decision is None:
+            continue
+        if d.decision.reason_code == "wrong_name":
+            names |= {
+                _shape_norm(op.name)
+                for op in d.operations
+                if op.op == "create_entity"
+            }
+        if d.decision.reason_code == "not_one_thing":
+            members = frozenset(
+                op.ref
+                for op in d.operations
+                if op.op == "attach" and op.kind == "promise"
+            )
+            if members:
+                member_sets.add(members)
+    return {
+        "shapes": rejected_shape_keys(diffs),
+        "names": names,
+        "member_sets": member_sets,
+    }
+
+
+def suppression_reason(proposal: GraphDiff, taught: dict) -> str | None:
+    """Why a proposal may not return, or None if it may."""
+    if compute_shape_key(proposal.operations) in taught["shapes"]:
+        return "identical shape was rejected"
+    for op in proposal.operations:
+        if op.op == "create_entity" and _shape_norm(op.name) in taught["names"]:
+            return f"the name '{op.name}' was rejected as wrong_name"
+    members = frozenset(
+        op.ref
+        for op in proposal.operations
+        if op.op == "attach" and op.kind == "promise"
+    )
+    if members and members in taught["member_sets"]:
+        return "this exact grouping was rejected as not_one_thing"
+    return None
 
 
 def open_proposals(diffs: list[GraphDiff]) -> list[GraphDiff]:
@@ -492,12 +543,14 @@ def append_proposals(
     """Add proposals to the log — enforcing the open cap and rejected-shape
     suppression. Diff ids are minted here, server-side, never upstream."""
     diffs = load_diffs(workspace_dir)
-    suppressed_shapes = rejected_shape_keys(diffs)
+    taught = _suppression(diffs)
     # Open AND approved shapes both block re-proposal: an open duplicate
     # would ask the same question twice, and an approved duplicate would
     # fail create-validation at decision time anyway — refusing it here
     # keeps the noise out of the inbox.
-    existing_shapes = {d.shape_key for d in diffs if d.status != "rejected"}
+    existing_shapes = {
+        compute_shape_key(d.operations) for d in diffs if d.status != "rejected"
+    }
     capacity = MAX_OPEN_PROPOSALS - len(open_proposals(diffs))
     next_seq = (
         max((int(d.diff_id.split("-")[1]) for d in diffs), default=0) + 1
@@ -507,8 +560,9 @@ def append_proposals(
     for proposal in proposals:
         proposal.shape_key = compute_shape_key(proposal.operations)
         proposal.stakes = compute_stakes(proposal.operations)
-        if proposal.shape_key in suppressed_shapes:
-            skipped_shape.append(proposal.question)
+        why_suppressed = suppression_reason(proposal, taught)
+        if why_suppressed:
+            skipped_shape.append(f"{proposal.question} [{why_suppressed}]")
             continue
         if proposal.shape_key in existing_shapes:
             skipped_dup.append(proposal.question)

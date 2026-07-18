@@ -113,16 +113,58 @@ def test_other_rejection_requires_a_sentence(ws):
 def test_rejected_shape_never_returns(ws):
     report = append_proposals(ws, [proposal()], T0)
     decide(ws, report["added"][0], "rejected", by="gilad", now=T1,
-           reason_code="not_one_thing")
+           reason_code="bad_evidence")
     again = append_proposals(ws, [proposal()], T2)
     assert again["added"] == []
-    assert again["skipped_rejected_shape"] == ["Create Payments?"]
+    assert again["skipped_rejected_shape"] == [
+        "Create Payments? [identical shape was rejected]"
+    ]
     # a different shape (new name) is a new question — allowed
     renamed = proposal(operations=[
         CreateEntity(entity_id="ent-payments-core", name="Payments Core"),
         Attach(entity_id="ent-payments-core", kind="promise", ref="OB-1"),
     ])
     assert append_proposals(ws, [renamed], T2)["added"] == ["GD-2"]
+
+
+def test_wrong_name_rejection_kills_the_name_not_the_grouping(ws):
+    """Rule 6, read through the reason code: wrong_name teaches that the
+    NAME is wrong — the same grouping may return under a better name; the
+    same name may not return over any grouping."""
+    report = append_proposals(ws, [proposal()], T0)
+    decide(ws, report["added"][0], "rejected", by="gilad", now=T1,
+           reason_code="wrong_name")
+    same_name_new_grouping = proposal("Payments again?", [
+        CreateEntity(entity_id="ent-p2", name="Payments"),
+        Attach(entity_id="ent-p2", kind="promise", ref="OB-7"),
+    ])
+    blocked = append_proposals(ws, [same_name_new_grouping], T2)
+    assert blocked["added"] == []
+    assert "wrong_name" in blocked["skipped_rejected_shape"][0]
+    same_grouping_new_name = proposal("Custody boundary?", [
+        CreateEntity(entity_id="ent-custody", name="Custody Boundary"),
+        Attach(entity_id="ent-custody", kind="promise", ref="OB-1"),
+    ])
+    assert append_proposals(ws, [same_grouping_new_name], T2)["added"] == ["GD-2"]
+
+
+def test_not_one_thing_rejection_kills_the_grouping_not_the_name(ws):
+    report = append_proposals(ws, [proposal()], T0)
+    decide(ws, report["added"][0], "rejected", by="gilad", now=T1,
+           reason_code="not_one_thing")
+    renamed_same_grouping = proposal("Same thing, new name?", [
+        CreateEntity(entity_id="ent-x", name="Totally Different Name"),
+        Attach(entity_id="ent-x", kind="promise", ref="OB-1"),
+    ])
+    blocked = append_proposals(ws, [renamed_same_grouping], T2)
+    assert blocked["added"] == []
+    assert "not_one_thing" in blocked["skipped_rejected_shape"][0]
+    split_grouping = proposal("A split?", [
+        CreateEntity(entity_id="ent-y", name="Payments Guard"),
+        Attach(entity_id="ent-y", kind="promise", ref="OB-1"),
+        Attach(entity_id="ent-y", kind="promise", ref="OB-2"),
+    ])
+    assert append_proposals(ws, [split_grouping], T2)["added"] == ["GD-2"]
 
 
 def test_duplicate_shape_not_reproposed_while_open(ws):

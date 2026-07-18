@@ -1,4 +1,4 @@
-"""The 10 end-to-end eval cases (LangSmith dataset `alignment-mvp-e2e`).
+"""The 11 end-to-end eval cases (LangSmith dataset `alignment-mvp-e2e`).
 
 Each case points at a fixture PR (which carries the workflow manifest,
 current + stale/draft product documents, obligations, bindings, base/head

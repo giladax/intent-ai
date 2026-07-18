@@ -418,11 +418,18 @@ def entities(workspace: str = typer.Argument(help="workspace dir or name")):
 def propose_entities(workspace: str = typer.Argument(help="workspace dir or name")):
     """LLM proposals that consolidate the derived areas into entities —
     open questions for the inbox; nothing mutates until a human approves."""
-    from quire_align.entity_propose import EntityProposerLLM, seed_proposals
+    from quire_align.entity_propose import (
+        EntityProposerLLM,
+        haiku_doc_complement_judge,
+        seed_proposals,
+    )
 
     adapter = _adapter(workspace)
     ws_dir = workspace_mod.resolve_workspace_dir(workspace)
-    report = seed_proposals(ws_dir, adapter, EntityProposerLLM(), _graph_now())
+    report = seed_proposals(
+        ws_dir, adapter, EntityProposerLLM(), _graph_now(),
+        doc_judge=haiku_doc_complement_judge,
+    )
     typer.secho(
         f"proposed: {len(report['added'])} ({report['open']} now open, "
         f"capped at 5)",
@@ -434,6 +441,11 @@ def propose_entities(workspace: str = typer.Argument(help="workspace dir or name
         typer.echo(f"  suppressed (rejected shape): {skipped[:70]}")
     for skipped in report["skipped_cap"]:
         typer.echo(f"  deferred (inbox full): {skipped[:70]}")
+    if report["unplaced"]:
+        typer.secho(
+            f"  no home proposed for: {', '.join(report['unplaced'])}",
+            fg=typer.colors.YELLOW,
+        )
 
 
 @app.command()

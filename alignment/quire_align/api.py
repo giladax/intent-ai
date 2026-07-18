@@ -523,12 +523,17 @@ def create_app(store: Store | None = None) -> FastAPI:
 
     @app.post("/api/graph/{workspace:path}/propose")
     def graph_propose(workspace: str):
-        from quire_align.entity_propose import EntityProposerLLM, seed_proposals
+        from quire_align.entity_propose import (
+            EntityProposerLLM,
+            haiku_doc_complement_judge,
+            seed_proposals,
+        )
 
         adapter = _adapter(workspace)
         try:
             return seed_proposals(
-                _workspace_dir(workspace), adapter, EntityProposerLLM(), _now()
+                _workspace_dir(workspace), adapter, EntityProposerLLM(), _now(),
+                doc_judge=haiku_doc_complement_judge,
             )
         except HTTPException:
             raise

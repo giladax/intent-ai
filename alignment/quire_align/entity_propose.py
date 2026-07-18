@@ -67,7 +67,9 @@ class EntityProposerLLM:
         base = ChatAnthropic(model=model, temperature=0, max_tokens=8192)
         self._model = base.with_structured_output(EntityCandidates)
 
-    def propose(self, areas_block: str, promises_block: str) -> EntityCandidates:
+    def propose(
+        self, areas_block: str, promises_block: str, workspace_id: str = ""
+    ) -> EntityCandidates:
         return invoke_with_retry(
             self._model,
             "You maintain an organization's semantic map. Below are its "
@@ -78,6 +80,16 @@ class EntityProposerLLM:
             "Rules:\n"
             "- Each entity: a product-language name, one identity sentence "
             "a PM could read aloud, the promise ids that belong to it.\n"
+            "- SCALE: an entity must be smaller than the map. Never use the "
+            "product's or workspace's own name"
+            + (f" (here: “{workspace_id}”)" if workspace_id else "")
+            + ", and never a name whose words describe most of the promises "
+            "while its members are few — that name is at the wrong scale "
+            "and a human will reject it.\n"
+            "- COVERAGE: place every promise in the entity where the org "
+            "would look for it. A promise you leave out becomes a visible "
+            "gap on the map — leave one out only when it genuinely belongs "
+            "to none of your entities.\n"
             "- Every entity needs at least one quote copied VERBATIM from a "
             "member promise's statement — quotes are validated mechanically "
             "and a candidate with no valid quote is discarded.\n"
@@ -95,8 +107,43 @@ class FakeEntityProposer:
     def __init__(self, canned: EntityCandidates) -> None:
         self._canned = canned
 
-    def propose(self, areas_block: str, promises_block: str) -> EntityCandidates:
+    def propose(
+        self, areas_block: str, promises_block: str, workspace_id: str = ""
+    ) -> EntityCandidates:
         return self._canned
+
+
+def haiku_doc_complement_judge(name: str, identity: str, path: str) -> bool:
+    """LLM-heuristic tier (like graph_heuristics): does this document
+    contradict the entity's identity by DEFINITION — a register of the
+    deferred attached to an entity about the current, a source artifact
+    attached to an entity defined by not holding sources? Lexical
+    similarity co-locates complements; only a reader catches the inversion.
+    (Phrased independently of the eval judge in evals/seed_quality.py —
+    the eval must not trivially mirror the mechanism it grades.)"""
+    from langchain_anthropic import ChatAnthropic
+    from pydantic import BaseModel, Field
+
+    class Verdict(BaseModel):
+        reasoning: str = ""
+        contradicts_identity: bool = Field(
+            description="True only when attaching this document to this "
+            "entity would contradict the entity's own identity sentence — "
+            "not when it is merely related"
+        )
+
+    model = ChatAnthropic(
+        model="claude-haiku-4-5", temperature=0, max_tokens=256
+    ).with_structured_output(Verdict)
+    verdict = invoke_with_retry(
+        model,
+        f"Entity: “{name}”. Its identity: {identity or '(none given)'}\n"
+        f"Document to attach: {path}\n\n"
+        "Would attaching this document CONTRADICT the entity's identity "
+        "by definition (opposite register, excluded material)? Mere "
+        "relatedness is not contradiction.",
+    )
+    return bool(verdict.contradicts_identity)
 
 
 def _validated(
@@ -143,6 +190,37 @@ def _validated(
     return kept, notes
 
 
+def _wrong_scale(
+    name: str,
+    members: list[str],
+    statements_by_id: dict[str, str],
+    workspace_id: str,
+) -> str | None:
+    """Deterministic scale guard (the 'Brain' rule, learned from the first
+    live session): an entity must be smaller than the map. Same thresholds
+    as the scope_honesty eval — this is enforcement of a hard rule over an
+    LLM finding, like quote validation."""
+    from quire_align.text import tokenize
+
+    name_tokens = set(tokenize(name, min_len=3, keep_digits=True))
+    if not name_tokens:
+        return None
+    if name_tokens <= set(tokenize(workspace_id, min_len=3, keep_digits=True)):
+        return "the name is the workspace itself — an entity must be smaller than the map"
+    total = len(statements_by_id)
+    corpus_hits = sum(
+        1
+        for statement in statements_by_id.values()
+        if name_tokens & set(tokenize(statement, min_len=3, keep_digits=True))
+    )
+    if total and members and corpus_hits / total > 2 * (len(members) / total):
+        return (
+            f"name at the wrong scale — its words touch {corpus_hits} of "
+            f"{total} promises but it claims only {len(members)}"
+        )
+    return None
+
+
 _DOC_SUFFIXES = (".md", ".rst", ".txt")
 
 
@@ -173,6 +251,7 @@ def seed_proposals(
     adapter,
     proposer,
     now: str,
+    doc_judge=None,
 ) -> dict:
     """Areas + promises → validated entity proposals, appended to the diff
     log (which enforces the open cap and rejected-shape suppression)."""
@@ -204,7 +283,9 @@ def seed_proposals(
     promises_block = "\n".join(
         f"- {ob_id}: {statement}" for ob_id, statement in obligations_by_id.items()
     )
-    candidates = proposer.propose(areas_block, promises_block)
+    candidates = proposer.propose(
+        areas_block, promises_block, workspace_id=workspace_dir.name
+    )
     kept, notes = _validated(candidates, obligations_by_id)
 
     # Paths come exclusively from the approved bindings — and each carries
@@ -227,6 +308,13 @@ def seed_proposals(
                 f"{candidate.name}: an entity already answers to this name — skipped"
             )
             continue
+        scale_error = _wrong_scale(
+            candidate.name, candidate.member_obligation_ids,
+            obligations_by_id, workspace_dir.name,
+        )
+        if scale_error:
+            notes.append(f"{candidate.name}: discarded — {scale_error}")
+            continue
         entity_id = slug_entity_id(candidate.name, taken)
         taken.add(entity_id)
         bound_paths = sorted(
@@ -241,6 +329,18 @@ def seed_proposals(
         # enforcement site, and the card must not count it as one.
         code_paths = [p for p in bound_paths if not _is_doc_path(p)]
         doc_paths = [p for p in bound_paths if _is_doc_path(p)]
+        if doc_judge is not None:
+            kept_docs = []
+            for path in doc_paths:
+                if doc_judge(candidate.name, candidate.identity_sentence, path):
+                    notes.append(
+                        f"{candidate.name}: not attaching {path} — it "
+                        f"contradicts the entity's identity (a complement, "
+                        f"not a member; co-mention put it here)"
+                    )
+                else:
+                    kept_docs.append(path)
+            doc_paths = kept_docs
         operations = [
             CreateEntity(
                 entity_id=entity_id,
@@ -259,7 +359,7 @@ def seed_proposals(
                     ref=path,
                     note="bound to " + ", ".join(sorted(bound_by.get(path, []))),
                 )
-                for path in bound_paths
+                for path in code_paths + doc_paths
             ],
         ]
         built.append((candidate, GraphDiff(
@@ -305,4 +405,32 @@ def seed_proposals(
             )
 
     report = append_proposals(workspace_dir, [p for _, p, _ in built], now)
-    return {**report, "notes": notes, "candidates": len(candidates.entities)}
+
+    # Conservation: every approved promise is placed, already housed, or
+    # NAMED here. A promise silently missing from the seed was the worst
+    # defect of the first live session — the mirror must say what it is
+    # not showing.
+    housed = {
+        h["ref"]
+        for e in graph["entities"].values()
+        if e["status"] == "active"
+        for h in e["holdings"]
+        if h["kind"] == "promise"
+    }
+    # Only proposals that actually LANDED count as placed — a proposal
+    # deferred by the open-cap has no card, so its promises are unplaced
+    # until it returns (append_proposals mints diff ids only on add).
+    placed = {
+        op.ref
+        for _, p, _ in built
+        if p.diff_id
+        for op in p.operations
+        if op.op == "attach" and op.kind == "promise"
+    }
+    unplaced = sorted(set(obligations_by_id) - placed - housed)
+    return {
+        **report,
+        "notes": notes,
+        "candidates": len(candidates.entities),
+        "unplaced": unplaced,
+    }
