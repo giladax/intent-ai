@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meridian — the situation</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,500;0,6..72,700;1,6..72,400&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--ink:#1c1a16;--rule:#d8d2c4;--muted:#7a7466;--faint:#a39c8c;
+--ok:#2e7d4f;--warn:#b07716;--bad:#b3362b;--wash:#f1ece1}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 'Newsreader',serif}
+.mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.top{border-bottom:3px double var(--ink);padding:14px 48px;display:flex;align-items:baseline;gap:18px}
+.brand{font-weight:700;font-size:17px}
+.date{color:var(--muted);font-size:13px;font-style:italic}
+.search{margin-left:auto;border:1px solid var(--rule);background:#fff;padding:7px 14px;width:300px;font:13px 'Newsreader',serif;color:var(--muted)}
+main{max-width:980px;margin:0 auto;padding:44px 48px 90px}
+.masth{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+h1{font-size:34px;font-weight:700;line-height:1.15;max-width:26ch}
+h1 .bad{color:var(--bad)} h1 .warn{color:var(--warn)}
+.since{color:var(--muted);font-style:italic;margin-top:6px}
+.rule{border:0;border-top:1px solid var(--rule);margin:28px 0}
+.delta{display:grid;grid-template-columns:110px 1fr;gap:16px;padding:13px 0;border-bottom:1px dotted var(--rule)}
+.delta .mark{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.06em;padding-top:3px}
+.delta .mark.bad{color:var(--bad)} .delta .mark.warn{color:var(--warn)} .delta .mark.new{color:var(--muted)}
+.delta .what b{font-weight:500}
+.delta .why{color:var(--muted);font-size:13.5px;margin-top:2px}
+.delta .ent{font-style:italic}
+h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--muted);margin:34px 0 6px;border-bottom:1px solid var(--rule);padding-bottom:6px}
+.await{background:var(--wash);padding:4px 22px 12px;margin-top:12px}
+.await .item{padding:12px 0;border-bottom:1px dotted var(--rule)}
+.await .item:last-child{border:none}
+.await .q{font-size:16px;font-weight:500}
+.await .ev{font-style:italic;color:var(--muted);font-size:13.5px;margin-top:3px}
+.await .verbs{margin-top:8px}
+.await .verbs a{font-family:'Spline Sans Mono',monospace;font-size:11.5px;letter-spacing:.05em;margin-right:16px;text-transform:uppercase}
+.coverage{font-size:15px;font-style:italic;color:var(--muted);border-left:3px solid var(--ink);padding:6px 16px;margin-top:30px}
+.entities{columns:2;column-gap:56px;margin-top:10px}
+.entrow{break-inside:avoid;display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--rule);font-size:15px}
+.entrow .health{margin-left:auto;font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap}
+.entrow .health .b{color:var(--bad)} .entrow .health .w{color:var(--warn)}
+footer{border-top:3px double var(--ink);margin-top:64px;padding:12px 48px;color:var(--faint);font-size:12px}
+</style>
+</head>
+<body>
+<div class="top"><span class="brand">Meridian</span><span class="date">Thursday, July 18 · since your last visit (Tue)</span>
+  <input class="search" placeholder="Ask anything — a name, a question, a memory…"></div>
+<main>
+  <div class="masth">The situation of Acme Commerce</div>
+  <h1>One promise was <span class="bad">contradicted</span>, one is <span class="warn">partially delivered</span>. Three matters await you.</h1>
+  <p class="since">Everything below is what changed against your promises — not totals, deltas.</p>
+  <hr class="rule">
+
+  <div class="delta"><div class="mark bad">CONTRADICTED</div><div class="what">
+    <b>“High-risk refunds always require human approval”</b> — <span class="ent"><a href="#">Payments</a></span>
+    <div class="why">Check #218, Tue: refund exports bypass the approval queue for batches · evidence <span class="mono">export/batch.py:88</span></div></div></div>
+  <div class="delta"><div class="mark warn">PARTIAL</div><div class="what">
+    <b>“Premium customers may receive refunds up to $100”</b> — <span class="ent"><a href="#">Payments</a></span>
+    <div class="why">Check #212, Mon: the policy moved to $100 but the tool-side guard still stops at $50</div></div></div>
+  <div class="delta"><div class="mark new">ATTACHED</div><div class="what">
+    Incident <b>INC-112</b> — “refunds stuck in pending &gt; 24h” — <span class="ent"><a href="#">Payments</a></span>
+    <div class="why">attached Tuesday via approved proposal GD-9</div></div></div>
+
+  <h2>Awaiting a human — 3</h2>
+  <div class="await">
+    <div class="item">
+      <div class="q">These 14 documents and 3 code clusters describe one thing — call it <b>Payments&nbsp;Risk</b>?</div>
+      <div class="ev">“fraud scoring thresholds…” — risk-model spec · “high-risk queue pages on-call” — Slack, May 30 · +12 more</div>
+      <div class="verbs"><a href="#">Approve</a><a href="#">Edit</a><a href="#">Reject…</a></div>
+    </div>
+    <div class="item">
+      <div class="q">Check #218 contradicted a hard promise — confirm or overrule the verdict.</div>
+      <div class="verbs"><a href="#">Review check</a></div>
+    </div>
+    <div class="item">
+      <div class="q">Check #212 left “premium refunds to $100” partially delivered — track the follow-up?</div>
+      <div class="verbs"><a href="#">Review check</a></div>
+    </div>
+  </div>
+
+  <p class="coverage">Four recent changes touched surface no promise covers — most recently the notifications service. Worth registering intent for it?</p>
+
+  <h2>The map — by recent activity</h2>
+  <div class="entities">
+    <div class="entrow"><a href="#">Payments</a><span class="health"><span class="b">1✖</span> <span class="w">1◐</span> 5✔</span></div>
+    <div class="entrow"><a href="#">Ledger</a><span class="health">4✔</span></div>
+    <div class="entrow"><a href="#">Onboarding</a><span class="health"><span class="w">1◐</span> 3✔</span></div>
+    <div class="entrow"><a href="#">Catalog</a><span class="health">6✔</span></div>
+    <div class="entrow"><a href="#">Notifications</a><span class="health">no promises yet</span></div>
+    <div class="entrow"><a href="#">Checkout <span class="mono" style="color:var(--faint)">(superseded)</span></a><span class="health">frozen</span></div>
+  </div>
+</main>
+<footer>Deltas since Tuesday · every line traces to a document, a commit, or an approved proposal.</footer>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meridian — ask</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,500;0,6..72,700;1,6..72,400&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--ink:#1c1a16;--rule:#d8d2c4;--muted:#7a7466;--faint:#a39c8c;
+--ok:#2e7d4f;--warn:#b07716;--bad:#b3362b;--wash:#f1ece1}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 'Newsreader',serif}
+.mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.top{border-bottom:3px double var(--ink);padding:14px 48px;display:flex;align-items:baseline;gap:18px}
+.brand{font-weight:700;font-size:17px}
+main{max-width:780px;margin:0 auto;padding:44px 48px 90px}
+.askbox{border:1px solid var(--ink);background:#fff;padding:15px 20px;font:19px 'Newsreader',serif;width:100%}
+.kind{font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.hit{margin-top:22px;background:#fff;border:1px solid var(--rule);border-left:3px solid var(--ink);padding:18px 24px}
+.hit h3{font-size:26px;font-weight:700;margin:3px 0 4px}
+.hit .health b.ok{color:var(--ok)} .hit .health b.warn{color:var(--warn)} .hit .health b.bad{color:var(--bad)}
+.why{font-style:italic;color:var(--muted);border-left:2px solid var(--rule);padding:4px 14px;margin:12px 0 4px}
+.why .src{display:block;font-style:normal;font-family:'Spline Sans Mono',monospace;font-size:11.5px;color:var(--faint);margin-top:3px}
+.go{margin-top:10px;font-size:14px}
+.also{margin-top:18px;padding-top:12px;border-top:1px dotted var(--rule);font-size:14px;color:var(--muted)}
+.also b{color:var(--ink);font-weight:500}
+.divider{margin:46px 0 12px;color:var(--faint);font-size:11px;letter-spacing:.16em;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px}
+.refusal{margin-top:22px;background:var(--wash);border:1px solid var(--rule);padding:18px 24px}
+.refusal .head{font-size:17px;font-weight:500}
+.refusal .near{margin-top:8px;font-size:14px;color:var(--muted)}
+.super{margin-top:22px;background:#fff;border:1px solid var(--rule);border-left:3px solid var(--ink);padding:18px 24px}
+.supernote{font-size:13.5px;color:var(--muted);font-style:italic;margin-top:8px}
+footer{border-top:3px double var(--ink);margin-top:64px;padding:12px 48px;color:var(--faint);font-size:12px}
+</style>
+</head>
+<body>
+<div class="top"><span class="brand">Meridian</span></div>
+<main>
+  <input class="askbox" value="that thing where refunds got stuck">
+  <div class="hit">
+    <span class="kind">found through its evidence</span>
+    <h3>Payments</h3>
+    <div class="health">Seven promises: <b class="ok">5 kept</b>, <b class="warn">1 partial</b>, <b class="bad">1 contradicted</b> · 2 matters await a human</div>
+    <div class="why">“Refunds stuck in pending &gt; 24h; risk service timeout left the queue unprocessed.”
+      <span class="src">why this matched — incident INC-112, attached Tuesday</span></div>
+    <div class="go"><a href="#">Open Payments →</a></div>
+    <div class="also">Nearby: <b>Payments Risk</b> <span class="mono" style="color:var(--faint)">(part of Payments)</span> — the incident's root cause lives there.</div>
+  </div>
+
+  <div class="divider">The same box, asked for a retired name</div>
+  <input class="askbox" value="checkout">
+  <div class="super">
+    <span class="kind">entity · name now belongs to a successor</span>
+    <h3 style="font-size:26px;font-weight:700;margin:3px 0 4px">Payments</h3>
+    <div class="supernote">“Checkout” was folded into Payments on June 30 (proposal GD-4, approved by Dana). You can still <a href="#">read Checkout as it was</a>.</div>
+    <div class="go"><a href="#">Open Payments →</a></div>
+  </div>
+
+  <div class="divider">And when nothing can honestly be quoted</div>
+  <input class="askbox" value="loyalty points expiry">
+  <div class="refusal">
+    <div class="head">Nothing in the record matches that — and we won't guess.</div>
+    <div class="near">Nearest by wording: <a href="#">Payments</a> · <a href="#">Catalog</a>. If “loyalty points” should exist on this map, <a href="#">propose it</a> — or teach the term by opening the entity it belongs to.</div>
+  </div>
+</main>
+<footer>A result that can't quote its reason doesn't render.</footer>
+</body>
+</html>

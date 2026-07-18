@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payments — Meridian</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,500;0,6..72,700;1,6..72,400&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--ink:#1c1a16;--rule:#d8d2c4;--muted:#7a7466;--faint:#a39c8c;
+--ok:#2e7d4f;--warn:#b07716;--bad:#b3362b;--none:#a39c8c;--wash:#f1ece1;--link:#1c1a16}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 'Newsreader',serif}
+mono,.mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
+a{color:var(--link);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+.top{border-bottom:3px double var(--ink);padding:14px 48px;display:flex;align-items:baseline;gap:18px}
+.brand{font-weight:700;font-size:17px;letter-spacing:.02em}
+.crumb{color:var(--muted);font-size:13px}
+.crumb b{color:var(--ink)}
+.search{margin-left:auto;border:1px solid var(--rule);background:#fff;padding:7px 14px;width:280px;font:13px 'Newsreader',serif;color:var(--muted)}
+main{max-width:1060px;margin:0 auto;padding:40px 48px 90px}
+h1{font-size:44px;font-weight:700;line-height:1.05;letter-spacing:-.01em}
+.identity{font-size:17px;font-style:italic;color:var(--muted);margin:10px 0 4px;max-width:70ch}
+.identity a{font-style:normal;font-size:12px}
+.healthline{font-size:17px;margin:18px 0 6px}
+.healthline b.ok{color:var(--ok)} .healthline b.warn{color:var(--warn)} .healthline b.bad{color:var(--bad)}
+.latest{color:var(--muted);font-size:14px}
+.rule{border:0;border-top:1px solid var(--rule);margin:30px 0}
+.cols{display:grid;grid-template-columns:1.15fr .9fr;gap:56px}
+h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--muted);margin:0 0 14px;border-bottom:1px solid var(--rule);padding-bottom:6px}
+.event{display:grid;grid-template-columns:86px 1fr;gap:14px;padding:11px 0;border-bottom:1px dotted var(--rule)}
+.event .when{color:var(--faint);font-size:12px;font-family:'Spline Sans Mono',monospace;padding-top:3px}
+.event .what b{font-weight:500}
+.event .tag{font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.06em;padding:1px 7px;border:1px solid var(--rule);border-radius:10px;color:var(--muted);white-space:nowrap}
+.event .tag.bad{color:var(--bad);border-color:var(--bad)}
+.event .tag.warn{color:var(--warn);border-color:var(--warn)}
+.event .tag.ok{color:var(--ok);border-color:var(--ok)}
+.event .why{color:var(--muted);font-size:13.5px;margin-top:2px}
+.promise{padding:13px 0;border-bottom:1px dotted var(--rule)}
+.promise .mark{font-size:15px;margin-right:8px}
+.m-ok{color:var(--ok)} .m-warn{color:var(--warn)} .m-bad{color:var(--bad)} .m-none{color:var(--none)}
+.promise .text{font-weight:500}
+.promise .quote{font-style:italic;color:var(--muted);font-size:13.5px;margin:4px 0 0 25px;border-left:2px solid var(--rule);padding-left:10px}
+.promise .src{font-size:11.5px;color:var(--faint);margin:4px 0 0 25px;font-family:'Spline Sans Mono',monospace}
+.promise .chain{font-size:13px;color:var(--muted);margin:6px 0 0 25px;line-height:1.7}
+.promise .chain b{font-weight:600}
+.collapsed-p .text{font-weight:400}
+.chain-inline{font-size:12.5px;color:var(--faint)}
+.m-none{color:var(--none)}
+.hold{padding:8px 0;border-bottom:1px dotted var(--rule);font-size:14px;display:flex;gap:10px;align-items:baseline}
+.hold .kind{font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);width:64px;flex:none;letter-spacing:.05em;text-transform:uppercase}
+.related{margin-top:34px;background:var(--wash);padding:18px 22px}
+.related h2{border:none;margin-bottom:8px}
+.related .rel{padding:4px 0;font-size:15px}
+.related .rel .role{color:var(--muted);font-style:italic}
+footer{border-top:3px double var(--ink);margin-top:70px;padding:12px 48px;color:var(--faint);font-size:12px;display:flex;gap:24px}
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="brand">Meridian</span>
+  <span class="crumb">The situation of <b>Acme Commerce</b> · <a href="#">Home</a> ▸ <b>Payments</b></span>
+  <input class="search" value="" placeholder="Ask anything — a name, a question, a memory…">
+</div>
+<main>
+  <h1>Payments</h1>
+  <p class="identity">Everything that moves money for a customer order: authorization, capture, refunds, and their guardrails.
+    <a href="#" title="This sentence was approved via diff GD-2, Jun 12">· approved wording</a></p>
+  <p class="healthline">Seven promises: <b class="ok">5 kept</b>, <b class="warn">1 partially delivered</b> since check #212, <b class="bad">1 contradicted</b> since Tuesday. Two matters await a human.</p>
+  <p class="latest">Latest: incident <a href="#">INC-112</a> attached Tuesday — “refunds stuck in pending &gt; 24h.”</p>
+
+  <hr class="rule">
+  <div class="cols">
+    <section>
+      <h2>The record — newest first</h2>
+      <div class="event"><div class="when">Tue 14:02</div><div class="what">
+        <span class="tag bad">contradicted</span> <b>Check #218</b> — “Refund exports bypass the approval queue for batches”
+        <div class="why">violates <i>“High-risk refunds always require human approval”</i> · evidence at <span class="mono">export/batch.py:88</span></div></div></div>
+      <div class="event"><div class="when">Tue 09:40</div><div class="what">
+        <span class="tag">incident</span> <b>INC-112 attached</b> — refunds stuck in pending &gt; 24h
+        <div class="why">attached by proposal GD-9, approved by Dana</div></div></div>
+      <div class="event"><div class="when">Mon 16:22</div><div class="what">
+        <span class="tag warn">partial</span> <b>Check #212</b> — “Raise premium refund limit to $100”
+        <div class="why">policy moved to $100; the tool-side guard still stops at $50</div></div></div>
+      <div class="event"><div class="when">Mon 11:03</div><div class="what">
+        <span class="tag">decision</span> <b>Slack decision attached</b> — “we agreed refunds over $500 page the on-call PM”
+        <div class="why">#payments-eng, May 30 · attached via GD-7</div></div></div>
+      <div class="event"><div class="when">Fri</div><div class="what">
+        <span class="tag ok">kept</span> <b>Check #205</b> — “Refactor payment router” — no promise affected</div></div>
+    </section>
+    <section>
+      <h2>Seven promises — each with its chain of proof</h2>
+      <div class="promise"><span class="mark m-bad">✖</span><span class="text">High-risk refunds always require human approval.</span>
+        <div class="quote">“Refund requests flagged high-risk always require human approval, regardless of tier or amount.”</div>
+        <div class="chain"><span class="mono">refund-policy PRD §High-risk</span> → enforced in <a class="mono" href="#">payments/guard.py:41</a> → <b class="m-bad">contradicted</b> by check #218, Tue <span class="mono">(export/batch.py:88)</span></div></div>
+      <div class="promise"><span class="mark m-warn">◐</span><span class="text">Premium customers may receive refunds up to $100.</span>
+        <div class="chain"><span class="mono">refund-policy PRD §Premium</span> → decided in <a class="mono" href="#">payments/refund_policy.py:27</a>, guard at <a class="mono" href="#">payments/guard.py:18</a> → <b class="m-warn">partially delivered</b> since check #212, Mon — policy says $100, guard still $50</div></div>
+      <div class="promise"><span class="mark m-ok">✔</span><span class="text">Every refund decision emits an audit event.</span>
+        <div class="chain"><span class="mono">refund-policy PRD §Audit</span> → observed in <a class="mono" href="#">payments/audit.py:12</a> → <b class="m-ok">kept</b>, last verified by check #205, Fri</div></div>
+      <div class="promise collapsed-p"><span class="mark m-ok">✔</span><span class="text">Refund limits apply per-customer per-day.</span> <span class="chain-inline">→ <a class="mono" href="#">limits.py:33</a> · kept, verified Fri</span></div>
+      <div class="promise collapsed-p"><span class="mark m-ok">✔</span><span class="text">Chargebacks freeze the customer's refund queue.</span> <span class="chain-inline">→ <a class="mono" href="#">chargeback.py:9</a> · kept, verified Thu</span></div>
+      <div class="promise collapsed-p"><span class="mark m-ok">✔</span><span class="text">Refunds over $500 page the on-call PM.</span> <span class="chain-inline">→ <a class="mono" href="#">pager.py:21</a> · kept, verified Jul 2</span></div>
+      <div class="promise collapsed-p"><span class="mark m-none">·</span><span class="text">Partial refunds keep the original payment method.</span> <span class="chain-inline">→ no check has exercised this yet</span></div>
+      <h2 style="margin-top:26px">Also attached</h2>
+      <div class="hold"><span class="kind">doc</span><a href="#">Refund policy PRD v3</a></div>
+      <div class="hold"><span class="kind">ticket</span><a href="#">PAY-341 — raise premium limit</a></div>
+      <div class="hold"><span class="kind">decision</span><a href="#">Slack: refunds &gt; $500 page on-call</a></div>
+      <div class="hold"><span class="kind">incident</span><a href="#">INC-112 — refunds stuck in pending</a></div>
+      <div class="related">
+        <h2>Stands in relation to</h2>
+        <div class="rel"><span class="role">part of</span> <a href="#">Commerce</a></div>
+        <div class="rel"><span class="role">depends on</span> <a href="#">Ledger</a></div>
+        <div class="rel"><span class="role">supersedes</span> <a href="#">Checkout</a>, <a href="#">Billing</a> <span class="mono" style="color:var(--faint)">since Jun 30 · via GD-4</span></div>
+      </div>
+    </section>
+  </div>
+</main>
+<footer><span>Every line above traces to a document, a commit, or an approved proposal.</span><span>As of Thu, Jul 18 — scrub to any earlier date.</span></footer>
+</body>
+</html>

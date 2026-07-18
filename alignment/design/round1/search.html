@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meridian — ask</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,500;0,6..72,700;1,6..72,400&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--ink:#1c1a16;--rule:#d8d2c4;--muted:#7a7466;--faint:#a39c8c;
+--ok:#2e7d4f;--warn:#b07716;--bad:#b3362b;--wash:#f1ece1}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 'Newsreader',serif}
+.mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.top{border-bottom:3px double var(--ink);padding:14px 48px;display:flex;align-items:baseline;gap:18px}
+.brand{font-weight:700;font-size:17px}
+main{max-width:860px;margin:0 auto;padding:40px 48px 90px}
+.demo{color:var(--faint);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;margin:34px 0 8px}
+.askbox{border:1px solid var(--ink);background:#fff;padding:14px 18px;font:18px 'Newsreader',serif;width:100%}
+.shape{border-left:3px solid var(--ink);padding:14px 20px;margin-top:14px;background:#fff;border-top:1px solid var(--rule);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.kind{font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.shape h3{font-size:22px;font-weight:700;margin:4px 0 2px}
+.shape .health b.ok{color:var(--ok)} .shape .health b.warn{color:var(--warn)} .shape .health b.bad{color:var(--bad)}
+.shape .go{font-size:13px;margin-top:6px}
+.row{padding:9px 0;border-bottom:1px dotted var(--rule)}
+.row .mark{font-family:'Spline Sans Mono',monospace;font-size:11px;margin-right:10px}
+.row .mark.bad{color:var(--bad)} .row .mark.warn{color:var(--warn)}
+.row .ent{font-style:italic}
+.why{font-style:italic;color:var(--muted);font-size:14px;border-left:2px solid var(--rule);padding-left:12px;margin-top:8px}
+.why .src{display:block;font-style:normal;font-family:'Spline Sans Mono',monospace;font-size:11.5px;color:var(--faint);margin-top:2px}
+.reasonnote{color:var(--faint);font-size:12.5px;font-style:italic;margin-top:8px}
+footer{border-top:3px double var(--ink);margin-top:64px;padding:12px 48px;color:var(--faint);font-size:12px}
+</style>
+</head>
+<body>
+<div class="top"><span class="brand">Meridian</span><span style="color:var(--muted);font-size:13px">One box. It figures out what kind of answer you need.</span></div>
+<main>
+
+  <div class="demo">If you name a thing → you get the thing</div>
+  <input class="askbox" value="payments">
+  <div class="shape">
+    <span class="kind">entity · matched by name</span>
+    <h3>Payments</h3>
+    <div class="health">Seven promises: <b class="ok">5 kept</b>, <b class="warn">1 partial</b>, <b class="bad">1 contradicted</b> · 2 matters await a human</div>
+    <div class="go"><a href="#">Open the dossier →</a></div>
+  </div>
+
+  <div class="demo">If you ask about the situation → you get the situation, across everything</div>
+  <input class="askbox" value="is anything broken?">
+  <div class="shape">
+    <span class="kind">situation · answered across all entities — never just one</span>
+    <div class="row"><span class="mark bad">CONTRADICTED</span>“High-risk refunds always require human approval” — <span class="ent"><a href="#">Payments</a></span>, since Tue (check #218)</div>
+    <div class="row"><span class="mark warn">PARTIAL</span>“Premium refunds up to $100” — <span class="ent"><a href="#">Payments</a></span>, since Mon (check #212)</div>
+    <div class="reasonnote">Everything else holds. Last verified across 6 entities, Thu 09:00.</div>
+  </div>
+
+  <div class="demo">If you half-remember something → it finds the thing and shows you why</div>
+  <input class="askbox" value="that thing where refunds got stuck">
+  <div class="shape">
+    <span class="kind">semantic · matched through an attachment</span>
+    <h3>Payments</h3>
+    <div class="why">“Refunds stuck in pending &gt; 24h; risk service timeout left the queue unprocessed.”
+      <span class="src">matched via incident INC-112, attached Tuesday</span></div>
+    <div class="go"><a href="#">Open the dossier →</a> · related: <a href="#">Payments Risk</a> <span class="mono" style="color:var(--faint)">(part of)</span></div>
+    <div class="reasonnote">A result that can't quote its reason doesn't render.</div>
+  </div>
+
+</main>
+<footer>Three answer shapes, zero modes — the box classifies your question, you never do.</footer>
+</body>
+</html>
