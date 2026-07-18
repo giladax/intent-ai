@@ -334,6 +334,129 @@ def test_slug_minting_uniquifies():
     assert slug_entity_id("Payments Risk", {"ent-payments-risk"}) == "ent-payments-risk-2"
 
 
+# -- regressions from the 2026-07-19 engineering review -------------------
+
+
+def test_amended_detected_for_identity_sentence_edit(ws):
+    """Rule 7 by VALUE: the shape key ignores meaning-bearing fields, so
+    amendment detection must not use it."""
+    report = append_proposals(ws, [proposal()], T0)
+    edited = [op.model_dump() for op in proposal().operations]
+    edited[0]["identity_sentence"] = "A completely different meaning."
+    decided = approve(ws, report["added"][0], operations=edited)
+    assert decided.decision.amended is True
+
+
+def test_amended_detected_for_promise_fate_flip(two_entities):
+    """Flipping carried→retired at approval drops a promise from the
+    successor — that MUST be recorded human-amended."""
+    ws = two_entities
+    report = append_proposals(ws, [
+        proposal("Retire Checkout?", [
+            Supersede(entity_id="ent-checkout", successor_id="ent-payments",
+                      promise_fates=[
+                          PromiseFate(ref="OB-1", fate="carried"),
+                          PromiseFate(ref="OB-2", fate="retired"),
+                      ]),
+        ]),
+    ], T1)
+    edited = [op.model_dump() for op in load_diffs(ws)[-1].operations]
+    edited[0]["promise_fates"][0]["fate"] = "retired"
+    decided = approve(ws, report["added"][0], at=T2, operations=edited)
+    assert decided.decision.amended is True
+    payments = graph_state(load_diffs(ws))["entities"]["ent-payments"]
+    assert [h for h in payments["holdings"] if h["kind"] == "promise"] == []
+
+
+def test_unknown_action_fails_loudly(ws):
+    report = append_proposals(ws, [proposal()], T0)
+    with pytest.raises(GraphIntegrityError, match="unknown action"):
+        decide(ws, report["added"][0], "approv", by="gilad", now=T1)
+    assert graph_state(load_diffs(ws))["entities"] == {}
+
+
+def test_fold_orders_by_instant_not_string(ws):
+    """A non-UTC offset that lexically sorts after a later UTC instant
+    must still fold first — else the log becomes unreadable."""
+    report = append_proposals(ws, [
+        proposal("Create?", [CreateEntity(entity_id="ent-e1", name="E1")]),
+        proposal("Attach?", [Attach(entity_id="ent-e1", kind="doc", ref="spec")]),
+    ], T0)
+    # create decided at 12:00+03:00 == 09:00Z; attach at 10:00Z (later)
+    approve(ws, report["added"][0], at="2026-07-18T12:00:00+03:00")
+    approve(ws, report["added"][1], at="2026-07-18T10:00:00+00:00")
+    state = graph_state(load_diffs(ws))
+    assert [h["ref"] for h in state["entities"]["ent-e1"]["holdings"]] == ["spec"]
+
+
+def test_multi_hop_forwarding_lands_on_live_entity(ws):
+    report = append_proposals(ws, [
+        proposal("Create all?", [
+            CreateEntity(entity_id="ent-a", name="A"),
+            CreateEntity(entity_id="ent-b", name="B"),
+            CreateEntity(entity_id="ent-c", name="C"),
+        ]),
+        proposal("A→B?", [Supersede(entity_id="ent-a", successor_id="ent-b")]),
+        proposal("B→C?", [Supersede(entity_id="ent-b", successor_id="ent-c")]),
+    ], T0)
+    approve(ws, report["added"][0], at=T0)
+    approve(ws, report["added"][1], at=T1)
+    approve(ws, report["added"][2], at=T2)
+    hit = resolve_entity(graph_state(load_diffs(ws)), "a")
+    assert hit["entity"]["entity_id"] == "ent-c"
+    assert hit["forwarded_from"]["name"] == "A"
+
+
+def test_rejected_shape_survives_whitespace_and_punctuation(ws):
+    report = append_proposals(ws, [proposal()], T0)
+    decide(ws, report["added"][0], "rejected", by="gilad", now=T1,
+           reason_code="not_one_thing")
+    for variant in ("Payments ", "Payments.", "PAYMENTS", "payments-"):
+        again = append_proposals(ws, [proposal(operations=[
+            CreateEntity(entity_id="ent-p2", name=variant),
+            Attach(entity_id="ent-p2", kind="promise", ref="OB-1"),
+        ])], T2)
+        assert again["added"] == [], f"'{variant}' evaded shape suppression"
+
+
+def test_supersede_naming_unheld_promises_fails(two_entities):
+    ws = two_entities
+    report = append_proposals(ws, [
+        proposal("Retire Checkout?", [
+            Supersede(entity_id="ent-checkout", successor_id="ent-payments",
+                      promise_fates=[
+                          PromiseFate(ref="OB-1", fate="carried"),
+                          PromiseFate(ref="OB-2", fate="retired"),
+                          PromiseFate(ref="OB-999", fate="retired"),
+                      ]),
+        ]),
+    ], T1)
+    with pytest.raises(GraphIntegrityError, match="does not hold.*OB-999"):
+        approve(ws, report["added"][0], at=T2)
+
+
+def test_medium_stakes_band():
+    ops = [CreateEntity(entity_id="ent-a", name="A"),
+           Relate(entity_id="ent-a", relation="part_of", other_id="ent-b")]
+    from quire_align.entity_graph import compute_stakes
+
+    assert stakes_label(compute_stakes(ops)) == "medium"
+
+
+def test_failed_approval_leaves_no_decision_on_disk(two_entities):
+    ws = two_entities
+    report = append_proposals(ws, [
+        proposal("Retire Checkout?", [
+            Supersede(entity_id="ent-checkout", successor_id="ent-payments",
+                      promise_fates=[PromiseFate(ref="OB-1", fate="carried")]),
+        ]),
+    ], T1)
+    with pytest.raises(GraphIntegrityError):
+        approve(ws, report["added"][0], at=T2)
+    on_disk = load_diffs(ws)[-1]
+    assert on_disk.status == "open" and on_disk.decision is None
+
+
 def test_shape_key_ignores_operation_order():
     ops1 = [CreateEntity(entity_id="e", name="N"),
             Attach(entity_id="e", kind="promise", ref="OB-1")]

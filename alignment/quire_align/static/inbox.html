@@ -16,7 +16,9 @@ a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);t
 .crumb{color:var(--muted);font-size:13px}
 main{max-width:820px;margin:0 auto;padding:44px 48px 90px}
 h1{font-size:30px;font-weight:700}
-.sub{color:var(--muted);font-style:italic;margin:6px 0 30px}
+.sub{color:var(--muted);font-style:italic;margin:6px 0 14px}
+.coverage{font-size:15px;font-style:italic;color:var(--muted);border-left:3px solid var(--ink);padding:6px 16px;margin:0 0 26px}
+.coverage b.gap{color:var(--bad);font-style:normal}
 .card{border:1px solid var(--rule);background:#fff;margin-bottom:18px;box-shadow:3px 3px 0 var(--wash)}
 .card.high{border-left:3px solid var(--bad)}
 .card .head{padding:20px 26px 0}
@@ -27,11 +29,19 @@ h1{font-size:30px;font-weight:700}
 .evidence h3{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500;margin-bottom:8px}
 .quote{border-left:3px solid var(--ink);padding:4px 14px;margin:0 0 10px;font-style:italic}
 .quote .src{display:block;font-style:normal;font-size:11.5px;color:var(--faint);font-family:'Spline Sans Mono',monospace;margin-top:2px}
+.more{color:var(--muted);font-size:13px}
+.heldnote{color:var(--muted);font-size:13px;font-style:italic;margin:6px 0 4px}
 .change{background:var(--wash);margin:14px 26px;padding:12px 16px;font-family:'Spline Sans Mono',monospace;font-size:12.5px;line-height:1.9}
 .change .plus{color:var(--add)}
-.editor{margin:0 26px 12px;display:none}
-.editor textarea{width:100%;min-height:160px;font:12px 'Spline Sans Mono',monospace;border:1px solid var(--rule);padding:10px;background:#fff}
-.editor .hint{color:var(--muted);font-size:12.5px;font-style:italic;margin:6px 0}
+.change .off{color:var(--faint);text-decoration:line-through}
+.change .note{color:var(--faint);font-size:11px}
+.editor{margin:0 26px 12px;display:none;border:1px solid var(--rule);padding:14px 16px;background:#fff}
+.editor .hint{color:var(--muted);font-size:12.5px;font-style:italic;margin-bottom:10px}
+.editor label{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 2px}
+.editor input[type=text]{width:100%;font:14px 'Newsreader',serif;border:0;border-bottom:1px solid var(--rule);background:none;padding:4px 2px}
+.oprow{display:flex;gap:10px;align-items:baseline;padding:5px 0;font-family:'Spline Sans Mono',monospace;font-size:12.5px}
+.oprow input{accent-color:var(--ink)}
+.oprow .k{color:var(--faint);font-size:10.5px;width:56px;flex:none;text-transform:uppercase}
 .foot{display:flex;gap:14px;align-items:center;padding:14px 26px 20px;border-top:1px solid var(--rule);flex-wrap:wrap}
 button{font:13px 'Spline Sans Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:9px 20px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper)}
 button.ghost{background:none;color:var(--ink)}
@@ -39,10 +49,14 @@ button:disabled{opacity:.4;cursor:default}
 .rejects{margin-left:auto;font-size:13px;color:var(--muted)}
 .rejects a{margin-left:8px}
 .err{color:var(--bad);font-size:13px;font-style:italic;padding:0 26px 14px}
+.collapsed{border:1px solid var(--rule);background:#fff;margin-bottom:12px;padding:14px 26px;display:flex;gap:14px;align-items:baseline;cursor:pointer}
+.collapsed.high{border-left:3px solid var(--bad)}
+.collapsed .q2{font-size:16px;font-weight:500}
+.collapsed .n{color:var(--faint);font-size:12px;font-family:'Spline Sans Mono',monospace;margin-left:auto;white-space:nowrap}
 .decided{margin-top:44px}
 .decided h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--muted);margin-bottom:8px;border-bottom:1px solid var(--rule);padding-bottom:6px}
 .drow{padding:8px 0;border-bottom:1px dotted var(--rule);font-size:14px;display:flex;gap:12px;align-items:baseline}
-.drow .st{font-family:'Spline Sans Mono',monospace;font-size:11px;width:110px;flex:none;letter-spacing:.05em;text-transform:uppercase}
+.drow .st{font-family:'Spline Sans Mono',monospace;font-size:11px;width:130px;flex:none;letter-spacing:.05em;text-transform:uppercase}
 .drow .st.approved{color:var(--ok)} .drow .st.rejected{color:var(--bad)}
 .drow .who{margin-left:auto;color:var(--faint);font-size:12px;font-family:'Spline Sans Mono',monospace;white-space:nowrap}
 .note{color:var(--muted);font-style:italic;font-size:13.5px;margin-top:22px}
@@ -51,21 +65,24 @@ footer{border-top:3px double var(--ink);margin-top:60px;padding:12px 48px;color:
 </style>
 </head>
 <body>
-<div class="top"><span class="brand">Meridian</span><span class="crumb"><a href="/mirror/__WORKSPACE__">Home</a> ▸ <b id="count">Proposals</b> <span style="color:var(--faint)">(never more than 5)</span></span></div>
+<div class="top"><span class="brand">Meridian</span><span class="crumb"><a id="homelink">Home</a> ▸ <b id="count">Proposals</b> <span style="color:var(--faint)">(never more than 5)</span></span></div>
 <main>
   <h1>The map wants to change. You decide.</h1>
   <p class="sub">Each card is one question. Nothing below touches the map until you approve it.</p>
+  <p class="coverage" id="coverage" hidden></p>
   <div id="cards"></div>
   <p class="note">A rejected proposal never returns in the same shape. There is deliberately no “approve all.”</p>
   <div class="decided" id="decided" hidden>
-    <h2>Decided — the map's history</h2>
+    <h2>Decided — in decision order</h2>
     <div id="drows"></div>
   </div>
 </main>
 <footer>Machines reason, humans decide.</footer>
 <script>
-const WS = "__WORKSPACE__";
+const WS = __WORKSPACE_JSON__;
+document.getElementById("homelink").href = "/mirror/" + encodeURIComponent(WS);
 const REASONS = [["not_one_thing","not one thing"],["wrong_name","wrong name"],["bad_evidence","bad evidence"],["other","other…"]];
+let expanded = null; // diff_id of the currently expanded card
 
 function el(tag, cls, text){
   const node = document.createElement(tag);
@@ -83,8 +100,8 @@ function reviewer(){
   return name;
 }
 
-function opLine(op){
-  if (op.op === "create_entity") return ["+ entity", op.name + (op.aliases && op.aliases.length ? " · alias " + op.aliases.map(a=>`“${a}”`).join(", ") : "")];
+function opText(op){
+  if (op.op === "create_entity") return ["+ entity", op.name + (op.identity_sentence ? " — " + op.identity_sentence : "") + (op.aliases && op.aliases.length ? " · alias " + op.aliases.map(a=>`“${a}”`).join(", ") : "")];
   if (op.op === "attach") return ["+ attach", op.kind + " " + op.ref];
   if (op.op === "alias") return ["+ alias", op.terms.map(t=>`“${t}”`).join(", ")];
   if (op.op === "rename") return ["± rename", op.entity_id + " → " + op.name];
@@ -94,23 +111,80 @@ function opLine(op){
 
 async function post(diffId, body, errNode){
   errNode.textContent = "";
-  const res = await fetch(`/api/graph/${WS}/proposals/${diffId}/decision`, {
+  const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/proposals/${diffId}/decision`, {
     method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
   if (!res.ok){
-    const detail = (await res.json().catch(()=>({}))).detail || res.statusText;
-    errNode.textContent = detail;
+    const payload = await res.json().catch(()=>({}));
+    errNode.textContent = typeof payload.detail === "string" ? payload.detail : res.statusText;
     return false;
   }
   return true;
 }
 
-function card(p){
+// Editor state per card: which ops are kept, and edited create fields.
+function makeEditState(p){
+  return p.operations.map(op => ({op: structuredClone(op), keep: true}));
+}
+
+function buildOperations(editState){
+  return editState.filter(row => row.keep).map(row => row.op);
+}
+
+function renderChange(change, editState, editing){
+  change.replaceChildren();
+  editState.forEach(row => {
+    const [verb, rest] = opText(row.op);
+    const line = el("span", row.keep ? "" : "off");
+    line.appendChild(el("span", "plus", verb));
+    line.append(" " + rest);
+    if (row.op.op === "attach" && row.op.note){
+      line.append(" ");
+      line.appendChild(el("span", "note", "· " + row.op.note));
+    }
+    change.appendChild(line);
+    change.appendChild(document.createElement("br"));
+  });
+  if (editing) change.appendChild(el("div", "note", "this is the change you are approving — unchecked lines will not happen"));
+}
+
+function renderEditor(editor, editState, onChange){
+  editor.replaceChildren();
+  editor.appendChild(el("div", "hint", "Uncheck what should not happen; reword what should. An edited approval is recorded as human-amended."));
+  editState.forEach(row => {
+    if (row.op.op === "create_entity"){
+      const nameLabel = el("label", "", "entity name");
+      const nameInput = el("input"); nameInput.type = "text"; nameInput.value = row.op.name;
+      nameInput.addEventListener("input", () => { row.op.name = nameInput.value; onChange(); });
+      const idLabel = el("label", "", "identity sentence — readable aloud");
+      const idInput = el("input"); idInput.type = "text"; idInput.value = row.op.identity_sentence || "";
+      idInput.addEventListener("input", () => { row.op.identity_sentence = idInput.value; onChange(); });
+      const alLabel = el("label", "", "aliases (comma-separated)");
+      const alInput = el("input"); alInput.type = "text"; alInput.value = (row.op.aliases || []).join(", ");
+      alInput.addEventListener("input", () => {
+        row.op.aliases = alInput.value.split(",").map(s=>s.trim()).filter(Boolean); onChange();
+      });
+      editor.append(nameLabel, nameInput, idLabel, idInput, alLabel, alInput);
+    } else {
+      const opRow = el("div", "oprow");
+      const box = el("input"); box.type = "checkbox"; box.checked = row.keep;
+      box.addEventListener("change", () => { row.keep = box.checked; onChange(); });
+      const [verb, rest] = opText(row.op);
+      opRow.append(box, el("span", "k", verb.replace(/^[+±∅] /, "")), el("span", "", rest));
+      editor.appendChild(opRow);
+    }
+  });
+}
+
+function card(p, uniformStakes){
   const c = el("div", "card" + (p.stakes_label === "high" ? " high" : ""));
   const head = el("div", "head");
   head.appendChild(el("div", "q", p.question));
   const meta = el("div", "meta");
-  meta.append(`proposal ${p.diff_id} · reasoned from ${p.evidence.length} quoted source${p.evidence.length===1?"":"s"} · `);
-  meta.appendChild(el("span", p.stakes_label === "high" ? "stakes-high" : "", `${p.stakes_label} stakes`));
+  meta.append(`proposal ${p.diff_id} · reasoned from ${p.evidence.length} quoted source${p.evidence.length===1?"":"s"}`);
+  if (!uniformStakes){
+    meta.append(" · ");
+    meta.appendChild(el("span", p.stakes_label === "high" ? "stakes-high" : "", `${p.stakes_label} stakes`));
+  }
   if (p.mechanics_note) meta.append(` · mechanics: ${p.mechanics_note} (footnote, not the argument)`);
   head.appendChild(meta);
   c.appendChild(head);
@@ -123,41 +197,39 @@ function card(p){
     ev.appendChild(quote);
   });
   if (p.evidence.length > 3) ev.appendChild(el("div", "more", `…and ${p.evidence.length - 3} more, in the record.`));
+  const heldRefs = Object.keys(p.already_held || {});
+  heldRefs.forEach(ref => {
+    ev.appendChild(el("div", "heldnote",
+      `${ref} is already held by ${p.already_held[ref].join(", ")} — approving adds a second home, which can be right.`));
+  });
   c.appendChild(ev);
 
+  const editState = makeEditState(p);
   const change = el("div", "change");
-  p.operations.forEach(op => {
-    const [verb, rest] = opLine(op);
-    change.appendChild(el("span", "plus", verb));
-    change.append(" " + rest);
-    change.appendChild(document.createElement("br"));
-  });
-  c.appendChild(change);
-
   const editor = el("div", "editor");
-  editor.appendChild(el("div", "hint", "Edit the operations below, then approve — an edited approval is recorded as human-amended."));
-  const ta = document.createElement("textarea");
-  ta.value = JSON.stringify(p.operations, null, 2);
-  editor.appendChild(ta);
+  let editing = false;
+  const refresh = () => renderChange(change, editState, editing);
+  refresh();
+  c.appendChild(change);
+  renderEditor(editor, editState, refresh);
   c.appendChild(editor);
 
   const err = el("div", "err");
   const foot = el("div", "foot");
   const approve = el("button", "", "Approve");
   const edit = el("button", "ghost", "Edit first");
-  let editing = false;
   edit.addEventListener("click", () => {
     editing = !editing;
     editor.style.display = editing ? "block" : "none";
-    edit.textContent = editing ? "Cancel edit" : "Edit first";
+    edit.textContent = editing ? "Done editing" : "Edit first";
+    refresh();
   });
   approve.addEventListener("click", async () => {
     const by = reviewer(); if (!by) return;
     const body = {action: "approved", by};
-    if (editing){
-      try { body.operations = JSON.parse(ta.value); }
-      catch (e){ err.textContent = "edited operations are not valid JSON: " + e.message; return; }
-    }
+    const ops = buildOperations(editState);
+    // send operations only when they differ — the record decides amended
+    if (JSON.stringify(ops) !== JSON.stringify(p.operations)) body.operations = ops;
     approve.disabled = true;
     if (await post(p.diff_id, body, err)) load(); else approve.disabled = false;
   });
@@ -167,10 +239,13 @@ function card(p){
     const link = el("a", "", label);
     link.addEventListener("click", async () => {
       const by = reviewer(); if (!by) return;
-      let text = "";
+      let text;
       if (code === "other"){
-        text = (prompt("One sentence of reason — it teaches the system:") || "").trim();
+        text = (prompt("One sentence of reason — required, it teaches the system:") || "").trim();
         if (!text) return;
+      } else {
+        // every rejection may teach; only "other" must
+        text = (prompt("Optionally, one sentence to teach the system what would be right (Cancel to skip):") || "").trim();
       }
       if (await post(p.diff_id, {action: "rejected", by, reason_code: code, reason_text: text}, err)) load();
     });
@@ -182,17 +257,47 @@ function card(p){
   return c;
 }
 
+function collapsedRow(p){
+  const row = el("div", "collapsed" + (p.stakes_label === "high" ? " high" : ""));
+  row.appendChild(el("span", "q2", p.question));
+  row.appendChild(el("span", "n",
+    `${p.diff_id} · ${p.stakes_label} stakes · ${p.evidence.length} source${p.evidence.length===1?"":"s"}`));
+  row.addEventListener("click", () => { expanded = p.diff_id; load(); });
+  return row;
+}
+
+function coverageSentence(cov){
+  const node = document.getElementById("coverage");
+  if (!cov || !cov.total){ node.hidden = true; return; }
+  node.hidden = false;
+  node.replaceChildren();
+  const housed = cov.housed.length, proposed = cov.proposed.length, homeless = cov.homeless.length;
+  node.append(`${housed} of ${cov.total} promises are housed on the map`);
+  if (proposed) node.append(`; ${proposed} proposed below`);
+  if (homeless){
+    node.append("; ");
+    node.appendChild(el("b", "gap", `${homeless} ${homeless===1?"has":"have"} no home: ${cov.homeless.join(", ")}`));
+  }
+  node.append(homeless ? " — the map does not hide its gaps." : ".");
+}
+
 async function load(){
-  const res = await fetch(`/api/graph/${WS}/proposals`);
+  const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/proposals`);
   const data = await res.json();
   document.getElementById("count").textContent = `Proposals — ${data.open.length} open`;
+  coverageSentence(data.coverage);
   const cards = document.getElementById("cards");
   cards.replaceChildren();
   if (!data.open.length){
     cards.appendChild(el("div", "empty", "Nothing awaits you. The map asks rarely — that is how it earns the right to ask."));
   }
-  data.open.forEach(p => cards.appendChild(card(p)));
-  const decided = data.decided.slice().reverse();
+  const uniformStakes = new Set(data.open.map(p => p.stakes_label)).size === 1 && data.open.length > 1;
+  const expandId = expanded && data.open.some(p => p.diff_id === expanded)
+    ? expanded : (data.open[0] || {}).diff_id;
+  data.open.forEach(p => {
+    cards.appendChild(p.diff_id === expandId ? card(p, uniformStakes) : collapsedRow(p));
+  });
+  const decided = data.decided; // already in decision order
   document.getElementById("decided").hidden = !decided.length;
   const drows = document.getElementById("drows");
   drows.replaceChildren();

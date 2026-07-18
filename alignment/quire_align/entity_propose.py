@@ -143,6 +143,31 @@ def _validated(
     return kept, notes
 
 
+_DOC_SUFFIXES = (".md", ".rst", ".txt")
+
+
+def _is_doc_path(path: str) -> bool:
+    """Structural classification (not semantic): prose artifacts are docs,
+    everything else bound to a promise is a code location."""
+    lowered = path.lower()
+    return lowered.endswith(_DOC_SUFFIXES) or lowered.startswith("docs/")
+
+
+def _question(name: str, promises: int, code: int, docs: int) -> str:
+    parts = [f"{promises} promise{'s' if promises != 1 else ''}"]
+    if code:
+        parts.append(f"{code} code location{'s' if code != 1 else ''}")
+    if docs:
+        parts.append(f"{docs} document{'s' if docs != 1 else ''}")
+    if len(parts) > 1:
+        listed = ", ".join(parts[:-1]) + f" and {parts[-1]}"
+    else:
+        listed = parts[0]
+    if promises + code + docs == 1:
+        return f"This {listed} describes one thing — call it {name}?"
+    return f"These {listed} describe one thing — call it {name}?"
+
+
 def seed_proposals(
     workspace_dir: pathlib.Path,
     adapter,
@@ -154,7 +179,21 @@ def seed_proposals(
     from quire_align.ask import load_group_state
 
     state = load_group_state(workspace_dir, adapter)
-    obligations_by_id = {o.obligation_id: o.statement for o in adapter.obligations()}
+    obligations = list(adapter.obligations())
+    obligations_by_id = {o.obligation_id: o.statement for o in obligations}
+    # Where each promise comes from — the card shows the org's own address
+    # for a quote ("prd #mcp-surface"), not just an internal id.
+    source_of = {
+        o.obligation_id: " ".join(
+            part
+            for part in (
+                getattr(o, "source_reference", ""),
+                getattr(o, "source_section", ""),
+            )
+            if part
+        )
+        for o in obligations
+    }
     graph = graph_state(load_diffs(workspace_dir))
 
     areas_block = "\n".join(
@@ -168,16 +207,17 @@ def seed_proposals(
     candidates = proposer.propose(areas_block, promises_block)
     kept, notes = _validated(candidates, obligations_by_id)
 
+    # Paths come exclusively from the approved bindings — and each carries
+    # WHICH promise bound it, so the card can show the chain instead of
+    # asking the human to approve bindings on faith.
     files_by_obligation: dict[str, list[str]] = {}
-    for group in state["groups"]:
-        for member in group["members"]:
-            files_by_obligation.setdefault(member["obligation_id"], [])
+    bound_by: dict[str, set[str]] = {}
     cp_by_id = {cp.control_point_id: cp for cp in adapter.control_points()}
     for binding in adapter.bindings():
         if binding.control_point_id in cp_by_id:
-            files_by_obligation.setdefault(binding.obligation_id, []).append(
-                cp_by_id[binding.control_point_id].path
-            )
+            path = cp_by_id[binding.control_point_id].path
+            files_by_obligation.setdefault(binding.obligation_id, []).append(path)
+            bound_by.setdefault(path, set()).add(binding.obligation_id)
 
     taken = set(graph["entities"])
     built: list[tuple[EntityCandidate, GraphDiff, str]] = []
@@ -189,13 +229,18 @@ def seed_proposals(
             continue
         entity_id = slug_entity_id(candidate.name, taken)
         taken.add(entity_id)
-        code_paths = sorted(
+        bound_paths = sorted(
             {
                 path
                 for ob_id in candidate.member_obligation_ids
                 for path in files_by_obligation.get(ob_id, [])
             }
         )
+        # Documents are a different holding kind from code locations
+        # (PRD §1–2) — a spec bound to a promise is evidence, not an
+        # enforcement site, and the card must not count it as one.
+        code_paths = [p for p in bound_paths if not _is_doc_path(p)]
+        doc_paths = [p for p in bound_paths if _is_doc_path(p)]
         operations = [
             CreateEntity(
                 entity_id=entity_id,
@@ -208,30 +253,32 @@ def seed_proposals(
                 for ob_id in candidate.member_obligation_ids
             ],
             *[
-                Attach(entity_id=entity_id, kind="code", ref=path)
-                for path in code_paths
+                Attach(
+                    entity_id=entity_id,
+                    kind="doc" if _is_doc_path(path) else "code",
+                    ref=path,
+                    note="bound to " + ", ".join(sorted(bound_by.get(path, []))),
+                )
+                for path in bound_paths
             ],
         ]
         built.append((candidate, GraphDiff(
                 diff_id="",  # minted by append_proposals
-                question=(
-                    f"These {len(candidate.member_obligation_ids)} promises and "
-                    f"{len(code_paths)} code locations describe one thing — "
-                    f"call it {candidate.name}?"
-                ),
+                question=_question(candidate.name, len(candidate.member_obligation_ids),
+                                   len(code_paths), len(doc_paths)),
                 proposed_by="llm",
                 evidence=[
                     EvidenceQuote(
                         quote=q.quote,
-                        source=f"{q.obligation_id} · approved promise",
+                        source=f"{q.obligation_id} · "
+                        + (source_of.get(q.obligation_id) or "approved promise"),
                     )
                     for q in candidate.quotes
                 ],
                 operations=operations,
                 mechanics_note=(
-                    f"consolidates the derived area grouping; "
-                    f"{len(candidate.member_obligation_ids)} promises, "
-                    f"{len(code_paths)} code locations"
+                    "bindings are mechanical (tier 2) — each is individually "
+                    "removable in Edit"
                 ),
             ), entity_id))
 

@@ -28,10 +28,15 @@ decision; nothing is ever removed.
 
 from __future__ import annotations
 
+import contextlib
+import copy
 import hashlib
 import json
+import os
 import pathlib
 import re
+import tempfile
+from datetime import datetime, timezone
 from typing import Literal, Union
 
 import yaml
@@ -173,28 +178,62 @@ def stakes_label(stakes: float) -> str:
 # -- shape keys: how a rejection suppresses re-proposal (rule 6) ----------
 
 
-def _op_signature(op: Operation) -> list:
+def _shape_norm(text: str) -> str:
+    """Same normalization philosophy as quote validation: punctuation,
+    case, and whitespace don't make a new shape — the words do. Without
+    this, a trailing space or period lets a rejected name return."""
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text.lower()).split())
+
+
+def _op_signature(op: Operation, ref: dict[str, str]) -> list:
+    # attach.note is deliberately excluded: the note is a footnote, not
+    # the claim — a rejection suppresses the attachment, not one wording
+    # of its justification.
     if op.op == "create_entity":
-        return ["create_entity", op.name.lower(), sorted(a.lower() for a in op.aliases)]
+        return ["create_entity", _shape_norm(op.name), sorted(_shape_norm(a) for a in op.aliases)]
     if op.op == "attach":
-        return ["attach", op.entity_id, op.kind, op.ref]
+        return ["attach", ref[op.entity_id], op.kind, op.ref]
     if op.op == "alias":
-        return ["alias", op.entity_id, sorted(t.lower() for t in op.terms)]
+        return ["alias", ref[op.entity_id], sorted(_shape_norm(t) for t in op.terms)]
     if op.op == "rename":
-        return ["rename", op.entity_id, op.name.lower()]
+        return ["rename", ref[op.entity_id], _shape_norm(op.name)]
     if op.op == "relate":
-        return ["relate", op.entity_id, op.relation, op.other_id]
+        return ["relate", ref[op.entity_id], op.relation, ref[op.other_id]]
     return [
         "supersede",
-        op.entity_id,
-        op.successor_id,
+        ref[op.entity_id],
+        ref[op.successor_id],
         sorted(f.ref for f in op.promise_fates),
     ]
 
 
 def compute_shape_key(operations: list[Operation]) -> str:
-    canonical = json.dumps(sorted(_op_signature(op) for op in operations))
+    # Entity ids minted within the diff are derivative of the entity's
+    # name — signatures for ops referencing them use the NORMALIZED NAME
+    # instead, or a rename-and-resubmit would change every op's signature
+    # and walk straight past rejection suppression. Ids of pre-existing
+    # entities are stable and used as-is.
+    created = {
+        op.entity_id: "created:" + _shape_norm(op.name)
+        for op in operations
+        if op.op == "create_entity"
+    }
+    ref = {
+        eid: created.get(eid, eid)
+        for op in operations
+        for eid in _referenced_ids(op)
+    }
+    canonical = json.dumps(sorted(_op_signature(op, ref) for op in operations))
     return hashlib.sha256(canonical.encode()).hexdigest()[:12]
+
+
+def _referenced_ids(op: Operation) -> list[str]:
+    ids = [op.entity_id]
+    if op.op == "relate":
+        ids.append(op.other_id)
+    if op.op == "supersede":
+        ids.append(op.successor_id)
+    return ids
 
 
 # -- entity id minting ----------------------------------------------------
@@ -310,12 +349,31 @@ def _apply_operation(entities: dict, op: Operation, diff: GraphDiff) -> None:
                 )
 
 
+def _instant(iso: str) -> datetime:
+    """Parse a decision timestamp for ordering. A lexical string sort
+    would misorder legitimately-signed non-UTC offsets — and because
+    operations depend on prior state, a misordered fold isn't just wrong,
+    it can make the whole approved log unreadable."""
+    parsed = datetime.fromisoformat(iso)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _diff_seq(diff_id: str) -> int:
+    try:
+        return int(diff_id.split("-")[1])
+    except (IndexError, ValueError):
+        return 0
+
+
 def graph_state(diffs: list[GraphDiff]) -> dict:
-    """Pure fold. Approved diffs apply in decision order; everything else
-    is history, not state."""
+    """Pure fold. Approved diffs apply in decision-instant order (proposal
+    sequence breaks same-second ties); everything else is history, not
+    state."""
     approved = sorted(
         (d for d in diffs if d.status == "approved" and d.decision),
-        key=lambda d: d.decision.at,
+        key=lambda d: (_instant(d.decision.at), _diff_seq(d.diff_id)),
     )
     entities: dict[str, dict] = {}
     for diff in approved:
@@ -327,7 +385,7 @@ def graph_state(diffs: list[GraphDiff]) -> dict:
 def validate_operations(state: dict, diff: GraphDiff) -> None:
     """Dry-run the diff against current state — approval calls this first
     so an invalid diff fails loudly and mutates nothing."""
-    entities = {k: json.loads(json.dumps(v)) for k, v in state["entities"].items()}
+    entities = copy.deepcopy(state["entities"])
     for op in diff.effective_operations():
         _apply_operation(entities, op, diff)
 
@@ -353,7 +411,16 @@ def resolve_entity(state: dict, term: str) -> dict | None:
         return None
     if match["status"] == "active":
         return {"entity": match, "forwarded_from": None}
-    successor = state["entities"].get(match["superseded_by"])
+    # Follow the supersession chain to the LIVE successor — a retired name
+    # must never land the user on another frozen node (A→B→C resolves to
+    # C). The receipt records the entity the name belonged to.
+    successor, seen = match, {match["entity_id"]}
+    while successor is not None and successor["status"] == "superseded":
+        next_id = successor["superseded_by"]
+        if next_id in seen:
+            break  # corrupted cycle — stop rather than loop
+        seen.add(next_id)
+        successor = state["entities"].get(next_id)
     return {
         "entity": successor,
         "forwarded_from": {
@@ -382,15 +449,26 @@ def load_diffs(workspace_dir: pathlib.Path) -> list[GraphDiff]:
 
 
 def _write_diffs(workspace_dir: pathlib.Path, diffs: list[GraphDiff]) -> None:
+    """Atomic replace: a crash mid-write must never truncate the log that
+    the module calls immutable history. (Concurrent writers are still a
+    read-modify-write race — acceptable for a single-operator local tool,
+    revisit before multi-user.)"""
     path = graph_file(workspace_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        yaml.safe_dump(
-            [d.model_dump(exclude_none=True) for d in diffs],
-            sort_keys=False,
-            allow_unicode=True,
-        )
+    payload = yaml.safe_dump(
+        [d.model_dump(exclude_none=True) for d in diffs],
+        sort_keys=False,
+        allow_unicode=True,
     )
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as handle:
+            handle.write(payload)
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
 
 
 def rejected_shape_keys(diffs: list[GraphDiff]) -> set[str]:
@@ -401,7 +479,8 @@ def open_proposals(diffs: list[GraphDiff]) -> list[GraphDiff]:
     """Open proposals, highest stakes first (rule 8: the label shown next
     to each card derives from the same number as this ordering)."""
     return sorted(
-        (d for d in diffs if d.status == "open"), key=lambda d: -d.stakes
+        (d for d in diffs if d.status == "open"),
+        key=lambda d: (-d.stakes, _diff_seq(d.diff_id)),
     )
 
 
@@ -414,6 +493,10 @@ def append_proposals(
     suppression. Diff ids are minted here, server-side, never upstream."""
     diffs = load_diffs(workspace_dir)
     suppressed_shapes = rejected_shape_keys(diffs)
+    # Open AND approved shapes both block re-proposal: an open duplicate
+    # would ask the same question twice, and an approved duplicate would
+    # fail create-validation at decision time anyway — refusing it here
+    # keeps the noise out of the inbox.
     existing_shapes = {d.shape_key for d in diffs if d.status != "rejected"}
     capacity = MAX_OPEN_PROPOSALS - len(open_proposals(diffs))
     next_seq = (
@@ -465,6 +548,12 @@ def decide(
     """The single decision path. Approve validates against current state
     first; an edited approval is recorded human-amended (rule 7); a
     rejection requires a structured reason (rule 6)."""
+    if action not in ("approved", "rejected"):
+        # Anything else must fail loudly — a typo'd verb silently becoming
+        # an approval would invert the human's decision.
+        raise GraphIntegrityError(
+            f"unknown action '{action}' — a decision is 'approved' or 'rejected'"
+        )
     diffs = load_diffs(workspace_dir)
     target = next((d for d in diffs if d.diff_id == diff_id), None)
     if target is None:
@@ -502,8 +591,11 @@ def decide(
         action="approved",
         by=by,
         at=now,
-        amended=final_ops is not None
-        and compute_shape_key(final_ops) != target.shape_key,
+        # Amendment is detected by VALUE, never by the shape key — the
+        # shape key is a lossy fingerprint for rejection suppression and
+        # ignores identity sentences, notes, and promise fates; an edit to
+        # any of those is still a human amendment.
+        amended=final_ops is not None and final_ops != target.operations,
         final_operations=final_ops,
     )
     target.decision = decision

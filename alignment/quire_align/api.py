@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import pathlib
 
+from typing import Literal
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -64,7 +66,7 @@ class AliasRequest(BaseModel):
 
 
 class DecisionRequest(BaseModel):
-    action: str  # approved | rejected
+    action: Literal["approved", "rejected"]  # anything else fails at the edge
     by: str
     reason_code: str = ""
     reason_text: str = ""
@@ -330,6 +332,7 @@ def create_app(store: Store | None = None) -> FastAPI:
     def mirror_page(workspace: str):
         from fastapi.responses import HTMLResponse
 
+        _workspace_dir(workspace)  # junk 404s instead of reflecting
         html = (STATIC / "mirror.html").read_text()
         return HTMLResponse(html.replace("__WORKSPACE__", workspace))
 
@@ -420,16 +423,70 @@ def create_app(store: Store | None = None) -> FastAPI:
 
     @app.get("/api/graph/{workspace:path}/proposals")
     def graph_proposals(workspace: str):
-        from quire_align.entity_graph import load_diffs, open_proposals, stakes_label
+        from quire_align.entity_graph import (
+            graph_state,
+            load_diffs,
+            open_proposals,
+            stakes_label,
+        )
 
         diffs = load_diffs(_workspace_dir(workspace))
+        state = graph_state(diffs)
+        opened = open_proposals(diffs)
+
+        # A mirror must say what it is NOT showing: every approved promise
+        # is housed, proposed (in an open card), or homeless — and the
+        # homeless ones are named, not implied.
+        held: dict[str, list[str]] = {}
+        for entity in state["entities"].values():
+            if entity["status"] != "active":
+                continue
+            for holding in entity["holdings"]:
+                if holding["kind"] == "promise":
+                    held.setdefault(holding["ref"], []).append(entity["name"])
+        proposed = {
+            op.ref
+            for d in opened
+            for op in d.operations
+            if op.op == "attach" and op.kind == "promise"
+        }
+        adapter = _adapter(workspace)
+        all_promises = [o.obligation_id for o in adapter.obligations()]
+        coverage = {
+            "total": len(all_promises),
+            "housed": sorted(p for p in all_promises if p in held),
+            "proposed": sorted(
+                p for p in all_promises if p not in held and p in proposed
+            ),
+            "homeless": sorted(
+                p for p in all_promises if p not in held and p not in proposed
+            ),
+        }
+
+        decided = sorted(
+            (d for d in diffs if d.status != "open"),
+            key=lambda d: d.decision.at if d.decision else "",
+        )
         return {
             # open_proposals orders by the same stakes number the label is
             # derived from — position and label agree by construction
             "open": [
-                {**d.model_dump(), "stakes_label": stakes_label(d.stakes)}
-                for d in open_proposals(diffs)
+                {
+                    **d.model_dump(),
+                    "stakes_label": stakes_label(d.stakes),
+                    # a promise this card wants that ALREADY lives on
+                    # another entity — decision-relevant, so disclosed
+                    "already_held": {
+                        op.ref: held[op.ref]
+                        for op in d.operations
+                        if op.op == "attach" and op.kind == "promise"
+                        and op.ref in held
+                    },
+                }
+                for d in opened
             ],
+            "coverage": coverage,
+            # history reads in decision order, or it isn't history
             "decided": [
                 {
                     "diff_id": d.diff_id,
@@ -437,8 +494,7 @@ def create_app(store: Store | None = None) -> FastAPI:
                     "status": d.status,
                     "decision": d.decision.model_dump() if d.decision else None,
                 }
-                for d in diffs
-                if d.status != "open"
+                for d in decided
             ],
         }
 
@@ -483,10 +539,16 @@ def create_app(store: Store | None = None) -> FastAPI:
 
     @app.get("/inbox/{workspace:path}")
     def inbox_page(workspace: str):
+        import json
+
         from fastapi.responses import HTMLResponse
 
+        # Resolve first (junk 404s instead of reflecting), then inject as
+        # a JSON literal — the raw path param inside a JS string was a
+        # reflected-XSS gadget.
+        _workspace_dir(workspace)
         html = (STATIC / "inbox.html").read_text()
-        return HTMLResponse(html.replace("__WORKSPACE__", workspace))
+        return HTMLResponse(html.replace("__WORKSPACE_JSON__", json.dumps(workspace)))
 
     @app.get("/api/graph/{workspace:path}")
     def graph(workspace: str):
@@ -513,6 +575,7 @@ def create_app(store: Store | None = None) -> FastAPI:
     def intent_page(workspace: str):
         from fastapi.responses import HTMLResponse
 
+        _workspace_dir(workspace)  # junk 404s instead of reflecting
         html = (STATIC / "intent.html").read_text()
         return HTMLResponse(html.replace("__WORKSPACE__", workspace))
 

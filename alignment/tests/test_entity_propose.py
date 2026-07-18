@@ -132,6 +132,92 @@ def test_inbox_flow_over_http(ws, tmp_path):
     assert "The map wants to change" in page.text
 
 
+def test_docs_classified_as_doc_kind_and_counted_separately():
+    from quire_align.entity_propose import _is_doc_path, _question
+
+    assert _is_doc_path("docs/plans/design.md")
+    assert _is_doc_path(".repo/brain.md")
+    assert not _is_doc_path("src/mcp/feature.ts")
+    q = _question("Payments", 2, 3, 1)
+    assert q == (
+        "These 2 promises, 3 code locations and 1 document describe one "
+        "thing — call it Payments?"
+    )
+
+
+def test_attachments_carry_binding_provenance(ws, adapter):
+    seed_proposals(ws, adapter, FakeEntityProposer(candidates()), T0)
+    diff = load_diffs(ws)[0]
+    binds = [op for op in diff.operations if op.op == "attach" and op.kind != "promise"]
+    assert binds, "expected bound paths on the card"
+    assert all(op.note.startswith("bound to OB-") for op in binds)
+
+
+def test_evidence_source_includes_org_address(ws, adapter):
+    seed_proposals(ws, adapter, FakeEntityProposer(candidates()), T0)
+    source = load_diffs(ws)[0].evidence[0].source
+    assert source.startswith("OB-102 · ")
+    assert "refund-policy-prd" in source and "#high-risk" in source
+
+
+def test_proposals_api_reports_coverage_and_already_held(ws, tmp_path):
+    from quire_align.adapters.fixture import FixtureWorkspace
+    from quire_align.entity_graph import decide
+
+    app = create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db"))
+    client = TestClient(app)
+    seed_proposals(ws, FixtureWorkspace(ws), FakeEntityProposer(candidates()), T0)
+    data = client.get(f"/api/graph/{ws}/proposals").json()
+    cov = data["coverage"]
+    # refund fixture has promises beyond the two proposed — named, not implied
+    assert cov["proposed"] == ["OB-101", "OB-102"]
+    assert cov["housed"] == []
+    assert set(cov["homeless"]) == set(o for o in cov["homeless"])  # present
+    assert len(cov["homeless"]) == cov["total"] - 2
+
+    decide(ws, data["open"][0]["diff_id"], "approved", by="gilad", now=T0)
+    after = client.get(f"/api/graph/{ws}/proposals").json()
+    assert after["coverage"]["housed"] == ["OB-101", "OB-102"]
+
+    # a fresh proposal wanting an already-housed promise is disclosed
+    from quire_align.entity_graph import Attach, CreateEntity, GraphDiff, append_proposals
+
+    append_proposals(ws, [GraphDiff(diff_id="", question="Second home?",
+        operations=[CreateEntity(entity_id="ent-x", name="X"),
+                    Attach(entity_id="ent-x", kind="promise", ref="OB-102")])], T0)
+    disclosed = client.get(f"/api/graph/{ws}/proposals").json()
+    assert disclosed["open"][0]["already_held"] == {"OB-102": ["Refunds"]}
+
+
+def test_inbox_page_rejects_junk_workspace_and_encodes_real_one(ws, tmp_path):
+    app = create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db"))
+    client = TestClient(app)
+    hostile = 'x";document.title="PWNED";//'
+    reflected = client.get(f"/inbox/{hostile}")
+    assert reflected.status_code == 400
+    # the hostile string may echo in the JSON error detail (safely
+    # escaped); what must never happen is reflection into the page's JS
+    assert "const WS" not in reflected.text
+    assert reflected.headers["content-type"].startswith("application/json")
+    page = client.get(f"/inbox/{ws}")
+    assert page.status_code == 200
+    assert "__WORKSPACE_JSON__" not in page.text
+    assert f'const WS = "{ws}"' in page.text
+
+
+def test_decision_api_rejects_unknown_action(ws, tmp_path):
+    app = create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db"))
+    client = TestClient(app)
+    from quire_align.adapters.fixture import FixtureWorkspace
+
+    seed_proposals(ws, FixtureWorkspace(ws), FakeEntityProposer(candidates()), T0)
+    res = client.post(
+        f"/api/graph/{ws}/proposals/GD-1/decision",
+        json={"action": "approv", "by": "gilad"},
+    )
+    assert res.status_code == 422  # refused at the edge by the Literal type
+
+
 def test_graph_state_survives_yaml_round_trip(ws, adapter):
     seed_proposals(ws, adapter, FakeEntityProposer(candidates()), T0)
     from quire_align.entity_graph import decide
