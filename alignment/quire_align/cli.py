@@ -491,5 +491,40 @@ def graph_decide(
     typer.secho(f"{decided.diff_id}: {decided.status}", fg=typer.colors.GREEN)
 
 
+@app.command()
+def teach(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+    term: str = typer.Argument(help="the word, in your dialect"),
+    alias_of: str = typer.Option("", help="entity id this term names (teaches an alias)"),
+    new: bool = typer.Option(False, "--new", help="the map lacks this thing — open a create card"),
+    by: str = typer.Option(..., help="teachings are signed"),
+    note: str = typer.Option("", help="one sentence of what it is"),
+):
+    """Teach the map a word: an alias lands instantly (you are the
+    authority on your own dialect); a new thing opens an inbox card."""
+    from quire_align.entity_graph import GraphIntegrityError
+    from quire_align.teach import teach_alias, teach_create
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    try:
+        if alias_of:
+            diff = teach_alias(ws_dir, term, alias_of, by, _graph_now())
+            typer.secho(
+                f"learned: “{term}” → {alias_of} ({diff.diff_id}, signed {by})",
+                fg=typer.colors.GREEN,
+            )
+        elif new:
+            diff = teach_create(ws_dir, term, by, _graph_now(), note=note)
+            typer.secho(
+                f"opened {diff.diff_id}: “{term}” — shape and approve it in the inbox",
+                fg=typer.colors.CYAN,
+            )
+        else:
+            raise typer.BadParameter("say --alias-of <entity-id> or --new")
+    except (KeyError, GraphIntegrityError) as error:
+        typer.secho(str(error), fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()

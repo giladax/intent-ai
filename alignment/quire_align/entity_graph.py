@@ -94,6 +94,17 @@ class Relate(BaseModel):
     other_id: str
 
 
+class Detach(BaseModel):
+    """Remove a holding — the correction verb for 'this doesn't belong
+    here'. The removal is a diff like any other: the log remembers what
+    was once attached and who took it off."""
+
+    op: Literal["detach"] = "detach"
+    entity_id: str
+    kind: HoldingKind
+    ref: str
+
+
 class PromiseFate(BaseModel):
     """Rule 10: every live promise on a superseded entity gets an explicit
     fate — carried forward (with lineage) or retired. Silence is invalid."""
@@ -110,7 +121,7 @@ class Supersede(BaseModel):
     promise_fates: list[PromiseFate] = Field(default_factory=list)
 
 
-Operation = Union[CreateEntity, Attach, AddAlias, Rename, Relate, Supersede]
+Operation = Union[CreateEntity, Attach, AddAlias, Rename, Relate, Detach, Supersede]
 
 _OPERATIONS = TypeAdapter(list[Operation])
 
@@ -158,6 +169,7 @@ _OP_STAKES = {
     "create_entity": 1.0,
     "relate": 0.5,
     "rename": 0.4,
+    "detach": 0.4,  # removing meaning outranks adding it
     "alias": 0.3,
     "attach": 0.2,
 }
@@ -199,6 +211,8 @@ def _op_signature(op: Operation, ref: dict[str, str]) -> list:
         return ["rename", ref[op.entity_id], _shape_norm(op.name)]
     if op.op == "relate":
         return ["relate", ref[op.entity_id], op.relation, ref[op.other_id]]
+    if op.op == "detach":
+        return ["detach", ref[op.entity_id], op.kind, op.ref]
     return [
         "supersede",
         ref[op.entity_id],
@@ -309,6 +323,19 @@ def _apply_operation(entities: dict, op: Operation, diff: GraphDiff) -> None:
         edge = {"relation": op.relation, "other_id": op.other_id}
         if edge not in entity["relations"]:
             entity["relations"].append(edge)
+    elif op.op == "detach":
+        entity = _require(entities, op.entity_id)
+        before = len(entity["holdings"])
+        entity["holdings"] = [
+            h
+            for h in entity["holdings"]
+            if not (h["kind"] == op.kind and h["ref"] == op.ref)
+        ]
+        if len(entity["holdings"]) == before:
+            raise GraphIntegrityError(
+                f"'{op.entity_id}' does not hold {op.kind} '{op.ref}' — "
+                f"nothing to detach"
+            )
     elif op.op == "supersede":
         predecessor = _require(entities, op.entity_id)
         successor = _require(entities, op.successor_id)
@@ -539,9 +566,16 @@ def append_proposals(
     workspace_dir: pathlib.Path,
     proposals: list[GraphDiff],
     now: str,
+    human: bool = False,
 ) -> dict:
     """Add proposals to the log — enforcing the open cap and rejected-shape
-    suppression. Diff ids are minted here, server-side, never upstream."""
+    suppression. Diff ids are minted here, server-side, never upstream.
+
+    ``human=True`` (proposals a person typed) bypasses the cap and the
+    rejection suppression: those exist to make the MACHINE earn attention;
+    a human revisiting a past rejection is a new decision, not noise.
+    Open-duplicate detection still applies — the same question is never
+    asked twice at once."""
     diffs = load_diffs(workspace_dir)
     taught = _suppression(diffs)
     # Open AND approved shapes both block re-proposal: an open duplicate
@@ -560,14 +594,14 @@ def append_proposals(
     for proposal in proposals:
         proposal.shape_key = compute_shape_key(proposal.operations)
         proposal.stakes = compute_stakes(proposal.operations)
-        why_suppressed = suppression_reason(proposal, taught)
+        why_suppressed = None if human else suppression_reason(proposal, taught)
         if why_suppressed:
             skipped_shape.append(f"{proposal.question} [{why_suppressed}]")
             continue
         if proposal.shape_key in existing_shapes:
             skipped_dup.append(proposal.question)
             continue
-        if len(added) >= capacity:
+        if not human and len(added) >= capacity:
             skipped_cap.append(proposal.question)
             continue
         proposal.diff_id = f"GD-{next_seq}"

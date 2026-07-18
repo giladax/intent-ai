@@ -346,10 +346,17 @@ document.getElementById("askBox").addEventListener("keydown", async ev=>{
     box.innerHTML = `<span style="color:var(--bad)">Couldn't reach the server to answer that — try again in a moment.</span>`;
     return;
   }
+  if(d.entity){ renderEntityAnswer(box, q, d); return; }
   if(!d.card){
     const alts = (d.resolution.alternatives||[]).map(esc).join(", ");
-    box.innerHTML = `<span style="color:var(--warn)">We couldn't match “${esc(q)}” to a product area.</span>
-      <span style="color:var(--faint)"> ${alts ? `closest matches: ${alts}` : "no close matches — try the name of a feature or file"}</span>`;
+    box.innerHTML = `<span style="color:var(--warn)">We couldn't match “${esc(q)}” to anything on the map.</span>
+      <span style="color:var(--faint)"> ${alts ? `closest matches: ${alts}` : ""}</span>
+      <div style="margin-top:8px; font-size:11px; color:var(--dim)">Teach it:
+        <button class="teachBtn" id="teachAliasBtn" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">it's another name for an entity…</button>
+        <button class="teachBtn" id="teachNewBtn" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">it's a new thing — open a card</button>
+        <span id="teachOut" style="color:var(--faint)"></span></div>`;
+    document.getElementById("teachAliasBtn").addEventListener("click", ()=>teachAlias(q));
+    document.getElementById("teachNewBtn").addEventListener("click", ()=>teachNew(q));
     return;
   }
   const c = d.card;
@@ -387,6 +394,83 @@ async function saveAlias(term, anchor){
   await fetch(`/api/ask/${WS}/alias`,{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({term, anchor})});
   document.getElementById("askBox").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter"}));
+}
+
+// --- the teaching loop: misses teach, hits are correctable --------------
+function whoami(){
+  let name = localStorage.getItem("meridian.reviewer");
+  if(!name){
+    name = (prompt("Your name (teachings are signed):")||"").trim();
+    if(name) localStorage.setItem("meridian.reviewer", name);
+  }
+  return name;
+}
+async function teachPost(path, body, outId){
+  const out = document.getElementById(outId);
+  const r = await fetch(`/api/graph/${WS}/${path}`,{method:"POST",
+    headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  if(!r.ok){
+    const detail = (await r.json().catch(()=>({}))).detail || r.statusText;
+    if(out) out.textContent = " " + detail;
+    return null;
+  }
+  return r.json();
+}
+async function teachAlias(term){
+  const by = whoami(); if(!by) return;
+  const g = await (await fetch(`/api/graph/${WS}`)).json();
+  const active = g.entities.filter(e=>e.status==="active");
+  if(!active.length){ document.getElementById("teachOut").textContent=" no entities on the map yet — open a create card instead"; return; }
+  const menu = active.map((e,i)=>`${i+1}. ${e.name}`).join("\n");
+  const pick = parseInt(prompt(`“${term}” is another name for which entity?\n\n${menu}\n\nnumber:`),10);
+  const target = active[pick-1]; if(!target) return;
+  const done = await teachPost("teach", {term, action:"alias", entity_id:target.entity_id, by}, "teachOut");
+  if(done){
+    document.getElementById("teachOut").textContent = ` learned: “${term}” → ${target.name} (${done.diff_id}, signed ${by})`;
+    setTimeout(()=>document.getElementById("askBox").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter"})), 900);
+  }
+}
+async function teachNew(term){
+  const by = whoami(); if(!by) return;
+  const note = (prompt("One sentence: what IS it? (lands on the card, editable there)")||"").trim();
+  const done = await teachPost("teach", {term, action:"create", by, note}, "teachOut");
+  if(done) document.getElementById("teachOut").innerHTML =
+    ` opened ${esc(done.diff_id)} — <a href="/inbox/${encodeURIComponent(WS)}" style="color:var(--accent)">shape and approve it in the inbox</a>`;
+}
+function renderEntityAnswer(box, q, d){
+  const e = d.entity;
+  const fwd = d.forwarded_from;
+  const byKind = {};
+  (e.holdings||[]).forEach(h=>{ byKind[h.kind]=(byKind[h.kind]||0)+1; });
+  const holds = Object.entries(byKind).map(([k,n])=>`${n} ${k}${n===1?"":"s"}`).join(", ");
+  box.innerHTML = `
+    ${fwd ? `<div style="font-size:11px;color:var(--warn);margin-bottom:8px">“${esc(fwd.name)}” was superseded ${esc((fwd.superseded_at||"").slice(0,10))} by ${esc(fwd.superseded_by_user||"")} (${esc(fwd.via||"")}) — you were forwarded here.</div>`:""}
+    <div style="display:flex; gap:14px; align-items:baseline; margin-bottom:6px">
+      <span style="font-family:'Fraunces',serif; font-size:17px; color:var(--accent)">◈ ${esc(e.name)}</span>
+      <span style="color:var(--faint); font-size:11px">entity · human-approved</span>
+      <span style="margin-left:auto;color:var(--faint);font-size:10px;cursor:pointer" onclick="this.parentElement.parentElement.style.display='none'">✕ close</span>
+    </div>
+    ${e.identity_sentence?`<div style="font-size:12px;color:var(--dim);font-style:italic;margin-bottom:6px">${esc(e.identity_sentence)}</div>`:""}
+    <div style="font-size:11px;color:var(--dim)">holds: ${esc(holds||"nothing yet")}${e.aliases.length?` · answers to: ${e.aliases.map(esc).join(", ")}`:""}
+      ${(e.relations||[]).map(r=>` · ${esc(r.relation.replace("_"," "))} ${esc(r.other_id)}`).join("")}</div>
+    <div style="margin-top:8px; font-size:11px; color:var(--dim)">Correct it:
+      <button class="teachBtn" id="cRename" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">wrong name…</button>
+      <button class="teachBtn" id="cAlias" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">another word for it…</button>
+      <span id="teachOut" style="color:var(--faint)"></span></div>
+    <div style="font-size:10px;color:var(--faint);margin-top:4px">A name change opens an inbox card — shared meaning changes by review; a word you teach lands instantly, signed.</div>`;
+  document.getElementById("cRename").addEventListener("click", async ()=>{
+    const by = whoami(); if(!by) return;
+    const name = (prompt(`What should “${e.name}” be called?`)||"").trim(); if(!name) return;
+    const done = await teachPost("correct", {entity_id:e.entity_id, verb:"rename", name, by}, "teachOut");
+    if(done) document.getElementById("teachOut").innerHTML =
+      ` opened ${esc(done.diff_id)} — <a href="/inbox/${encodeURIComponent(WS)}" style="color:var(--accent)">decide it in the inbox</a>`;
+  });
+  document.getElementById("cAlias").addEventListener("click", async ()=>{
+    const by = whoami(); if(!by) return;
+    const term = (prompt(`Another word your org uses for “${e.name}”:`)||"").trim(); if(!term) return;
+    const done = await teachPost("teach", {term, action:"alias", entity_id:e.entity_id, by}, "teachOut");
+    if(done) document.getElementById("teachOut").textContent = ` learned: “${term}” (${done.diff_id}, signed ${by})`;
+  });
 }
 
 load();

@@ -65,6 +65,26 @@ class AliasRequest(BaseModel):
     anchor: str
 
 
+class TeachRequest(BaseModel):
+    term: str
+    action: Literal["alias", "create"]
+    by: str
+    entity_id: str = ""  # required for alias
+    note: str = ""
+
+
+class CorrectRequest(BaseModel):
+    entity_id: str
+    verb: Literal["rename", "part_of", "detach", "alias"]
+    by: str
+    name: str = ""
+    other_id: str = ""
+    kind: str = ""
+    ref: str = ""
+    terms: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
 class DecisionRequest(BaseModel):
     action: Literal["approved", "rejected"]  # anything else fails at the edge
     by: str
@@ -336,7 +356,15 @@ def create_app(store: Store | None = None) -> FastAPI:
         html = (STATIC / "mirror.html").read_text()
         return HTMLResponse(html.replace("__WORKSPACE__", workspace))
 
-    @app.get("/api/ask/{workspace}")
+    @app.post("/api/ask/{workspace:path}/alias")
+    def confirm_alias(workspace: str, request: AliasRequest):
+        from quire_align.ask import save_alias
+
+        save_alias(_workspace_dir(workspace), request.term, request.anchor)
+        return {"saved": {request.term: request.anchor}}
+
+    # (registered after its /alias sub-route — :path matches greedily)
+    @app.get("/api/ask/{workspace:path}")
     def ask(workspace: str, q: str, llm: bool = True):
         from quire_align.ask import (
             community_card,
@@ -380,6 +408,27 @@ def create_app(store: Store | None = None) -> FastAPI:
                 "status_answer": route_status_question(route, mirror_data),
                 "card": None,
             }
+
+        # Entities first — the durable human-approved layer outranks the
+        # derived areas, and retired names forward (rule 9).
+        from quire_align.entity_graph import graph_state, load_diffs, resolve_entity
+
+        entity_hit = resolve_entity(
+            graph_state(load_diffs(_workspace_dir(workspace))), q
+        )
+        if entity_hit and entity_hit["entity"]:
+            return {
+                "query": q,
+                "resolution": {
+                    "method": "entity-forwarded"
+                    if entity_hit["forwarded_from"]
+                    else "entity",
+                    "confidence": 1.0,
+                },
+                "entity": entity_hit["entity"],
+                "forwarded_from": entity_hit["forwarded_from"],
+                "card": None,
+            }
         obligations = [
             {"obligation_id": o.obligation_id, "statement": o.statement}
             for o in adapter.obligations()
@@ -401,13 +450,6 @@ def create_app(store: Store | None = None) -> FastAPI:
             },
             "card": card,
         }
-
-    @app.post("/api/ask/{workspace}/alias")
-    def confirm_alias(workspace: str, request: AliasRequest):
-        from quire_align.ask import save_alias
-
-        save_alias(_workspace_dir(workspace), request.term, request.anchor)
-        return {"saved": {request.term: request.anchor}}
 
     # -- entity graph: proposals in, approved diffs fold to the map ---------
     # (PRD v1.0 — rule 5: these endpoints are the ONLY mutation path.)
@@ -541,6 +583,51 @@ def create_app(store: Store | None = None) -> FastAPI:
             raise HTTPException(
                 502, f"entity proposal failed against an upstream dependency: {error}"
             )
+
+    @app.post("/api/graph/{workspace:path}/teach")
+    def graph_teach(workspace: str, request: TeachRequest):
+        from quire_align.entity_graph import GraphIntegrityError
+        from quire_align.teach import teach_alias, teach_create
+
+        ws_dir = _workspace_dir(workspace)
+        try:
+            if request.action == "alias":
+                if not request.entity_id:
+                    raise HTTPException(400, "teaching an alias needs entity_id")
+                return teach_alias(
+                    ws_dir, request.term, request.entity_id, request.by, _now()
+                )
+            return teach_create(
+                ws_dir, request.term, request.by, _now(), note=request.note
+            )
+        except KeyError as error:
+            raise HTTPException(404, str(error))
+        except GraphIntegrityError as error:
+            raise HTTPException(409, str(error))
+
+    @app.post("/api/graph/{workspace:path}/correct")
+    def graph_correct(workspace: str, request: CorrectRequest):
+        from quire_align.entity_graph import GraphIntegrityError
+        from quire_align.teach import correct
+
+        try:
+            return correct(
+                _workspace_dir(workspace),
+                request.entity_id,
+                request.verb,
+                request.by,
+                _now(),
+                name=request.name,
+                other_id=request.other_id,
+                kind=request.kind,
+                ref=request.ref,
+                terms=request.terms,
+                note=request.note,
+            )
+        except KeyError as error:
+            raise HTTPException(404, str(error))
+        except GraphIntegrityError as error:
+            raise HTTPException(409, str(error))
 
     @app.get("/inbox/{workspace:path}")
     def inbox_page(workspace: str):

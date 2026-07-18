@@ -180,7 +180,10 @@ function card(p, uniformStakes){
   const head = el("div", "head");
   head.appendChild(el("div", "q", p.question));
   const meta = el("div", "meta");
-  meta.append(`proposal ${p.diff_id} · reasoned from ${p.evidence.length} quoted source${p.evidence.length===1?"":"s"}`);
+  const human = (p.proposed_by || "").startsWith("human:");
+  meta.append(human
+    ? `proposal ${p.diff_id} · proposed by ${p.proposed_by.slice(6)}`
+    : `proposal ${p.diff_id} · reasoned from ${p.evidence.length} quoted source${p.evidence.length===1?"":"s"}`);
   if (!uniformStakes){
     meta.append(" · ");
     meta.appendChild(el("span", p.stakes_label === "high" ? "stakes-high" : "", `${p.stakes_label} stakes`));
