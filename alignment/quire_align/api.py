@@ -63,6 +63,14 @@ class AliasRequest(BaseModel):
     anchor: str
 
 
+class DecisionRequest(BaseModel):
+    action: str  # approved | rejected
+    by: str
+    reason_code: str = ""
+    reason_text: str = ""
+    operations: list[dict] | None = None  # present → edited approval (human-amended)
+
+
 def create_app(store: Store | None = None) -> FastAPI:
     workspace_mod.load_env()
     app = FastAPI(title="Quire Align", version="0.1.0")
@@ -397,6 +405,99 @@ def create_app(store: Store | None = None) -> FastAPI:
 
         save_alias(_workspace_dir(workspace), request.term, request.anchor)
         return {"saved": {request.term: request.anchor}}
+
+    # -- entity graph: proposals in, approved diffs fold to the map ---------
+    # (PRD v1.0 — rule 5: these endpoints are the ONLY mutation path.)
+
+    def _now() -> str:
+        from datetime import datetime, timezone
+
+        return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    # NOTE: the bare /api/graph/{workspace} route is registered LAST — its
+    # greedy :path converter (workspaces are sometimes absolute dirs) would
+    # otherwise swallow the more specific routes below.
+
+    @app.get("/api/graph/{workspace:path}/proposals")
+    def graph_proposals(workspace: str):
+        from quire_align.entity_graph import load_diffs, open_proposals, stakes_label
+
+        diffs = load_diffs(_workspace_dir(workspace))
+        return {
+            # open_proposals orders by the same stakes number the label is
+            # derived from — position and label agree by construction
+            "open": [
+                {**d.model_dump(), "stakes_label": stakes_label(d.stakes)}
+                for d in open_proposals(diffs)
+            ],
+            "decided": [
+                {
+                    "diff_id": d.diff_id,
+                    "question": d.question,
+                    "status": d.status,
+                    "decision": d.decision.model_dump() if d.decision else None,
+                }
+                for d in diffs
+                if d.status != "open"
+            ],
+        }
+
+    @app.post("/api/graph/{workspace:path}/proposals/{diff_id}/decision")
+    def graph_decide(workspace: str, diff_id: str, request: DecisionRequest):
+        from quire_align.entity_graph import GraphIntegrityError, decide
+
+        if request.action not in ("approved", "rejected"):
+            raise HTTPException(400, "action must be 'approved' or 'rejected'")
+        try:
+            decided = decide(
+                _workspace_dir(workspace),
+                diff_id,
+                request.action,
+                by=request.by,
+                now=_now(),
+                reason_code=request.reason_code,
+                reason_text=request.reason_text,
+                operations=request.operations,
+            )
+        except KeyError:
+            raise HTTPException(404, f"no proposal '{diff_id}'")
+        except GraphIntegrityError as error:
+            raise HTTPException(409, str(error))
+        return decided
+
+    @app.post("/api/graph/{workspace:path}/propose")
+    def graph_propose(workspace: str):
+        from quire_align.entity_propose import EntityProposerLLM, seed_proposals
+
+        adapter = _adapter(workspace)
+        try:
+            return seed_proposals(
+                _workspace_dir(workspace), adapter, EntityProposerLLM(), _now()
+            )
+        except HTTPException:
+            raise
+        except Exception as error:
+            raise HTTPException(
+                502, f"entity proposal failed against an upstream dependency: {error}"
+            )
+
+    @app.get("/inbox/{workspace:path}")
+    def inbox_page(workspace: str):
+        from fastapi.responses import HTMLResponse
+
+        html = (STATIC / "inbox.html").read_text()
+        return HTMLResponse(html.replace("__WORKSPACE__", workspace))
+
+    @app.get("/api/graph/{workspace:path}")
+    def graph(workspace: str):
+        from quire_align.entity_graph import graph_state, load_diffs
+
+        state = graph_state(load_diffs(_workspace_dir(workspace)))
+        return {
+            "entities": sorted(
+                state["entities"].values(), key=lambda e: e["name"].lower()
+            )
+        }
 
     # -- intent timeline (demo surface) -----------------------------------
 

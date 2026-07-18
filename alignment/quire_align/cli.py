@@ -378,5 +378,106 @@ def enrich(
         typer.echo(f"  ◉ {g['label']} ({_plural(len(g['obligation_ids']), 'promise')})")
 
 
+def _graph_now() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+@app.command()
+def entities(workspace: str = typer.Argument(help="workspace dir or name")):
+    """The entity map — a fold over approved graph diffs, nothing else."""
+    from quire_align.entity_graph import graph_state, load_diffs
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    state = graph_state(load_diffs(ws_dir))
+    if not state["entities"]:
+        typer.echo("no entities yet — run propose-entities, then decide in the inbox")
+        return
+    for entity in sorted(state["entities"].values(), key=lambda e: e["name"].lower()):
+        frozen = (
+            f"  [frozen → {entity['superseded_by']}]"
+            if entity["status"] == "superseded"
+            else ""
+        )
+        typer.secho(f"◉ {entity['name']} ({entity['entity_id']}){frozen}", bold=True)
+        if entity["identity_sentence"]:
+            typer.echo(f"  {entity['identity_sentence']}")
+        by_kind: dict[str, int] = {}
+        for holding in entity["holdings"]:
+            by_kind[holding["kind"]] = by_kind.get(holding["kind"], 0) + 1
+        if by_kind:
+            typer.echo(
+                "  holds: " + ", ".join(f"{n} {k}" for k, n in sorted(by_kind.items()))
+            )
+        for rel in entity["relations"]:
+            typer.echo(f"  {rel['relation'].replace('_', ' ')} {rel['other_id']}")
+
+
+@app.command()
+def propose_entities(workspace: str = typer.Argument(help="workspace dir or name")):
+    """LLM proposals that consolidate the derived areas into entities —
+    open questions for the inbox; nothing mutates until a human approves."""
+    from quire_align.entity_propose import EntityProposerLLM, seed_proposals
+
+    adapter = _adapter(workspace)
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    report = seed_proposals(ws_dir, adapter, EntityProposerLLM(), _graph_now())
+    typer.secho(
+        f"proposed: {len(report['added'])} ({report['open']} now open, "
+        f"capped at 5)",
+        fg=typer.colors.CYAN,
+    )
+    for note in report["notes"]:
+        typer.echo(f"  · {note}")
+    for skipped in report["skipped_rejected_shape"]:
+        typer.echo(f"  suppressed (rejected shape): {skipped[:70]}")
+    for skipped in report["skipped_cap"]:
+        typer.echo(f"  deferred (inbox full): {skipped[:70]}")
+
+
+@app.command()
+def proposals(workspace: str = typer.Argument(help="workspace dir or name")):
+    """Open proposals, highest stakes first."""
+    from quire_align.entity_graph import load_diffs, open_proposals, stakes_label
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    diffs = open_proposals(load_diffs(ws_dir))
+    if not diffs:
+        typer.echo("nothing awaits you")
+        return
+    for d in diffs:
+        typer.secho(f"{d.diff_id} [{stakes_label(d.stakes)} stakes]", bold=True)
+        typer.echo(f"  {d.question}")
+        for q in d.evidence[:2]:
+            typer.echo(f"  “{q.quote[:70]}” — {q.source}")
+
+
+@app.command()
+def graph_decide(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+    diff_id: str = typer.Argument(help="proposal id, e.g. GD-1"),
+    action: str = typer.Argument(help="approved | rejected"),
+    by: str = typer.Option(..., help="decisions are signed"),
+    reason: str = typer.Option(
+        "", help="rejection reason code: not_one_thing|wrong_name|bad_evidence|other"
+    ),
+    note: str = typer.Option("", help="free-text reason (required for 'other')"),
+):
+    """Decide one proposal — the only path that mutates the map."""
+    from quire_align.entity_graph import GraphIntegrityError, decide
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    try:
+        decided = decide(
+            ws_dir, diff_id, action, by=by, now=_graph_now(),
+            reason_code=reason, reason_text=note,
+        )
+    except (KeyError, GraphIntegrityError) as error:
+        typer.secho(str(error), fg=typer.colors.RED)
+        raise typer.Exit(1)
+    typer.secho(f"{decided.diff_id}: {decided.status}", fg=typer.colors.GREEN)
+
+
 if __name__ == "__main__":
     app()

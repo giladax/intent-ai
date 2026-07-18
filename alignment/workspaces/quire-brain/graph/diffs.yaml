@@ -1,0 +1,312 @@
+- diff_id: GD-1
+  question: These 2 promises and 4 code locations describe one thing — call it Brain?
+  proposed_by: llm
+  evidence:
+  - quote: Brain must not store source artifacts; external systems of record stay
+      external and Brain owns only the understanding, evidence, and relationships
+      derived from them.
+    source: QUIREB-012 · approved promise
+  - quote: Brain must never edit the source documents in external systems.
+    source: QUIREB-001 · approved promise
+  operations:
+  - op: create_entity
+    entity_id: ent-brain
+    name: Brain
+    identity_sentence: Brain is the organization's core knowledge system that owns
+      understanding, evidence, and relationships derived from external sources — but
+      never the source artifacts themselves.
+    aliases:
+    - Brain API
+  - op: attach
+    entity_id: ent-brain
+    kind: promise
+    ref: QUIREB-001
+    note: ''
+  - op: attach
+    entity_id: ent-brain
+    kind: promise
+    ref: QUIREB-012
+    note: ''
+  - op: attach
+    entity_id: ent-brain
+    kind: code
+    ref: .repo/brain.md
+    note: ''
+  - op: attach
+    entity_id: ent-brain
+    kind: code
+    ref: docs/specs/2026-07-03-brain-api-review.md
+    note: ''
+  - op: attach
+    entity_id: ent-brain
+    kind: code
+    ref: src/agents/digest/output-schema.ts
+    note: ''
+  - op: attach
+    entity_id: ent-brain
+    kind: code
+    ref: src/mcp/server.ts
+    note: ''
+  mechanics_note: consolidates the derived area grouping; 2 promises, 4 code locations
+  stakes: 2.2
+  shape_key: b40b709aca05
+  status: open
+  proposed_at: '2026-07-18T16:38:18+00:00'
+- diff_id: GD-2
+  question: These 3 promises and 4 code locations describe one thing — call it Feature?
+  proposed_by: llm
+  evidence:
+  - quote: The served MCP surface must speak Feature only; legacy Topic tools over
+      .repo/ markdown must be retired or re-keyed onto Feature so that an agent never
+      sees two competing vocabularies and two data stores in one tool list.
+    source: QUIREB-007 · approved promise
+  - quote: When resolving a Feature from a file or task and there are zero or more
+      than one match, Brain must return a candidate list rather than silently selecting
+      a match.
+    source: QUIREB-002 · approved promise
+  - quote: Candidate lists and ids returned by the MCP surface must be structured
+      content, not prose that an agent must parse ids out of.
+    source: QUIREB-006 · approved promise
+  operations:
+  - op: create_entity
+    entity_id: ent-feature
+    name: Feature
+    identity_sentence: Feature is the single canonical vocabulary and data model through
+      which Brain represents and serves all knowledge units to agents.
+    aliases:
+    - Features
+  - op: attach
+    entity_id: ent-feature
+    kind: promise
+    ref: QUIREB-002
+    note: ''
+  - op: attach
+    entity_id: ent-feature
+    kind: promise
+    ref: QUIREB-006
+    note: ''
+  - op: attach
+    entity_id: ent-feature
+    kind: promise
+    ref: QUIREB-007
+    note: ''
+  - op: attach
+    entity_id: ent-feature
+    kind: code
+    ref: docs/specs/2026-07-03-brain-api-review.md
+    note: ''
+  - op: attach
+    entity_id: ent-feature
+    kind: code
+    ref: src/mcp/attention-formatter.ts
+    note: ''
+  - op: attach
+    entity_id: ent-feature
+    kind: code
+    ref: src/mcp/feature.ts
+    note: ''
+  - op: attach
+    entity_id: ent-feature
+    kind: code
+    ref: src/mcp/server.ts
+    note: ''
+  mechanics_note: consolidates the derived area grouping; 3 promises, 4 code locations
+  stakes: 2.4
+  shape_key: 9c101fab1a3b
+  status: open
+  proposed_at: '2026-07-18T16:38:18+00:00'
+- diff_id: GD-3
+  question: These 2 promises and 7 code locations describe one thing — call it MCP
+    Surface?
+  proposed_by: llm
+  evidence:
+  - quote: Every MCP call must emit an activity_event recording the tool, feature,
+      hit/miss, and latency.
+    source: QUIREB-004 · approved promise
+  - quote: Candidate lists and ids returned by the MCP surface must be structured
+      content, not prose that an agent must parse ids out of.
+    source: QUIREB-006 · approved promise
+  operations:
+  - op: create_entity
+    entity_id: ent-mcp-surface
+    name: MCP Surface
+    identity_sentence: The MCP Surface is the structured tool interface through which
+      agents interact with Brain, emitting activity events and returning typed, machine-readable
+      responses.
+    aliases:
+    - MCP
+    - MCP tools
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: promise
+    ref: QUIREB-004
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: promise
+    ref: QUIREB-006
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: code
+    ref: docs/plans/2026-07-03-observability-design.md
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: code
+    ref: src/adapters/types.ts
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: code
+    ref: src/mcp/attention-formatter.ts
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: code
+    ref: src/mcp/feature.ts
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: code
+    ref: src/mcp/instrument.ts
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: code
+    ref: src/mcp/server.ts
+    note: ''
+  - op: attach
+    entity_id: ent-mcp-surface
+    kind: code
+    ref: src/pipeline/emit-events.ts
+    note: ''
+  mechanics_note: consolidates the derived area grouping; 2 promises, 7 code locations
+  stakes: 2.8
+  shape_key: 30ede80fd62f
+  status: open
+  proposed_at: '2026-07-18T16:38:18+00:00'
+- diff_id: GD-4
+  question: These 2 promises and 4 code locations describe one thing — call it Write
+    Provenance?
+  proposed_by: llm
+  evidence:
+  - quote: Every write operation must capture session id and actor as provenance.
+    source: QUIREB-003 · approved promise
+  - quote: Agents may perform write operations (create/update Features, manage file↔Feature
+      map, approve/reject/edit observations, comment) on the human's behalf, provided
+      every such action carries explicit actor attribution.
+    source: QUIREB-009 · approved promise
+  operations:
+  - op: create_entity
+    entity_id: ent-write-provenance
+    name: Write Provenance
+    identity_sentence: Write Provenance is the requirement that every write operation
+      — whether performed by a human or an agent — carries a session id and explicit
+      actor attribution.
+    aliases:
+    - actor attribution
+    - provenance
+  - op: attach
+    entity_id: ent-write-provenance
+    kind: promise
+    ref: QUIREB-003
+    note: ''
+  - op: attach
+    entity_id: ent-write-provenance
+    kind: promise
+    ref: QUIREB-009
+    note: ''
+  - op: attach
+    entity_id: ent-write-provenance
+    kind: code
+    ref: src/adapters/types.ts
+    note: ''
+  - op: attach
+    entity_id: ent-write-provenance
+    kind: code
+    ref: src/mcp/context.ts
+    note: ''
+  - op: attach
+    entity_id: ent-write-provenance
+    kind: code
+    ref: src/mcp/instrument.ts
+    note: ''
+  - op: attach
+    entity_id: ent-write-provenance
+    kind: code
+    ref: src/mcp/server.ts
+    note: ''
+  mechanics_note: consolidates the derived area grouping; 2 promises, 4 code locations
+  stakes: 2.2
+  shape_key: 45d81c74d6d6
+  status: open
+  proposed_at: '2026-07-18T16:38:18+00:00'
+- diff_id: GD-5
+  question: These 3 promises and 5 code locations describe one thing — call it Current
+    Understanding?
+  proposed_by: llm
+  evidence:
+  - quote: Observations must not be automatically promoted to Current Understanding;
+      a human must approve, reject, or edit each pending observation through a review
+      UI.
+    source: QUIREB-008 · approved promise
+  - quote: Understanding must change only through reviewable deltas, never silently.
+    source: QUIREB-011 · approved promise
+  - quote: Every piece of understanding must trace back to artifacts; no ungrounded
+      claims may exist in the system.
+    source: QUIREB-010 · approved promise
+  operations:
+  - op: create_entity
+    entity_id: ent-current-understanding
+    name: Current Understanding
+    identity_sentence: Current Understanding is the human-approved body of knowledge
+      in Brain, which may only change through reviewable, human-gated deltas — never
+      silently or automatically.
+    aliases:
+    - understanding
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: promise
+    ref: QUIREB-008
+    note: ''
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: promise
+    ref: QUIREB-011
+    note: ''
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: promise
+    ref: QUIREB-010
+    note: ''
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: code
+    ref: docs/future-knowledge.md
+    note: ''
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: code
+    ref: src/eval/fidelity.ts
+    note: ''
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: code
+    ref: src/mcp/server.ts
+    note: ''
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: code
+    ref: src/pipeline/emit-events.ts
+    note: ''
+  - op: attach
+    entity_id: ent-current-understanding
+    kind: code
+    ref: src/pipeline/observe-events.ts
+    note: ''
+  mechanics_note: consolidates the derived area grouping; 3 promises, 5 code locations
+  stakes: 2.6
+  shape_key: a2b5c97961b3
+  status: open
+  proposed_at: '2026-07-18T16:38:18+00:00'
