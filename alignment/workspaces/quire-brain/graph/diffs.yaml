@@ -50,8 +50,15 @@
   mechanics_note: consolidates the derived area grouping; 2 promises, 4 code locations
   stakes: 2.2
   shape_key: b40b709aca05
-  status: open
+  status: rejected
   proposed_at: '2026-07-18T16:38:18+00:00'
+  decision:
+    action: rejected
+    by: cpo
+    at: '2026-07-18T17:38:39+00:00'
+    reason_code: wrong_name
+    reason_text: ''
+    amended: false
 - diff_id: GD-2
   question: These 3 promises and 4 code locations describe one thing — call it Feature?
   proposed_by: llm
@@ -113,8 +120,15 @@
   mechanics_note: consolidates the derived area grouping; 3 promises, 4 code locations
   stakes: 2.4
   shape_key: 9c101fab1a3b
-  status: open
+  status: approved
   proposed_at: '2026-07-18T16:38:18+00:00'
+  decision:
+    action: approved
+    by: cpo
+    at: '2026-07-18T17:38:32+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
 - diff_id: GD-3
   question: These 2 promises and 7 code locations describe one thing — call it MCP
     Surface?
@@ -184,8 +198,65 @@
   mechanics_note: consolidates the derived area grouping; 2 promises, 7 code locations
   stakes: 2.8
   shape_key: 30ede80fd62f
-  status: open
+  status: approved
   proposed_at: '2026-07-18T16:38:18+00:00'
+  decision:
+    action: approved
+    by: cpo
+    at: '2026-07-18T17:38:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: true
+    final_operations:
+    - op: create_entity
+      entity_id: ent-mcp-surface
+      name: MCP Surface
+      identity_sentence: The MCP Surface is the structured tool interface through
+        which agents interact with Brain, emitting activity events and returning typed,
+        machine-readable responses.
+      aliases:
+      - MCP
+      - MCP tools
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: promise
+      ref: QUIREB-004
+      note: ''
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: promise
+      ref: QUIREB-006
+      note: ''
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: code
+      ref: src/adapters/types.ts
+      note: ''
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: code
+      ref: src/mcp/attention-formatter.ts
+      note: ''
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: code
+      ref: src/mcp/feature.ts
+      note: ''
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: code
+      ref: src/mcp/instrument.ts
+      note: ''
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: code
+      ref: src/mcp/server.ts
+      note: ''
+    - op: attach
+      entity_id: ent-mcp-surface
+      kind: code
+      ref: src/pipeline/emit-events.ts
+      note: ''
 - diff_id: GD-4
   question: These 2 promises and 4 code locations describe one thing — call it Write
     Provenance?
@@ -240,8 +311,15 @@
   mechanics_note: consolidates the derived area grouping; 2 promises, 4 code locations
   stakes: 2.2
   shape_key: 45d81c74d6d6
-  status: open
+  status: approved
   proposed_at: '2026-07-18T16:38:18+00:00'
+  decision:
+    action: approved
+    by: cpo
+    at: '2026-07-18T17:38:47+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
 - diff_id: GD-5
   question: These 3 promises and 5 code locations describe one thing — call it Current
     Understanding?
@@ -308,5 +386,56 @@
   mechanics_note: consolidates the derived area grouping; 3 promises, 5 code locations
   stakes: 2.6
   shape_key: a2b5c97961b3
-  status: open
+  status: approved
   proposed_at: '2026-07-18T16:38:18+00:00'
+  decision:
+    action: approved
+    by: cpo
+    at: '2026-07-18T17:38:26+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: true
+    final_operations:
+    - op: create_entity
+      entity_id: ent-current-understanding
+      name: Current Understanding
+      identity_sentence: Current Understanding is the human-approved body of knowledge
+        in Brain, which may only change through reviewable, human-gated deltas — never
+        silently or automatically.
+      aliases:
+      - understanding
+    - op: attach
+      entity_id: ent-current-understanding
+      kind: promise
+      ref: QUIREB-008
+      note: ''
+    - op: attach
+      entity_id: ent-current-understanding
+      kind: promise
+      ref: QUIREB-011
+      note: ''
+    - op: attach
+      entity_id: ent-current-understanding
+      kind: promise
+      ref: QUIREB-010
+      note: ''
+    - op: attach
+      entity_id: ent-current-understanding
+      kind: code
+      ref: src/eval/fidelity.ts
+      note: ''
+    - op: attach
+      entity_id: ent-current-understanding
+      kind: code
+      ref: src/mcp/server.ts
+      note: ''
+    - op: attach
+      entity_id: ent-current-understanding
+      kind: code
+      ref: src/pipeline/emit-events.ts
+      note: ''
+    - op: attach
+      entity_id: ent-current-understanding
+      kind: code
+      ref: src/pipeline/observe-events.ts
+      note: ''
