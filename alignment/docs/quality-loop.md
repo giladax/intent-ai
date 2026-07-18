@@ -4,7 +4,7 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: 3ff6a97
+last-reviewed: e515b99
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 
@@ -80,3 +80,21 @@ Backlog (too big for this tick):
   appears.
 
 99 tests green (97 + 2 new).
+
+## 2026-07-19 — tick over 3ff6a97..e515b99 (deferred to dedicated review)
+
+Three commits since last tick: cd29325 and 6608e92 are docs-only
+(experience spec, PRD v1.0) — skipped per precedent. e515b99 (entity
+graph MVP step 1) is code, but at tick time it is already under a
+DEEPER dedicated review, explicitly requested by the owner: a staff-eng
+counterexample hunt (in flight → docs/reviews/2026-07-19-entity-graph-
+eng-review.md) plus a completed CPO live-use session
+(docs/reviews/2026-07-19-cpo-inbox-session.md, 9 defects, D1–D9). No
+loop agent dispatched — a second reviewer over the same files would
+duplicate and collide with the fix pass about to land. Findings from
+both reviews will be applied as their own commit, which the next tick
+will register and may then sweep for anything the dedicated pass left.
+
+Backlog carried forward: unchanged from previous tick (GraphHeuristics
+per-request construction; adjudication budget-exhaustion silence; double
+regroup/write in enrich_workspace; `_plural` promotion).
