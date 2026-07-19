@@ -99,6 +99,20 @@ Backlog carried forward: unchanged from previous tick (GraphHeuristics
 per-request construction; adjudication budget-exhaustion silence; double
 regroup/write in enrich_workspace; `_plural` promotion).
 
+## 2026-07-19 — tick DEFERRED over 21c2104..a0521af (UX pass in flight)
+
+Eleven code commits await review (up/port/tracing fixes, lens-chat UI,
+meaning-first card, map IA, Quire rename, Working Edition direction +
+receipts, The Hush). Not dispatched this tick: a design fork is
+actively rewriting quire_align/static/* and an api.py route (founder-
+directed UX pass — readability, signature scope, affirmative home) —
+a parallel reviewer would collide with in-flight edits and review
+surfaces already being replaced. last-reviewed stays at 21c2104; the
+next tick sweeps the full range including the UX pass in one pass.
+Known item already queued for it: mirror.py hero strings still speak
+the pre-Hush vocabulary (backend-composed; display-label freeze rules
+apply).
+
 ## 2026-07-19 — tick over e515b99..21c2104 (teaching loop + eval overhaul)
 
 Reviewed the three code commits (f04ab74 dual-review application, e150ea0
