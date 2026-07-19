@@ -639,6 +639,61 @@ def create_app(store: Store | None = None) -> FastAPI:
         except GraphIntegrityError as error:
             raise HTTPException(409, str(error))
 
+    @app.get("/api/checks/{workspace:path}/{check_number}")
+    def check_receipt(workspace: str, check_number: int):
+        """The check's receipt — a monospace slip of everything one run
+        observed: commit, analyzer, per-promise findings with their
+        verbatim citations, and who (if anyone) signed off. A check
+        number is the check's PR number — the same number every surface
+        already cites as 'check #N'."""
+        from quire_align.analysis.render import DISPLAY_LABELS
+
+        adapter = _adapter(workspace)
+        analyses = app.state.store.list_analyses(
+            repository=adapter.repository(), pr_number=check_number
+        )
+        if not analyses:
+            raise HTTPException(404, f"no check #{check_number} on record")
+        latest = max(analyses, key=lambda a: a.created_at)
+        statements = {o.obligation_id: o.statement for o in adapter.obligations()}
+        return {
+            "check": check_number,
+            "analysis_id": latest.analysis_id,
+            "observed_at": latest.created_at.isoformat(timespec="seconds"),
+            "commit": latest.head_sha,
+            "base": latest.base_sha,
+            "analyzer_version": latest.analyzer_version,
+            "contract": latest.contract_snapshot_id,
+            "classification": latest.classification.value,
+            "verdict": DISPLAY_LABELS[latest.classification],
+            "review": {
+                "state": latest.review_state.value,
+                "reviewer": latest.reviewer,
+                "note": latest.review_note,
+            },
+            "findings": [
+                {
+                    "promise": impact.obligation_id,
+                    "statement": statements.get(impact.obligation_id, ""),
+                    "relation": impact.relation.value,
+                    "confidence": impact.confidence,
+                    "reasoning": impact.reasoning,
+                    "citations": [
+                        {
+                            "reference": e.reference,
+                            "lines": [e.start_line, e.end_line],
+                            "excerpt": e.excerpt,
+                            "valid": e.valid,
+                        }
+                        for e in impact.evidence
+                    ],
+                }
+                for impact in latest.obligation_impacts
+            ],
+            "missing_evidence": latest.missing_evidence,
+            "dropped_citations": latest.dropped_citations,
+        }
+
     @app.get("/app/{workspace:path}")
     def app_page(workspace: str):
         import json

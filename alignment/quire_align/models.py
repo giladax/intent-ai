@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 
 def sha256_hex(content: str) -> str:
@@ -164,6 +164,14 @@ class Obligation(BaseModel):
     source_section: str = ""  # heading / anchor inside the artifact
     source_content_hash: str = ""  # hash of the artifact revision it came from
     revision: str = "1"
+    # The VERBATIM sentence from the source artifact this promise was
+    # approved from — the quote the evidence trail shows (rule 3: a fact
+    # card without it refuses to render rather than paraphrase). Onboarding
+    # has always written it as `provenance_quote`; accept both spellings.
+    source_quote: str = Field(
+        default="",
+        validation_alias=AliasChoices("source_quote", "provenance_quote"),
+    )
 
     @property
     def pin(self) -> str:
