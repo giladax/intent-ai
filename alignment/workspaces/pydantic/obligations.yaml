@@ -1,0 +1,376 @@
+# Approved product promises (obligations). `revision` pins the exact
+# wording an analysis judged against — bump it whenever a statement
+# changes so history stays replayable.
+obligations:
+- obligation_id: PYDANT-001
+  kind: hard_rule
+  statement: In strict mode, only boolean values are valid for bool fields; all other types
+    (integers, strings, bytes) must be rejected.
+  source_quote: In [strict mode](../concepts/strict_mode.md), only boolean values are valid.
+  source_section: Booleans / Strictness
+  source_reference: standard_library_types
+- obligation_id: PYDANT-002
+  kind: hard_rule
+  statement: In strict mode, only string values are valid for str fields; bytes, bytearray,
+    enums, and numbers must be rejected.
+  source_quote: In [strict mode](../concepts/strict_mode.md), only string values are valid.
+  source_section: Strings / Strictness
+  source_reference: standard_library_types
+- obligation_id: PYDANT-003
+  kind: hard_rule
+  statement: In strict mode, only bytes instances are valid for bytes fields; strings and
+    bytearray must be rejected. In JSON mode, strict mode has no effect.
+  source_quote: 'In [strict mode](../concepts/strict_mode.md), only [`bytes`][] instances
+    are valid. Pydantic provides the [`StrictBytes`][pydantic.types.StrictBytes]
+
+    type as a convenience to [using the `Strict()` metadata class](../concepts/strict_mode.md#using-the-strict-metadata-class).
+
+
+    In JSON mode, strict mode has no effect.'
+  source_section: Bytes / Strictness
+  source_reference: standard_library_types
+- obligation_id: PYDANT-004
+  kind: hard_rule
+  statement: Floats are only valid as integers when the float is not infinite, not NaN, and
+    has a fractional part of 0.
+  source_quote: "Floats are validated as integers, provided the float input is not infinite\
+    \ or a NaN (not-a-number)\n  and the fractional part is 0."
+  source_section: Integers / Validation
+  source_reference: standard_library_types
+- obligation_id: PYDANT-005
+  kind: hard_rule
+  statement: In strict mode for datetime, only datetime instances are accepted; in JSON mode,
+    only RFC 3339 datetime strings or unix timestamps are accepted.
+  source_quote: 'In [strict mode](../concepts/strict_mode.md), only [`datetime`][datetime.datetime]
+    instances are accepted. In JSON mode, only strings complying to the
+
+    [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339) format (*only* datetime) or
+    as unix timestamps are accepted.'
+  source_section: Datetimes / Strictness
+  source_reference: standard_library_types
+- obligation_id: PYDANT-006
+  kind: hard_rule
+  statement: The system must not accept strings or bytes as valid input for the Sequence type.
+  source_quote: Pydantic will *not* accept strings and bytes for the [`Sequence`][collections.abc.Sequence]
+    type (see example below).
+  source_section: Sequences / Validation
+  source_reference: standard_library_types
+- obligation_id: PYDANT-007
+  kind: hard_rule
+  statement: Callables must not be serialized in JSON mode; a PydanticSerializationError must
+    be raised.
+  source_quote: 'Callables can''t be serialized in [JSON mode](../concepts/serialization.md#json-mode)
+
+    (a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError] is raised).'
+  source_section: Callable / Serialization
+  source_reference: standard_library_types
+- obligation_id: PYDANT-008
+  kind: hard_rule
+  statement: Types (type[X]) must not be serialized in JSON mode; a PydanticSerializationError
+    must be raised.
+  source_quote: 'Types can''t be serialized in [JSON mode](../concepts/serialization.md#json-mode)
+
+    (a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError] is raised).'
+  source_section: Type / Serialization
+  source_reference: standard_library_types
+- obligation_id: PYDANT-009
+  kind: hard_rule
+  statement: In JSON mode, Decimal instances must be serialized as strings.
+  source_quote: In [JSON mode](../concepts/serialization.md#json-mode), they are serialized
+    as strings.
+  source_section: Decimals / Serialization
+  source_reference: standard_library_types
+- obligation_id: PYDANT-010
+  kind: hard_rule
+  statement: In strict mode for Decimal, only decimal.Decimal instances are accepted; in JSON
+    mode, strict mode has no effect.
+  source_quote: In [strict mode](../concepts/strict_mode.md), only [`decimal.Decimal`][] instances
+    are accepted. In JSON mode, strict mode has no effect.
+  source_section: Decimals / Strictness
+  source_reference: standard_library_types
+- obligation_id: PYDANT-011
+  kind: hard_rule
+  statement: When applying strict mode on collection types (list, tuple, set, dict, deque),
+    strictness must not apply to the inner/item types.
+  source_quote: "When applying [strict mode](../concepts/strict_mode.md) on collection types,\
+    \ strictness will *not* apply\n      to the inner types."
+  source_section: Generic collection types / Strictness
+  source_reference: standard_library_types
+- obligation_id: PYDANT-012
+  kind: hard_rule
+  statement: Pydantic must only validate that a Callable input is callable; it must not validate
+    the number of parameters, their types, or the return value type.
+  source_quote: 'Pydantic only validates that the input is a [callable][] (using the [`callable()`](https://docs.python.org/3/library/functions.html#callable)
+    function).
+
+    It does *not* validate the number of parameters or their type, nor the type of the return
+    value.'
+  source_section: Callable / Validation
+  source_reference: standard_library_types
+- obligation_id: PYDANT-013
+  kind: hard_rule
+  statement: For Iterables, items must be validated lazily (at iteration time), not eagerly
+    at input time.
+  source_quote: 'Iterables are lazily validated, and wrapped in an internal datastructure
+    that can be iterated over
+
+    (and will validate the items type while doing so).'
+  source_section: Iterables / Validation
+  source_reference: standard_library_types
+- obligation_id: PYDANT-014
+  kind: permission
+  statement: When coerce_numbers_to_str is set, any number type (int, float, Decimal) may
+    be coerced to a string and accepted as a valid str input.
+  source_quote: "If [`coerce_numbers_to_str`][pydantic.ConfigDict.coerce_numbers_to_str] is\
+    \ set, any number type\n  ([`int`][], [`float`][] and [`Decimal`][decimal.Decimal]) will\
+    \ be coerced to a string and accepted\n  as-is."
+  source_section: Strings / Validation
+  source_reference: standard_library_types
+- obligation_id: PYDANT-015
+  kind: hard_rule
+  statement: Fractions must be serialized as strings in both Python and JSON modes.
+  source_quote: 'Fractions are serialized as strings, both in [Python](../concepts/serialization.md#python-mode)
+
+    and [JSON](../concepts/serialization.md#json-mode) modes.'
+  source_section: Fractions / Serialization
+  source_reference: standard_library_types
+- obligation_id: PYDANT-016
+  kind: hard_rule
+  statement: When an unsupported type is used and cannot be serialized to JSON, the system
+    must raise a PydanticSerializationError exception.
+  source_quote: 'If an unsupported type is used and can''t be serialized to JSON, a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError]
+    exception
+
+    is raised.'
+  source_section: JSON mode
+  source_reference: serialization
+- obligation_id: PYDANT-017
+  kind: hard_rule
+  statement: Only one serializer may be defined per field or model; combining multiple serializers
+    (including plain and wrap) on the same field/model is not permitted.
+  source_quote: 'Only *one* serializer can be defined per field/model. It is not possible
+    to combine multiple serializers together
+
+    (including *plain* and *wrap* serializers).'
+  source_section: Serializers
+  source_reference: serialization
+- obligation_id: PYDANT-018
+  kind: hard_rule
+  statement: When serializing a subclass instance assigned to a field annotated with a base
+    model-like type, the system must serialize only the fields declared on the annotation
+    type, not the subclass fields, by default.
+  source_quote: 'the default behavior is to serialize the field value as though it was an
+    instance of the class used as the
+
+    annotation, even if it is a subclass. More specifically, only the fields declared on the
+    type annotation
+
+    will be included in the serialization result'
+  source_section: Subclasses of model-like types
+  source_reference: serialization
+- obligation_id: PYDANT-019
+  kind: hard_rule
+  statement: Subclasses of supported types must be serialized according to their superclass
+    serialization schema.
+  source_quote: Subclasses of supported types are serialized according to their super class
+  source_section: Subclasses of supported types
+  source_reference: serialization
+- obligation_id: PYDANT-020
+  kind: hard_rule
+  statement: A plain field serializer must be called unconditionally to serialize a field,
+    bypassing Pydantic's built-in serialization logic for supported types.
+  source_quote: "***Plain* serializers**: are called unconditionally to serialize a field.\
+    \ The serialization logic for types supported\n  by Pydantic will *not* be called."
+  source_section: Field serializers
+  source_reference: serialization
+- obligation_id: PYDANT-021
+  kind: hard_rule
+  statement: A wrap field serializer must accept a mandatory extra handler parameter (a callable
+    taking the value to be serialized) that delegates serialization to Pydantic.
+  source_quote: "Such serializers must be defined with a **mandatory** extra *handler* parameter:\
+    \ a callable taking the value to be serialized\n    as an argument. Internally, this handler\
+    \ will delegate serialization of the value to Pydantic. You are free to *not* call the\n\
+    \    handler at all."
+  source_section: Field serializers
+  source_reference: serialization
+- obligation_id: PYDANT-022
+  kind: hard_rule
+  statement: A wrap model serializer must accept a mandatory extra handler parameter (a callable
+    taking the model instance) that delegates serialization of the model to Pydantic.
+  source_quote: "Such serializers must be defined with a **mandatory** extra *handler* parameter:\
+    \ a callable taking the instance of the model\n      as an argument. Internally, this\
+    \ handler will delegate serialization of the model to Pydantic. You are free to *not*\
+    \ call the\n      handler at all."
+  source_section: Model serializers
+  source_reference: serialization
+- obligation_id: PYDANT-023
+  kind: hard_rule
+  statement: When iterating over a model, field values must be yielded as-is; sub-models must
+    not be converted to dictionaries during iteration.
+  source_quote: 'Pydantic models can also be iterated over, yielding `(field_name, field_value)`
+    pairs. Note that field values
+
+    are left as is, so sub-models will *not* be converted to dictionaries'
+  source_section: Iterating over models
+  source_reference: serialization
+- obligation_id: PYDANT-024
+  kind: hard_rule
+  statement: Exclusion configured at the field level must take priority over the `include`
+    serialization parameter.
+  source_quote: Exclusion at the field level takes priority over the `include` serialization
+    parameter described below.
+  source_section: At the field level
+  source_reference: serialization
+- obligation_id: PYDANT-025
+  kind: hard_rule
+  statement: Polymorphic serialization must only be supported for Pydantic models and Pydantic
+    dataclasses; standard library dataclasses must not support polymorphic serialization even
+    if they are subclasses of a Pydantic dataclass.
+  source_quote: "Polymorphic serialization is only supported for Pydantic models and [Pydantic\
+    \ dataclasses](./dataclasses.md).\n    When using [standard library dataclasses][dataclasses],\
+    \ polymorphic serialization is *not* supported,\n    even if the dataclass is a subclass\
+    \ of a Pydantic dataclass."
+  source_section: Polymorphic serialization
+  source_reference: serialization
+- obligation_id: PYDANT-026
+  kind: permission
+  statement: When `polymorphic_serialization=True` is passed at runtime to a serialization
+    method, the system may serialize a model instance according to the actual runtime subclass
+    schema, overriding any per-class configuration.
+  source_quote: "Runtime level: use the `polymorphic_serialization` argument when calling\
+    \ the [serialization methods](#serializing-data).\n  This will apply to all (nested) types,\
+    \ overriding any configuration."
+  source_section: Polymorphic serialization
+  source_reference: serialization
+- obligation_id: PYDANT-027
+  kind: hard_rule
+  statement: When `return_type` is provided to a field or model serializer (or a return type
+    annotation is present), the system must build an extra serializer to ensure the serialized
+    value complies with that return type.
+  source_quote: 'If the `return_type` argument is provided to the serializer (or if a return
+    type annotation is available on the serializer function),
+
+    it will be used to build an extra serializer, to ensure that the serialized field value
+    complies with this return type.'
+  source_section: Field serializers
+  source_reference: serialization
+- obligation_id: PYDANT-028
+  kind: hard_rule
+  statement: When `mode='json'` is passed to `model_dump()`, the system must ensure only JSON-compatible
+    types are used in the output.
+  source_quote: 'The `mode` argument can be set to `''json''`
+
+    to ensure JSON-compatible types are used:'
+  source_section: Python mode
+  source_reference: serialization
+- obligation_id: PYDANT-029
+  kind: permission
+  statement: The `@field_serializer` decorator may be applied with `'*'` as the field name
+    argument to apply the serializer to all fields, including those defined in subclasses.
+  source_quote: "If you want the serializer to apply to all fields (including the ones defined\
+    \ in subclasses), you can pass\n  `'*'` as the field name argument."
+  source_section: Field serializers
+  source_reference: serialization
+- obligation_id: PYDANT-030
+  kind: hard_rule
+  statement: In left-to-right mode, validation is attempted against each union member in definition
+    order and the first successful validation is accepted as the result.
+  source_quote: With this approach, validation is attempted against each member of the union
+    in their order they're defined, and the first successful validation is accepted as input.
+  source_section: Left to Right Mode
+  source_reference: unions
+- obligation_id: PYDANT-031
+  kind: hard_rule
+  statement: The default union validation mode in Pydantic >=2 is smart mode (`union_mode='smart'`),
+    not left-to-right mode.
+  source_quote: Because this mode often leads to unexpected validation results, it is not
+    the default in Pydantic >=2, instead `union_mode='smart'` is the default.
+  source_section: Left to Right Mode
+  source_reference: unions
+- obligation_id: PYDANT-032
+  kind: hard_rule
+  statement: If validation fails on all union members in left-to-right mode, the validation
+    error includes the errors from all members of the union.
+  source_quote: If validation fails on all members, the validation error includes the errors
+    from all members of the union.
+  source_section: Left to Right Mode
+  source_reference: unions
+- obligation_id: PYDANT-033
+  kind: hard_rule
+  statement: In smart mode for non-model types, if an exact type match is found, that member
+    is returned immediately and subsequent members are not attempted.
+  source_quote: If validation succeeds with an exact type match, that member is returned immediately
+    and following members will not be attempted.
+  source_section: Smart Mode
+  source_reference: unions
+- obligation_id: PYDANT-034
+  kind: hard_rule
+  statement: In smart mode for BaseModel, dataclass, and TypedDict, the union member with
+    the highest valid-fields-set count is returned; exactness score is used only as a tiebreaker.
+  source_quote: "After all members have been evaluated, the member with the highest \"valid\
+    \ fields set\" count is returned.\n        3. If there's a tie for the highest \"valid\
+    \ fields set\" count, the exactness score is used as a tiebreaker, and the member with\
+    \ the highest exactness score is returned."
+  source_section: Smart Mode
+  source_reference: unions
+- obligation_id: PYDANT-035
+  kind: hard_rule
+  statement: In smart mode for non-model types, if no exact match is found but at least one
+    strict match exists, the leftmost strict match is returned.
+  source_quote: If validation succeeded on at least one member as a "strict" match, the leftmost
+    of those "strict" matches is returned.
+  source_section: Smart Mode
+  source_reference: unions
+- obligation_id: PYDANT-036
+  kind: hard_rule
+  statement: In smart mode for non-model types, if no exact or strict match is found but at
+    least one lax match exists, the leftmost lax match is returned.
+  source_quote: If validation succeeded on at least one member in "lax" mode, the leftmost
+    match is returned.
+  source_section: Smart Mode
+  source_reference: unions
+- obligation_id: PYDANT-037
+  kind: hard_rule
+  statement: When a callable discriminator returns `None`, a `union_tag_not_found` error is
+    raised.
+  source_quote: "Notice the callable discriminator function returns `None` if a discriminator\
+    \ value is not found.\n   When `None` is returned, this `union_tag_not_found` error is\
+    \ raised."
+  source_section: Discriminated Unions with callable Discriminator
+  source_reference: unions
+- obligation_id: PYDANT-038
+  kind: hard_rule
+  statement: Discriminated unions produce validation errors only for the union member with
+    a matching discriminator value, not for all members.
+  source_quote: Discriminated unions help to simplify error messages in this case, as validation
+    errors are only produced for the case with a matching discriminator value.
+  source_section: Union Validation Errors
+  source_reference: unions
+- obligation_id: PYDANT-039
+  kind: hard_rule
+  statement: When a discriminated union is defined, the generated JSON schema implements the
+    `discriminator` attribute from the OpenAPI specification.
+  source_quote: 'Adding discriminator to unions also means the generated JSON schema implements
+    the `discriminator` attribute from the
+
+    [OpenAPI specification](https://swagger.io/specification/#discriminator-object).'
+  source_section: Discriminated unions
+  source_reference: unions
+- obligation_id: PYDANT-040
+  kind: hard_rule
+  statement: In smart mode, for models/dataclasses/TypedDicts, the valid-fields-set count
+    takes priority over exactness score when selecting the best match.
+  source_quote: For data types where this metric is relevant, we prioritize this count over
+    exactness. For all other types, we use solely exactness.
+  source_section: Smart Mode
+  source_reference: unions
+- obligation_id: PYDANT-041
+  kind: permission
+  statement: A `Discriminator` may accept `custom_error_type`, `custom_error_message`, and
+    `custom_error_context` parameters to customize the error raised on validation failure.
+  source_quote: 'You can also customize the error type, message, and context for a `Discriminator`
+    by passing
+
+    these specifications as parameters to the `Discriminator` constructor'
+  source_section: Union Validation Errors
+  source_reference: unions

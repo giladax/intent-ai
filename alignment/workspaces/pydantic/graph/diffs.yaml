@@ -1,0 +1,800 @@
+- diff_id: GD-1
+  question: These 5 promises and 5 code locations describe one thing — call it Field
+    Serializers?
+  proposed_by: llm
+  evidence:
+  - quote: A plain field serializer must be called unconditionally to serialize a
+      field, bypassing Pydantic's built-in serialization logic for supported types.
+    source: PYDANT-020 · serialization Field serializers
+  - quote: A wrap field serializer must accept a mandatory extra handler parameter
+      (a callable taking the value to be serialized) that delegates serialization
+      to Pydantic.
+    source: PYDANT-021 · serialization Field serializers
+  - quote: The `@field_serializer` decorator may be applied with `'*'` as the field
+      name argument to apply the serializer to all fields, including those defined
+      in subclasses.
+    source: PYDANT-029 · serialization Field serializers
+  operations:
+  - op: create_entity
+    entity_id: ent-field-serializers
+    name: Field Serializers
+    identity_sentence: Field Serializers are the decorator-based hooks that let developers
+      override or wrap Pydantic's built-in per-field serialization logic.
+    aliases:
+    - '@field_serializer'
+    - plain serializer
+    - wrap serializer
+    - field-level serializer
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: promise
+    ref: PYDANT-017
+    note: ''
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: promise
+    ref: PYDANT-020
+    note: ''
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: promise
+    ref: PYDANT-021
+    note: ''
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: promise
+    ref: PYDANT-027
+    note: ''
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: promise
+    ref: PYDANT-029
+    note: ''
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: code
+    ref: pydantic-core/python/pydantic_core/core_schema.py
+    note: bound to PYDANT-019, PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-030, PYDANT-031,
+      PYDANT-032, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: code
+    ref: pydantic-core/tests/serializers/test_functions.py
+    note: bound to PYDANT-007, PYDANT-017, PYDANT-020, PYDANT-021, PYDANT-027, PYDANT-029
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: code
+    ref: pydantic/_internal/_decorators.py
+    note: bound to PYDANT-017, PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-027, PYDANT-029
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: code
+    ref: pydantic/_internal/_generate_schema.py
+    note: bound to PYDANT-001, PYDANT-002, PYDANT-006, PYDANT-009, PYDANT-012, PYDANT-013,
+      PYDANT-015, PYDANT-017, PYDANT-018, PYDANT-025, PYDANT-027, PYDANT-030, PYDANT-031,
+      PYDANT-033, PYDANT-034, PYDANT-035, PYDANT-036, PYDANT-040, PYDANT-041
+  - op: attach
+    entity_id: ent-field-serializers
+    kind: code
+    ref: pydantic/functional_serializers.py
+    note: bound to PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-029
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: PYDANT-017 (only one serializer per field), PYDANT-020 (plain serializer
+    bypasses built-in logic), PYDANT-021 (wrap serializer handler contract), PYDANT-027
+    (return_type builds extra serializer), PYDANT-029 (wildcard field_serializer)
+    are all about the @field_serializer decorator surface and its contracts. PYDANT-022
+    is about model serializers (a different decorator), so it goes in Model Serializers.
+  stakes: 3.0
+  shape_key: 55805d917793
+  status: approved
+  proposed_at: '2026-07-19T18:01:13+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T18:02:41+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-2
+  question: These 4 promises and 9 code locations describe one thing — call it Polymorphic
+    Serialization?
+  proposed_by: llm
+  evidence:
+  - quote: Polymorphic serialization must only be supported for Pydantic models and
+      Pydantic dataclasses; standard library dataclasses must not support polymorphic
+      serialization even if they are subclasses of a Pydantic dataclass.
+    source: PYDANT-025 · serialization Polymorphic serialization
+  - quote: When `polymorphic_serialization=True` is passed at runtime to a serialization
+      method, the system may serialize a model instance according to the actual runtime
+      subclass schema, overriding any per-class configuration.
+    source: PYDANT-026 · serialization Polymorphic serialization
+  - quote: When serializing a subclass instance assigned to a field annotated with
+      a base model-like type, the system must serialize only the fields declared on
+      the annotation type, not the subclass fields, by default.
+    source: PYDANT-018 · serialization Subclasses of model-like types
+  - quote: Subclasses of supported types must be serialized according to their superclass
+      serialization schema.
+    source: PYDANT-019 · serialization Subclasses of supported types
+  operations:
+  - op: create_entity
+    entity_id: ent-polymorphic-serialization
+    name: Polymorphic Serialization
+    identity_sentence: Polymorphic Serialization controls whether Pydantic serializes
+      a value according to its declared annotation type or its actual runtime subclass
+      schema.
+    aliases:
+    - serialize_as_any
+    - polymorphic_serialization
+    - subclass serialization
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: promise
+    ref: PYDANT-018
+    note: ''
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: promise
+    ref: PYDANT-019
+    note: ''
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: promise
+    ref: PYDANT-025
+    note: ''
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: promise
+    ref: PYDANT-026
+    note: ''
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic-core/python/pydantic_core/core_schema.py
+    note: bound to PYDANT-019, PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-030, PYDANT-031,
+      PYDANT-032, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic-core/tests/serializers/test_any.py
+    note: bound to PYDANT-016, PYDANT-019
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic-core/tests/serializers/test_dataclasses.py
+    note: bound to PYDANT-024, PYDANT-025, PYDANT-028
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic-core/tests/serializers/test_model.py
+    note: bound to PYDANT-016, PYDANT-018, PYDANT-019, PYDANT-022, PYDANT-023, PYDANT-024,
+      PYDANT-028
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic-core/tests/serializers/test_serialize_as_any.py
+    note: bound to PYDANT-018, PYDANT-026
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic/_internal/_dataclasses.py
+    note: bound to PYDANT-025
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic/_internal/_generate_schema.py
+    note: bound to PYDANT-001, PYDANT-002, PYDANT-006, PYDANT-009, PYDANT-012, PYDANT-013,
+      PYDANT-015, PYDANT-017, PYDANT-018, PYDANT-025, PYDANT-027, PYDANT-030, PYDANT-031,
+      PYDANT-033, PYDANT-034, PYDANT-035, PYDANT-036, PYDANT-040, PYDANT-041
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic/main.py
+    note: bound to PYDANT-023, PYDANT-026, PYDANT-028
+  - op: attach
+    entity_id: ent-polymorphic-serialization
+    kind: code
+    ref: pydantic/type_adapter.py
+    note: bound to PYDANT-026
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: 'PYDANT-018 (default: serialize by annotation type, not subclass), PYDANT-019
+    (subclasses of supported types use superclass schema), PYDANT-025 (polymorphic
+    serialization only for Pydantic models/dataclasses), PYDANT-026 (runtime polymorphic_serialization=True
+    override) all concern the same question: when a subclass instance is encountered,
+    which schema governs serialization? These are tightly coupled and the org would
+    discuss them together under the polymorphic serialization feature.'
+  stakes: 3.6
+  shape_key: f90dc403c243
+  status: approved
+  proposed_at: '2026-07-19T18:01:13+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T18:02:42+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-3
+  question: These 8 promises, 4 code locations and 1 document describe one thing —
+    call it Union Validation?
+  proposed_by: llm
+  evidence:
+  - quote: The default union validation mode in Pydantic >=2 is smart mode (`union_mode='smart'`),
+      not left-to-right mode.
+    source: PYDANT-031 · unions Left to Right Mode
+  - quote: In left-to-right mode, validation is attempted against each union member
+      in definition order and the first successful validation is accepted as the result.
+    source: PYDANT-030 · unions Left to Right Mode
+  - quote: In smart mode for non-model types, if an exact type match is found, that
+      member is returned immediately and subsequent members are not attempted.
+    source: PYDANT-033 · unions Smart Mode
+  - quote: In smart mode, for models/dataclasses/TypedDicts, the valid-fields-set
+      count takes priority over exactness score when selecting the best match.
+    source: PYDANT-040 · unions Smart Mode
+  operations:
+  - op: create_entity
+    entity_id: ent-union-validation
+    name: Union Validation
+    identity_sentence: Union Validation defines how Pydantic attempts to match an
+      input value against the members of a Union type, including left-to-right and
+      smart matching modes.
+    aliases:
+    - union mode
+    - left-to-right mode
+    - smart mode
+    - Union matching
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-030
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-031
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-032
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-033
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-034
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-035
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-036
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: promise
+    ref: PYDANT-040
+    note: ''
+  - op: attach
+    entity_id: ent-union-validation
+    kind: code
+    ref: pydantic-core/python/pydantic_core/core_schema.py
+    note: bound to PYDANT-019, PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-030, PYDANT-031,
+      PYDANT-032, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+  - op: attach
+    entity_id: ent-union-validation
+    kind: code
+    ref: pydantic-core/tests/validators/test_union.py
+    note: bound to PYDANT-030, PYDANT-031, PYDANT-032, PYDANT-033, PYDANT-034, PYDANT-035,
+      PYDANT-036, PYDANT-040
+  - op: attach
+    entity_id: ent-union-validation
+    kind: code
+    ref: pydantic/_internal/_generate_schema.py
+    note: bound to PYDANT-001, PYDANT-002, PYDANT-006, PYDANT-009, PYDANT-012, PYDANT-013,
+      PYDANT-015, PYDANT-017, PYDANT-018, PYDANT-025, PYDANT-027, PYDANT-030, PYDANT-031,
+      PYDANT-033, PYDANT-034, PYDANT-035, PYDANT-036, PYDANT-040, PYDANT-041
+  - op: attach
+    entity_id: ent-union-validation
+    kind: code
+    ref: tests/benchmarks/test_discriminated_unions.py
+    note: bound to PYDANT-030
+  - op: attach
+    entity_id: ent-union-validation
+    kind: doc
+    ref: docs/concepts/unions.md
+    note: bound to PYDANT-030, PYDANT-031, PYDANT-032, PYDANT-033, PYDANT-034, PYDANT-035,
+      PYDANT-036, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-040, PYDANT-041
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: PYDANT-030, 031, 032, 033, 034, 035, 036, 040 all describe the union
+    member selection algorithm — left-to-right ordering, smart mode exact/strict/lax
+    tiers, model scoring by valid-fields-set. These are the core union validation
+    semantics. PYDANT-037, 038, 039, 041 are about discriminated unions specifically,
+    which is a distinct sub-feature.
+  stakes: 3.6
+  shape_key: fb58bc997846
+  status: approved
+  proposed_at: '2026-07-19T18:01:13+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T18:02:42+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-4
+  question: These 4 promises, 6 code locations and 2 documents describe one thing
+    — call it Discriminated Unions?
+  proposed_by: llm
+  evidence:
+  - quote: Discriminated unions produce validation errors only for the union member
+      with a matching discriminator value, not for all members.
+    source: PYDANT-038 · unions Union Validation Errors
+  - quote: When a discriminated union is defined, the generated JSON schema implements
+      the `discriminator` attribute from the OpenAPI specification.
+    source: PYDANT-039 · unions Discriminated unions
+  - quote: When a callable discriminator returns `None`, a `union_tag_not_found` error
+      is raised.
+    source: PYDANT-037 · unions Discriminated Unions with callable Discriminator
+  - quote: A `Discriminator` may accept `custom_error_type`, `custom_error_message`,
+      and `custom_error_context` parameters to customize the error raised on validation
+      failure.
+    source: PYDANT-041 · unions Union Validation Errors
+  operations:
+  - op: create_entity
+    entity_id: ent-discriminated-unions
+    name: Discriminated Unions
+    identity_sentence: Discriminated Unions are a union variant where a discriminator
+      field or callable routes validation directly to the matching union member, with
+      customizable error behavior and JSON Schema output.
+    aliases:
+    - Discriminator
+    - tagged union
+    - discriminator field
+    - union discriminator
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: promise
+    ref: PYDANT-037
+    note: ''
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: promise
+    ref: PYDANT-038
+    note: ''
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: promise
+    ref: PYDANT-039
+    note: ''
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: promise
+    ref: PYDANT-041
+    note: ''
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: code
+    ref: pydantic-core/python/pydantic_core/core_schema.py
+    note: bound to PYDANT-019, PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-030, PYDANT-031,
+      PYDANT-032, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: code
+    ref: pydantic-core/tests/validators/test_tagged_union.py
+    note: bound to PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: code
+    ref: pydantic/_internal/_discriminated_union.py
+    note: bound to PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: code
+    ref: pydantic/_internal/_generate_schema.py
+    note: bound to PYDANT-001, PYDANT-002, PYDANT-006, PYDANT-009, PYDANT-012, PYDANT-013,
+      PYDANT-015, PYDANT-017, PYDANT-018, PYDANT-025, PYDANT-027, PYDANT-030, PYDANT-031,
+      PYDANT-033, PYDANT-034, PYDANT-035, PYDANT-036, PYDANT-040, PYDANT-041
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: code
+    ref: pydantic/json_schema.py
+    note: bound to PYDANT-039
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: code
+    ref: pydantic/types.py
+    note: bound to PYDANT-041
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: doc
+    ref: docs/concepts/unions.md
+    note: bound to PYDANT-030, PYDANT-031, PYDANT-032, PYDANT-033, PYDANT-034, PYDANT-035,
+      PYDANT-036, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-040, PYDANT-041
+  - op: attach
+    entity_id: ent-discriminated-unions
+    kind: doc
+    ref: docs/errors/validation_errors.md
+    note: bound to PYDANT-037
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: PYDANT-037, 038, 039, 041 are all specifically about the Discriminator
+    mechanism — how it routes validation, what errors it raises when the tag is missing
+    or invalid, how it affects JSON Schema output, and how errors can be customized.
+    This is a distinct sub-feature of Union Validation (hence part_of), not just another
+    union mode. The org would talk about 'discriminated unions' as a named feature
+    separate from smart/left-to-right mode.
+  stakes: 3.4
+  shape_key: 2ba358d2b12c
+  status: approved
+  proposed_at: '2026-07-19T18:01:13+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T18:02:42+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-5
+  question: These 6 promises and 10 code locations describe one thing — call it Serialization
+    Output Rules?
+  proposed_by: llm
+  evidence:
+  - quote: Fractions must be serialized as strings in both Python and JSON modes.
+    source: PYDANT-015 · standard_library_types Fractions / Serialization
+  - quote: In JSON mode, Decimal instances must be serialized as strings.
+    source: PYDANT-009 · standard_library_types Decimals / Serialization
+  - quote: When an unsupported type is used and cannot be serialized to JSON, the
+      system must raise a PydanticSerializationError exception.
+    source: PYDANT-016 · serialization JSON mode
+  - quote: Callables must not be serialized in JSON mode; a PydanticSerializationError
+      must be raised.
+    source: PYDANT-007 · standard_library_types Callable / Serialization
+  - quote: Subclasses of supported types must be serialized according to their superclass
+      serialization schema.
+    source: PYDANT-019 · serialization Subclasses of supported types
+  operations:
+  - op: create_entity
+    entity_id: ent-serialization-output-rules
+    name: Serialization Output Rules
+    identity_sentence: Serialization Output Rules define how specific Python types
+      — including fractions, decimals, subclasses, and unsupported types — are represented
+      in serialized output.
+    aliases:
+    - type serialization
+    - output type handling
+    - serialization schema
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: promise
+    ref: PYDANT-015
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: promise
+    ref: PYDANT-009
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: promise
+    ref: PYDANT-016
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: promise
+    ref: PYDANT-008
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: promise
+    ref: PYDANT-007
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: promise
+    ref: PYDANT-019
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/python/pydantic_core/__init__.py
+    note: bound to PYDANT-016
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/python/pydantic_core/core_schema.py
+    note: bound to PYDANT-019, PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-030, PYDANT-031,
+      PYDANT-032, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/tests/serializers/test_any.py
+    note: bound to PYDANT-016, PYDANT-019
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/tests/serializers/test_decimal.py
+    note: bound to PYDANT-009
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/tests/serializers/test_functions.py
+    note: bound to PYDANT-007, PYDANT-017, PYDANT-020, PYDANT-021, PYDANT-027, PYDANT-029
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/tests/serializers/test_model.py
+    note: bound to PYDANT-016, PYDANT-018, PYDANT-019, PYDANT-022, PYDANT-023, PYDANT-024,
+      PYDANT-028
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/tests/serializers/test_other.py
+    note: bound to PYDANT-007, PYDANT-008, PYDANT-016
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic-core/tests/serializers/test_simple.py
+    note: bound to PYDANT-015
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic/_internal/_generate_schema.py
+    note: bound to PYDANT-001, PYDANT-002, PYDANT-006, PYDANT-009, PYDANT-012, PYDANT-013,
+      PYDANT-015, PYDANT-017, PYDANT-018, PYDANT-025, PYDANT-027, PYDANT-030, PYDANT-031,
+      PYDANT-033, PYDANT-034, PYDANT-035, PYDANT-036, PYDANT-040, PYDANT-041
+  - op: attach
+    entity_id: ent-serialization-output-rules
+    kind: code
+    ref: pydantic/_internal/_serializers.py
+    note: bound to PYDANT-015
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: These promises all answer the question 'what does this type look like
+    in serialized output?' — Fraction→string (015), Decimal→string in JSON (009),
+    unsupported type→PydanticSerializationError (016), callable→error in JSON (007),
+    type[X]→error in JSON (008), subclass→superclass schema (019). They are output-type
+    contracts, not decorator/hook contracts. PYDANT-019 fits here because it's a rule
+    about how the serialization schema is applied to subclasses, not about polymorphic
+    dispatch (which is PYDANT-018/025/026).
+  stakes: 4.2
+  shape_key: 0bbd38c32ee5
+  status: approved
+  proposed_at: '2026-07-19T18:02:47+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T18:04:16+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: true
+    final_operations:
+    - op: create_entity
+      entity_id: ent-serialization-output-rules
+      name: Serialization Output Rules
+      identity_sentence: Serialization Output Rules define how specific Python types
+        — including fractions, decimals, subclasses, and unsupported types — are represented
+        in serialized output.
+      aliases:
+      - type serialization
+      - output type handling
+      - serialization schema
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: promise
+      ref: PYDANT-015
+      note: ''
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: promise
+      ref: PYDANT-009
+      note: ''
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: promise
+      ref: PYDANT-016
+      note: ''
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: promise
+      ref: PYDANT-008
+      note: ''
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: promise
+      ref: PYDANT-007
+      note: ''
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/python/pydantic_core/__init__.py
+      note: bound to PYDANT-016
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/python/pydantic_core/core_schema.py
+      note: bound to PYDANT-019, PYDANT-020, PYDANT-021, PYDANT-022, PYDANT-030, PYDANT-031,
+        PYDANT-032, PYDANT-037, PYDANT-038, PYDANT-039, PYDANT-041
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/tests/serializers/test_any.py
+      note: bound to PYDANT-016, PYDANT-019
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/tests/serializers/test_decimal.py
+      note: bound to PYDANT-009
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/tests/serializers/test_functions.py
+      note: bound to PYDANT-007, PYDANT-017, PYDANT-020, PYDANT-021, PYDANT-027, PYDANT-029
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/tests/serializers/test_model.py
+      note: bound to PYDANT-016, PYDANT-018, PYDANT-019, PYDANT-022, PYDANT-023, PYDANT-024,
+        PYDANT-028
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/tests/serializers/test_other.py
+      note: bound to PYDANT-007, PYDANT-008, PYDANT-016
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic-core/tests/serializers/test_simple.py
+      note: bound to PYDANT-015
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic/_internal/_generate_schema.py
+      note: bound to PYDANT-001, PYDANT-002, PYDANT-006, PYDANT-009, PYDANT-012, PYDANT-013,
+        PYDANT-015, PYDANT-017, PYDANT-018, PYDANT-025, PYDANT-027, PYDANT-030, PYDANT-031,
+        PYDANT-033, PYDANT-034, PYDANT-035, PYDANT-036, PYDANT-040, PYDANT-041
+    - op: attach
+      entity_id: ent-serialization-output-rules
+      kind: code
+      ref: pydantic/_internal/_serializers.py
+      note: bound to PYDANT-015
+- diff_id: GD-6
+  question: These 6 promises and 9 code locations describe one thing — call it Serialization
+    Output?
+  proposed_by: llm
+  evidence:
+  - quote: When `mode='json'` is passed to `model_dump()`, the system must ensure
+      only JSON-compatible types are used in the output.
+    source: PYDANT-028 · serialization Python mode
+  - quote: When iterating over a model, field values must be yielded as-is; sub-models
+      must not be converted to dictionaries during iteration.
+    source: PYDANT-023 · serialization Iterating over models
+  - quote: Exclusion configured at the field level must take priority over the `include`
+      serialization parameter.
+    source: PYDANT-024 · serialization At the field level
+  - quote: Fractions must be serialized as strings in both Python and JSON modes.
+    source: PYDANT-015 · standard_library_types Fractions / Serialization
+  operations:
+  - op: create_entity
+    entity_id: ent-serialization-output
+    name: Serialization Output
+    identity_sentence: Serialization Output governs what model_dump and model iteration
+      produce — the shape, type-compatibility, and field-inclusion rules of the data
+      that leaves a model.
+    aliases:
+    - model_dump
+    - model output
+    - dict output
+    - JSON output
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: promise
+    ref: PYDANT-012
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: promise
+    ref: PYDANT-013
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: promise
+    ref: PYDANT-015
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: promise
+    ref: PYDANT-023
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: promise
+    ref: PYDANT-024
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: promise
+    ref: PYDANT-028
+    note: ''
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic-core/tests/serializers/test_dataclasses.py
+    note: bound to PYDANT-024, PYDANT-025, PYDANT-028
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic-core/tests/serializers/test_model.py
+    note: bound to PYDANT-016, PYDANT-018, PYDANT-019, PYDANT-022, PYDANT-023, PYDANT-024,
+      PYDANT-028
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic-core/tests/serializers/test_simple.py
+    note: bound to PYDANT-015
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic-core/tests/serializers/test_typed_dict.py
+    note: bound to PYDANT-024, PYDANT-028
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic-core/tests/validators/test_callable.py
+    note: bound to PYDANT-012
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic-core/tests/validators/test_generator.py
+    note: bound to PYDANT-013
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic/_internal/_generate_schema.py
+    note: bound to PYDANT-001, PYDANT-002, PYDANT-006, PYDANT-009, PYDANT-012, PYDANT-013,
+      PYDANT-015, PYDANT-017, PYDANT-018, PYDANT-025, PYDANT-027, PYDANT-030, PYDANT-031,
+      PYDANT-033, PYDANT-034, PYDANT-035, PYDANT-036, PYDANT-040, PYDANT-041
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic/_internal/_serializers.py
+    note: bound to PYDANT-015
+  - op: attach
+    entity_id: ent-serialization-output
+    kind: code
+    ref: pydantic/main.py
+    note: bound to PYDANT-023, PYDANT-026, PYDANT-028
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: PYDANT-028 (model_dump JSON mode), PYDANT-023 (model iteration yields
+    values as-is), PYDANT-024 (field-level exclusion priority), PYDANT-015 (Fraction
+    serialized as string), PYDANT-012 (Callable validation is shallow — relevant to
+    what gets serialized), PYDANT-013 (Iterable items validated lazily) all describe
+    the observable output contract of serialization. PYDANT-012 and PYDANT-013 are
+    about validation behavior that directly shapes what can be serialized, and the
+    mechanical clustering placed them with serializers. They fit here because they
+    define what the system produces/accepts at the boundary, not how custom hooks
+    work.
+  stakes: 4.0
+  shape_key: 513b7410306b
+  status: rejected
+  proposed_at: '2026-07-19T18:04:23+00:00'
+  decision:
+    action: rejected
+    by: claude (assisted onboarding)
+    at: '2026-07-19T18:07:03+00:00'
+    reason_code: not_one_thing
+    reason_text: near-duplicate name of Serialization Output Rules; mixes validation
+      promises (PYDANT-012, PYDANT-013) into a serialization entity; PYDANT-015 already
+      housed
+    amended: false

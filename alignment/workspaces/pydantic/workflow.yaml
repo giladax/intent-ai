@@ -1,0 +1,13 @@
+workflow_id: pydantic
+requirements:
+  provider: git
+  reference: standard_library_types
+repositories:
+- provider: git
+  repository: pydantic
+  path: ../../../../scale-target/pydantic
+eval_sources:
+- type: repository
+  paths:
+  - tests/**
+  - evals/**

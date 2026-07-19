@@ -1,0 +1,42 @@
+# Local commit ranges analyzed as PRs: number → {base, head, title}.
+# Add an entry and run `analyze <workspace> <number>` to check a commit.
+1:
+  base: fe8031703be948f2c9af4b697fbe020a63a29487^
+  head: fe8031703be948f2c9af4b697fbe020a63a29487
+  title: Perform validation on assignment to attribute (#94)
+2:
+  base: eeb48fbeaceb2cd9b0a81f78e4f1a6d090489d0c^
+  head: eeb48fbeaceb2cd9b0a81f78e4f1a6d090489d0c
+  title: 'don''t call validators on keys of dictionaries, fix #254 (#342)'
+3:
+  base: 9667478376590e2ce97b6e134743459b2fef05fd^
+  head: 9667478376590e2ce97b6e134743459b2fef05fd
+  title: Make strictbool typecheck as bool (#873)
+4:
+  base: 465f267c7d9735066d4a1aec1168b2c7d8d0b1e5^
+  head: 465f267c7d9735066d4a1aec1168b2c7d8d0b1e5
+  title: Added `StrictBytes` type (#2136)
+5:
+  base: c834f3419d78d03ce176e6223b0b4e96ac4d3891^
+  head: c834f3419d78d03ce176e6223b0b4e96ac4d3891
+  title: Support discriminated union (#2336)
+6:
+  base: 9e1f2a6f7cb0e2983a1065b8c08d6fbc64a9f5d2^
+  head: 9e1f2a6f7cb0e2983a1065b8c08d6fbc64a9f5d2
+  title: 'feat: add strict to Field (#4713)'
+7:
+  base: 8d2e6f2bd8a03c11be2e81109bb9444463606b17^
+  head: 8d2e6f2bd8a03c11be2e81109bb9444463606b17
+  title: Don't check for subclass of `bool` for `JsonValue` (#8286)
+8:
+  base: 1667c8447c35f10f27d0adcd64df8b61eaf98aa0^
+  head: 1667c8447c35f10f27d0adcd64df8b61eaf98aa0
+  title: Support serialization as any for `Secret` types and `Url` types (#10947)
+9:
+  base: 979b05fcdef2dbd8aebae2d510067afe657f966f^
+  head: 979b05fcdef2dbd8aebae2d510067afe657f966f
+  title: Remove redundant serialization attempts in nested unions (#12604)
+10:
+  base: 1c9656dc3095c777e593cc004e15434e85d85b29^
+  head: 1c9656dc3095c777e593cc004e15434e85d85b29
+  title: Fix validation of `Fraction` subclasses (#13366)
