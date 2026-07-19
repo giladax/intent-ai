@@ -499,7 +499,10 @@ def create_app(store: Store | None = None) -> FastAPI:
             if op.op == "attach" and op.kind == "promise"
         }
         adapter = _adapter(workspace)
-        all_promises = [o.obligation_id for o in adapter.obligations()]
+        obligations = list(adapter.obligations())
+        all_promises = [o.obligation_id for o in obligations]
+        # ids mean nothing to a human — the page renders the STATEMENTS
+        promise_statements = {o.obligation_id: o.statement for o in obligations}
         coverage = {
             "total": len(all_promises),
             "housed": sorted(p for p in all_promises if p in held),
@@ -533,6 +536,7 @@ def create_app(store: Store | None = None) -> FastAPI:
                 for d in opened
             ],
             "coverage": coverage,
+            "promise_statements": promise_statements,
             # history reads in decision order, or it isn't history
             "decided": [
                 {

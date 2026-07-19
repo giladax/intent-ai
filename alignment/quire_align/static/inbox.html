@@ -53,6 +53,19 @@ animation:stampin .55s var(--spring) both}
 .quote .src{display:block;font-style:normal;font-size:11.5px;color:var(--faint);font-family:'Spline Sans Mono',monospace;margin-top:2px}
 .more{color:var(--muted);font-size:13px}
 .heldnote{color:var(--muted);font-size:13px;font-style:italic;margin:6px 0 4px}
+.plain{padding:2px 26px 0}
+.plain .say{font-size:15px;margin:6px 0;color:var(--ink)}
+.plain .say b{font-weight:700}
+.plain .soft{color:var(--muted)}
+.pstat{padding:5px 14px;border-left:3px solid var(--ok);margin:7px 0;font-size:14.5px;font-weight:600;line-height:1.45}
+.pstat.off{opacity:.45;text-decoration:line-through}
+.pstat .pid{font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);font-weight:400;margin-left:8px;white-space:nowrap}
+details.receipt{margin:12px 26px 0}
+details.receipt summary{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);list-style:none}
+details.receipt summary::before{content:'▸ ';transition:transform .3s var(--ease)}
+details.receipt[open] summary::before{content:'▾ '}
+details.receipt summary:hover{color:var(--ink)}
+details.receipt .change{margin:10px 0 0}
 .change{background:var(--ink);color:var(--paper);border-radius:12px;margin:14px 26px;padding:14px 18px;font-family:'Spline Sans Mono',monospace;font-size:12.5px;line-height:1.9}
 .change .plus{color:#8FD0B5}
 .change .off{color:rgba(239,229,206,.4);text-decoration:line-through}
@@ -112,6 +125,7 @@ const WS = __WORKSPACE_JSON__;
 document.getElementById("homelink").href = "/mirror/" + encodeURIComponent(WS);
 const REASONS = [["not_one_thing","not one thing"],["wrong_name","wrong name"],["bad_evidence","bad evidence"],["other","other…"]];
 let expanded = null; // diff_id of the currently expanded card
+let STATEMENTS = {}; // promise id → what it actually says (ids mean nothing to a human)
 
 function el(tag, cls, text){
   const node = document.createElement(tag);
@@ -159,6 +173,51 @@ function buildOperations(editState){
   return editState.filter(row => row.keep).map(row => row.op);
 }
 
+// Meaning before mechanics: what this card DOES, in sentences a person
+// who has never seen the notation reads without learning anything. The
+// promise statements ARE the beef — they render in full; ids are
+// footnotes; the exact operation list lives in the receipt below.
+function renderPlain(plain, editState, editing){
+  plain.replaceChildren();
+  const kept = editState.filter(r => r.keep).map(r => r.op);
+  const creates = kept.filter(o => o.op === "create_entity");
+  creates.forEach(o => {
+    const say = el("div", "say");
+    say.appendChild(el("b", "", `This puts “${o.name}” on your map`));
+    say.append(o.identity_sentence ? ` — ${o.identity_sentence}` : ".");
+    plain.appendChild(say);
+    const words = (o.aliases || []).map(a => `“${a}”`);
+    if (words.length) plain.appendChild(
+      el("div", "say soft", `It will also answer to ${words.join(", ")}.`));
+  });
+  const promiseRows = editState.filter(r => r.op.op === "attach" && r.op.kind === "promise");
+  if (promiseRows.length){
+    plain.appendChild(el("div", "say", `It takes responsibility for ${promiseRows.length === 1 ? "this promise" : "these " + promiseRows.length + " promises"}:`));
+    promiseRows.forEach(r => {
+      const line = el("div", "pstat" + (r.keep ? "" : " off"),
+        "“" + (STATEMENTS[r.op.ref] || r.op.ref) + "”");
+      line.appendChild(el("span", "pid", r.op.ref));
+      plain.appendChild(line);
+    });
+  }
+  const code = kept.filter(o => o.op === "attach" && o.kind === "code").length;
+  const docs = kept.filter(o => o.op === "attach" && o.kind === "doc").length;
+  const linkBits = [];
+  if (code) linkBits.push(`${code} place${code===1?"":"s"} in the code`);
+  if (docs) linkBits.push(`${docs} document${docs===1?"":"s"}`);
+  if (linkBits.length) plain.appendChild(
+    el("div", "say soft", `It points at ${linkBits.join(" and ")} — each listed in the receipt.`));
+  kept.filter(o => o.op === "relate").forEach(o =>
+    plain.appendChild(el("div", "say", `It sits ${o.relation === "part_of" ? "inside" : "depending on"} ${o.other_id}.`)));
+  kept.filter(o => o.op === "rename").forEach(o =>
+    plain.appendChild(el("div", "say", `Renames ${o.entity_id} to “${o.name}”.`)));
+  kept.filter(o => o.op === "detach").forEach(o =>
+    plain.appendChild(el("div", "say", `Removes the ${o.kind} “${STATEMENTS[o.ref] || o.ref}”.`)));
+  kept.filter(o => o.op === "supersede").forEach(o =>
+    plain.appendChild(el("div", "say", `Retires ${o.entity_id} into ${o.successor_id} — the fate of every promise it holds is in the receipt.`)));
+  if (editing) plain.appendChild(el("div", "say soft", "Reflecting your edits — struck lines will not happen."));
+}
+
 function renderChange(change, editState, editing){
   change.replaceChildren();
   editState.forEach(row => {
@@ -198,7 +257,10 @@ function renderEditor(editor, editState, onChange){
       const box = el("input"); box.type = "checkbox"; box.checked = row.keep;
       box.addEventListener("change", () => { row.keep = box.checked; onChange(); });
       const [verb, rest] = opText(row.op);
-      opRow.append(box, el("span", "k", verb.replace(/^[+±∅] /, "")), el("span", "", rest));
+      // a human unchecks meanings, not ids — promises show their words
+      const shown = (row.op.op === "attach" && row.op.kind === "promise" && STATEMENTS[row.op.ref])
+        ? `“${STATEMENTS[row.op.ref].slice(0, 90)}” (${row.op.ref})` : rest;
+      opRow.append(box, el("span", "k", verb.replace(/^[+±∅] /, "")), el("span", "", shown));
       editor.appendChild(opRow);
     }
   });
@@ -237,12 +299,21 @@ function card(p, uniformStakes){
   c.appendChild(ev);
 
   const editState = makeEditState(p);
+  const plain = el("div", "plain");
   const change = el("div", "change");
+  const receipt = document.createElement("details");
+  receipt.className = "receipt";
+  receipt.appendChild(el("summary", "", "the full receipt — every operation, exact"));
+  receipt.appendChild(change);
   const editor = el("div", "editor");
   let editing = false;
-  const refresh = () => renderChange(change, editState, editing);
+  const refresh = () => {
+    renderPlain(plain, editState, editing);
+    renderChange(change, editState, editing);
+  };
   refresh();
-  c.appendChild(change);
+  c.appendChild(plain);
+  c.appendChild(receipt);
   renderEditor(editor, editState, refresh);
   c.appendChild(editor);
 
@@ -329,6 +400,7 @@ async function load(){
   const count = document.getElementById("count");
   count.textContent = `Proposals — ${data.open.length} open`;
   if (data.open.length) count.appendChild(el("span", "needdot"));
+  STATEMENTS = data.promise_statements || {};
   coverageSentence(data.coverage);
   const cards = document.getElementById("cards");
   cards.replaceChildren();
