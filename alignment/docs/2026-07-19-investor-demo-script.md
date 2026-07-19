@@ -4,11 +4,11 @@ Target: 9 minutes + 2 spare. Two workspaces, both real, both local — no
 network dependency, zero LLM calls during the demo. The one live
 mutation is the founder's own signature.
 
-**The thesis sentence (memorize):** "AI writes your code faster than
-your organization can understand itself. Quire is the understanding
-layer: it reads what you promised, watches what you built, and keeps a
-map humans sign — so every claim on screen can be cross-examined down
-to the exact line of code."
+**The thesis sentence (memorize):** "AI writes most code now, so teams ship
+faster than they understand. Quire reads what you promised to build,
+watches every merge, and flags the moment the code breaks a promise —
+with the exact file and line. Every AI coding tool makes this problem
+worse. We're the check on all of them."
 
 v2 note: the two rehearsal-round product minors are FIXED — pasted
 trails now resolve ancestor names, and a crowded constellation shows
@@ -88,7 +88,7 @@ python3 -m quire_align.cli up --no-open
 - *Say:* "This is a Telegram assistant my team built — seventeen
   commits, one design doc. Quire read it, and this is the map: what it
   IS, in its own words."
-- *They see:* 7 entities named in the product's vocabulary (Quiet by
+- *They see:* 7 parts of the product, named in its own vocabulary (Quiet by
   Default, CEO Alerts, Fact Merging), the lede story, the ring rail
   (What we build / What we promised / What's changing…).
 - *Proves:* generality — a real external repo, onboarded in an
@@ -127,7 +127,7 @@ python3 -m quire_align.cli up --no-open
 - *Say:* "The machine proposed calling this grouping 'Brain'. I
   refused — wrong name — and the refusal TAUGHT it: the name died, the
   grouping stayed free, and the next day it came back as 'External
-  System Boundaries' — in quires, still unsigned, my call."
+  System Boundaries' — still waiting for my sign-off. My call."
 - *They see:* GD-1 struck (*declined by cpo · wrong name*), and the
   mind's own thought "GD-1 Rejection → GD-10 Reframe" narrating the
   arc on the same screen.
@@ -147,8 +147,9 @@ python3 -m quire_align.cli up --no-open
 - *Clicks:* banner → "Open the inbox →" → GD-9's collapsed row →
   expand.
 - *Say:* read the plain-language summary aloud, then point at the
-  button: "Sign — 1 entity, 3 bindings. It tells me exactly how much
-  my signature binds." Click **Sign**. The stamp lands.
+  button: "It tells me exactly how much my signature binds — one part
+  of the product, three links into the code." Click **Sign**. The
+  stamp lands.
 - *Say:* "That's the only way this map ever changes — a named human, a
   scoped signature."
 - *Proves:* one mutation path — auditable governance.
