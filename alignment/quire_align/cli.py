@@ -624,12 +624,27 @@ def _resolve_port(host: str, port: int) -> tuple[int, bool]:
             ) as response:
                 import json
 
-                if json.load(response).get("info", {}).get("title") == "Quire Align":
+                spec = json.load(response)
+                ours = spec.get("info", {}).get("title") == "Quire Align"
+                # Reuse only a CURRENT Quire — a stale process from an
+                # older session answers 404 on today's doors, which reads
+                # as the product being broken. Marker: the inbox route.
+                current = "/inbox/{workspace}" in (spec.get("paths") or {})
+                if ours and current:
                     return candidate, True
+                if ours:
+                    typer.secho(
+                        f"port {candidate}: a Quire server from an older "
+                        f"session (missing current pages) — leaving it and "
+                        f"taking the next port; stop it with: "
+                        f"lsof -ti tcp:{candidate} | xargs kill",
+                        fg=typer.colors.YELLOW,
+                    )
         except Exception:
             pass  # busy, but not ours — try the next port
     raise typer.BadParameter(
-        f"no free port in {port}..{port + 9} and none of them is a Quire server"
+        f"no free port in {port}..{port + 9} and none of them is a current "
+        f"Quire server"
     )
 
 
