@@ -470,15 +470,19 @@ def create_app(store: Store | None = None) -> FastAPI:
             if resolution["group"]
             else None
         )
+        # a refusal names its neighbors in HUMAN names — never internal ids
+        labels = {g["group_id"]: g["label"] for g in state.get("groups", [])}
         return {
             "query": q,
             "resolution": {
                 **resolution,
                 "group": resolution["group"]["group_id"] if resolution["group"] else None,
                 "anchor": resolution["group"]["anchor"] if resolution["group"] else None,
-                # a refusal names its neighbors in HUMAN names, both by
-                # meaning (entities) and by wording (areas)
                 "near_by_meaning": near_by_meaning,
+                "alternatives_named": [
+                    labels[g] for g in resolution.get("alternatives", [])
+                    if g in labels
+                ],
             },
             "card": card,
         }

@@ -508,6 +508,7 @@ async function load(){
   drows.replaceChildren();
   decided.forEach(d => {
     const row = el("div", "drow");
+    row.id = "decided-" + d.diff_id; // a decision is addressable
     const st = el("span", "st " + d.status, d.status + (d.decision && d.decision.amended ? " · amended" : ""));
     row.appendChild(st);
     row.appendChild(el("span", "", d.question));
@@ -517,6 +518,15 @@ async function load(){
     }
     drows.appendChild(row);
   });
+  // arriving from a citation chip: land on the decision itself
+  if (location.hash.startsWith("#decided-")){
+    const target = document.getElementById(location.hash.slice(1));
+    if (target){
+      target.scrollIntoView({block: "center"});
+      target.style.background = "var(--wash)";
+      setTimeout(() => { target.style.background = ""; }, 2400);
+    }
+  }
 }
 load();
 </script>
