@@ -14,7 +14,7 @@ body{background:var(--paper);color:var(--ink);font:15px/1.55 'Hanken Grotesk',sa
 ::selection{background:var(--ink);color:var(--paper)}
 .mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
 a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px;cursor:pointer;transition:color .3s var(--ease)}
-a:hover{color:var(--cobalt)}
+a:hover{color:var(--ink)}
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.99);filter:blur(8px)}
 to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
 .rise{animation:rise .7s var(--ease) both}
@@ -41,7 +41,7 @@ h1{font-size:clamp(28px,3.2vw,36px);font-weight:800;letter-spacing:-.025em;line-
 font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
 border:2.5px solid;border-radius:8px;padding:7px 14px;background:rgba(245,241,232,.9);
 animation:stampin .55s var(--spring) both}
-.stamp.ok{color:var(--ok);border-color:var(--ok)}
+.stamp.ok{color:var(--cobalt);border-color:var(--cobalt)}
 .stamp.no{color:var(--bad);border-color:var(--bad)}
 .card .head{padding:20px 26px 0}
 .q{font-size:21px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
@@ -78,9 +78,9 @@ details.receipt .change{margin:10px 0 0}
 .oprow input{accent-color:var(--ink)}
 .oprow .k{color:var(--faint);font-size:10.5px;width:56px;flex:none;text-transform:uppercase}
 .foot{display:flex;gap:14px;align-items:center;padding:14px 26px 20px;border-top:1px solid var(--rule);flex-wrap:wrap}
-button{font:13px 'Spline Sans Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:9px 20px;cursor:pointer;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:99px;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+button{font:13px 'Spline Sans Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:9px 20px;cursor:pointer;border:1.5px solid var(--cobalt);background:var(--cobalt);color:#fff;border-radius:99px;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
 button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(28,26,21,.5)}
-button.ghost{background:none;color:var(--ink)}
+button.ghost{background:none;color:var(--ink);border-color:var(--ink)}
 button:disabled{opacity:.4;cursor:default}
 .rejects{margin-left:auto;font-size:13px;color:var(--muted)}
 .rejects a{margin-left:8px}
@@ -107,19 +107,19 @@ footer{border-top:3px double var(--ink);margin-top:60px;padding:12px 48px;color:
 </style>
 </head>
 <body>
-<div class="top"><span class="brand">Quire</span><span class="crumb"><a id="homelink">Home</a> ▸ <b id="count">Proposals</b> <span style="color:var(--faint)">(never more than 5)</span></span></div>
+<div class="top"><span class="brand">Quire</span><span class="crumb"><a id="homelink">Home</a> ▸ <b id="count">In quires</b> <span style="color:var(--faint)">(never more than 5)</span></span></div>
 <main>
   <h1>The map wants to change. You decide.</h1>
-  <p class="sub">Each card is one question. Nothing below touches the map until you approve it.</p>
+  <p class="sub">Each card is one question. Nothing below binds until you sign it.</p>
   <p class="coverage" id="coverage" hidden></p>
   <div id="cards"></div>
-  <p class="note">A rejected proposal never returns in the same shape. There is deliberately no “approve all.”</p>
+  <p class="note">A declined proposal never returns in the same shape. There is deliberately no “sign all.”</p>
   <div class="decided" id="decided" hidden>
     <h2>Decided — in decision order</h2>
     <div id="drows"></div>
   </div>
 </main>
-<footer>Machines reason, humans decide.</footer>
+<footer>Machines propose; humans sign.</footer>
 <script>
 const WS = __WORKSPACE_JSON__;
 document.getElementById("homelink").href = "/mirror/" + encodeURIComponent(WS);
@@ -137,7 +137,7 @@ function el(tag, cls, text){
 function reviewer(){
   let name = localStorage.getItem("quire.reviewer") || localStorage.getItem("meridian.reviewer");
   if (!name){
-    name = (prompt("Your name (decisions are signed):") || "").trim();
+    name = (prompt("Your name — a signature binds the map:") || "").trim();
     if (name) localStorage.setItem("quire.reviewer", name);
   }
   return name;
@@ -319,7 +319,7 @@ function card(p, uniformStakes){
 
   const err = el("div", "err");
   const foot = el("div", "foot");
-  const approve = el("button", "", "Approve");
+  const approve = el("button", "", "Sign");
   const edit = el("button", "ghost", "Edit first");
   edit.addEventListener("click", () => {
     editing = !editing;
@@ -334,11 +334,11 @@ function card(p, uniformStakes){
     // send operations only when they differ — the record decides amended
     if (JSON.stringify(ops) !== JSON.stringify(p.operations)) body.operations = ops;
     approve.disabled = true;
-    if (await post(p.diff_id, body, err)) seal(c, "approved · " + by, "ok");
+    if (await post(p.diff_id, body, err)) seal(c, `signed · ${new Date().toISOString().slice(0,10)} · ${by}`, "ok");
     else approve.disabled = false;
   });
   foot.append(approve, edit);
-  const rejects = el("span", "rejects", "Reject:");
+  const rejects = el("span", "rejects", "Decline:");
   REASONS.forEach(([code, label]) => {
     const link = el("a", "", label);
     link.addEventListener("click", async () => {
@@ -398,7 +398,7 @@ async function load(){
   const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/proposals`);
   const data = await res.json();
   const count = document.getElementById("count");
-  count.textContent = `Proposals — ${data.open.length} open`;
+  count.textContent = `In quires — ${data.open.length} unsigned`;
   if (data.open.length) count.appendChild(el("span", "needdot"));
   STATEMENTS = data.promise_statements || {};
   coverageSentence(data.coverage);
@@ -406,7 +406,7 @@ async function load(){
   cards.replaceChildren();
   if (!data.open.length){
     const empty = el("div", "empty rise");
-    empty.appendChild(el("div", "big", "Nothing else needs you."));
+    empty.appendChild(el("div", "big", "Nothing needs you."));
     empty.appendChild(el("div", "soft", "The map asks rarely — that is how it earns the right to ask."));
     cards.appendChild(empty);
   }

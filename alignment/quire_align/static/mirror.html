@@ -78,7 +78,7 @@ footer{padding:12px 34px;color:var(--faint);font-size:11px;border-top:3px double
   <h2 class="rise" style="animation-delay:.2s">Product areas</h2>
   <div class="grid rise" style="animation-delay:.26s" id="areas"></div>
 
-  <h2 class="rise" style="animation-delay:.34s" id="waitingHead">Waiting on a human</h2>
+  <h2 class="rise" style="animation-delay:.34s" id="waitingHead">Waiting for a signature</h2>
   <div class="inbox rise" style="animation-delay:.4s" id="inbox"></div>
 
   <div class="coverage rise" style="animation-delay:.48s" id="coverage"></div>
@@ -86,7 +86,7 @@ footer{padding:12px 34px;color:var(--faint);font-size:11px;border-top:3px double
   <h2 class="rise" style="animation-delay:.54s">Recent checks</h2>
   <div class="checks rise" style="animation-delay:.6s" id="checks"></div>
 </main>
-<footer>every claim traces to a commit, a contract version, and your own documents · the mirror shows deltas, not dashboards</footer>
+<footer>Every claim traces to a commit, a contract version, and your own documents. Machines propose; humans sign.</footer>
 <script>
 const WS = "__WORKSPACE__";
 function esc(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}

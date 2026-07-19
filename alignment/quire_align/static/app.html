@@ -7,53 +7,56 @@
 <style>
 :root{--paper:#EFE5CE;--bone:#F5F1E8;--card:#FAF4E4;--ink:#1C1A15;
 --rule:rgba(28,26,21,.14);--muted:rgba(28,26,21,.62);--faint:rgba(28,26,21,.4);
---ok:#2E6B58;--bad:#D8492B;--amber:#B4681E;--cobalt:#2B49D8;--wash:#E7DDC4;
+--broken:#C93A20;--caution:#B4681E;--sign:#2B49D8;--wash:#E7DDC4;
 --ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font:15px/1.5 'Hanken Grotesk',sans-serif}
 ::selection{background:var(--ink);color:var(--paper)}
-.mono{font-family:'Spline Sans Mono',monospace}
-@keyframes rise{from{opacity:0;transform:translateY(12px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
-.rise{animation:rise .55s var(--ease) both}
-@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.28);opacity:1}}
-@keyframes needpulse{0%,100%{box-shadow:0 0 0 0 rgba(180,104,30,.5)}55%{box-shadow:0 0 0 7px rgba(180,104,30,0)}}
-@keyframes stampin{0%{opacity:0;transform:rotate(-14deg) scale(2)}70%{opacity:1;transform:rotate(-7deg) scale(.95)}100%{opacity:1;transform:rotate(-7deg) scale(1)}}
+.mono{font-family:'Spline Sans Mono',monospace;font-variant-numeric:tabular-nums}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.rise{animation:rise .45s var(--ease) both}
+@keyframes cautionpulse{0%,100%{box-shadow:0 0 0 0 rgba(180,104,30,.45)}55%{box-shadow:0 0 0 7px rgba(180,104,30,0)}}
+@keyframes stampin{0%{opacity:0;transform:rotate(-12deg) scale(1.8)}70%{opacity:1;transform:rotate(-6deg) scale(.96)}100%{opacity:1;transform:rotate(-6deg) scale(1)}}
+@keyframes litfact{0%{background:rgba(43,73,216,.14)}100%{background:none}}
+.lit{animation:litfact 2s var(--ease) both}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
 
-aside{position:fixed;inset:0 auto 0 0;width:250px;background:var(--bone);border-right:1.5px solid var(--ink);
+aside{position:fixed;inset:0 auto 0 0;width:252px;background:var(--bone);border-right:1.5px solid var(--ink);
 display:flex;flex-direction:column;padding:18px 0 14px}
-.brand{font-weight:800;font-size:18px;letter-spacing:-.02em;padding:0 20px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule)}
-.brand::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ok);animation:breathe 5.4s ease-in-out infinite}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.02em;padding:0 20px 14px;border-bottom:1px solid var(--rule)}
+.caution{margin:12px 16px 0;border:1.5px solid var(--caution);border-radius:10px;background:var(--card);
+padding:9px 12px;font-family:'Spline Sans Mono',monospace;font-size:11px;line-height:1.7;color:var(--caution);
+letter-spacing:.04em;animation:cautionpulse 5.4s ease-in-out infinite}
 .maplabel{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);padding:16px 20px 6px}
 nav{flex:1;overflow-y:auto}
 .ent{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;background:none;
-font:inherit;font-weight:600;padding:9px 20px;cursor:pointer;color:var(--ink);border-left:3px solid transparent;
+font:inherit;font-weight:600;padding:8px 20px;cursor:pointer;color:var(--ink);border-left:3px solid transparent;
 transition:background .25s var(--ease),border-color .25s var(--ease)}
 .ent:hover{background:var(--wash)}
 .ent.on{background:var(--card);border-left-color:var(--ink)}
-.ent .glyphs{margin-left:auto;font-family:'Spline Sans Mono',monospace;font-size:11px;white-space:nowrap}
-.ent .g-bad{color:var(--bad)} .ent .g-part{color:var(--amber)} .ent .g-ok{color:var(--ok)} .ent .g-un{color:var(--faint)}
-.ent.frozen{opacity:.5;font-weight:400}
-.needs{margin:10px 16px 0;display:block;text-align:center;border:1.5px solid var(--amber);border-radius:99px;
-padding:8px 12px;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-color:var(--amber);text-decoration:none;animation:needpulse 5.4s ease-in-out infinite}
+.ent .alert{margin-left:auto;font-family:'Spline Sans Mono',monospace;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ent .a-broken{color:var(--broken)} .ent .a-caution{color:var(--caution)}
+.ent.frozen{opacity:.45;font-weight:400}
+.needs{margin:10px 16px 0;display:block;text-align:center;border:1.5px solid var(--caution);border-radius:99px;
+padding:8px 12px;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+color:var(--caution);text-decoration:none;animation:cautionpulse 5.4s ease-in-out infinite}
 .needs.quiet{border-color:var(--rule);color:var(--faint);animation:none}
 .railfoot{padding:12px 20px 0;font-size:12px;color:var(--faint);display:flex;gap:14px}
 .railfoot a{color:var(--faint);text-decoration:none}
 .railfoot a:hover{color:var(--ink)}
 
-main{margin-left:250px;padding:26px 44px 90px;max-width:960px}
+main{margin-left:252px;padding:26px 44px 90px;max-width:920px}
 .askpill{width:100%;border:1.5px solid var(--ink);border-radius:99px;background:var(--card);
-padding:13px 22px;font:16px 'Hanken Grotesk',sans-serif;outline:none;transition:box-shadow .3s var(--ease),transform .3s var(--ease)}
-.askpill:focus{box-shadow:4px 4px 0 0 var(--wash);transform:translateY(-1px)}
-.reply{margin-top:12px;border-left:3px solid var(--cobalt);background:var(--card);border-radius:0 12px 12px 0;padding:10px 16px;font-size:14.5px}
+padding:13px 22px;font:16px 'Hanken Grotesk',sans-serif;outline:none;transition:box-shadow .3s var(--ease)}
+.askpill:focus{box-shadow:4px 4px 0 0 var(--wash)}
+.reply{margin-top:12px;border-left:3px solid var(--ink);background:var(--card);border-radius:0 12px 12px 0;padding:10px 16px;font-size:14.5px}
 .reply .soft{color:var(--muted)}
 .reply .chips{margin-top:6px}
 #stage{margin-top:26px}
 .crumb{font-size:12.5px;color:var(--faint);margin-bottom:10px}
 .crumb a{color:var(--faint);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .crumb a:hover{color:var(--ink)}
-h1{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.1}
+h1{font-size:clamp(28px,3.4vw,38px);font-weight:800;letter-spacing:-.03em;line-height:1.08}
 h1 .flag{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
 color:var(--faint);border:1px solid var(--rule);border-radius:99px;padding:3px 10px;vertical-align:middle;margin-left:10px}
 .identity{font-family:'Newsreader',serif;font-style:italic;font-size:17px;color:var(--muted);margin:8px 0 2px;max-width:62ch}
@@ -62,70 +65,79 @@ color:var(--faint);border:1px solid var(--rule);border-radius:99px;padding:3px 1
 background:var(--bone);cursor:default}
 .chip.act{cursor:pointer;transition:all .25s var(--ease)}
 .chip.act:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.chip .mono{font-size:10.5px;color:inherit;opacity:.7}
 h2{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
 font-weight:500;color:var(--muted);margin:30px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:6px}
+h2 .teachnote{float:right;letter-spacing:0;text-transform:none;color:var(--faint);font-size:10.5px}
 .promise{display:flex;gap:12px;align-items:baseline;padding:10px 0;border-bottom:1px dotted var(--rule)}
 .promise .glyph{font-family:'Spline Sans Mono',monospace;font-size:15px;flex:none;width:18px}
-.promise.contradicted .glyph{color:var(--bad)} .promise.partial .glyph{color:var(--amber)}
-.promise.kept .glyph{color:var(--ok)} .promise.unexercised .glyph{color:var(--faint)}
-.promise .words{font-weight:600;line-height:1.45}
-.promise .pm{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);font-weight:400;margin-top:2px}
-.promise.contradicted .pm b{color:var(--bad)} .promise.partial .pm b{color:var(--amber)}
-.pend{position:relative;border:1.5px solid var(--amber);border-radius:14px;background:var(--card);padding:14px 18px;margin:10px 0;
-box-shadow:4px 4px 0 0 rgba(180,104,30,.18)}
-.pend .pq{font-weight:700;font-size:15.5px}
-.pend .pmeta{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint);margin-top:3px}
-.pend .verbs{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
-.pend button{font:12px 'Spline Sans Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;
-cursor:pointer;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:99px;transition:transform .25s var(--ease)}
-.pend button:hover:not(:disabled){transform:translateY(-2px)}
-.pend button:disabled{opacity:.4}
-.pend .rej{font-size:12px;color:var(--muted);margin-left:auto}
-.pend .rej a{margin-left:7px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.pend .shapelink{font-size:12px}
-.pend .stamp{position:absolute;top:10px;right:14px;font-family:'Spline Sans Mono',monospace;font-size:11px;font-weight:600;
-letter-spacing:.12em;text-transform:uppercase;border:2px solid;border-radius:8px;padding:5px 11px;background:rgba(245,241,232,.92);
-animation:stampin .5s var(--spring) both}
-.pend .stamp.ok{color:var(--ok);border-color:var(--ok)} .pend .stamp.no{color:var(--bad);border-color:var(--bad)}
-.err{color:var(--bad);font-size:12.5px;font-style:italic;margin-top:6px}
+.promise.contradicted .glyph{color:var(--broken)} .promise.partial .glyph{color:var(--caution)}
+.promise.unexercised .glyph{color:var(--faint)}
+.promise .words{font-weight:500;line-height:1.5}
+.promise.contradicted .words,.promise.partial .words{font-weight:650}
+.promise .pm{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);font-weight:400;margin-top:3px;font-variant-numeric:tabular-nums}
+.promise .pm b{font-weight:600}
+.promise.contradicted .pm b{color:var(--broken)} .promise.partial .pm b{color:var(--caution)}
+.promise .pm a{color:inherit;text-decoration:none;cursor:pointer}
+.promise .pm a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.quires{position:relative;border:1.5px solid var(--caution);border-radius:14px;background:var(--card);padding:14px 18px;margin:10px 0;
+box-shadow:4px 4px 0 0 rgba(180,104,30,.15)}
+.quires .pq{font-weight:700;font-size:15.5px}
+.quires .pmeta{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint);margin-top:3px}
+.quires .verbs{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.quires button{font:12px 'Spline Sans Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:7px 18px;
+cursor:pointer;border:1.5px solid var(--sign);background:var(--sign);color:#fff;border-radius:99px;transition:transform .25s var(--ease)}
+.quires button:hover:not(:disabled){transform:translateY(-2px)}
+.quires button:disabled{opacity:.4}
+.quires .rej{font-size:12px;color:var(--muted);margin-left:auto}
+.quires .rej a{margin-left:7px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.quires .shapelink{font-size:12px}
+.quires .stamp{position:absolute;top:10px;right:14px;font-family:'Spline Sans Mono',monospace;font-size:11px;font-weight:600;
+letter-spacing:.1em;text-transform:uppercase;border:2px solid var(--sign);border-radius:8px;padding:5px 11px;
+background:rgba(245,241,232,.94);color:var(--sign);animation:stampin .5s var(--spring) both;font-variant-numeric:tabular-nums}
+.quires .stamp.no{color:var(--broken);border-color:var(--broken)}
+.err{color:var(--broken);font-size:12.5px;font-style:italic;margin-top:6px}
 details.lives{margin-top:8px}
 details.lives summary{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);list-style:none}
 details.lives summary::before{content:'▸ '} details.lives[open] summary::before{content:'▾ '}
 details.lives summary:hover{color:var(--ink)}
 .path{font-family:'Spline Sans Mono',monospace;font-size:12px;padding:4px 0;color:var(--muted)}
 .path .note{color:var(--faint);font-size:10.5px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:16px}
 .ecard{border:1.5px solid var(--ink);border-radius:14px;background:var(--card);padding:16px 18px;cursor:pointer;
 box-shadow:4px 4px 0 0 var(--wash);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
 .ecard:hover{transform:translateY(-3px);box-shadow:6px 8px 0 0 var(--wash)}
+.ecard.alarm{border-color:var(--broken);box-shadow:4px 4px 0 0 rgba(201,58,32,.2)}
 .ecard .en{font-weight:800;font-size:18px;letter-spacing:-.015em}
 .ecard .eid{font-family:'Newsreader',serif;font-style:italic;font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.4}
-.ecard .eg{margin-top:10px;font-family:'Spline Sans Mono',monospace;font-size:12px}
-.ecard .g-bad{color:var(--bad)} .ecard .g-part{color:var(--amber)} .ecard .g-ok{color:var(--ok)} .ecard .g-un{color:var(--faint)}
+.ecard .ann{margin-top:10px;font-family:'Spline Sans Mono',monospace;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.ecard .ann.bad{color:var(--broken)} .ecard .ann.warn{color:var(--caution)}
 .legend{margin-top:18px;font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint)}
+.colophon{margin-top:40px;padding-top:10px;border-top:3px double var(--ink);color:var(--faint);font-size:12px;
+font-family:'Spline Sans Mono',monospace;font-variant-numeric:tabular-nums}
 footer{margin:70px 0 0;padding-top:12px;border-top:3px double var(--ink);color:var(--faint);font-size:12px}
 </style>
 </head>
 <body>
 <aside>
   <div class="brand">Quire</div>
+  <div class="caution" id="caution" hidden></div>
   <div class="maplabel">The map</div>
   <nav id="entlist"></nav>
-  <a class="needs quiet" id="needs">nothing needs you</a>
+  <a class="needs quiet" id="needs">Nothing needs you.</a>
   <div class="railfoot"><a id="ledgerlink">ledger</a><a id="mirrorlink">mirror</a></div>
 </aside>
 <main>
-  <input class="askpill" id="ask" placeholder="Ask the map anything — a name, a question, a memory…">
+  <input class="askpill" id="ask" placeholder="Ask for a name, a promise, or a doubt.">
   <div id="reply"></div>
   <div id="stage"></div>
-  <footer>Every line here traces to a signed decision. Machines reason, humans decide.</footer>
+  <footer id="mainfoot">Machines propose; humans sign.</footer>
 </main>
 <script>
 const WS = __WORKSPACE_JSON__;
 const GLYPH = {contradicted:"✖", partial:"◐", kept:"✔", unexercised:"·"};
+const WORD = {contradicted:"broken", partial:"partly kept", kept:"holding", unexercised:"not yet exercised"};
 const REASONS = [["not_one_thing","not one thing"],["wrong_name","wrong name"],["bad_evidence","bad evidence"],["other","other…"]];
-let ENTITIES = [], FOCUSED = null;
+let ENTITIES = [], FOCUSED = null, DECISIONS = null;
 document.getElementById("ledgerlink").href = "/intent/" + encodeURIComponent(WS);
 document.getElementById("mirrorlink").href = "/mirror/" + encodeURIComponent(WS);
 
@@ -138,22 +150,39 @@ function el(tag, cls, text){
 function reviewer(){
   let name = localStorage.getItem("quire.reviewer") || localStorage.getItem("meridian.reviewer");
   if (!name){
-    name = (prompt("Your name (decisions are signed):") || "").trim();
+    name = (prompt("Your name — a signature binds the map:") || "").trim();
     if (name) localStorage.setItem("quire.reviewer", name);
   }
   return name;
 }
-function glyphSpan(rollup){
-  const wrap = el("span", "glyphs");
-  const parts = [["contradicted","g-bad"],["partial","g-part"],["kept","g-ok"],["unexercised","g-un"]];
-  parts.forEach(([k, cls]) => {
-    if (rollup[k]) { wrap.appendChild(el("span", cls, `${rollup[k]}${GLYPH[k]} `)); }
-  });
-  if (!wrap.childNodes.length) wrap.appendChild(el("span", "g-un", "—"));
+function plural(n, noun, nouns){ return n === 1 ? `1 ${noun}` : `${n} ${nouns || noun + "s"}`; }
+
+// The dark-cockpit rule: a healthy thing shows NOTHING. Only what is
+// broken or faltering may light the rail.
+function alertSpan(rollup){
+  const wrap = el("span", "alert");
+  if (rollup.contradicted) wrap.appendChild(el("span", "a-broken", `${rollup.contradicted}${GLYPH.contradicted} `));
+  if (rollup.partial) wrap.appendChild(el("span", "a-caution", `${rollup.partial}${GLYPH.partial}`));
   return wrap;
 }
 
-async function loadRail(focusId){
+// One honest sentence per entity. Trouble speaks first; unexercised is
+// named, never counted as kept; a fully kept set earns quiet words.
+function annLine(rollup){
+  const total = rollup.contradicted + rollup.partial + rollup.kept + rollup.unexercised;
+  if (!total) return {text: "No promises yet.", tone: ""};
+  if (rollup.contradicted)
+    return {text: `${rollup.contradicted} of ${plural(total, "promise")} broken.`, tone: "bad"};
+  if (rollup.partial)
+    return {text: `${plural(rollup.partial, "promise")} partly kept.`, tone: "warn"};
+  if (rollup.unexercised === total)
+    return {text: `${plural(total, "promise")}; none yet exercised.`, tone: ""};
+  if (rollup.unexercised)
+    return {text: `${plural(total, "promise")}; ${rollup.unexercised} not yet exercised.`, tone: ""};
+  return {text: `${plural(total, "promise")}, all holding.`, tone: ""};
+}
+
+async function loadRail(){
   const d = await (await fetch(`/api/graph/${encodeURIComponent(WS)}`)).json();
   ENTITIES = d.entities;
   const nav = document.getElementById("entlist");
@@ -161,20 +190,29 @@ async function loadRail(focusId){
   d.entities.forEach(e => {
     const row = el("button", "ent" + (e.status === "superseded" ? " frozen" : "") + (e.entity_id === FOCUSED ? " on" : ""));
     row.appendChild(el("span", "", e.name));
-    row.appendChild(e.status === "superseded" ? el("span", "glyphs g-un", "frozen") : glyphSpan(e.rollup));
-    row.addEventListener("click", () => focus(e.entity_id));
+    row.appendChild(e.status === "superseded" ? el("span", "alert", "frozen") : alertSpan(e.rollup));
+    row.addEventListener("click", () => { location.hash = "#/entity/" + e.entity_id; });
     nav.appendChild(row);
   });
+  // Master caution: one strip, lit only when something below is lit.
+  const broken = d.entities.reduce((n, e) => n + (e.rollup ? e.rollup.contradicted : 0), 0);
+  const faltering = d.entities.reduce((n, e) => n + (e.rollup ? e.rollup.partial : 0), 0);
+  const caution = document.getElementById("caution");
+  const parts = [];
+  if (broken) parts.push(`${plural(broken, "promise")} broken`);
+  if (faltering) parts.push(`${faltering} partly kept`);
+  if (d.awaiting) parts.push(`${d.awaiting} wait for you`);
+  caution.hidden = !parts.length;
+  caution.textContent = parts.join(" · ");
   const needs = document.getElementById("needs");
   needs.href = "/inbox/" + encodeURIComponent(WS);
   if (d.awaiting){
     needs.className = "needs";
-    needs.textContent = `${d.awaiting} thing${d.awaiting===1?"":"s"} need${d.awaiting===1?"s":""} you`;
+    needs.textContent = `${plural(d.awaiting, "question")} wait${d.awaiting === 1 ? "s" : ""}. Worst first.`;
   } else {
     needs.className = "needs quiet";
-    needs.textContent = "nothing needs you";
+    needs.textContent = "Nothing needs you.";
   }
-  if (focusId) focus(focusId); else if (FOCUSED === null) overview();
 }
 
 function overview(){
@@ -183,28 +221,43 @@ function overview(){
   const stage = document.getElementById("stage");
   stage.replaceChildren();
   const wrap = el("div", "rise");
+  const active = ENTITIES.filter(e => e.status === "active");
+  if (!active.length){
+    wrap.appendChild(el("h1", "", `The map of ${WS}`));
+    wrap.appendChild(el("div", "identity", "Nothing here answers to a name yet. The first collation is being prepared."));
+    stage.appendChild(wrap);
+    return;
+  }
   wrap.appendChild(el("h1", "", `The map of ${WS}`));
-  wrap.appendChild(el("div", "identity", "Every thing your organization means, with the promises it keeps. Click one, or just ask."));
+  wrap.appendChild(el("div", "identity", "The names this organization means. Silence is good news."));
   const grid = el("div", "grid");
-  ENTITIES.filter(e => e.status === "active").forEach(e => {
-    const c = el("div", "ecard");
+  active.forEach(e => {
+    const line = annLine(e.rollup || {contradicted:0,partial:0,kept:0,unexercised:0});
+    const c = el("div", "ecard" + (line.tone === "bad" ? " alarm" : ""));
     c.appendChild(el("div", "en", e.name));
     if (e.identity_sentence) c.appendChild(el("div", "eid", e.identity_sentence));
-    const eg = el("div", "eg");
-    eg.appendChild(glyphSpan(e.rollup));
-    c.appendChild(eg);
-    c.addEventListener("click", () => focus(e.entity_id));
+    c.appendChild(el("div", "ann " + line.tone, line.text));
+    c.addEventListener("click", () => { location.hash = "#/entity/" + e.entity_id; });
     grid.appendChild(c);
   });
   wrap.appendChild(grid);
-  wrap.appendChild(el("div", "legend", `${GLYPH.contradicted} contradicted · ${GLYPH.partial} partial · ${GLYPH.kept} kept · ${GLYPH.unexercised} not yet exercised`));
+  wrap.appendChild(el("div", "legend",
+    `${GLYPH.contradicted} broken · ${GLYPH.partial} partly kept · ${GLYPH.unexercised} not yet exercised — a calm name is keeping its word`));
   stage.appendChild(wrap);
 }
 
-async function focus(entityId){
+async function decisionsIndex(){
+  if (DECISIONS) return DECISIONS;
+  const d = await (await fetch(`/api/graph/${encodeURIComponent(WS)}/proposals`)).json();
+  DECISIONS = {};
+  (d.decided || []).forEach(x => { if (x.decision) DECISIONS[x.diff_id] = x.decision; });
+  return DECISIONS;
+}
+
+async function focus(entityId, promiseRef){
   FOCUSED = entityId;
   const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/entity/${encodeURIComponent(entityId)}`);
-  if (!res.ok){ overview(); return; }
+  if (!res.ok){ location.hash = "#/map"; return; }
   const e = await res.json();
   document.querySelectorAll(".ent").forEach(n => n.classList.toggle("on", n.firstChild.textContent === e.name));
   const stage = document.getElementById("stage");
@@ -213,7 +266,7 @@ async function focus(entityId){
 
   const crumb = el("div", "crumb");
   const back = el("a", "", "the map");
-  back.addEventListener("click", overview);
+  back.addEventListener("click", () => { location.hash = "#/map"; });
   crumb.appendChild(back);
   crumb.append(" ▸ " + e.name);
   wrap.appendChild(crumb);
@@ -236,84 +289,137 @@ async function focus(entityId){
     if (r.ok) focus(e.entity_id);
   });
   chips.appendChild(teach);
-  e.relations.forEach(r => {
-    const label = r.inverse
-      ? (r.relation === "part_of" ? `contains ${r.name}` : `needed by ${r.name}`)
-      : (r.relation === "part_of" ? `part of ${r.name}` : `depends on ${r.name}`);
-    const chip = el("span", "chip act", label + " →");
-    chip.addEventListener("click", () => focus(r.other_id));
-    chips.appendChild(chip);
-  });
   wrap.appendChild(chips);
 
   if (e.pending.length){
-    wrap.appendChild(el("h2", "", "what wants to change here"));
-    e.pending.forEach(p => wrap.appendChild(pendCard(p, e.entity_id)));
+    const qh = el("h2", "", "still in quires");
+    qh.appendChild(el("span", "teachnote", "proposed, not signed — nothing here binds until you sign it"));
+    wrap.appendChild(qh);
+    e.pending.forEach(p => wrap.appendChild(quiresCard(p, e.entity_id)));
   }
 
   wrap.appendChild(el("h2", "", "what it promises"));
-  if (!e.promises.length) wrap.appendChild(el("div", "identity", "No promises yet — it holds a place, not yet a duty."));
+  if (!e.promises.length) wrap.appendChild(el("div", "identity", "No promises yet — a name holding a place, not yet a duty."));
   e.promises.forEach(p => {
     const row = el("div", "promise " + p.state);
-    row.appendChild(el("span", "glyph", GLYPH[p.state]));
+    row.id = "p-" + p.ref;
+    // Kept promises sit in quiet ink — no glyph, no badge. Rule 4 holds:
+    // an unexercised promise wears its own mark, never silence-as-kept.
+    row.appendChild(el("span", "glyph", p.state === "kept" ? "" : GLYPH[p.state]));
     const words = el("span", "words", "“" + p.statement + "”");
     const pm = el("span", "pm");
-    const state = el("b", "", p.state === "unexercised" ? "not yet exercised" : p.state);
-    pm.appendChild(state);
-    pm.append(`${p.since_check ? " · since check #" + p.since_check : ""} · ${p.ref}${p.note ? " · " + p.note : ""}`);
+    if (p.state === "contradicted"){
+      const b = el("b", "", "broken");
+      pm.appendChild(b);
+      pm.append(p.since_check ? ` since check #${p.since_check} · ` : " · ");
+    } else if (p.state === "partial"){
+      pm.appendChild(el("b", "", "partly kept"));
+      pm.append(p.since_check ? ` since check #${p.since_check} · ` : " · ");
+    } else if (p.state === "unexercised"){
+      pm.append("not yet exercised · ");
+    } else if (p.since_check){
+      pm.append(`holding since check #${p.since_check} · `);
+    }
+    const refLink = el("a", "", p.ref);
+    refLink.title = "a steady address for this promise";
+    refLink.addEventListener("click", () => {
+      location.hash = `#/entity/${e.entity_id}/${p.ref}`;
+    });
+    pm.appendChild(refLink);
+    if (p.note) pm.append(" · " + p.note);
     words.appendChild(pm);
     row.appendChild(words);
     wrap.appendChild(row);
   });
 
-  const lives = document.createElement("details");
-  lives.className = "lives";
-  lives.appendChild(el("summary", "", `where it lives — ${e.code.length} place${e.code.length===1?"":"s"} in the code` + (e.docs.length ? `, ${e.docs.length} document${e.docs.length===1?"":"s"}` : "")));
-  e.code.concat(e.docs).forEach(h => {
-    const p = el("div", "path", h.ref + " ");
-    if (h.note) p.appendChild(el("span", "note", "· " + h.note));
-    lives.appendChild(p);
-  });
   if (e.code.length || e.docs.length){
-    wrap.appendChild(el("h2", "", "in the world"));
+    wrap.appendChild(el("h2", "", "where it lives"));
+    const lives = document.createElement("details");
+    lives.className = "lives";
+    lives.appendChild(el("summary", "",
+      `${plural(e.code.length, "place")} in the code` + (e.docs.length ? ` · ${plural(e.docs.length, "document")}` : "")));
+    e.code.concat(e.docs).forEach(h => {
+      const p = el("div", "path", h.ref + " ");
+      if (h.note) p.appendChild(el("span", "note", "· " + h.note));
+      lives.appendChild(p);
+    });
     wrap.appendChild(lives);
   }
+
+  if (e.relations.length){
+    wrap.appendChild(el("h2", "", "how it connects"));
+    const rel = el("div", "chips");
+    e.relations.forEach(r => {
+      const label = r.inverse
+        ? (r.relation === "part_of" ? `contains ${r.name}` : `needed by ${r.name}`)
+        : (r.relation === "part_of" ? `part of ${r.name}` : `depends on ${r.name}`);
+      const chip = el("span", "chip act", label + " →");
+      chip.addEventListener("click", () => { location.hash = "#/entity/" + r.other_id; });
+      rel.appendChild(chip);
+    });
+    wrap.appendChild(rel);
+  }
+
+  // The colophon: who assembled this record, and when it was last bound.
+  const viaIds = new Set([e.created_via].concat(e.holdings.map(h => h.via)).filter(Boolean));
+  const colophon = el("div", "colophon", "");
+  wrap.appendChild(colophon);
+  decisionsIndex().then(idx => {
+    let latest = null, latestId = "";
+    viaIds.forEach(id => {
+      const d = idx[id];
+      if (d && d.action === "approved" && (!latest || d.at > latest.at)){ latest = d; latestId = id; }
+    });
+    const n = [...viaIds].filter(id => idx[id] && idx[id].action === "approved").length || viaIds.size;
+    colophon.textContent =
+      `Assembled from ${plural(n, "signed decision")}` +
+      (latest ? ` · latest ${latestId}, ${latest.at.slice(0,10)}, ${latest.by}` : "") +
+      `. Machines propose; humans sign.`;
+  });
+
   stage.appendChild(wrap);
+  if (promiseRef){
+    const target = document.getElementById("p-" + promiseRef);
+    if (target){ target.scrollIntoView({block: "center"}); target.classList.add("lit"); }
+  }
 }
 
-function pendCard(p, entityId){
-  const card = el("div", "pend");
+function quiresCard(p, entityId){
+  const card = el("div", "quires");
   card.appendChild(el("div", "pq", p.question));
   card.appendChild(el("div", "pmeta",
     `${p.diff_id} · ${p.stakes_label} stakes · ` +
-    ((p.proposed_by || "").startsWith("human:") ? `proposed by ${p.proposed_by.slice(6)}` : "proposed by the machine")));
+    ((p.proposed_by || "").startsWith("human:")
+      ? `proposed by ${p.proposed_by.slice(6)} · not signed`
+      : "the clerk proposes · not signed")));
   const verbs = el("div", "verbs");
-  const approve = el("button", "", "Approve");
+  const sign = el("button", "", "Sign");
   const err = el("div", "err");
-  approve.addEventListener("click", async () => {
+  sign.addEventListener("click", async () => {
     const by = reviewer(); if (!by) return;
-    approve.disabled = true;
+    sign.disabled = true;
     const ok = await decide(p.diff_id, {action:"approved", by}, err);
-    if (ok){ seal(card, "approved · " + by, "ok", entityId); } else approve.disabled = false;
+    if (ok){ seal(card, `signed · ${new Date().toISOString().slice(0,10)} · ${by}`, "ok", entityId); }
+    else sign.disabled = false;
   });
-  verbs.appendChild(approve);
+  verbs.appendChild(sign);
   const shape = el("a", "shapelink", "shape it in the inbox →");
   shape.href = "/inbox/" + encodeURIComponent(WS);
   verbs.appendChild(shape);
-  const rej = el("span", "rej", "Reject:");
+  const rej = el("span", "rej", "Decline:");
   REASONS.forEach(([code, label]) => {
     const a = el("a", "", label);
     a.addEventListener("click", async () => {
       const by = reviewer(); if (!by) return;
       let text;
       if (code === "other"){
-        text = (prompt("One sentence of reason — required, it teaches the system:") || "").trim();
+        text = (prompt("One sentence of reason — required. It teaches the clerk.") || "").trim();
         if (!text) return;
       } else {
-        text = (prompt("Optionally, one sentence to teach the system (Cancel to skip):") || "").trim();
+        text = (prompt("Optionally, one sentence to teach the clerk (Cancel to skip):") || "").trim();
       }
       if (await decide(p.diff_id, {action:"rejected", by, reason_code: code, reason_text: text}, err))
-        seal(card, "rejected", "no", entityId);
+        seal(card, "declined", "no", entityId);
     });
     rej.appendChild(a);
   });
@@ -335,12 +441,24 @@ async function decide(diffId, body, errNode){
   return true;
 }
 function seal(card, text, kind, entityId){
-  card.appendChild(el("span", "stamp " + kind, text));
-  setTimeout(() => loadRail(entityId), 900);
+  card.appendChild(el("span", "stamp" + (kind === "no" ? " no" : ""), text));
+  DECISIONS = null; // the record just changed hands
+  setTimeout(() => { loadRail(); focus(entityId); }, 900);
 }
 
-// The ask is the spine: a name FOCUSES the lens; a question gets a
-// sentence; a miss teaches.
+// Deep links: every entity and promise has a steady address.
+//   #/map              — the map
+//   #/entity/ent-x     — a record
+//   #/entity/ent-x/REF — one promise on that record, lit on arrival
+function route(){
+  const parts = (location.hash || "#/map").replace(/^#\/?/, "").split("/");
+  if (parts[0] === "entity" && parts[1]) focus(parts[1], parts[2]);
+  else overview();
+}
+window.addEventListener("hashchange", route);
+
+// The ask is the spine: a name focuses the record; a question gets a
+// sentence; a miss refuses to guess, then offers to learn.
 document.getElementById("ask").addEventListener("keydown", async ev => {
   if (ev.key !== "Enter") return;
   const q = ev.target.value.trim();
@@ -348,16 +466,17 @@ document.getElementById("ask").addEventListener("keydown", async ev => {
   reply.replaceChildren();
   if (!q) return;
   const r = await fetch(`/api/ask/${encodeURIComponent(WS)}?q=${encodeURIComponent(q)}`);
-  if (!r.ok){ reply.appendChild(el("div", "reply", "Couldn't reach the map — try again in a moment.")); return; }
+  if (!r.ok){ reply.appendChild(el("div", "reply", "The map is unreachable. Try again in a moment.")); return; }
   const d = await r.json();
   if (d.entity){
     if (d.forwarded_from){
       const note = el("div", "reply rise");
       note.append(`“${d.forwarded_from.name}” was retired`);
-      note.appendChild(el("span", "soft", ` (${(d.forwarded_from.superseded_at||"").slice(0,10)}, by ${d.forwarded_from.superseded_by_user||"—"}) — you were forwarded to ${d.entity.name}.`));
+      note.appendChild(el("span", "soft",
+        ` (${(d.forwarded_from.superseded_at||"").slice(0,10)}, signed by ${d.forwarded_from.superseded_by_user||"—"}). You were forwarded to ${d.entity.name}.`));
       reply.appendChild(note);
     }
-    focus(d.entity.entity_id);
+    location.hash = "#/entity/" + d.entity.entity_id;
     ev.target.value = "";
     return;
   }
@@ -369,8 +488,8 @@ document.getElementById("ask").addEventListener("keydown", async ev => {
   }
   if (d.card){
     const box = el("div", "reply rise");
-    box.append(`Matched the area “${d.card.label}” — its promises live in the `);
-    const a = el("a", "", "ledger");
+    box.append(`“${d.card.label}” is an area of the ledger — its promises are kept there. `);
+    const a = el("a", "", "Open the ledger");
     a.href = "/intent/" + encodeURIComponent(WS);
     box.appendChild(a);
     box.append(".");
@@ -378,9 +497,11 @@ document.getElementById("ask").addEventListener("keydown", async ev => {
     return;
   }
   const miss = el("div", "reply rise");
-  miss.appendChild(el("b", "", `Nothing on the map answers to “${q}”.`));
+  miss.appendChild(el("b", "", `Nothing on the map answers to “${q}” — and it won't guess.`));
+  const near = (d.resolution && d.resolution.alternatives || []).slice(0, 2).join(", ");
+  if (near) miss.appendChild(el("div", "soft", `Nearest by wording: ${near}.`));
   const chips = el("div", "chips");
-  const aliasChip = el("span", "chip act", "it's another name for something…");
+  const aliasChip = el("span", "chip act", `“${q}” is another name for something here`);
   aliasChip.addEventListener("click", async () => {
     const by = reviewer(); if (!by) return;
     const active = ENTITIES.filter(e => e.status === "active");
@@ -390,23 +511,23 @@ document.getElementById("ask").addEventListener("keydown", async ev => {
     const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/teach`, {method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({term: q, action:"alias", entity_id: target.entity_id, by})});
-    if (res.ok){ reply.replaceChildren(); focus(target.entity_id); }
+    if (res.ok){ reply.replaceChildren(); location.hash = "#/entity/" + target.entity_id; }
   });
-  const newChip = el("span", "chip act", "it's a new thing — propose it");
+  const newChip = el("span", "chip act", `“${q}” is real — propose it`);
   newChip.addEventListener("click", async () => {
     const by = reviewer(); if (!by) return;
     const note = (prompt("One sentence: what IS it?") || "").trim();
     const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/teach`, {method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({term: q, action:"create", by, note})});
-    if (res.ok){ loadRail(); miss.appendChild(el("div", "soft", "Opened — it waits with the things that need you.")); }
+    if (res.ok){ loadRail(); miss.appendChild(el("div", "soft", "Proposed. It is in quires now — unbound until someone signs.")); }
   });
   chips.append(aliasChip, newChip);
   miss.appendChild(chips);
   reply.appendChild(miss);
 });
 
-loadRail();
+loadRail().then(route);
 </script>
 </body>
 </html>
