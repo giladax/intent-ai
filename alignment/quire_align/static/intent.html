@@ -415,10 +415,10 @@ async function saveAlias(term, anchor){
 
 // --- the teaching loop: misses teach, hits are correctable --------------
 function whoami(){
-  let name = localStorage.getItem("meridian.reviewer");
+  let name = localStorage.getItem("quire.reviewer") || localStorage.getItem("meridian.reviewer");
   if(!name){
     name = (prompt("Your name (teachings are signed):")||"").trim();
-    if(name) localStorage.setItem("meridian.reviewer", name);
+    if(name) localStorage.setItem("quire.reviewer", name);
   }
   return name;
 }

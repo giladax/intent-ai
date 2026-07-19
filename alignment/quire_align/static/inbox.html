@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Meridian — proposals</title>
+<title>Quire — proposals</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#EFE5CE;--bone:#F5F1E8;--card:#FAF4E4;--ink:#1C1A15;
@@ -107,7 +107,7 @@ footer{border-top:3px double var(--ink);margin-top:60px;padding:12px 48px;color:
 </style>
 </head>
 <body>
-<div class="top"><span class="brand">Meridian</span><span class="crumb"><a id="homelink">Home</a> ▸ <b id="count">Proposals</b> <span style="color:var(--faint)">(never more than 5)</span></span></div>
+<div class="top"><span class="brand">Quire</span><span class="crumb"><a id="homelink">Home</a> ▸ <b id="count">Proposals</b> <span style="color:var(--faint)">(never more than 5)</span></span></div>
 <main>
   <h1>The map wants to change. You decide.</h1>
   <p class="sub">Each card is one question. Nothing below touches the map until you approve it.</p>
@@ -135,10 +135,10 @@ function el(tag, cls, text){
 }
 
 function reviewer(){
-  let name = localStorage.getItem("meridian.reviewer");
+  let name = localStorage.getItem("quire.reviewer") || localStorage.getItem("meridian.reviewer");
   if (!name){
     name = (prompt("Your name (decisions are signed):") || "").trim();
-    if (name) localStorage.setItem("meridian.reviewer", name);
+    if (name) localStorage.setItem("quire.reviewer", name);
   }
   return name;
 }
