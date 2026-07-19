@@ -79,3 +79,53 @@ def test_write_workspace_produces_loadable_git_workspace(tmp_path):
     assert workspace.changed_files(pr) == ["app.py"]
     prs = yaml.safe_load((out / "prs.yaml").read_text())
     assert prs[1]["title"] == "raise limit"
+
+
+def test_write_workspace_refuses_duplicate_draft_ids(tmp_path):
+    """Two docs' OB-DRAFT-001s must never collapse into one ledger id —
+    and the refusal happens before anything touches disk."""
+    import pytest
+
+    with pytest.raises(ValueError, match="duplicate draft obligation ids"):
+        write_workspace(
+            tmp_path / "workspaces",
+            "acme-app",
+            tmp_path,
+            sources=[],
+            obligations=[
+                {"obligation_id": "OB-DRAFT-001"},
+                {"obligation_id": "OB-DRAFT-001"},
+            ],
+            control_points=[],
+            bindings=[],
+            sweep_commits=[],
+        )
+    assert not (tmp_path / "workspaces").exists()
+
+
+def test_duplicate_draft_ids_surface_as_400(tmp_path, monkeypatch):
+    """The operator's mistake comes back as a clean 400 with the refusal
+    text, never a 500."""
+    from fastapi.testclient import TestClient
+
+    import quire_align.api as api_mod
+    from quire_align.store import Store
+
+    monkeypatch.setattr(api_mod, "WORKSPACES", tmp_path / "workspaces")
+    client = TestClient(api_mod.create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db")))
+    response = client.post(
+        "/api/onboard/create",
+        json={
+            "repo": str(tmp_path),
+            "workflow_id": "acme-app",
+            "sources": [],
+            "obligations": [
+                {"obligation_id": "OB-DRAFT-001"},
+                {"obligation_id": "OB-DRAFT-001"},
+            ],
+            "control_points": [],
+            "bindings": [],
+        },
+    )
+    assert response.status_code == 400
+    assert "duplicate draft obligation ids" in response.json()["detail"]

@@ -48,3 +48,24 @@ def test_timeline_folds_state_and_marks_changes(refund_workspace, tmp_path):
     # top-down: obligations carry their bound control points
     ob101 = next(o for o in timeline["obligations"] if o["obligation_id"] == "OB-101")
     assert any(cp["relation"] == "verifies" for cp in ob101["control_points"])
+
+
+def test_cached_timeline_reflects_review_of_an_older_check(refund_workspace, tmp_path):
+    """The analyses fingerprint must catch update_review — the one
+    in-place mutation the store allows keeps both the row count and every
+    created_at, so a (count, max created_at) signature kept serving the
+    pre-review timeline after a human reviewed any non-newest check."""
+    from quire_align.models import ReviewState
+    from quire_align.timeline import cached_timeline
+
+    store = Store(url=f"sqlite:///{tmp_path}/t.db")
+    _analyses(refund_workspace, store, [101, 111])
+    analyses = store.list_analyses(repository=refund_workspace.repository())
+    cached_timeline(refund_workspace, analyses)  # warm the cache
+
+    older = min(analyses, key=lambda a: a.created_at)
+    store.update_review(older.analysis_id, ReviewState.APPROVED, reviewer="gilad")
+    refreshed = store.list_analyses(repository=refund_workspace.repository())
+    events = cached_timeline(refund_workspace, refreshed)["events"]
+    reviewed = next(e for e in events if e["analysis_id"] == older.analysis_id)
+    assert reviewed["review_state"] == "approved"

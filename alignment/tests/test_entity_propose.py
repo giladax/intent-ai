@@ -225,3 +225,27 @@ def test_graph_state_survives_yaml_round_trip(ws, adapter):
     decide(ws, "GD-1", "approved", by="gilad", now=T0)
     reloaded = graph_state(load_diffs(ws))
     assert reloaded["entities"]["ent-refunds"]["aliases"] == ["refund flow"]
+
+
+def test_wrong_scale_is_the_corpus_share_rule():
+    """Recalibrated on the pydantic scale run: a name whose words touch
+    >= 0.6 of ALL promises names the corpus and dies, regardless of how
+    many members it claims; under the line the guard stays out of the
+    human's call (the old 2x-membership ratio discarded 'Strict Mode'
+    five rounds running)."""
+    from quire_align.entity_propose import _wrong_scale
+
+    statements = {
+        f"OB-{i}": text
+        for i, text in enumerate(
+            ["the brain stores organizational facts"] * 6
+            + ["refunds always require human approval"] * 4
+        )
+    }
+    # 6/10 footprint — names the corpus
+    error = _wrong_scale("Brain", statements, "acme-app")
+    assert error is not None and "names most of the corpus" in error
+    # 4/10 footprint — a broad capability, but a human's call, not the guard's
+    assert _wrong_scale("Refunds", statements, "acme-app") is None
+    # the workspace's own name still dies outright
+    assert "workspace itself" in _wrong_scale("Acme App", statements, "acme-app")

@@ -310,16 +310,21 @@ def create_app(store: Store | None = None) -> FastAPI:
         from quire_align.onboard import write_workspace
 
         repo = pathlib.Path(request.repo).expanduser().resolve()
-        out, id_map = write_workspace(
-            WORKSPACES,
-            request.workflow_id,
-            repo,
-            request.sources,
-            request.obligations,
-            request.control_points,
-            request.bindings,
-            request.sweep_commits,
-        )
+        try:
+            out, id_map = write_workspace(
+                WORKSPACES,
+                request.workflow_id,
+                repo,
+                request.sources,
+                request.obligations,
+                request.control_points,
+                request.bindings,
+                request.sweep_commits,
+            )
+        except ValueError as error:
+            # e.g. duplicate draft obligation ids — the operator's mistake,
+            # said plainly, not a 500
+            raise HTTPException(400, str(error))
         if request.grouping_constraints:
             import yaml as _yaml
 

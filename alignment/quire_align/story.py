@@ -377,14 +377,22 @@ def get_story(
     key = f"entity:{entity_id}" if scope == "entity" else "org"
     # Cheap staleness key (scale-run fix): hashing the FULL fact corpus
     # per request was half the story read cost — the inputs' signatures
-    # (the diff log on disk + the analyses fingerprint) change exactly
-    # when the facts would. Facts are built only on a miss.
+    # change exactly when the facts would, and facts are built only on a
+    # miss. The facts' inputs, honestly: the diff log on disk, the
+    # analyses fingerprint, and the promises themselves (statements are
+    # quoted in health facts; the approved count opens the org lede).
+    # The mind cache is NOT a story input — stories narrate only signed
+    # and observed material.
     from quire_align.entity_graph import _file_sig, graph_file
     from quire_align.timeline import _analyses_sig
 
     analyses = store.list_analyses(repository=adapter.repository())
+    obligations_sig = tuple(
+        (o.obligation_id, o.revision, o.statement) for o in adapter.obligations()
+    )
     input_hash = hashlib.sha256(repr((
-        _file_sig(graph_file(workspace_dir)), _analyses_sig(analyses), key,
+        _file_sig(graph_file(workspace_dir)), _analyses_sig(analyses),
+        obligations_sig, key,
     )).encode()).hexdigest()[:16]
     cache = _load_cache(workspace_dir)
     cached = cache.get(key)

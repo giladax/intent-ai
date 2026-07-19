@@ -88,8 +88,8 @@ class EntityProposerLLM:
             "product's or workspace's own name"
             + (f" (here: “{workspace_id}”)" if workspace_id else "")
             + ", and never a name whose words describe most of the promises "
-            "while its members are few — that name is at the wrong scale "
-            "and a human will reject it.\n"
+            "— that name is at the wrong scale and a human will reject "
+            "it.\n"
             "- COVERAGE: place every promise in the entity where the org "
             "would look for it. A promise you leave out becomes a visible "
             "gap on the map — leave one out only when it genuinely belongs "
@@ -204,16 +204,24 @@ def _token_set(text: str) -> set[str]:
     return set(tokenize(text, min_len=3, keep_digits=True))
 
 
+# A name whose words touch this share of ALL promises names the corpus,
+# not a thing in it. Calibration: "Brain" 1.0 (kill), "Strict Mode" 0.44
+# (a human's call — 18 of 41 promises is a broad capability, not the map).
+_CORPUS_NAME_SHARE = 0.6
+
+
 def _wrong_scale(
     name: str,
-    members: list[str],
     statements_by_id: dict[str, str],
     workspace_id: str,
 ) -> str | None:
     """Deterministic scale guard (the 'Brain' rule, learned from the first
-    live session): an entity must be smaller than the map. Same thresholds
-    as the scope_honesty eval — this is enforcement of a hard rule over an
-    LLM finding, like quote validation."""
+    live session): an entity must be smaller than the map. The
+    names-most-of-the-corpus rule, recalibrated on the pydantic scale run —
+    the old 2x-membership ratio discarded 'Strict Mode' five rounds running.
+    Same rule as the scope_honesty eval (independently re-implemented there)
+    — this is enforcement of a hard rule over an LLM finding, like quote
+    validation."""
     name_tokens = _token_set(name)
     if not name_tokens:
         return None
@@ -225,18 +233,12 @@ def _wrong_scale(
         for statement in statements_by_id.values()
         if name_tokens & _token_set(statement)
     )
-    if total and members and corpus_hits / total > 2 * (len(members) / total):
+    if total and corpus_hits / total >= _CORPUS_NAME_SHARE:
         return (
             f"name at the wrong scale — its words touch {corpus_hits} of "
-            f"{total} promises but it claims only {len(members)}"
+            f"{total} promises; it names most of the corpus, not a thing in it"
         )
     return None
-
-
-# A name whose words touch this share of ALL promises names the corpus,
-# not a thing in it. Calibration: "Brain" 1.0 (kill), "Strict Mode" 0.44
-# (a human's call — 18 of 41 promises is a broad capability, not the map).
-_CORPUS_NAME_SHARE = 0.6
 
 _DOC_SUFFIXES = (".md", ".rst", ".txt")
 
@@ -326,8 +328,7 @@ def seed_proposals(
             )
             continue
         scale_error = _wrong_scale(
-            candidate.name, candidate.member_obligation_ids,
-            obligations_by_id, workspace_dir.name,
+            candidate.name, obligations_by_id, workspace_dir.name,
         )
         if scale_error:
             notes.append(f"{candidate.name}: discarded — {scale_error}")

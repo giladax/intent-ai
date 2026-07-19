@@ -173,3 +173,28 @@ def test_faithfulness_judge_gates_content(ws, adapter, store):
     assert [x["text"] for x in entry["sentences"]] == ["Refunds was signed by gilad."]
     assert entry["unfaithful"] == 1
     assert entry["retold_after"]  # the byline knows what changed
+
+
+def test_story_stales_when_a_promise_statement_changes(ws, adapter, store):
+    """The promises are a story input (statements are quoted in health
+    facts; the approved count opens the org lede) — the signature key
+    must catch a statement change even though neither the diff log nor
+    the analyses moved."""
+    import yaml
+
+    teller = FakeStoryteller(Story(sentences=[
+        s("Refunds was put on the map by gilad.",
+          Citation(kind="diff", ref="GD-1"),
+          Citation(kind="promise", ref="OB-101")),
+    ]))
+    first = get_story(ws, adapter, store, "org", teller=teller, now=T0)
+
+    path = ws / "obligations.yaml"
+    data = yaml.safe_load(path.read_text())
+    data["obligations"][0]["statement"] += " Revised at re-onboard."
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+
+    stale = get_story(ws, adapter, store, "org", teller=None, now=T0)
+    assert stale["input_hash"] == first["input_hash"]  # stale beats hollow
+    retold = get_story(ws, adapter, store, "org", teller=teller, now=T0)
+    assert retold["input_hash"] != first["input_hash"]

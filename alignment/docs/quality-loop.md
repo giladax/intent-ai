@@ -4,7 +4,7 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: 55596cf
+last-reviewed: 9738240
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 
@@ -432,3 +432,73 @@ strings). app.html JS syntax-checked (node --check, workspace token
 substituted); inbox/mirror pages untouched this tick. workspaces/, the
 scale dossier, docs/reviews/, the PRD, and the runbook untouched per
 brief. No commits — the parent lands it.
+
+## 2026-07-20 — tick over 55596cf..9738240 (scale-groan fixes)
+
+Cache-focused review of the three same-day fixes. The two questions the
+brief posed directly, answered first: **the story staleness key does NOT
+miss the mind** — `_org_facts`/`_entity_facts` compose from diffs, atoms,
+health facts, and obligations; nothing in the story path reads
+mind.yaml (verified by import/call audit; the key's comment now says so).
+**No adopter violates read_state's read-only contract** — atoms,
+derive_tree/derive_ring, model.around, relevance.node_documents, and
+both api call sites all compose into fresh local structures; mutation
+grep over the returned diffs/state/events found nothing.
+
+Tier-1 applied:
+- **The guard was never recalibrated** (the commit's headline claim):
+  `_CORPUS_NAME_SHARE = 0.6` landed as dead code while `_wrong_scale`
+  still ran the old 2x-membership rule — the seeding deadlock (groan 1)
+  was fixed in the EVAL only, and 'Strict Mode' would still die at the
+  guard. `_wrong_scale` now enforces the 0.6 corpus rule (unused
+  `members` param dropped, discard note reworded to "names most of the
+  corpus", LLM prompt's "while its members are few" clause trimmed,
+  stale eval docstring updated). Pinned by
+  test_wrong_scale_is_the_corpus_share_rule.
+- **`_analyses_sig` collision was real**, not hypothetical: (count, max
+  created_at) misses `store.update_review`, the one in-place mutation
+  the store allows — it flips review_state keeping both count and every
+  created_at, so reviewing any non-newest check kept serving the
+  pre-review timeline (stale review_state and open_findings). Sig is
+  now sorted (analysis_id, review_state) per row. Pinned by
+  test_cached_timeline_reflects_review_of_an_older_check.
+- **Story key missed the promises**: statements are quoted in health
+  facts and the approved count opens the org lede, but a re-onboard
+  (same minted ids, new words) changes neither the diff log nor the
+  analyses. An obligations fingerprint (id, revision, statement) joined
+  the hash. Pinned by test_story_stales_when_a_promise_statement_changes.
+- **Duplicate-id refusal surfaced as a 500**: onboard_create didn't
+  catch write_workspace's new ValueError, so the operator got an opaque
+  500 instead of the refusal text; now a 400 with the message. The
+  check also ran after `out.mkdir`, leaving a half-created workspace
+  dir on refusal — moved before any write. Pinned by the two new
+  onboard tests.
+
+Checked and clean:
+- Draft-id namespacing: `_ns` closes over the loop variable but is
+  consumed eagerly within the same iteration (extend drains the
+  generator) — no late-binding hazard; `D{digits}-` with the dash
+  separator is injective across docs and every pooled id is namespaced,
+  so no collision with a doc's own draft ids is constructible.
+- Refusal message language: "duplicate draft obligation ids would
+  collapse in the id map and mis-house bindings … namespace draft ids
+  per source document" — names the failure and the remedy in the
+  ledger's own vocabulary; kept as-is.
+- Cache growth: `_READ_CACHE`/`_TIMELINE_CACHE` are one entry per
+  workspace/repo with no eviction — noted in both comments with a
+  threshold (LRU cap if a server ever holds ~100+ workspaces); nothing
+  built now at 3 workspaces.
+
+Backlog delta:
+- RESOLVED: none of the carried Tier-2 items were in this tick's scope.
+- New: api.py still has fresh `load_diffs`+`graph_state` call sites
+  (graph_entity and friends) that could adopt read_state at next touch
+  — perf only, not correctness.
+- New: story.py `_universe`/`_org_facts`/`_entity_facts` and
+  `_health_facts` still load diffs / build the timeline fresh on a
+  cache MISS (generation path) — fine while generation is rare; adopt
+  read_state/cached_timeline if telling ever gets hot.
+- Carried: everything from the 2026-07-19 list, unchanged.
+
+196 → 201 tests green (5 added, none changed). workspaces/ and other
+docs untouched per brief. No commits — the parent lands it.

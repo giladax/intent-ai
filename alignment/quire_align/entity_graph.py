@@ -479,7 +479,9 @@ def graph_file(workspace_dir: pathlib.Path) -> pathlib.Path:
 # parse+fold. Keyed on the diff file's signature; a write changes the
 # signature, so staleness is impossible. READ-ONLY CONTRACT: callers of
 # read_state must never mutate what it returns — writers (append/decide)
-# always load fresh via load_diffs.
+# always load fresh via load_diffs. One entry per workspace path, no
+# eviction — fine at a handful of workspaces; add an LRU cap if a
+# server ever holds ~100+ workspaces.
 _READ_CACHE: dict[str, tuple[tuple, list, dict]] = {}
 
 

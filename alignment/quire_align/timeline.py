@@ -159,11 +159,18 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
 # The timeline is a pure fold over stored analyses — cache it per
 # (repository, analyses fingerprint) so hot read paths stop rebuilding
 # it on every request (scale-run finding: this was half the ~1s floor).
+# One entry per repository, no eviction — fine at a handful of
+# workspaces; add an LRU cap if a server ever holds ~100+ repos.
 _TIMELINE_CACHE: dict[str, tuple[tuple, dict]] = {}
 
 
 def _analyses_sig(analyses: list[PRAnalysis]) -> tuple:
-    return (len(analyses), max((a.created_at for a in analyses), default=None))
+    # Per-row (id, review_state), sorted. (count, max created_at) alone
+    # collides with the one in-place mutation the store allows —
+    # update_review flips review_state keeping count and created_at —
+    # and would serve a stale timeline after a human reviewed any
+    # non-newest check.
+    return tuple(sorted((a.analysis_id, a.review_state.value) for a in analyses))
 
 
 def cached_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
