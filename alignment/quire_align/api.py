@@ -415,9 +415,9 @@ def create_app(store: Store | None = None) -> FastAPI:
         # derived areas, and retired names forward (rule 9).
         from quire_align.entity_graph import graph_state, load_diffs, resolve_entity
 
-        entity_hit = resolve_entity(
-            graph_state(load_diffs(_workspace_dir(workspace))), q
-        )
+        ws_dir = _workspace_dir(workspace)
+        entity_state = graph_state(load_diffs(ws_dir))
+        entity_hit = resolve_entity(entity_state, q)
         if entity_hit and entity_hit["entity"]:
             return {
                 "query": q,
@@ -429,6 +429,28 @@ def create_app(store: Store | None = None) -> FastAPI:
                 },
                 "entity": entity_hit["entity"],
                 "forwarded_from": entity_hit["forwarded_from"],
+                "card": None,
+            }
+
+        # Semantic rung: resolve by MEANING over each node's connection
+        # content — the org's dialect no longer needs an exact-match
+        # alias to land. A match that can't show its wording refuses.
+        from quire_align.relevance import node_documents, resolve_semantic
+
+        semantic = resolve_semantic(
+            q, node_documents(ws_dir, adapter, app.state.store)
+        )
+        if semantic:
+            return {
+                "query": q,
+                "resolution": {
+                    "method": "semantic",
+                    "confidence": semantic["score"],
+                    "matched_terms": semantic["matched_terms"],
+                    "alternatives": semantic["alternatives"],
+                },
+                "entity": entity_state["entities"][semantic["entity_id"]],
+                "forwarded_from": None,
                 "card": None,
             }
         obligations = [

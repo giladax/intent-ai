@@ -68,6 +68,7 @@ background:var(--wash);border-radius:6px;padding:1px 6px;margin:0 2px;vertical-a
 text-decoration:none;white-space:nowrap;transition:background .25s var(--ease)}
 .story a.cchip:hover{background:var(--ink);color:var(--paper)}
 .story .byline{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:8px}
+.sky{display:block;border:1.5px solid var(--ink);border-radius:16px;background:var(--card);margin-top:16px;box-shadow:5px 5px 0 0 var(--wash)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
 .chip{border:1px solid var(--rule);border-radius:99px;padding:4px 13px;font-size:13.5px;color:var(--muted);
 background:var(--bone);cursor:default}
@@ -137,7 +138,7 @@ footer{margin:70px 0 0;padding-top:12px;border-top:3px double var(--ink);color:v
   <div class="brand">Quire</div>
   <div class="maplabel">The map</div>
   <nav id="entlist"></nav>
-  <div class="railfoot"><a id="inboxlink">in quires</a><a id="ledgerlink">ledger</a></div>
+  <div class="railfoot"><a id="inboxlink">in quires</a><a href="#/constellation">constellation</a><a id="ledgerlink">ledger</a></div>
 </aside>
 <main>
   <input class="askpill" id="ask" placeholder="Ask for a name, a promise, or a doubt.">
@@ -537,9 +538,142 @@ function seal(card, text, kind, entityId){
 function route(){
   const parts = (location.hash || "#/map").replace(/^#\/?/, "").split("/");
   if (parts[0] === "entity" && parts[1]) focus(parts[1], parts[2]);
+  else if (parts[0] === "constellation") constellation();
   else overview();
 }
 window.addEventListener("hashchange", route);
+
+// The constellation: the map as Obsidian shows a vault — a read-only
+// spatial view for the eye. Presentation and navigation only: nothing
+// here edits, and the record page stays the place facts live. Nodes
+// are entities (size = promises held, color = worst standing); solid
+// threads are signed relations; faint threads are shared promises.
+function constellation(){
+  FOCUSED = null;
+  document.querySelectorAll(".ent.on").forEach(n => n.classList.remove("on"));
+  const stage = document.getElementById("stage");
+  stage.replaceChildren();
+  const wrap = el("div", "rise");
+  const crumb = el("div", "crumb");
+  const back = el("a", "", "the map");
+  back.addEventListener("click", () => { location.hash = "#/map"; });
+  crumb.appendChild(back);
+  crumb.append(" ▸ constellation");
+  wrap.appendChild(crumb);
+  wrap.appendChild(el("h1", "", "The constellation"));
+  wrap.appendChild(el("div", "identity",
+    "Every name and the threads between them. Click a star to open its record; nothing here edits the map."));
+  const canvas = document.createElement("canvas");
+  canvas.className = "sky";
+  wrap.appendChild(canvas);
+  const legend = el("div", "legend",
+    "size — promises held · vermilion — a broken promise · amber — partly kept · " +
+    "solid thread — a signed relation · faint thread — a shared promise");
+  wrap.appendChild(legend);
+  stage.appendChild(wrap);
+  drawConstellation(canvas);
+}
+
+function drawConstellation(canvas){
+  const active = ENTITIES.filter(e => e.status === "active");
+  const W = Math.min(880, canvas.parentElement.clientWidth || 880), H = 520;
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = W * scale; canvas.height = H * scale;
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+
+  const promisesOf = e => (e.holdings || []).filter(h => h.kind === "promise").map(h => h.ref);
+  const nodes = active.map((e, i) => ({
+    id: e.entity_id, name: e.name, rollup: e.rollup || {},
+    r: 8 + 3 * promisesOf(e).length,
+    x: W/2 + Math.cos(i / Math.max(active.length,1) * 2 * Math.PI) * 160,
+    y: H/2 + Math.sin(i / Math.max(active.length,1) * 2 * Math.PI) * 130,
+    vx: 0, vy: 0,
+  }));
+  const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const edges = [];
+  active.forEach(e => (e.relations || []).forEach(r => {
+    if (byId[r.other_id]) edges.push({a: e.entity_id, b: r.other_id, kind: "relation", label: r.relation.replace("_", " ")});
+  }));
+  for (let i = 0; i < active.length; i++)
+    for (let j = i + 1; j < active.length; j++){
+      const shared = promisesOf(active[i]).filter(p => promisesOf(active[j]).includes(p));
+      if (shared.length) edges.push({a: active[i].entity_id, b: active[j].entity_id, kind: "shared", label: shared.join(", ")});
+    }
+
+  function tick(){
+    // springs on threads, gentle repulsion everywhere, a soft centering
+    nodes.forEach(n => { n.vx = 0; n.vy = 0; });
+    for (const a of nodes) for (const b of nodes){
+      if (a === b) continue;
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const d2 = Math.max(dx*dx + dy*dy, 40);
+      const f = 5200 / d2;
+      a.vx += dx / Math.sqrt(d2) * f; a.vy += dy / Math.sqrt(d2) * f;
+    }
+    for (const e of edges){
+      const a = byId[e.a], b = byId[e.b];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.max(Math.hypot(dx, dy), 1);
+      const want = e.kind === "relation" ? 150 : 200;
+      const f = (d - want) * 0.02;
+      a.vx += dx / d * f; a.vy += dy / d * f;
+      b.vx -= dx / d * f; b.vy -= dy / d * f;
+    }
+    for (const n of nodes){
+      n.vx += (W/2 - n.x) * 0.004; n.vy += (H/2 - n.y) * 0.004;
+      n.x = Math.max(n.r + 60, Math.min(W - n.r - 60, n.x + n.vx));
+      n.y = Math.max(n.r + 24, Math.min(H - n.r - 24, n.y + n.vy));
+    }
+  }
+  function tone(n){
+    if (n.rollup.contradicted) return getComputedStyle(document.documentElement).getPropertyValue("--broken") || "#D8492B";
+    if (n.rollup.partial) return getComputedStyle(document.documentElement).getPropertyValue("--caution") || "#B4681E";
+    return "#1C1A15";
+  }
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineWidth = 1;
+    for (const e of edges){
+      const a = byId[e.a], b = byId[e.b];
+      ctx.strokeStyle = e.kind === "relation" ? "rgba(28,26,21,.55)" : "rgba(28,26,21,.16)";
+      ctx.setLineDash(e.kind === "relation" ? [] : [3, 4]);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    for (const n of nodes){
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI);
+      ctx.fillStyle = "#FAF4E4"; ctx.fill();
+      ctx.strokeStyle = tone(n); ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = "#1C1A15";
+      ctx.font = "600 13px 'Hanken Grotesk', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(n.name, n.x, n.y + n.r + 16);
+    }
+  }
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let frames = 0;
+  function step(){
+    tick(); draw();
+    frames += 1;
+    if (frames < 160 && !still) requestAnimationFrame(step);
+  }
+  if (still){ for (let i = 0; i < 160; i++) tick(); draw(); }
+  else step();
+
+  canvas.addEventListener("click", ev => {
+    const rect = canvas.getBoundingClientRect();
+    const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+    const hit = nodes.find(n => Math.hypot(n.x - x, n.y - y) <= n.r + 6);
+    if (hit) location.hash = "#/entity/" + hit.id;
+  });
+  canvas.addEventListener("mousemove", ev => {
+    const rect = canvas.getBoundingClientRect();
+    const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+    canvas.style.cursor = nodes.some(n => Math.hypot(n.x - x, n.y - y) <= n.r + 6) ? "pointer" : "default";
+  });
+}
 
 // The story layer: the clerk narrates the plot, every clause cited.
 // The static line stays visible until the story arrives — never a
@@ -603,6 +737,26 @@ document.getElementById("ask").addEventListener("keydown", async ev => {
       note.append(`“${d.forwarded_from.name}” was retired`);
       note.appendChild(el("span", "soft",
         ` (${(d.forwarded_from.superseded_at||"").slice(0,10)}, signed by ${d.forwarded_from.superseded_by_user||"—"}). You were forwarded to ${d.entity.name}.`));
+      reply.appendChild(note);
+    }
+    if (d.resolution && d.resolution.method === "semantic"){
+      // matched by meaning — show the wording that carried it, and let
+      // one click make the resolution signed vocabulary forever
+      const note = el("div", "reply rise");
+      note.append(`Read “${q}” as ${d.entity.name}`);
+      note.appendChild(el("span", "soft",
+        ` — matched by meaning through: ${(d.resolution.matched_terms || []).slice(0, 5).join(", ")}.`));
+      const keep = el("span", "chip act", `that's right — “${q}” names it`);
+      keep.addEventListener("click", async () => {
+        const by = reviewer(); if (!by) return;
+        const r2 = await fetch(`/api/graph/${encodeURIComponent(WS)}/teach`, {method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({term: q, action: "alias", entity_id: d.entity.entity_id, by})});
+        if (r2.ok) note.appendChild(el("span", "soft", " Signed into its vocabulary."));
+      });
+      const chips = el("div", "chips");
+      chips.appendChild(keep);
+      note.appendChild(chips);
       reply.appendChild(note);
     }
     location.hash = "#/entity/" + d.entity.entity_id;

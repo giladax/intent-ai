@@ -1,0 +1,126 @@
+"""Relevance: every semantic node gets a vector built from its
+CONNECTIONS' content — identity, promise statements, taught words, and
+its recent plot atoms — so a question resolves by meaning, not by an
+exact-match dictionary.
+
+This retires the alias table as load-bearing infrastructure. Aliases
+were weak and hard to maintain because they were the ONLY bridge from
+the org's dialect to the map: every phrasing had to be taught, exactly.
+Now the bridge is the node vector; taught words are one ingredient in
+it (each teaching enriches the vector, so nearby phrasings resolve
+untaught), and the alias list survives as confirmed display vocabulary
+("answers to …"), not as the resolution mechanism.
+
+Vectors are TF-IDF over connection content today — no new dependency,
+same machinery as grouping — behind an interface a dense-embedding
+provider can replace without touching callers. Deterministic, derived,
+computed on demand (the map is small); thresholds mirror the lexical
+rung's philosophy: resolve only with a clear winner, refuse otherwise.
+"""
+
+from __future__ import annotations
+
+import pathlib
+
+from quire_align.atoms import atoms_for
+from quire_align.entity_graph import graph_state, load_diffs
+from quire_align.text import cosine_similarity, tf_idf_vectors, tokenize
+
+# Same trust posture as the lexical rung: below the floor the match is
+# noise; without the margin the term is genuinely ambiguous — refuse and
+# name the neighbors rather than guess. Calibrated for n-gram vectors,
+# where shared gram mass compresses relative margins (the lexical rung's
+# 1.5 would refuse clear winners): floor 0.10, margin 1.2, tuned on live
+# probes ("risky payouts" → Risk Review at 1.26×; nonsense → 0).
+_SEMANTIC_MIN = 0.10
+_SEMANTIC_MARGIN = 1.2
+
+
+def _terms(text: str) -> list[str]:
+    """Word tokens plus character 4-grams of each word. The n-grams
+    bridge morphology ('risky' meets 'risk', 'reviews' meets 'review')
+    — the cheapest honest step toward matching by meaning without a
+    dense-embedding dependency."""
+    words = tokenize(text, min_len=3, keep_digits=True)
+    grams = [
+        w[i : i + 4]
+        for w in words
+        if len(w) >= 4
+        for i in range(len(w) - 3)
+    ]
+    return words + grams
+
+
+def node_documents(
+    workspace_dir: pathlib.Path, adapter, store
+) -> dict[str, dict]:
+    """One document per active entity: everything connected to it, as
+    text. The vector drifts as the node's story evolves — 'the thing
+    that broke last week' is literally in the vector."""
+    state = graph_state(load_diffs(workspace_dir))
+    statements = {o.obligation_id: o.statement for o in adapter.obligations()}
+    atoms = atoms_for(workspace_dir, adapter, store)
+    docs: dict[str, dict] = {}
+    for entity in state["entities"].values():
+        if entity["status"] != "active":
+            continue
+        refs = {
+            h["ref"] for h in entity["holdings"] if h["kind"] == "promise"
+        }
+        parts = [entity["name"], entity["identity_sentence"]]
+        parts += entity["aliases"]
+        parts += [statements.get(r, "") for r in refs]
+        parts += [
+            h["ref"].replace("/", " ").replace("_", " ")
+            for h in entity["holdings"]
+            if h["kind"] in ("code", "doc")
+        ]
+        parts += [
+            a["text"] for a in atoms
+            if a.get("entity_id") == entity["entity_id"]
+            or a.get("promise") in refs
+        ]
+        docs[entity["entity_id"]] = {
+            "name": entity["name"],
+            "terms": _terms(" ".join(p for p in parts if p)),
+        }
+    return docs
+
+
+def resolve_semantic(
+    query: str, docs: dict[str, dict]
+) -> dict | None:
+    """Query → best entity by meaning, or None. When it resolves, it
+    says WHY (the overlapping terms) — a match that cannot show its
+    wording does not resolve (the refusal law, applied to search)."""
+    if not docs:
+        return None
+    vectors = tf_idf_vectors(
+        {**{k: d["terms"] for k, d in docs.items()}, "__q__": _terms(query)}
+    )
+    q = vectors.pop("__q__")
+    scored = sorted(
+        ((cosine_similarity(q, v), k) for k, v in vectors.items()),
+        reverse=True,
+    )
+    top_score, top_id = scored[0]
+    runner = scored[1][0] if len(scored) > 1 else 0.0
+    if top_score < _SEMANTIC_MIN:
+        return None
+    if runner and top_score / max(runner, 1e-9) < _SEMANTIC_MARGIN:
+        return None  # genuinely ambiguous — refuse, never guess
+    q_terms = set(_terms(query))
+    matched = sorted(q_terms & set(docs[top_id]["terms"]))
+    if not matched:
+        return None
+    return {
+        "entity_id": top_id,
+        "name": docs[top_id]["name"],
+        "score": round(top_score, 3),
+        "matched_terms": matched,
+        "alternatives": [
+            {"entity_id": k, "name": docs[k]["name"], "score": round(s, 3)}
+            for s, k in scored[1:3]
+            if s > 0
+        ],
+    }
