@@ -707,9 +707,14 @@ function constellation(){
   if (anyRelations) bits.push("solid thread — a signed relation");
   if (anyShared) bits.push("faint thread — a shared promise");
   bits.push("hollow dashed — the mind's unsigned thinking");
-  wrap.appendChild(el("div", "legend", bits.join(" · ")));
+  const legendEl = el("div", "legend", bits.join(" · "));
+  wrap.appendChild(legendEl);
   stage.appendChild(wrap);
-  fetchMind().then(nodes => drawConstellation(canvas, nodes));
+  fetchMind().then(nodes => {
+    drawConstellation(canvas, nodes);
+    if (canvas.dataset.densityNote)
+      legendEl.append(" · " + canvas.dataset.densityNote);
+  });
 }
 
 function drawConstellation(canvas, mindNodes){
@@ -745,7 +750,13 @@ function drawConstellation(canvas, mindNodes){
     refToEntity[e.entity_id] = e.entity_id;
     (e.holdings || []).forEach(h => { refToEntity[h.ref] = e.entity_id; });
   });
-  (mindNodes || []).forEach((m, i) => {
+  // density control: a crowded sky shows the important thoughts only —
+  // and the legend says so, honestly (ambiguous ones stay one click
+  // away in the navigator's shelf)
+  let shown = mindNodes || [];
+  const crowded = active.length + shown.length > 14;
+  if (crowded) shown = shown.filter(m => (m.salience || "") === "important");
+  shown.forEach((m, i) => {
     const anchors = [...new Set((m.connects || []).map(c => refToEntity[c.ref]).filter(Boolean))];
     if (!anchors.length) return;
     const id = "mind:" + i;
@@ -758,6 +769,11 @@ function drawConstellation(canvas, mindNodes){
     byId[id] = nodes[nodes.length - 1];
     anchors.forEach(a => edges.push({a: id, b: a, kind: "thought"}));
   });
+  if (crowded && shown.length < (mindNodes || []).length){
+    const note = (mindNodes || []).length - shown.length;
+    canvas.dataset.densityNote =
+      `a crowded sky — showing important thoughts only (${note} more on the mind's shelf)`;
+  }
 
   function tick(){
     // springs on threads, gentle repulsion everywhere, a soft centering
@@ -1017,13 +1033,31 @@ async function explore(trail){
   const d = await res.json();
 
   // the trail: the walk itself, pasteable — chips speak names
-  XNAMES[focusRef] = (d.node.title || focusRef).slice(0, 34);
+  {
+    const full = d.node.title || focusRef;
+    XNAMES[focusRef] = full.length > 34
+      ? full.slice(0, 32).replace(/\s+\S*$/, "") + "…" : full;
+  }
   {
     const bar = el("div", "xtrail");
     bar.appendChild(el("span", "tsep", "the walk:"));
     trail.forEach((t, i) => {
       const chip = el("span", "tchip", XNAMES[t] || t);
       chip.title = t;
+      // a pasted trail arrives with unvisited ancestors — resolve their
+      // names quietly so the walk never speaks ids
+      if (!XNAMES[t] && t !== focusRef){
+        fetch(`/api/model/${encodeURIComponent(WS)}/around/${encodeURIComponent(t)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(a => {
+            if (a && a.node && a.node.title){
+              XNAMES[t] = a.node.title.slice(0, 32);
+              const cut = XNAMES[t].length < (a.node.title || "").length;
+              chip.textContent = cut
+                ? XNAMES[t].replace(/\s+\S*$/, "") + "…" : XNAMES[t];
+            }
+          }).catch(() => {});
+      }
       chip.addEventListener("click", () => {
         location.hash = exploreHash(trail.slice(0, i + 1));
       });
