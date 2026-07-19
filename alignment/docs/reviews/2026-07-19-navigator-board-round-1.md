@@ -281,3 +281,88 @@ showcase reasoning-bound understanding while the signed layer's reasoning is emp
 C2/T1/U1 are the other blockers to the hero moment. Everything below MODERATE can ride
 along. The entity and mind focuses prove the design can hit the bar; the defects are in
 the data contract and the check hop, not the paradigm.
+
+---
+
+## Round 2 — final verdicts
+
+**Under review:** commit 76d5b12 (round-1 fixes applied) atop the interleaved quality tick
+5f8a72d. **Method:** live server on :8373 (workspace `quire-brain`); curl of
+`/around/ent-feature`, `/around/GD-1`, `/around/QUIREB-006`, `/around/7`,
+`/around/MCP%20Surface%20Violated%20Its%20Own%20Spec`, and a nonexistent ref; the full
+walked hero chain and a cold-pasted trail via Playwright (screenshots `b2r-*.png` in the
+be3b52e6 scratchpad); full read of `model.py` and the 76d5b12 diff; retired-thought lookup
+exercised against a scratchpad copy of the workspace. Baseline: `pytest` — **194 passed**,
+before and after (read-only review).
+
+**All four personas: SHOWCASES-THE-IP. The loop is CLOSED.**
+
+**CPO — SHOWCASES-THE-IP.** The hero chain now holds end to end, verified cold: `Feature`
+(SIGNED, "signed by cpo · 2026-07-18") opens on a bold claim over a bordered "PROPOSED ON
+THIS EVIDENCE" block carrying the creating diff's three quotes with sources — the middle
+link speaks (C1 closed, honestly: evidence shown as evidence, no invented thoughts). Every
+decision neighbor's why is non-empty via `_diff_why` (GD-2/GD-3/GD-6 all carry "proposed on
+this evidence: …"). One hop lands on QUIREB-006 ("broken · since check #7") whose housing
+names its signers ("holds it · signed by cpo · 2026-07-18", C6 closed) and whose enforcement
+rows are custody-honest: the solo control point carries its own rationale, the shared ones
+say "control point shared by 10 promises" instead of borrowing another promise's why (C3
+closed). One more hop: check #7, `contradicts · src/mcp/server.ts:657 · "return
+mcpText(fullText);"` — claim → reasoning → receipt → exact file:line, signers visible
+throughout. `/around/GD-1` returns `mood: declined` and the screen shows a struck DECLINED
+badge with "declined by cpo · wrong name" (C2 closed); GD-6 files under "In quires —
+proposed, unsigned." The legend no longer overclaims and the entity focus discloses the
+merely-looked filter (C4 closed); a semantic ask now offers "walk the structure →" which
+lands directly on `#/explore/ent-feature` (C5 closed — exact-name asks still route via the
+record view, where "structure →" is one visible click; accepted). Residual, non-blocking:
+promise-name trail chips slice at 34 chars mid-word without an ellipsis.
+
+**UX — SHOWCASES-THE-IP.** The check focus is no longer the wall: 2,273px total (was
+5,141px), twelve rows each folded at a word boundary with an upright "more" that expands
+in place — verified by clicking one (U1/U3 closed). Arriving at check #7 *from* QUIREB-006
+lights and centers the QUIREB-006 finding (`.camefrom` present, scrollY 748 on arrival —
+U2 closed, seen in `b2r-check-arrival.png`). Trail chips speak names as you walk —
+"Feature → Candidate lists and ids returned b → check #7 — CONTRADICTS INTENT" (U4
+substantially closed). The kind badge wears its own neutral `kindbadge` class beside the
+mood pill (U5 closed), "open the receipt" on the check focus opens the CHECK #7 — RECEIPT
+slip in place (U6 closed, click-verified), and the dead `|| true` is gone (U7 closed).
+Two residuals, both minor and non-blocking: a cold-*pasted* trail shows raw ids for
+ancestor chips (names are learned as you walk — the walker gets names, the paste recipient
+gets ids with tooltips), and the 34-char chip slice cuts mid-word ("returned b") where the
+whys got proper word-boundary care.
+
+**CTO — SHOWCASES-THE-IP.** `_diff_mood` is a total three-way map (open/approved/rejected →
+proposed/signed/declined) — declined can no longer wear ink (T2 closed); `_diff_why` returns
+kept reasoning or degrades to the first evidence quote, never fabricates (C1 mechanics
+sound); the solo-CP guard (`bound_count == 1`) attributes a control point's description only
+when it binds one promise and otherwise discloses the sharing (T1 closed). The interleaved
+quality commit 5f8a72d (fs.py extraction, api.py fallback-warning changes) broke nothing on
+this surface: all five ref shapes resolve live (entity-id, promise-id, GD-N, digits,
+mind-name → 200 with correct payloads), unknown refs 404 with the honest message, and zero
+server errors across the whole review session; 194 tests green. The retired/dismissed-
+thought branch has no demo data to exercise it — lookup logic verified against a scratchpad
+copy; flagging the missing test as debt, not a defect. T4/T5 deferrals judged acceptable:
+both were graded LOW in round 1 and explicitly non-blockers; the commit message records them
+as chosen debt. One honesty note: the commit's "thresholds pegged" for T5 is not
+substantiated anywhere in code or docs — the debt is flagged, the thresholds are not
+actually pegged; carry it to the quality loop.
+
+**STORYTELLER — SHOWCASES-THE-IP.** The walk now narrates. The chips read "Feature →
+Candidate lists… → check #7 — CONTRADICTS INTENT" — a quotable sentence, not the machine
+reciting keys (S3 closed for the walker). The custody blocks read as evidence, not apology:
+"PROPOSED ON THIS EVIDENCE" presents the quotes that stood behind the signature in the same
+bordered, labeled register as the mind's "THE THINKING — KEPT VERBATIM" — the signed
+layer's *because* is audible on every decision row ("why: proposed on this evidence: 'The
+served MCP surface must speak Feature only…' … more"), so the account finally runs claim →
+because → receipt without going silent at its peak (S1 closed within what the data
+honestly holds — quotes today, kept reasoning as new diffs carry it). The five moods
+partition cleanly and the grammar holds: "In quires — proposed, unsigned" is the docket,
+not the mind (S4 closed), and "Declined — refused, on the record" with a struck badge and
+"declined by cpo · wrong name" is refusal kept as history, exactly this product's thesis.
+The folded whys turn the check hop from twelve essays into twelve ledes with the verbatim
+one unfold away (S2 closed). The colophon still says "Machines propose; humans sign," and
+now the screens above it agree.
+
+**The loop is CLOSED.** Residuals carried to the quality loop, none blocking the bar:
+cold-pasted ancestor chips show ids; 34-char chip slice cuts mid-word; walk-chip appears
+only on semantic ask replies; retired-thought branch untested; T5 thresholds asserted
+pegged but not pegged anywhere.
