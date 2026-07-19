@@ -6,11 +6,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#EFE5CE;--bone:#F5F1E8;--card:#FAF4E4;--ink:#1C1A15;
---rule:rgba(28,26,21,.14);--muted:rgba(28,26,21,.62);--faint:rgba(28,26,21,.4);
+--rule:rgba(28,26,21,.14);--muted:rgba(28,26,21,.72);--faint:rgba(28,26,21,.52);
 --ok:#2E6B58;--bad:#D8492B;--amber:#B4681E;--cobalt:#2B49D8;--wash:#E7DDC4;--add:#2E6B58;
 --ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--paper);color:var(--ink);font:15px/1.55 'Hanken Grotesk',sans-serif}
+body{background:var(--paper);color:var(--ink);font:16px/1.6 'Hanken Grotesk',sans-serif}
 ::selection{background:var(--ink);color:var(--paper)}
 .mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
 a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px;cursor:pointer;transition:color .3s var(--ease)}
@@ -45,21 +45,38 @@ animation:stampin .55s var(--spring) both}
 .stamp.no{color:var(--bad);border-color:var(--bad)}
 .card .head{padding:20px 26px 0}
 .q{font-size:21px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
-.meta{color:var(--faint);font-size:12px;font-family:'Spline Sans Mono',monospace;margin-top:6px}
+.meta{color:var(--faint);font-size:12.5px;font-family:'Spline Sans Mono',monospace;margin-top:6px;font-variant-numeric:tabular-nums}
 .meta .stakes-high{color:var(--bad)}
-.evidence{padding:14px 26px 4px}
-.evidence h3{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500;margin-bottom:8px}
-.quote{border-left:3px solid var(--ink);padding:4px 14px;margin:0 0 10px;font-family:'Newsreader',serif;font-style:italic;font-size:16px}
-.quote .src{display:block;font-style:normal;font-size:11.5px;color:var(--faint);font-family:'Spline Sans Mono',monospace;margin-top:2px}
-.more{color:var(--muted);font-size:13px}
-.heldnote{color:var(--muted);font-size:13px;font-style:italic;margin:6px 0 4px}
+.evidence{padding:12px 26px 0}
+.evidence h3{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.quote{border-left:3px solid var(--ink);padding:4px 14px;margin:0 0 10px;font-family:'Newsreader',serif;font-style:italic;font-size:16.5px;line-height:1.55}
+.quote .src{display:block;font-style:normal;font-size:12px;color:var(--faint);font-family:'Spline Sans Mono',monospace;margin-top:3px}
+.more{color:var(--muted);font-size:13.5px}
+.heldnote{color:var(--muted);font-size:13.5px;font-style:italic;margin:8px 0 4px}
 .plain{padding:2px 26px 0}
-.plain .say{font-size:15px;margin:6px 0;color:var(--ink)}
+.plain .say{font-size:15.5px;margin:8px 0;color:var(--ink)}
 .plain .say b{font-weight:700}
 .plain .soft{color:var(--muted)}
-.pstat{padding:5px 14px;border-left:3px solid var(--ok);margin:7px 0;font-size:14.5px;font-weight:600;line-height:1.45}
-.pstat.off{opacity:.45;text-decoration:line-through}
-.pstat .pid{font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);font-weight:400;margin-left:8px;white-space:nowrap}
+/* A promise the card claims: the org's words in the quote voice, with a
+   tick that decides whether THIS signature covers it. */
+label.pstat{display:flex;gap:11px;align-items:baseline;padding:6px 14px;border-left:3px solid var(--ink);
+margin:8px 0;font-family:'Newsreader',serif;font-style:italic;font-size:16.5px;line-height:1.5;cursor:pointer}
+label.pstat input{accent-color:var(--ink);margin-top:5px;flex:none;transform:translateY(2px)}
+label.pstat.off{opacity:.45}
+label.pstat.off .pw{text-decoration:line-through}
+label.pstat .pid{font-family:'Spline Sans Mono',monospace;font-style:normal;font-size:11px;color:var(--faint);white-space:nowrap;margin-left:6px}
+details.binds{margin:10px 0 4px}
+details.binds summary{cursor:pointer;font-size:14.5px;color:var(--ink);list-style:none}
+details.binds summary::before{content:'▸ ';color:var(--faint)}
+details.binds[open] summary::before{content:'▾ ';color:var(--faint)}
+label.bindrow{display:flex;gap:10px;align-items:baseline;padding:4px 0 4px 18px;cursor:pointer;
+font-family:'Spline Sans Mono',monospace;font-size:12.5px;color:var(--muted)}
+label.bindrow input{accent-color:var(--ink);flex:none;transform:translateY(1px)}
+label.bindrow.off{opacity:.45;text-decoration:line-through}
+label.bindrow .bnote{color:var(--faint);font-size:11.5px}
+label.oprow2{display:flex;gap:11px;align-items:baseline;padding:5px 0;font-size:15.5px;cursor:pointer}
+label.oprow2 input{accent-color:var(--ink);flex:none;transform:translateY(1px)}
+label.oprow2.off{opacity:.45;text-decoration:line-through}
 details.receipt{margin:12px 26px 0}
 details.receipt summary{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);list-style:none}
 details.receipt summary::before{content:'▸ ';transition:transform .3s var(--ease)}
@@ -78,7 +95,7 @@ details.receipt .change{margin:10px 0 0}
 .oprow input{accent-color:var(--ink)}
 .oprow .k{color:var(--faint);font-size:10.5px;width:56px;flex:none;text-transform:uppercase}
 .foot{display:flex;gap:14px;align-items:center;padding:14px 26px 20px;border-top:1px solid var(--rule);flex-wrap:wrap}
-button{font:13px 'Spline Sans Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:9px 20px;cursor:pointer;border:1.5px solid var(--cobalt);background:var(--cobalt);color:#fff;border-radius:99px;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+button{font:700 14px 'Hanken Grotesk',sans-serif;padding:10px 22px;cursor:pointer;border:1.5px solid var(--cobalt);background:var(--cobalt);color:#fff;border-radius:99px;transition:transform .3s var(--ease),box-shadow .3s var(--ease);font-variant-numeric:tabular-nums}
 button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(28,26,21,.5)}
 button.ghost{background:none;color:var(--ink);border-color:var(--ink)}
 button:disabled{opacity:.4;cursor:default}
@@ -122,7 +139,7 @@ footer{border-top:3px double var(--ink);margin-top:60px;padding:12px 48px;color:
 <footer>Machines propose; humans sign.</footer>
 <script>
 const WS = __WORKSPACE_JSON__;
-document.getElementById("homelink").href = "/mirror/" + encodeURIComponent(WS);
+document.getElementById("homelink").href = "/app/" + encodeURIComponent(WS);
 const REASONS = [["not_one_thing","not one thing"],["wrong_name","wrong name"],["bad_evidence","bad evidence"],["other","other…"]];
 let expanded = null; // diff_id of the currently expanded card
 let STATEMENTS = {}; // promise id → what it actually says (ids mean nothing to a human)
@@ -173,14 +190,25 @@ function buildOperations(editState){
   return editState.filter(row => row.keep).map(row => row.op);
 }
 
-// Meaning before mechanics: what this card DOES, in sentences a person
-// who has never seen the notation reads without learning anything. The
-// promise statements ARE the beef — they render in full; ids are
-// footnotes; the exact operation list lives in the receipt below.
-function renderPlain(plain, editState, editing){
+function norm(s){ return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+
+function toggleRow(row, node, onChange){
+  const box = el("input"); box.type = "checkbox"; box.checked = row.keep;
+  box.addEventListener("change", () => { row.keep = box.checked; onChange(); });
+  node.prepend(box);
+  node.classList.toggle("off", !row.keep);
+  return node;
+}
+
+// Meaning before mechanics — and now DIRECTLY controllable: every line a
+// signature would cover carries its own tick. Unticking is one click; the
+// Sign button restates its scope live. The promise statements ARE the
+// beef — full sentences, ids as footnotes; the exact operation list
+// lives in the receipt below.
+function renderPlain(plain, editState, onChange){
+  const bindsOpen = plain.querySelector("details.binds")?.open || editState.bindsOpen || false;
   plain.replaceChildren();
-  const kept = editState.filter(r => r.keep).map(r => r.op);
-  const creates = kept.filter(o => o.op === "create_entity");
+  const creates = editState.filter(r => r.op.op === "create_entity").map(r => r.op);
   creates.forEach(o => {
     const say = el("div", "say");
     say.appendChild(el("b", "", `This puts “${o.name}” on your map`));
@@ -192,33 +220,82 @@ function renderPlain(plain, editState, editing){
   });
   const promiseRows = editState.filter(r => r.op.op === "attach" && r.op.kind === "promise");
   if (promiseRows.length){
-    plain.appendChild(el("div", "say", `It takes responsibility for ${promiseRows.length === 1 ? "this promise" : "these " + promiseRows.length + " promises"}:`));
+    plain.appendChild(el("div", "say",
+      `It takes responsibility for ${promiseRows.length === 1 ? "this promise" : "these " + promiseRows.length + " promises"} — untick any that don't belong:`));
     promiseRows.forEach(r => {
-      const line = el("div", "pstat" + (r.keep ? "" : " off"),
-        "“" + (STATEMENTS[r.op.ref] || r.op.ref) + "”");
-      line.appendChild(el("span", "pid", r.op.ref));
-      plain.appendChild(line);
+      const line = document.createElement("label");
+      line.className = "pstat";
+      const pw = el("span", "pw", "“" + (STATEMENTS[r.op.ref] || r.op.ref) + "”");
+      pw.appendChild(el("span", "pid", r.op.ref));
+      line.appendChild(pw);
+      plain.appendChild(toggleRow(r, line, onChange));
     });
   }
-  const code = kept.filter(o => o.op === "attach" && o.kind === "code").length;
-  const docs = kept.filter(o => o.op === "attach" && o.kind === "doc").length;
-  const linkBits = [];
-  if (code) linkBits.push(`${code} place${code===1?"":"s"} in the code`);
-  if (docs) linkBits.push(`${docs} document${docs===1?"":"s"}`);
-  if (linkBits.length) plain.appendChild(
-    el("div", "say soft", `It points at ${linkBits.join(" and ")} — each listed in the receipt.`));
-  kept.filter(o => o.op === "relate").forEach(o =>
-    plain.appendChild(el("div", "say", `It sits ${o.relation === "part_of" ? "inside" : "depending on"} ${o.other_id}.`)));
-  kept.filter(o => o.op === "rename").forEach(o =>
-    plain.appendChild(el("div", "say", `Renames ${o.entity_id} to “${o.name}”.`)));
-  kept.filter(o => o.op === "detach").forEach(o =>
-    plain.appendChild(el("div", "say", `Removes the ${o.kind} “${STATEMENTS[o.ref] || o.ref}”.`)));
-  kept.filter(o => o.op === "supersede").forEach(o =>
-    plain.appendChild(el("div", "say", `Retires ${o.entity_id} into ${o.successor_id} — the fate of every promise it holds is in the receipt.`)));
-  if (editing) plain.appendChild(el("div", "say soft", "Reflecting your edits — struck lines will not happen."));
+  const bindRows = editState.filter(r => r.op.op === "attach" && (r.op.kind === "code" || r.op.kind === "doc"));
+  if (bindRows.length){
+    const keptCode = bindRows.filter(r => r.keep && r.op.kind === "code").length;
+    const keptDocs = bindRows.filter(r => r.keep && r.op.kind === "doc").length;
+    const binds = document.createElement("details");
+    binds.className = "binds";
+    binds.open = bindsOpen;
+    binds.addEventListener("toggle", () => { editState.bindsOpen = binds.open; });
+    const bits = [];
+    if (keptCode) bits.push(`${keptCode} place${keptCode===1?"":"s"} in the code`);
+    if (keptDocs) bits.push(`${keptDocs} document${keptDocs===1?"":"s"}`);
+    binds.appendChild(el("summary", "",
+      `It points at ${bits.join(" and ") || "nothing"} — open to choose`));
+    bindRows.forEach(r => {
+      const line = document.createElement("label");
+      line.className = "bindrow";
+      const span = el("span", "", r.op.ref + " ");
+      if (r.op.note) span.appendChild(el("span", "bnote", "· " + r.op.note));
+      line.appendChild(span);
+      binds.appendChild(toggleRow(r, line, onChange));
+    });
+    plain.appendChild(binds);
+  }
+  const sentence = {
+    relate: o => `It sits ${o.relation === "part_of" ? "inside" : "depending on"} ${o.other_id}.`,
+    alias: o => `It teaches the words ${(o.terms||[]).map(t=>`“${t}”`).join(", ")}.`,
+    rename: o => `Renames ${o.entity_id} to “${o.name}”.`,
+    detach: o => `Removes the ${o.kind} “${STATEMENTS[o.ref] || o.ref}”.`,
+    supersede: o => `Retires ${o.entity_id} into ${o.successor_id} — the fate of every promise it holds is in the receipt.`,
+  };
+  editState.filter(r => sentence[r.op.op]).forEach(r => {
+    const line = document.createElement("label");
+    line.className = "oprow2";
+    line.appendChild(el("span", "", sentence[r.op.op](r.op)));
+    plain.appendChild(toggleRow(r, line, onChange));
+  });
 }
 
-function renderChange(change, editState, editing){
+// The signature says what it binds — recomputed on every tick.
+function scopeLabel(editState){
+  const kept = editState.filter(r => r.keep).map(r => r.op);
+  const n = (f) => kept.filter(f).length;
+  const parts = [];
+  const entities = n(o => o.op === "create_entity");
+  if (entities) parts.push(plural(entities, "entity", "entities"));
+  const promises = n(o => o.op === "attach" && o.kind === "promise");
+  if (promises) parts.push(plural(promises, "promise"));
+  const binds = n(o => o.op === "attach" && (o.kind === "code" || o.kind === "doc"));
+  if (binds) parts.push(plural(binds, "binding"));
+  const words = kept.filter(o => o.op === "alias").reduce((s, o) => s + (o.terms||[]).length, 0)
+    + kept.filter(o => o.op === "create_entity").reduce((s, o) => s + (o.aliases||[]).length, 0);
+  if (words) parts.push(plural(words, "word"));
+  const relations = n(o => o.op === "relate");
+  if (relations) parts.push(plural(relations, "relation"));
+  const renames = n(o => o.op === "rename");
+  if (renames) parts.push(plural(renames, "rename"));
+  const removals = n(o => o.op === "detach");
+  if (removals) parts.push(plural(removals, "removal"));
+  const retirements = n(o => o.op === "supersede");
+  if (retirements) parts.push(plural(retirements, "retirement"));
+  return parts;
+}
+function plural(n, noun, nouns){ return n === 1 ? `1 ${noun}` : `${n} ${nouns || noun + "s"}`; }
+
+function renderChange(change, editState){
   change.replaceChildren();
   editState.forEach(row => {
     const [verb, rest] = opText(row.op);
@@ -232,37 +309,26 @@ function renderChange(change, editState, editing){
     change.appendChild(line);
     change.appendChild(document.createElement("br"));
   });
-  if (editing) change.appendChild(el("div", "note", "this is the change you are approving — unchecked lines will not happen"));
 }
 
+// Rewording only — ticks live on the card itself now. This panel exists
+// for changing the words: the name, the identity sentence, the aliases.
 function renderEditor(editor, editState, onChange){
   editor.replaceChildren();
-  editor.appendChild(el("div", "hint", "Uncheck what should not happen; reword what should. An edited approval is recorded as human-amended."));
-  editState.forEach(row => {
-    if (row.op.op === "create_entity"){
-      const nameLabel = el("label", "", "entity name");
-      const nameInput = el("input"); nameInput.type = "text"; nameInput.value = row.op.name;
-      nameInput.addEventListener("input", () => { row.op.name = nameInput.value; onChange(); });
-      const idLabel = el("label", "", "identity sentence — readable aloud");
-      const idInput = el("input"); idInput.type = "text"; idInput.value = row.op.identity_sentence || "";
-      idInput.addEventListener("input", () => { row.op.identity_sentence = idInput.value; onChange(); });
-      const alLabel = el("label", "", "aliases (comma-separated)");
-      const alInput = el("input"); alInput.type = "text"; alInput.value = (row.op.aliases || []).join(", ");
-      alInput.addEventListener("input", () => {
-        row.op.aliases = alInput.value.split(",").map(s=>s.trim()).filter(Boolean); onChange();
-      });
-      editor.append(nameLabel, nameInput, idLabel, idInput, alLabel, alInput);
-    } else {
-      const opRow = el("div", "oprow");
-      const box = el("input"); box.type = "checkbox"; box.checked = row.keep;
-      box.addEventListener("change", () => { row.keep = box.checked; onChange(); });
-      const [verb, rest] = opText(row.op);
-      // a human unchecks meanings, not ids — promises show their words
-      const shown = (row.op.op === "attach" && row.op.kind === "promise" && STATEMENTS[row.op.ref])
-        ? `“${STATEMENTS[row.op.ref].slice(0, 90)}” (${row.op.ref})` : rest;
-      opRow.append(box, el("span", "k", verb.replace(/^[+±∅] /, "")), el("span", "", shown));
-      editor.appendChild(opRow);
-    }
+  editor.appendChild(el("div", "hint", "Reword what the map should say. A reworded signature is recorded as human-amended."));
+  editState.filter(row => row.op.op === "create_entity").forEach(row => {
+    const nameLabel = el("label", "", "entity name");
+    const nameInput = el("input"); nameInput.type = "text"; nameInput.value = row.op.name;
+    nameInput.addEventListener("input", () => { row.op.name = nameInput.value; onChange(); });
+    const idLabel = el("label", "", "identity sentence — readable aloud");
+    const idInput = el("input"); idInput.type = "text"; idInput.value = row.op.identity_sentence || "";
+    idInput.addEventListener("input", () => { row.op.identity_sentence = idInput.value; onChange(); });
+    const alLabel = el("label", "", "aliases (comma-separated)");
+    const alInput = el("input"); alInput.type = "text"; alInput.value = (row.op.aliases || []).join(", ");
+    alInput.addEventListener("input", () => {
+      row.op.aliases = alInput.value.split(",").map(s=>s.trim()).filter(Boolean); onChange();
+    });
+    editor.append(nameLabel, nameInput, idLabel, idInput, alLabel, alInput);
   });
 }
 
@@ -273,30 +339,43 @@ function card(p, uniformStakes){
   const meta = el("div", "meta");
   const human = (p.proposed_by || "").startsWith("human:");
   meta.append(human
-    ? `proposal ${p.diff_id} · proposed by ${p.proposed_by.slice(6)}`
-    : `proposal ${p.diff_id} · reasoned from ${p.evidence.length} quoted source${p.evidence.length===1?"":"s"}`);
+    ? `${p.diff_id} · proposed by ${p.proposed_by.slice(6)} · not signed`
+    : `${p.diff_id} · the clerk proposes · not signed`);
   if (!uniformStakes){
     meta.append(" · ");
     meta.appendChild(el("span", p.stakes_label === "high" ? "stakes-high" : "", `${p.stakes_label} stakes`));
   }
-  if (p.mechanics_note) meta.append(` · mechanics: ${p.mechanics_note} (footnote, not the argument)`);
   head.appendChild(meta);
   c.appendChild(head);
 
-  const ev = el("div", "evidence");
-  ev.appendChild(el("h3", "", "In your organization's own words"));
-  p.evidence.slice(0, 3).forEach(q => {
-    const quote = el("div", "quote", "“" + q.quote + "”");
-    quote.appendChild(el("span", "src", q.source));
-    ev.appendChild(quote);
+  // The org's words appear ONCE. Seed proposals quote the very promise
+  // statements the card already lists as its beef — repeating them was
+  // half the wall. Only evidence that adds something new renders here.
+  const promiseNorms = p.operations
+    .filter(o => o.op === "attach" && o.kind === "promise")
+    .map(o => norm(STATEMENTS[o.ref]));
+  const fresh = (p.evidence || []).filter(q => {
+    const nq = norm(q.quote);
+    return nq && !promiseNorms.some(np => np && (np.includes(nq) || nq.includes(np)));
   });
-  if (p.evidence.length > 3) ev.appendChild(el("div", "more", `…and ${p.evidence.length - 3} more, in the record.`));
+  if (fresh.length){
+    const ev = el("div", "evidence");
+    ev.appendChild(el("h3", "", "In the organization's own words"));
+    fresh.slice(0, 3).forEach(q => {
+      const quote = el("div", "quote", "“" + q.quote + "”");
+      quote.appendChild(el("span", "src", q.source));
+      ev.appendChild(quote);
+    });
+    if (fresh.length > 3) ev.appendChild(el("div", "more", `…and ${fresh.length - 3} more, in the record.`));
+    c.appendChild(ev);
+  }
   const heldRefs = Object.keys(p.already_held || {});
-  heldRefs.forEach(ref => {
-    ev.appendChild(el("div", "heldnote",
-      `${ref} is already held by ${p.already_held[ref].join(", ")} — approving adds a second home, which can be right.`));
-  });
-  c.appendChild(ev);
+  if (heldRefs.length){
+    const held = el("div", "evidence");
+    held.appendChild(el("div", "heldnote",
+      `Already held elsewhere: ${heldRefs.map(r => `${r} (${p.already_held[r].join(", ")})`).join("; ")} — a second home can be right.`));
+    c.appendChild(held);
+  }
 
   const editState = makeEditState(p);
   const plain = el("div", "plain");
@@ -304,12 +383,18 @@ function card(p, uniformStakes){
   const receipt = document.createElement("details");
   receipt.className = "receipt";
   receipt.appendChild(el("summary", "", "the full receipt — every operation, exact"));
+  if (p.mechanics_note) receipt.appendChild(el("div", "more", "mechanics: " + p.mechanics_note));
   receipt.appendChild(change);
   const editor = el("div", "editor");
-  let editing = false;
+  const err = el("div", "err");
+  const foot = el("div", "foot");
+  const sign = el("button", "", "Sign");
   const refresh = () => {
-    renderPlain(plain, editState, editing);
-    renderChange(change, editState, editing);
+    renderPlain(plain, editState, refresh);
+    renderChange(change, editState);
+    const parts = scopeLabel(editState);
+    sign.textContent = parts.length ? `Sign — ${parts.join(", ")}` : "Sign — nothing selected";
+    sign.disabled = !parts.length;
   };
   refresh();
   c.appendChild(plain);
@@ -317,27 +402,25 @@ function card(p, uniformStakes){
   renderEditor(editor, editState, refresh);
   c.appendChild(editor);
 
-  const err = el("div", "err");
-  const foot = el("div", "foot");
-  const approve = el("button", "", "Sign");
-  const edit = el("button", "ghost", "Edit first");
-  edit.addEventListener("click", () => {
-    editing = !editing;
-    editor.style.display = editing ? "block" : "none";
-    edit.textContent = editing ? "Done editing" : "Edit first";
-    refresh();
+  const hasCreate = p.operations.some(o => o.op === "create_entity");
+  const reword = el("button", "ghost", "Reword");
+  reword.addEventListener("click", () => {
+    const showing = editor.style.display === "block";
+    editor.style.display = showing ? "none" : "block";
+    reword.textContent = showing ? "Reword" : "Done rewording";
   });
-  approve.addEventListener("click", async () => {
+  sign.addEventListener("click", async () => {
     const by = reviewer(); if (!by) return;
     const body = {action: "approved", by};
     const ops = buildOperations(editState);
     // send operations only when they differ — the record decides amended
     if (JSON.stringify(ops) !== JSON.stringify(p.operations)) body.operations = ops;
-    approve.disabled = true;
+    sign.disabled = true;
     if (await post(p.diff_id, body, err)) seal(c, `signed · ${new Date().toISOString().slice(0,10)} · ${by}`, "ok");
-    else approve.disabled = false;
+    else sign.disabled = false;
   });
-  foot.append(approve, edit);
+  foot.append(sign);
+  if (hasCreate) foot.append(reword);
   const rejects = el("span", "rejects", "Decline:");
   REASONS.forEach(([code, label]) => {
     const link = el("a", "", label);

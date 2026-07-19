@@ -6,11 +6,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#EFE5CE;--bone:#F5F1E8;--card:#FAF4E4;--ink:#1C1A15;
---rule:rgba(28,26,21,.14);--muted:rgba(28,26,21,.62);--faint:rgba(28,26,21,.4);
+--rule:rgba(28,26,21,.14);--muted:rgba(28,26,21,.72);--faint:rgba(28,26,21,.52);
 --broken:#C93A20;--caution:#B4681E;--sign:#2B49D8;--wash:#E7DDC4;
 --ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--paper);color:var(--ink);font:15px/1.5 'Hanken Grotesk',sans-serif}
+body{background:var(--paper);color:var(--ink);font:16px/1.6 'Hanken Grotesk',sans-serif}
 ::selection{background:var(--ink);color:var(--paper)}
 .mono{font-family:'Spline Sans Mono',monospace;font-variant-numeric:tabular-nums}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -24,26 +24,28 @@ body{background:var(--paper);color:var(--ink);font:15px/1.5 'Hanken Grotesk',san
 aside{position:fixed;inset:0 auto 0 0;width:252px;background:var(--bone);border-right:1.5px solid var(--ink);
 display:flex;flex-direction:column;padding:18px 0 14px}
 .brand{font-weight:800;font-size:18px;letter-spacing:-.02em;padding:0 20px 14px;border-bottom:1px solid var(--rule)}
-.caution{margin:12px 16px 0;border:1.5px solid var(--caution);border-radius:10px;background:var(--card);
-padding:9px 12px;font-family:'Spline Sans Mono',monospace;font-size:11px;line-height:1.7;color:var(--caution);
-letter-spacing:.04em;animation:cautionpulse 5.4s ease-in-out infinite}
-.maplabel{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);padding:16px 20px 6px}
+.maplabel{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:18px 20px 8px}
 nav{flex:1;overflow-y:auto}
 .ent{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;background:none;
-font:inherit;font-weight:600;padding:8px 20px;cursor:pointer;color:var(--ink);border-left:3px solid transparent;
+font:inherit;font-size:15px;font-weight:600;padding:9px 20px;cursor:pointer;color:var(--ink);border-left:3px solid transparent;
 transition:background .25s var(--ease),border-color .25s var(--ease)}
 .ent:hover{background:var(--wash)}
 .ent.on{background:var(--card);border-left-color:var(--ink)}
-.ent .alert{margin-left:auto;font-family:'Spline Sans Mono',monospace;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ent .alert{margin-left:auto;font-family:'Spline Sans Mono',monospace;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .ent .a-broken{color:var(--broken)} .ent .a-caution{color:var(--caution)}
 .ent.frozen{opacity:.45;font-weight:400}
-.needs{margin:10px 16px 0;display:block;text-align:center;border:1.5px solid var(--caution);border-radius:99px;
-padding:8px 12px;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
-color:var(--caution);text-decoration:none;animation:cautionpulse 5.4s ease-in-out infinite}
-.needs.quiet{border-color:var(--rule);color:var(--faint);animation:none}
-.railfoot{padding:12px 20px 0;font-size:12px;color:var(--faint);display:flex;gap:14px}
+.railfoot{padding:12px 20px 0;font-size:13px;color:var(--faint);display:flex;gap:14px}
 .railfoot a{color:var(--faint);text-decoration:none}
 .railfoot a:hover{color:var(--ink)}
+/* The master caution is a BANNER in the reading column — clear, sentence-
+   cased, present on every route while anything needs a human; absent when
+   nothing does. The org below it stays the organizing principle. */
+.banner{margin-top:14px;border:1.5px solid var(--caution);border-left-width:6px;border-radius:12px;
+background:var(--card);padding:12px 18px;font-size:15px;line-height:1.55;
+animation:cautionpulse 6s ease-in-out infinite}
+.banner b{color:var(--broken);font-weight:700}
+.banner .warn{color:var(--caution);font-weight:700}
+.banner a{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
 
 main{margin-left:252px;padding:26px 44px 90px;max-width:920px}
 .askpill{width:100%;border:1.5px solid var(--ink);border-radius:99px;background:var(--card);
@@ -53,31 +55,31 @@ padding:13px 22px;font:16px 'Hanken Grotesk',sans-serif;outline:none;transition:
 .reply .soft{color:var(--muted)}
 .reply .chips{margin-top:6px}
 #stage{margin-top:26px}
-.crumb{font-size:12.5px;color:var(--faint);margin-bottom:10px}
+.crumb{font-size:13px;color:var(--faint);margin-bottom:10px}
 .crumb a{color:var(--faint);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .crumb a:hover{color:var(--ink)}
 h1{font-size:clamp(28px,3.4vw,38px);font-weight:800;letter-spacing:-.03em;line-height:1.08}
 h1 .flag{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
 color:var(--faint);border:1px solid var(--rule);border-radius:99px;padding:3px 10px;vertical-align:middle;margin-left:10px}
-.identity{font-family:'Newsreader',serif;font-style:italic;font-size:17px;color:var(--muted);margin:8px 0 2px;max-width:62ch}
+.identity{font-family:'Newsreader',serif;font-style:italic;font-size:18.5px;color:var(--muted);margin:8px 0 2px;max-width:60ch;line-height:1.55}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
-.chip{border:1px solid var(--rule);border-radius:99px;padding:4px 12px;font-size:12.5px;color:var(--muted);
+.chip{border:1px solid var(--rule);border-radius:99px;padding:4px 13px;font-size:13.5px;color:var(--muted);
 background:var(--bone);cursor:default}
 .chip.act{cursor:pointer;transition:all .25s var(--ease)}
 .chip.act:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-h2{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-font-weight:500;color:var(--muted);margin:30px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:6px}
-h2 .teachnote{float:right;letter-spacing:0;text-transform:none;color:var(--faint);font-size:10.5px}
-.promise{display:flex;gap:12px;align-items:baseline;padding:10px 0;border-bottom:1px dotted var(--rule)}
+h2{font-size:14px;font-weight:700;letter-spacing:.01em;color:var(--ink);
+margin:34px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:7px}
+h2 .teachnote{float:right;font-weight:400;color:var(--faint);font-size:12.5px}
+.promise{display:flex;gap:12px;align-items:baseline;padding:12px 0;border-bottom:1px dotted var(--rule)}
 .promise .glyph{font-family:'Spline Sans Mono',monospace;font-size:15px;flex:none;width:18px}
 .promise.contradicted .glyph{color:var(--broken)} .promise.partial .glyph{color:var(--caution)}
 .promise.unexercised .glyph{color:var(--faint)}
-.promise .words{font-weight:500;line-height:1.5}
+.promise .words{font-weight:500;line-height:1.55;font-size:16px}
 .promise.contradicted .words,.promise.partial .words{font-weight:650}
-.promise .pm{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);font-weight:400;margin-top:3px;font-variant-numeric:tabular-nums}
-.promise .pm b{font-weight:600}
+.promise .pm{display:block;font-size:12.5px;color:var(--faint);font-weight:400;margin-top:4px;font-variant-numeric:tabular-nums}
+.promise .pm b{font-weight:650}
 .promise.contradicted .pm b{color:var(--broken)} .promise.partial .pm b{color:var(--caution)}
-.promise .pm a{color:inherit;text-decoration:none;cursor:pointer}
+.promise .pm a{font-family:'Spline Sans Mono',monospace;font-size:11.5px;color:inherit;text-decoration:none;cursor:pointer}
 .promise .pm a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
 .quires{position:relative;border:1.5px solid var(--caution);border-radius:14px;background:var(--card);padding:14px 18px;margin:10px 0;
 box-shadow:4px 4px 0 0 rgba(180,104,30,.15)}
@@ -97,37 +99,43 @@ background:rgba(245,241,232,.94);color:var(--sign);animation:stampin .5s var(--s
 .quires .stamp.no{color:var(--broken);border-color:var(--broken)}
 .err{color:var(--broken);font-size:12.5px;font-style:italic;margin-top:6px}
 details.lives{margin-top:8px}
-details.lives summary{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);list-style:none}
+details.lives summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--muted);list-style:none}
 details.lives summary::before{content:'▸ '} details.lives[open] summary::before{content:'▾ '}
 details.lives summary:hover{color:var(--ink)}
-.path{font-family:'Spline Sans Mono',monospace;font-size:12px;padding:4px 0;color:var(--muted)}
-.path .note{color:var(--faint);font-size:10.5px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:16px}
-.ecard{border:1.5px solid var(--ink);border-radius:14px;background:var(--card);padding:16px 18px;cursor:pointer;
+.path{font-family:'Spline Sans Mono',monospace;font-size:12.5px;padding:5px 0;color:var(--muted)}
+.path .note{color:var(--faint);font-size:11.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:18px}
+.ecard{border:1.5px solid var(--ink);border-radius:14px;background:var(--card);padding:17px 19px;cursor:pointer;
 box-shadow:4px 4px 0 0 var(--wash);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
 .ecard:hover{transform:translateY(-3px);box-shadow:6px 8px 0 0 var(--wash)}
 .ecard.alarm{border-color:var(--broken);box-shadow:4px 4px 0 0 rgba(201,58,32,.2)}
-.ecard .en{font-weight:800;font-size:18px;letter-spacing:-.015em}
-.ecard .eid{font-family:'Newsreader',serif;font-style:italic;font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.4}
-.ecard .ann{margin-top:10px;font-family:'Spline Sans Mono',monospace;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
-.ecard .ann.bad{color:var(--broken)} .ecard .ann.warn{color:var(--caution)}
-.legend{margin-top:18px;font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint)}
-.colophon{margin-top:40px;padding-top:10px;border-top:3px double var(--ink);color:var(--faint);font-size:12px;
+.ecard .en{font-weight:800;font-size:19px;letter-spacing:-.015em}
+.ecard .eid{font-family:'Newsreader',serif;font-style:italic;font-size:15px;color:var(--muted);margin-top:5px;line-height:1.5}
+.ecard .ann{margin-top:11px;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ecard .ann .quietnote{color:var(--faint)}
+.ecard .ann .bad{color:var(--broken);font-weight:700} .ecard .ann .warn{color:var(--caution);font-weight:700}
+.legend{margin-top:20px;font-size:13px;color:var(--faint)}
+.legend .g{font-family:'Spline Sans Mono',monospace}
+.checks{margin-top:6px}
+.checkrow{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--rule);font-size:14px;color:var(--muted)}
+.checkrow .cn{font-family:'Spline Sans Mono',monospace;font-size:12px;color:var(--faint);flex:none;width:64px;font-variant-numeric:tabular-nums}
+.checkrow .cv{flex:none;font-weight:600}
+.checkrow .cv.bad{color:var(--broken)} .checkrow .cv.warn{color:var(--caution)}
+.colophon{margin-top:40px;padding-top:10px;border-top:3px double var(--ink);color:var(--faint);font-size:12.5px;
 font-family:'Spline Sans Mono',monospace;font-variant-numeric:tabular-nums}
-footer{margin:70px 0 0;padding-top:12px;border-top:3px double var(--ink);color:var(--faint);font-size:12px}
+footer{margin:70px 0 0;padding-top:12px;border-top:3px double var(--ink);color:var(--faint);font-size:13px}
 </style>
 </head>
 <body>
 <aside>
   <div class="brand">Quire</div>
-  <div class="caution" id="caution" hidden></div>
   <div class="maplabel">The map</div>
   <nav id="entlist"></nav>
-  <a class="needs quiet" id="needs">Nothing needs you.</a>
-  <div class="railfoot"><a id="ledgerlink">ledger</a><a id="mirrorlink">mirror</a></div>
+  <div class="railfoot"><a id="inboxlink">in quires</a><a id="ledgerlink">ledger</a></div>
 </aside>
 <main>
   <input class="askpill" id="ask" placeholder="Ask for a name, a promise, or a doubt.">
+  <div class="banner" id="banner" hidden></div>
   <div id="reply"></div>
   <div id="stage"></div>
   <footer id="mainfoot">Machines propose; humans sign.</footer>
@@ -137,9 +145,9 @@ const WS = __WORKSPACE_JSON__;
 const GLYPH = {contradicted:"✖", partial:"◐", kept:"✔", unexercised:"·"};
 const WORD = {contradicted:"broken", partial:"partly kept", kept:"holding", unexercised:"not yet exercised"};
 const REASONS = [["not_one_thing","not one thing"],["wrong_name","wrong name"],["bad_evidence","bad evidence"],["other","other…"]];
-let ENTITIES = [], FOCUSED = null, DECISIONS = null;
+let ENTITIES = [], FOCUSED = null, DECISIONS = null, MIRROR = null;
 document.getElementById("ledgerlink").href = "/intent/" + encodeURIComponent(WS);
-document.getElementById("mirrorlink").href = "/mirror/" + encodeURIComponent(WS);
+document.getElementById("inboxlink").href = "/inbox/" + encodeURIComponent(WS);
 
 function el(tag, cls, text){
   const n = document.createElement(tag);
@@ -166,20 +174,32 @@ function alertSpan(rollup){
   return wrap;
 }
 
-// One honest sentence per entity. Trouble speaks first; unexercised is
-// named, never counted as kept; a fully kept set earns quiet words.
-function annLine(rollup){
+// The entity's standing, stated affirmatively — what it HOLDS comes
+// first; trouble is appended, in its color; unexercised is named, never
+// counted as kept. Returns spans so only trouble wears a color.
+function annLine(ann, rollup){
+  ann.replaceChildren();
   const total = rollup.contradicted + rollup.partial + rollup.kept + rollup.unexercised;
-  if (!total) return {text: "No promises yet.", tone: ""};
-  if (rollup.contradicted)
-    return {text: `${rollup.contradicted} of ${plural(total, "promise")} broken.`, tone: "bad"};
-  if (rollup.partial)
-    return {text: `${plural(rollup.partial, "promise")} partly kept.`, tone: "warn"};
-  if (rollup.unexercised === total)
-    return {text: `${plural(total, "promise")}; none yet exercised.`, tone: ""};
-  if (rollup.unexercised)
-    return {text: `${plural(total, "promise")}; ${rollup.unexercised} not yet exercised.`, tone: ""};
-  return {text: `${plural(total, "promise")}, all holding.`, tone: ""};
+  if (!total){ ann.append("Holds a place — no promises yet."); return "quiet"; }
+  if (!rollup.contradicted && !rollup.partial){
+    if (rollup.unexercised === total){
+      ann.append(`Holds ${plural(total, "promise")}, none yet exercised.`);
+    } else if (rollup.unexercised){
+      ann.append(`Holding ${plural(total, "promise")}`);
+      ann.appendChild(el("span", "quietnote", ` — ${rollup.unexercised} not yet exercised.`));
+    } else {
+      ann.append(`Holding ${plural(total, "promise")}.`);
+    }
+    return "quiet";
+  }
+  ann.append(`Holds ${plural(total, "promise")} — `);
+  const trouble = [];
+  if (rollup.contradicted) trouble.push(el("span", "bad", `${rollup.contradicted} broken`));
+  if (rollup.partial) trouble.push(el("span", "warn", `${rollup.partial} partly kept`));
+  trouble.forEach((t, i) => { if (i) ann.append(", "); ann.appendChild(t); });
+  ann.append(".");
+  if (rollup.unexercised) ann.appendChild(el("span", "quietnote", ` ${rollup.unexercised} not yet exercised.`));
+  return rollup.contradicted ? "alarm" : "warn";
 }
 
 async function loadRail(){
@@ -194,24 +214,30 @@ async function loadRail(){
     row.addEventListener("click", () => { location.hash = "#/entity/" + e.entity_id; });
     nav.appendChild(row);
   });
-  // Master caution: one strip, lit only when something below is lit.
+  // The master caution is one readable banner in the reading column —
+  // present while anything needs a human, absent when nothing does.
   const broken = d.entities.reduce((n, e) => n + (e.rollup ? e.rollup.contradicted : 0), 0);
   const faltering = d.entities.reduce((n, e) => n + (e.rollup ? e.rollup.partial : 0), 0);
-  const caution = document.getElementById("caution");
-  const parts = [];
-  if (broken) parts.push(`${plural(broken, "promise")} broken`);
-  if (faltering) parts.push(`${faltering} partly kept`);
-  if (d.awaiting) parts.push(`${d.awaiting} wait for you`);
-  caution.hidden = !parts.length;
-  caution.textContent = parts.join(" · ");
-  const needs = document.getElementById("needs");
-  needs.href = "/inbox/" + encodeURIComponent(WS);
-  if (d.awaiting){
-    needs.className = "needs";
-    needs.textContent = `${plural(d.awaiting, "question")} wait${d.awaiting === 1 ? "s" : ""}. Worst first.`;
+  const banner = document.getElementById("banner");
+  banner.replaceChildren();
+  if (broken || faltering || d.awaiting){
+    banner.hidden = false;
+    banner.append("Needs attention — ");
+    const bits = [];
+    if (broken) bits.push(el("b", "", `${plural(broken, "promise")} broken`));
+    if (faltering) bits.push(el("span", "warn", `${faltering} partly kept`));
+    bits.forEach((b, i) => { if (i) banner.append(" · "); banner.appendChild(b); });
+    if (d.awaiting){
+      if (bits.length) banner.append(" · ");
+      banner.append(`${plural(d.awaiting, "question")} wait${d.awaiting === 1 ? "s" : ""} for a signature. `);
+      const go = el("a", "", "Open the inbox →");
+      go.href = "/inbox/" + encodeURIComponent(WS);
+      banner.appendChild(go);
+    } else {
+      banner.append(".");
+    }
   } else {
-    needs.className = "needs quiet";
-    needs.textContent = "Nothing needs you.";
+    banner.hidden = true;
   }
 }
 
@@ -228,22 +254,69 @@ function overview(){
     stage.appendChild(wrap);
     return;
   }
+  // The org, stated affirmatively: what it IS and what it holds. The
+  // banner above carries what needs attention; this page keeps an open
+  // mind — silence reads as presence, not emptiness.
+  const promises = active.reduce((n, e) => {
+    const r = e.rollup || {};
+    return n + (r.contradicted||0) + (r.partial||0) + (r.kept||0) + (r.unexercised||0);
+  }, 0);
+  const anyTrouble = active.some(e => e.rollup && (e.rollup.contradicted || e.rollup.partial));
   wrap.appendChild(el("h1", "", `The map of ${WS}`));
-  wrap.appendChild(el("div", "identity", "The names this organization means. Silence is good news."));
+  wrap.appendChild(el("div", "identity",
+    `${plural(active.length, "name")} holding ${plural(promises, "promise")} — the organization as it stands.` +
+    (anyTrouble ? "" : " All quiet: every exercised promise is holding.")));
   const grid = el("div", "grid");
   active.forEach(e => {
-    const line = annLine(e.rollup || {contradicted:0,partial:0,kept:0,unexercised:0});
-    const c = el("div", "ecard" + (line.tone === "bad" ? " alarm" : ""));
+    const c = el("div", "ecard");
     c.appendChild(el("div", "en", e.name));
     if (e.identity_sentence) c.appendChild(el("div", "eid", e.identity_sentence));
-    c.appendChild(el("div", "ann " + line.tone, line.text));
+    const ann = el("div", "ann");
+    const tone = annLine(ann, e.rollup || {contradicted:0,partial:0,kept:0,unexercised:0});
+    if (tone === "alarm") c.classList.add("alarm");
+    c.appendChild(ann);
     c.addEventListener("click", () => { location.hash = "#/entity/" + e.entity_id; });
     grid.appendChild(c);
   });
   wrap.appendChild(grid);
-  wrap.appendChild(el("div", "legend",
-    `${GLYPH.contradicted} broken · ${GLYPH.partial} partly kept · ${GLYPH.unexercised} not yet exercised — a calm name is keeping its word`));
+  const legend = el("div", "legend");
+  legend.appendChild(el("span", "g", `${GLYPH.contradicted} `));
+  legend.append("broken · ");
+  legend.appendChild(el("span", "g", `${GLYPH.partial} `));
+  legend.append("partly kept · ");
+  legend.appendChild(el("span", "g", `${GLYPH.unexercised} `));
+  legend.append("not yet exercised — a calm name is keeping its word");
+  wrap.appendChild(legend);
+
+  // Recent checks — folded in from the retired mirror page: the last few
+  // times the code was checked against the promises, one line each.
+  const checksWrap = el("div");
+  wrap.appendChild(checksWrap);
+  recentChecks().then(rows => {
+    if (!rows.length) return;
+    checksWrap.appendChild(el("h2", "", "Recent checks"));
+    const list = el("div", "checks");
+    rows.forEach(c => {
+      const row = el("div", "checkrow");
+      row.appendChild(el("span", "cn", "#" + (c.pr_number != null ? c.pr_number : c.check)));
+      const verdict = c.verdict_display || c.verdict || "";
+      const tone = /contradict/i.test(verdict) ? "bad" : /partial|partly/i.test(verdict) ? "warn" : "";
+      row.appendChild(el("span", "cv " + tone, verdict));
+      row.appendChild(el("span", "", (c.title || "").slice(0, 80)));
+      list.appendChild(row);
+    });
+    checksWrap.appendChild(list);
+  });
   stage.appendChild(wrap);
+}
+
+async function recentChecks(){
+  if (MIRROR) return MIRROR;
+  try{
+    const d = await (await fetch(`/api/mirror/${encodeURIComponent(WS)}`)).json();
+    MIRROR = (d.recent_checks || []).slice(-4).reverse();
+  }catch(err){ MIRROR = []; }
+  return MIRROR;
 }
 
 async function decisionsIndex(){
@@ -292,13 +365,13 @@ async function focus(entityId, promiseRef){
   wrap.appendChild(chips);
 
   if (e.pending.length){
-    const qh = el("h2", "", "still in quires");
+    const qh = el("h2", "", "Still in quires");
     qh.appendChild(el("span", "teachnote", "proposed, not signed — nothing here binds until you sign it"));
     wrap.appendChild(qh);
     e.pending.forEach(p => wrap.appendChild(quiresCard(p, e.entity_id)));
   }
 
-  wrap.appendChild(el("h2", "", "what it promises"));
+  wrap.appendChild(el("h2", "", "What it promises"));
   if (!e.promises.length) wrap.appendChild(el("div", "identity", "No promises yet — a name holding a place, not yet a duty."));
   e.promises.forEach(p => {
     const row = el("div", "promise " + p.state);
@@ -333,7 +406,7 @@ async function focus(entityId, promiseRef){
   });
 
   if (e.code.length || e.docs.length){
-    wrap.appendChild(el("h2", "", "where it lives"));
+    wrap.appendChild(el("h2", "", "Where it lives"));
     const lives = document.createElement("details");
     lives.className = "lives";
     lives.appendChild(el("summary", "",
@@ -347,7 +420,7 @@ async function focus(entityId, promiseRef){
   }
 
   if (e.relations.length){
-    wrap.appendChild(el("h2", "", "how it connects"));
+    wrap.appendChild(el("h2", "", "How it connects"));
     const rel = el("div", "chips");
     e.relations.forEach(r => {
       const label = r.inverse

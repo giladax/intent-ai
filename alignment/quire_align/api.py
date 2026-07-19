@@ -350,11 +350,13 @@ def create_app(store: Store | None = None) -> FastAPI:
 
     @app.get("/mirror/{workspace}")
     def mirror_page(workspace: str):
-        from fastapi.responses import HTMLResponse
+        # The mirror's uniques (status answers, recent checks) folded into
+        # the map overview (2026-07-19 UX pass); the old page contradicted
+        # the Working Edition, so the door forwards rather than forks.
+        from fastapi.responses import RedirectResponse
 
-        _workspace_dir(workspace)  # junk 404s instead of reflecting
-        html = (STATIC / "mirror.html").read_text()
-        return HTMLResponse(html.replace("__WORKSPACE__", workspace))
+        _workspace_dir(workspace)  # junk 404s instead of redirecting
+        return RedirectResponse(f"/app/{workspace}", status_code=307)
 
     @app.post("/api/ask/{workspace:path}/alias")
     def confirm_alias(workspace: str, request: AliasRequest):
