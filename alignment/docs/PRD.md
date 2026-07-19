@@ -44,17 +44,24 @@ creates new events, never rewrites.
 
 ## 3. The Rules (design-validated, enshrined)
 
-1. **Deltas over totals.** Home reports only change since last visit —
-   including recoveries ("kept again") — never standing counts.
+1. **Silence over totals.** *(Amended 2026-07-19, experience direction.)*
+   The front door is the quiet-dark map: health shows by exception,
+   kept renders as silence, and the org presents itself affirmatively.
+   Standing counts stay banned as score-keeping; deltas — including
+   recoveries ("kept again") — live in the Collation Log.
 2. **Every rendered claim completes its chain:** statement → quoted source
-   → enforcing file:line → latest verdict with date.
+   → enforcing file:line → latest verdict with date. *(Amended
+   2026-07-19:)* the chain must be *walkable* — each link opens in
+   place, and a trail is a stable URL.
 3. **No quote, no render.** A result that can't quote its reason doesn't
    render; refusals name nearest-by-wording and offer a propose-it path.
 4. **Never-checked is its own verdict.** "Unexercised" is never counted as
    kept; the glyph vocabulary is exactly ✖ contradicted · ◐ partial ·
    ✔ kept · **·** unexercised, with a legend on every surface using it.
 5. **One mutation path.** Nothing mutates the map except an approved
-   proposal; approve/reject verbs live only in the inbox.
+   proposal. *(Amended 2026-07-19:)* the decision endpoint is the sole
+   mutation path; the full card, with its verbs, may render in place on
+   the record (suggesting mode) and in the inbox — nowhere else.
 6. **Structured rejection.** Not-one-thing / wrong-name / bad-evidence /
    other-with-reason; a rejected proposal never returns in the same shape.
 7. **Edited approvals are recorded human-amended.**
@@ -69,10 +76,18 @@ creates new events, never rewrites.
     with lineage, or explicitly retired. Silence is not an option; the
     proposal card shows this list. (Resolves the fold-vs-freeze
     contradiction found at sign-off.)
-11. **No node-link canvas, ever.** Relationships are role-labeled links,
-    traversed page-to-page with a hop trail; the map is an index table.
-12. **Doctrine narrates once per page** — a single footer motto; the
-    receipts do the talking.
+11. **No node-link canvas that edits or replaces the IA.** *(Owner
+    amendment, 2026-07-19.)* Relationships remain role-labeled links
+    traversed page-to-page; the map's home remains the index. A
+    READ-ONLY spatial view (the constellation) is permitted as
+    presentation and navigation — it may never carry verbs, never be
+    the front door, and never store layout as meaning.
+12. **Doctrine narrates once per page** — the colophon (assembly
+    provenance + motto); the receipts do the talking. *(Amended
+    2026-07-19:)* the voice law: the machine observes and proposes;
+    only humans sign; copy may never blur the three moods. LLM-
+    synthesized stories are bound by per-sentence citations validated
+    mechanically (see the story-layer design, 2026-07-19).
 
 ## 4. The surfaces (per the signed-off Meridian mocks, design/round2/)
 

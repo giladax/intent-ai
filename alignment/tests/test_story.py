@@ -159,3 +159,17 @@ def test_citation_normalization_by_shape():
     assert dropped == 0
     assert kept[0].cites[0].kind == "check" and kept[0].cites[0].ref == "7"
     assert kept[1].cites[0].kind == "diff" and kept[1].cites[0].ref == "GD-1"
+
+
+def test_faithfulness_judge_gates_content(ws, adapter, store):
+    teller = FakeStoryteller(Story(sentences=[
+        s("Refunds was signed by gilad.", Citation(kind="diff", ref="GD-1")),
+        s("Refunds was signed by a committee of twelve.",
+          Citation(kind="diff", ref="GD-1")),
+    ]))
+    fake_judge = lambda text, facts: "committee" not in text  # noqa: E731
+    entry = get_story(ws, adapter, store, "org", teller=teller, now=T0,
+                      judge=fake_judge)
+    assert [x["text"] for x in entry["sentences"]] == ["Refunds was signed by gilad."]
+    assert entry["unfaithful"] == 1
+    assert entry["retold_after"]  # the byline knows what changed

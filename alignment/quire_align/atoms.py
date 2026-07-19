@@ -53,13 +53,18 @@ def _decision_atoms(diffs, promise_sets_rejected) -> list[dict]:
         if d.status == "rejected":
             reason = d.decision.reason_code.replace("_", " ")
             teaching = (
-                f' — teaching: "{d.decision.reason_text}"'
+                f' with the teaching: "{d.decision.reason_text}"'
                 if d.decision.reason_text else ""
             )
+            # phrased so the refused proposal's own wording can never be
+            # read as the ground for refusal (a live lede twice narrated
+            # GD-1's question as the verdict)
             atoms.append({
                 "kind": "declined",
                 "at": when,
-                "text": f"{who} declined {d.diff_id} ({reason}{teaching}): “{d.question}”",
+                "text": f"{who} declined {d.diff_id}; the recorded reason "
+                f"was {reason}{teaching}. (The refused proposal had asked: "
+                f"“{d.question}” — that wording was the thing rejected.)",
                 "cites": [_cite("diff", d.diff_id)],
             })
             continue

@@ -94,7 +94,11 @@ class StorytellerLLM:
             "lists — one plot point per sentence, ids only as citations.\n"
             "- Citation refs, exactly: GD-N is kind 'diff'; a promise id "
             "(e.g. QUIREB-006) is kind 'promise'; a check cites kind "
-            "'check' with the NUMBER alone as ref.\n\n"
+            "'check' with the NUMBER alone as ref. Cite at most the THREE "
+            "load-bearing refs per sentence — a wall of citations is "
+            "inventory wearing a costume.\n"
+            "- Signers appear exactly as recorded (their signature is "
+            "their name, whatever its case).\n\n"
             f"## Labeled facts — {scope}\n{facts}",
         )
 
@@ -175,31 +179,22 @@ def validate_story(story: Story, universe: dict) -> tuple[list[Sentence], int]:
 # -- labeled facts: the only world the model may narrate ------------------
 
 
-def _decided_facts(diffs) -> list[str]:
-    facts = []
-    for d in diffs:
-        if d.status == "open":
-            facts.append(
-                f"- Proposal {d.diff_id} is OPEN (unsigned, in quires): "
-                f"“{d.question}” proposed by "
-                f"{d.proposed_by.replace('human:', '') if d.proposed_by.startswith('human:') else 'the clerk'}"
-                f" [{d.diff_id}]"
-            )
-            continue
-        who, when = d.decision.by, d.decision.at[:10]
-        if d.status == "approved":
-            amended = " (edited before signing)" if d.decision.amended else ""
-            facts.append(
-                f"- {when}: {who} SIGNED {d.diff_id}{amended}: “{d.question}” [{d.diff_id}]"
-            )
-        else:
-            reason = d.decision.reason_code.replace("_", " ")
-            teaching = f' — teaching: "{d.decision.reason_text}"' if d.decision.reason_text else ""
-            facts.append(
-                f"- {when}: {who} DECLINED {d.diff_id} ({reason}{teaching}): "
-                f"“{d.question}” [{d.diff_id}]"
-            )
-    return facts
+def _atom_ref(cite: dict) -> str:
+    if cite["kind"] == "check":
+        return f"[check #{cite['ref']}]"
+    if cite["kind"] == "teach":
+        return f'[taught: "{cite["ref"]}"]'
+    return f"[{cite['ref']}]"
+
+
+def _atom_lines(atoms: list[dict]) -> list[str]:
+    """Atoms ARE the plot — the model phrases them; it never reads raw
+    tables (and never sees another entity's cargo to mis-narrate)."""
+    return [
+        f"- {a['at'][:10] + ': ' if a.get('at') else ''}{a['text']} "
+        + " ".join(_atom_ref(c) for c in a["cites"])
+        for a in atoms
+    ]
 
 
 def _health_facts(adapter, store, member_refs: set[str] | None = None) -> list[str]:
@@ -211,6 +206,20 @@ def _health_facts(adapter, store, member_refs: set[str] | None = None) -> list[s
     statements = {o.obligation_id: o.statement for o in adapter.obligations()}
     label = {"contradicts": "BROKEN", "partially_satisfies": "PARTLY KEPT",
              "satisfies": "holding"}
+
+    def finding_reason(ref: str, check) -> str:
+        """What the check actually FOUND — without it the narrator can
+        only restate the promise, and any mechanism it adds is an
+        invention the faithfulness judge rightly kills."""
+        mine = [a for a in analyses if a.pr_number == check]
+        if not mine:
+            return ""
+        latest = max(mine, key=lambda a: a.created_at)
+        for impact in latest.obligation_impacts:
+            if impact.obligation_id == ref and impact.reasoning:
+                return f' The check found: "{impact.reasoning[:160]}"'
+        return ""
+
     facts = []
     for ref, entry in current.items():
         if member_refs is not None and ref not in member_refs:
@@ -227,11 +236,14 @@ def _health_facts(adapter, store, member_refs: set[str] | None = None) -> list[s
             f"- Promise {ref} is {label[status]}"
             + (f" since check #{since} [check #{since}] [{ref}]" if since else f" [{ref}]")
             + f": “{statements.get(ref, '')[:110]}”"
+            + (finding_reason(ref, since) if since and status != "satisfies" else "")
         )
     return facts
 
 
 def _org_facts(workspace_dir, adapter, store) -> str:
+    from quire_align.atoms import atoms_for
+
     diffs = load_diffs(workspace_dir)
     state = graph_state(diffs)
     active = [e for e in state["entities"].values() if e["status"] == "active"]
@@ -244,29 +256,26 @@ def _org_facts(workspace_dir, adapter, store) -> str:
         f"{len(list(adapter.obligations()))} approved)"
         + (" " + " ".join(f"[{d.diff_id}]" for d in diffs if d.status == "approved"))
     ]
-    lines += _decided_facts(diffs)
+    lines += _atom_lines(atoms_for(workspace_dir, adapter, store))
     lines += _health_facts(adapter, store)
     return "\n".join(lines)
 
 
 def _entity_facts(workspace_dir, adapter, store, entity_id: str) -> str:
+    from quire_align.atoms import atoms_for
+
     diffs = load_diffs(workspace_dir)
     state = graph_state(diffs)
     entity = state["entities"][entity_id]
     refs = {h["ref"] for h in entity["holdings"] if h["kind"] == "promise"}
-    mine = [
-        d for d in diffs
-        if any(
-            entity_id in (getattr(op, "entity_id", ""), getattr(op, "other_id", ""),
-                          getattr(op, "successor_id", ""))
-            for op in d.operations
-        )
-        or any(getattr(op, "ref", None) in refs for op in d.operations)
-    ]
     lines = [
         f"- The entity is “{entity['name']}”: {entity['identity_sentence']}",
     ]
-    lines += _decided_facts(mine)
+    # scoped atoms only — another entity's cargo is not this record's
+    # story (stakeholder round 1, defect 11)
+    lines += _atom_lines(
+        atoms_for(workspace_dir, adapter, store, entity_id=entity_id)
+    )
     lines += _health_facts(adapter, store, member_refs=refs)
     for other in state["entities"].values():
         shared = refs & {
@@ -274,9 +283,10 @@ def _entity_facts(workspace_dir, adapter, store, entity_id: str) -> str:
         }
         if other["entity_id"] != entity_id and shared:
             lines.append(
-                f"- {other['name']} holds "
+                f"- {other['name']} also holds "
                 + ", ".join(sorted(shared))
-                + " too (shared promise) "
+                + " (a shared promise; do not narrate that entity's other "
+                "contents) "
                 + " ".join(f"[{r}]" for r in sorted(shared))
             )
     return "\n".join(lines)
@@ -286,6 +296,40 @@ _BUDGETS = {
     "org": "the org lede — 3 to 5 sentences; present tense for standing, past for events",
     "entity": "the story so far — 2 to 6 sentences, scaled to how much has actually happened; past into present",
 }
+
+
+def haiku_faithfulness_judge(sentence: str, facts: str) -> bool:
+    """The content gate, owed since the first live falsehood ('the last
+    two after edits' — plausible, cited, wrong): a sentence must make
+    ONLY claims the facts support. Selection and summary are fine; any
+    detail the facts don't state — an attribution, a count, a which-one
+    — fails. Grades quality; citations remain the mechanical gate."""
+    from langchain_anthropic import ChatAnthropic
+    from pydantic import BaseModel, Field
+
+    class Verdict(BaseModel):
+        reasoning: str = ""
+        faithful: bool = Field(
+            description="True only if every claim in the sentence — every "
+            "attribution, number, date, and which-item-did-what — is "
+            "stated by the facts. Summarizing fewer facts is fine; "
+            "compressing them into a detail the facts don't state is not."
+        )
+
+    model = ChatAnthropic(
+        model="claude-haiku-4-5", temperature=0, max_tokens=256
+    ).with_structured_output(Verdict)
+    verdict = invoke_with_retry(
+        model,
+        "A narrator wrote one sentence from a list of facts. Judge ONLY "
+        "whether the sentence is faithful to the facts — not style.\n"
+        "Attribution law: a decision's ground must match its RECORDED "
+        "reason exactly; a refused proposal's own wording is never the "
+        "ground for its refusal — a sentence that presents the rejected "
+        "question as the decider's conclusion is unfaithful.\n\n"
+        f"## Facts\n{facts}\n\n## Sentence\n{sentence}",
+    )
+    return bool(verdict.faithful)
 
 
 # -- cache: derived, disposable, never read by the fold -------------------
@@ -302,6 +346,17 @@ def _load_cache(workspace_dir) -> dict:
     return yaml.safe_load(path.read_text()) or {}
 
 
+def _newest_event_label(workspace_dir, adapter, store) -> str:
+    """What just changed — the byline's 'retold after …'."""
+    from quire_align.atoms import atoms_for
+
+    atoms = atoms_for(workspace_dir, adapter, store)
+    if not atoms:
+        return ""
+    cite = atoms[-1]["cites"][0]
+    return f"check #{cite['ref']}" if cite["kind"] == "check" else cite["ref"]
+
+
 def get_story(
     workspace_dir: pathlib.Path,
     adapter,
@@ -310,9 +365,11 @@ def get_story(
     teller=None,
     entity_id: str = "",
     now: str = "",
+    judge=None,
 ) -> dict | None:
     """Cached story for a scope, retold only when its inputs changed.
-    teller=None → cache only (a missing story is honest)."""
+    teller=None → cache only (a missing story is honest). judge runs at
+    generation time only — the faithfulness gate on each sentence."""
     key = f"entity:{entity_id}" if scope == "entity" else "org"
     facts = (
         _entity_facts(workspace_dir, adapter, store, entity_id)
@@ -330,17 +387,41 @@ def get_story(
     kept, dropped = validate_story(
         story, _universe(workspace_dir, adapter, store)
     )
+    unfaithful = 0
+    if judge is not None:
+        faithful = []
+        for sentence in kept:
+            if judge(sentence.text, facts):
+                faithful.append(sentence)
+            else:
+                unfaithful += 1
+        kept = faithful
     entry = {
         "scope": key,
         "input_hash": input_hash,
         "sentences": [s.model_dump() for s in kept],
         "dropped": dropped,
+        "unfaithful": unfaithful,
         "generated_at": now,
+        "retold_after": _newest_event_label(workspace_dir, adapter, store),
         "model": STORY_MODEL,
     }
     cache[key] = entry
-    _stories_file(workspace_dir).write_text(
+    _write_cache(workspace_dir, cache)
+    return entry
+
+
+def _write_cache(workspace_dir: pathlib.Path, cache: dict) -> None:
+    """Atomic replace — the cache is disposable, a torn write is not."""
+    import os
+    import tempfile
+
+    path = _stories_file(workspace_dir)
+    payload = (
         "# Derived narrative cache — disposable; never read by the fold.\n"
         + yaml.safe_dump(cache, sort_keys=False, allow_unicode=True)
     )
-    return entry
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    with os.fdopen(fd, "w") as handle:
+        handle.write(payload)
+    os.replace(tmp, path)

@@ -105,22 +105,27 @@ def resolve_semantic(
     )
     top_score, top_id = scored[0]
     runner = scored[1][0] if len(scored) > 1 else 0.0
+    near = [
+        {"entity_id": k, "name": docs[k]["name"], "score": round(s, 3)}
+        for s, k in scored[:3]
+        if s > 0
+    ]
     if top_score < _SEMANTIC_MIN:
-        return None
+        # refusal still helps: name the nearest by meaning
+        return {"refused": True, "near": near} if near else None
     if runner and top_score / max(runner, 1e-9) < _SEMANTIC_MARGIN:
-        return None  # genuinely ambiguous — refuse, never guess
-    q_terms = set(_terms(query))
-    matched = sorted(q_terms & set(docs[top_id]["terms"]))
+        return {"refused": True, "near": near}  # ambiguous — never guess
+    # the receipt shows WORDS a human recognizes — whole tokens only,
+    # never n-gram fragments (round-1 defect: "ctur, ools, ruct")
+    q_words = set(tokenize(query, min_len=3, keep_digits=True))
+    doc_words = set(docs[top_id]["terms"])
+    matched = sorted(q_words & doc_words)
     if not matched:
-        return None
+        return {"refused": True, "near": near}
     return {
         "entity_id": top_id,
         "name": docs[top_id]["name"],
         "score": round(top_score, 3),
         "matched_terms": matched,
-        "alternatives": [
-            {"entity_id": k, "name": docs[k]["name"], "score": round(s, 3)}
-            for s, k in scored[1:3]
-            if s > 0
-        ],
+        "alternatives": near[1:],
     }

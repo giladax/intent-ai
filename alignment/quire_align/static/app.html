@@ -69,6 +69,19 @@ text-decoration:none;white-space:nowrap;transition:background .25s var(--ease)}
 .story a.cchip:hover{background:var(--ink);color:var(--paper)}
 .story .byline{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:8px}
 .sky{display:block;border:1.5px solid var(--ink);border-radius:16px;background:var(--card);margin-top:16px;box-shadow:5px 5px 0 0 var(--wash)}
+.slip{position:fixed;top:24px;right:24px;width:340px;max-height:82vh;overflow-y:auto;z-index:40;
+background:var(--bone);border:1.5px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 0 var(--wash);
+font-family:'Spline Sans Mono',monospace;font-size:12px;padding:14px 16px}
+.slip .sliphead{font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px dashed var(--rule);padding-bottom:8px;margin-bottom:8px;display:flex;justify-content:space-between}
+.slip .slipclose{cursor:pointer;text-decoration:none;color:var(--muted)}
+.slip .sliprow{display:flex;gap:10px;padding:2px 0}
+.slip .sliprow .k{color:var(--faint);width:72px;flex:none}
+.slip .sliprow .verdict{font-weight:600}
+.slip .slipfind{border-top:1px dashed var(--rule);margin-top:8px;padding-top:8px}
+.slip .fs{font-family:'Hanken Grotesk',sans-serif;font-size:13px;font-weight:600;line-height:1.4}
+.slip .fr{color:var(--muted);margin-top:2px}
+.slip .fc{color:var(--faint);margin-top:1px}
+.slip .slipsig{border-top:1px dashed var(--rule);margin-top:10px;padding-top:8px;color:var(--muted)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
 .chip{border:1px solid var(--rule);border-radius:99px;padding:4px 13px;font-size:13.5px;color:var(--muted);
 background:var(--bone);cursor:default}
@@ -275,6 +288,8 @@ function overview(){
     (anyTrouble ? "" : " All quiet: every exercised promise is holding."));
   wrap.appendChild(subtitle);
   tellStory("org", subtitle);
+  // home rhythm per the design: story → banner → structure
+  wrap.appendChild(document.getElementById("banner"));
   const grid = el("div", "grid");
   active.forEach(e => {
     const c = el("div", "ecard");
@@ -338,6 +353,9 @@ async function decisionsIndex(){
 
 async function focus(entityId, promiseRef){
   FOCUSED = entityId;
+  // banner returns to its global slot when leaving the home rhythm
+  document.querySelector("main").insertBefore(
+    document.getElementById("banner"), document.getElementById("reply"));
   const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/entity/${encodeURIComponent(entityId)}`);
   if (!res.ok){ location.hash = "#/map"; return; }
   const e = await res.json();
@@ -550,6 +568,8 @@ window.addEventListener("hashchange", route);
 // threads are signed relations; faint threads are shared promises.
 function constellation(){
   FOCUSED = null;
+  document.querySelector("main").insertBefore(
+    document.getElementById("banner"), document.getElementById("reply"));
   document.querySelectorAll(".ent.on").forEach(n => n.classList.remove("on"));
   const stage = document.getElementById("stage");
   stage.replaceChildren();
@@ -566,10 +586,17 @@ function constellation(){
   const canvas = document.createElement("canvas");
   canvas.className = "sky";
   wrap.appendChild(canvas);
-  const legend = el("div", "legend",
-    "size — promises held · vermilion — a broken promise · amber — partly kept · " +
-    "solid thread — a signed relation · faint thread — a shared promise");
-  wrap.appendChild(legend);
+  // the legend advertises only what the sky actually shows
+  const active = ENTITIES.filter(e => e.status === "active");
+  const anyRelations = active.some(e => (e.relations || []).length);
+  const promisesOf = e => (e.holdings || []).filter(h => h.kind === "promise").map(h => h.ref);
+  const anyShared = active.some((a, i) => active.slice(i + 1).some(
+    b => promisesOf(a).some(p => promisesOf(b).includes(p))));
+  const bits = ["size — promises held", "vermilion — a broken promise",
+    "amber — partly kept", "dashed ring — not yet exercised by any check"];
+  if (anyRelations) bits.push("solid thread — a signed relation");
+  if (anyShared) bits.push("faint thread — a shared promise");
+  wrap.appendChild(el("div", "legend", bits.join(" · ")));
   stage.appendChild(wrap);
   drawConstellation(canvas);
 }
@@ -628,9 +655,12 @@ function drawConstellation(canvas){
     }
   }
   function tone(n){
-    if (n.rollup.contradicted) return getComputedStyle(document.documentElement).getPropertyValue("--broken") || "#D8492B";
-    if (n.rollup.partial) return getComputedStyle(document.documentElement).getPropertyValue("--caution") || "#B4681E";
-    return "#1C1A15";
+    // rule 4: never-exercised must not wear the calm of the kept — an
+    // all-unexercised star gets a faint DASHED ring, not quiet ink
+    if (n.rollup.contradicted) return {c: "#D8492B", dash: []};
+    if (n.rollup.partial) return {c: "#B4681E", dash: []};
+    if (!n.rollup.kept && n.rollup.unexercised) return {c: "rgba(28,26,21,.4)", dash: [4, 4]};
+    return {c: "#1C1A15", dash: []};
   }
   function draw(){
     ctx.clearRect(0, 0, W, H);
@@ -643,9 +673,11 @@ function drawConstellation(canvas){
     }
     ctx.setLineDash([]);
     for (const n of nodes){
+      const t = tone(n);
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI);
       ctx.fillStyle = "#FAF4E4"; ctx.fill();
-      ctx.strokeStyle = tone(n); ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = t.c; ctx.lineWidth = 2; ctx.setLineDash(t.dash); ctx.stroke();
+      ctx.setLineDash([]);
       ctx.fillStyle = "#1C1A15";
       ctx.font = "600 13px 'Hanken Grotesk', sans-serif";
       ctx.textAlign = "center";
@@ -686,9 +718,10 @@ function citeLink(cite){
     return a;
   }
   if (cite.kind === "check"){
-    const a = el("a", "cchip", "#" + String(cite.ref).replace(/^#/, ""));
-    a.href = `/api/checks/${encodeURIComponent(WS)}/${String(cite.ref).replace(/^#/, "")}`;
+    const n = String(cite.ref).replace(/^#/, "");
+    const a = el("a", "cchip", "#" + n);
     a.title = "the check's receipt";
+    a.addEventListener("click", ev => { ev.preventDefault(); receiptPane(n); });
     return a;
   }
   if (cite.kind === "diff"){
@@ -710,27 +743,80 @@ async function tellStory(scope, slot, entityId){
   const box = el("div", "story rise");
   story.sentences.forEach(s => {
     box.append(s.text + " ");
-    (s.cites || []).forEach(c => box.appendChild(citeLink(c)));
+    // at most three chips inline — a wall of citations is inventory
+    const cites = s.cites || [];
+    cites.slice(0, 3).forEach(c => box.appendChild(citeLink(c)));
+    if (cites.length > 3){
+      const more = el("span", "cchip", `+${cites.length - 3}`);
+      more.title = cites.slice(3).map(c => c.ref).join(", ");
+      box.appendChild(more);
+    }
     box.append(" ");
   });
+  const withheld = (story.dropped || 0) + (story.unfaithful || 0);
   const byline = el("span", "byline",
     `told ${String(story.generated_at || "").slice(0, 10)}`
-    + (story.dropped ? ` · ${story.dropped} uncited sentence${story.dropped===1?"":"s"} withheld` : ""));
+    + (story.retold_after ? ` · after ${story.retold_after}` : "")
+    + (withheld ? ` · ${withheld} sentence${withheld===1?"":"s"} withheld` : ""));
   box.appendChild(byline);
   slot.replaceWith ? slot.replaceWith(box) : slot.appendChild(box);
 }
 
+// The check's receipt as a slip, in place — never raw JSON in a tab.
+async function receiptPane(checkNumber){
+  document.querySelectorAll(".slip").forEach(n => n.remove());
+  const res = await fetch(`/api/checks/${encodeURIComponent(WS)}/${checkNumber}`);
+  if (!res.ok) return;
+  const r = await res.json();
+  const slip = el("aside", "slip rise");
+  const head = el("div", "sliphead", `check #${r.check} — receipt`);
+  const close = el("a", "slipclose", "✕");
+  close.addEventListener("click", () => slip.remove());
+  head.appendChild(close);
+  slip.appendChild(head);
+  const meta = el("div", "slipmeta");
+  [["observed", String(r.observed_at || "").slice(0, 16).replace("T", " ")],
+   ["commit", String(r.commit || "").slice(0, 12)],
+   ["analyzer", r.analyzer_version],
+   ["verdict", r.verdict]].forEach(([k, v]) => {
+    const row = el("div", "sliprow");
+    row.appendChild(el("span", "k", k));
+    row.appendChild(el("span", "v" + (k === "verdict" ? " verdict" : ""), String(v || "—")));
+    meta.appendChild(row);
+  });
+  slip.appendChild(meta);
+  (r.findings || []).forEach(f => {
+    const block = el("div", "slipfind");
+    block.appendChild(el("div", "fs", `“${(f.statement || f.promise).slice(0, 110)}”`));
+    block.appendChild(el("div", "fr", `${f.promise} · ${String(f.relation || "").replace(/_/g, " ")}`));
+    (f.citations || []).slice(0, 2).forEach(c => {
+      block.appendChild(el("div", "fc",
+        `${c.reference}${c.lines && c.lines[0] ? ":" + c.lines[0] : ""}`));
+    });
+    slip.appendChild(block);
+  });
+  if (r.review && r.review.reviewer)
+    slip.appendChild(el("div", "slipsig", `${r.review.state} · ${r.review.reviewer}`));
+  document.body.appendChild(slip);
+}
+
 // The ask is the spine: a name focuses the record; a question gets a
 // sentence; a miss refuses to guess, then offers to learn.
+let askSeq = 0; // a newer question always wins — a slow answer never stacks
 document.getElementById("ask").addEventListener("keydown", async ev => {
   if (ev.key !== "Enter") return;
   const q = ev.target.value.trim();
   const reply = document.getElementById("reply");
   reply.replaceChildren();
   if (!q) return;
+  const seq = ++askSeq;
+  reply.appendChild(el("div", "reply soft", "reading the map…"));
   const r = await fetch(`/api/ask/${encodeURIComponent(WS)}?q=${encodeURIComponent(q)}`);
+  if (seq !== askSeq) return; // superseded by a newer question
+  reply.replaceChildren();
   if (!r.ok){ reply.appendChild(el("div", "reply", "The map is unreachable. Try again in a moment.")); return; }
   const d = await r.json();
+  if (seq !== askSeq) return;
   if (d.entity){
     if (d.forwarded_from){
       const note = el("div", "reply rise");
@@ -781,8 +867,20 @@ document.getElementById("ask").addEventListener("keydown", async ev => {
   }
   const miss = el("div", "reply rise");
   miss.appendChild(el("b", "", `Nothing on the map answers to “${q}” — and it won't guess.`));
-  const near = (d.resolution && d.resolution.alternatives || []).slice(0, 2).join(", ");
-  if (near) miss.appendChild(el("div", "soft", `Nearest by wording: ${near}.`));
+  // refusals name their neighbors in HUMAN names: by meaning first
+  const byMeaning = (d.resolution && d.resolution.near_by_meaning) || [];
+  if (byMeaning.length){
+    const row = el("div", "soft", "Nearest by meaning: ");
+    byMeaning.slice(0, 3).forEach(n => {
+      const a = el("a", "", n.name);
+      a.addEventListener("click", () => { location.hash = "#/entity/" + n.entity_id; });
+      row.appendChild(a); row.append("  ");
+    });
+    miss.appendChild(row);
+  } else {
+    const near = (d.resolution && d.resolution.alternatives || []).slice(0, 2).join(", ");
+    if (near) miss.appendChild(el("div", "soft", `Nearest by wording: ${near}.`));
+  }
   const chips = el("div", "chips");
   const aliasChip = el("span", "chip act", `“${q}” is another name for something here`);
   aliasChip.addEventListener("click", async () => {

@@ -133,11 +133,12 @@ def test_ambiguity_refuses_rather_than_guesses(ws, adapter, store):
 
 def test_teaching_enriches_the_vector(ws, adapter, store):
     docs = node_documents(ws, adapter, store)
-    assert resolve_semantic("cashback desk", docs) is None
+    before = resolve_semantic("cashback desk", docs)
+    assert before is None or before.get("refused")
     teach_alias(ws, "cashback desk", "ent-refunds", "dana", T1)
     enriched = node_documents(ws, adapter, store)
     hit = resolve_semantic("cashback desk", enriched)
-    assert hit and hit["entity_id"] == "ent-refunds"
+    assert hit and not hit.get("refused") and hit["entity_id"] == "ent-refunds"
 
 
 def test_ask_semantic_rung_over_http(ws, store):
@@ -148,3 +149,25 @@ def test_ask_semantic_rung_over_http(ws, store):
     assert r["resolution"]["method"] == "semantic"
     assert r["entity"]["name"] == "Risk Review"
     assert r["resolution"]["matched_terms"]
+
+
+def test_matched_terms_are_words_not_gram_debris(ws, adapter, store):
+    docs = node_documents(ws, adapter, store)
+    hit = resolve_semantic("who reviews risky refund payouts", docs)
+    assert hit and not hit.get("refused")
+    assert all(len(t) >= 3 and t.isalnum() for t in hit["matched_terms"])
+    assert not any(t in ("ctur", "ools", "ruct") for t in hit["matched_terms"])
+
+
+def test_refusal_names_neighbors_by_meaning(ws, adapter, store):
+    docs = node_documents(ws, adapter, store)
+    out = resolve_semantic("cashback desk", docs)
+    assert out and out.get("refused")
+    assert out["near"] and all("name" in n for n in out["near"])
+
+
+def test_exact_name_outranks_status_router(ws, store):
+    client = TestClient(create_app(store=store))
+    r = client.get(f"/api/ask/{ws}", params={"q": "Risk Review", "llm": False}).json()
+    assert r["resolution"]["method"] == "entity"
+    assert r["entity"]["name"] == "Risk Review"

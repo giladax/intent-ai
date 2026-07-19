@@ -383,6 +383,29 @@ def create_app(store: Store | None = None) -> FastAPI:
         adapter = _adapter(workspace)
         state = load_group_state(_workspace_dir(workspace), adapter)
 
+        # A SIGNED NAME outranks question-routing: the human-approved
+        # vocabulary is deterministic ground truth, and a router guess
+        # must never eclipse it (stakeholder round 1, defect 2 — the
+        # exact name 'current understanding' was routed to a status dump).
+        from quire_align.entity_graph import graph_state, load_diffs, resolve_entity
+
+        ws_dir = _workspace_dir(workspace)
+        entity_state = graph_state(load_diffs(ws_dir))
+        entity_hit = resolve_entity(entity_state, q)
+        if entity_hit and entity_hit["entity"]:
+            return {
+                "query": q,
+                "resolution": {
+                    "method": "entity-forwarded"
+                    if entity_hit["forwarded_from"]
+                    else "entity",
+                    "confidence": 1.0,
+                },
+                "entity": entity_hit["entity"],
+                "forwarded_from": entity_hit["forwarded_from"],
+                "card": None,
+            }
+
         # Status-shaped questions get situation answers, never a single
         # force-resolved area card (PM interrogation failure #1/#3).
         router = None
@@ -411,27 +434,6 @@ def create_app(store: Store | None = None) -> FastAPI:
                 "card": None,
             }
 
-        # Entities first — the durable human-approved layer outranks the
-        # derived areas, and retired names forward (rule 9).
-        from quire_align.entity_graph import graph_state, load_diffs, resolve_entity
-
-        ws_dir = _workspace_dir(workspace)
-        entity_state = graph_state(load_diffs(ws_dir))
-        entity_hit = resolve_entity(entity_state, q)
-        if entity_hit and entity_hit["entity"]:
-            return {
-                "query": q,
-                "resolution": {
-                    "method": "entity-forwarded"
-                    if entity_hit["forwarded_from"]
-                    else "entity",
-                    "confidence": 1.0,
-                },
-                "entity": entity_hit["entity"],
-                "forwarded_from": entity_hit["forwarded_from"],
-                "card": None,
-            }
-
         # Semantic rung: resolve by MEANING over each node's connection
         # content — the org's dialect no longer needs an exact-match
         # alias to land. A match that can't show its wording refuses.
@@ -440,7 +442,10 @@ def create_app(store: Store | None = None) -> FastAPI:
         semantic = resolve_semantic(
             q, node_documents(ws_dir, adapter, app.state.store)
         )
-        if semantic:
+        near_by_meaning = []
+        if semantic and semantic.get("refused"):
+            near_by_meaning = semantic["near"]  # honest refusal, named
+        elif semantic:
             return {
                 "query": q,
                 "resolution": {
@@ -471,6 +476,9 @@ def create_app(store: Store | None = None) -> FastAPI:
                 **resolution,
                 "group": resolution["group"]["group_id"] if resolution["group"] else None,
                 "anchor": resolution["group"]["anchor"] if resolution["group"] else None,
+                # a refusal names its neighbors in HUMAN names, both by
+                # meaning (entities) and by wording (areas)
+                "near_by_meaning": near_by_meaning,
             },
             "card": card,
         }
@@ -682,9 +690,13 @@ def create_app(store: Store | None = None) -> FastAPI:
             if entity_id not in graph_state(load_diffs(ws_dir))["entities"]:
                 raise HTTPException(404, f"no entity '{entity_id}'")
         teller = None
+        judge = None
         if llm:
             try:
+                from quire_align.story import haiku_faithfulness_judge
+
                 teller = StorytellerLLM()
+                judge = haiku_faithfulness_judge
             except Exception as error:
                 logger.warning(
                     "storyteller unavailable (%s) — serving the cached "
@@ -694,7 +706,7 @@ def create_app(store: Store | None = None) -> FastAPI:
         try:
             entry = get_story(
                 ws_dir, adapter, app.state.store, scope,
-                teller=teller, entity_id=entity_id, now=_now(),
+                teller=teller, entity_id=entity_id, now=_now(), judge=judge,
             )
         except Exception as error:
             logger.warning("story synthesis failed (%s) — serving cache", error)
