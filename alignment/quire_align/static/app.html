@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meridian — the map</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#EFE5CE;--bone:#F5F1E8;--card:#FAF4E4;--ink:#1C1A15;
+--rule:rgba(28,26,21,.14);--muted:rgba(28,26,21,.62);--faint:rgba(28,26,21,.4);
+--ok:#2E6B58;--bad:#D8492B;--amber:#B4681E;--cobalt:#2B49D8;--wash:#E7DDC4;
+--ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 'Hanken Grotesk',sans-serif}
+::selection{background:var(--ink);color:var(--paper)}
+.mono{font-family:'Spline Sans Mono',monospace}
+@keyframes rise{from{opacity:0;transform:translateY(12px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+.rise{animation:rise .55s var(--ease) both}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.28);opacity:1}}
+@keyframes needpulse{0%,100%{box-shadow:0 0 0 0 rgba(180,104,30,.5)}55%{box-shadow:0 0 0 7px rgba(180,104,30,0)}}
+@keyframes stampin{0%{opacity:0;transform:rotate(-14deg) scale(2)}70%{opacity:1;transform:rotate(-7deg) scale(.95)}100%{opacity:1;transform:rotate(-7deg) scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+
+aside{position:fixed;inset:0 auto 0 0;width:250px;background:var(--bone);border-right:1.5px solid var(--ink);
+display:flex;flex-direction:column;padding:18px 0 14px}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.02em;padding:0 20px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule)}
+.brand::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ok);animation:breathe 5.4s ease-in-out infinite}
+.maplabel{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);padding:16px 20px 6px}
+nav{flex:1;overflow-y:auto}
+.ent{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;background:none;
+font:inherit;font-weight:600;padding:9px 20px;cursor:pointer;color:var(--ink);border-left:3px solid transparent;
+transition:background .25s var(--ease),border-color .25s var(--ease)}
+.ent:hover{background:var(--wash)}
+.ent.on{background:var(--card);border-left-color:var(--ink)}
+.ent .glyphs{margin-left:auto;font-family:'Spline Sans Mono',monospace;font-size:11px;white-space:nowrap}
+.ent .g-bad{color:var(--bad)} .ent .g-part{color:var(--amber)} .ent .g-ok{color:var(--ok)} .ent .g-un{color:var(--faint)}
+.ent.frozen{opacity:.5;font-weight:400}
+.needs{margin:10px 16px 0;display:block;text-align:center;border:1.5px solid var(--amber);border-radius:99px;
+padding:8px 12px;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+color:var(--amber);text-decoration:none;animation:needpulse 5.4s ease-in-out infinite}
+.needs.quiet{border-color:var(--rule);color:var(--faint);animation:none}
+.railfoot{padding:12px 20px 0;font-size:12px;color:var(--faint);display:flex;gap:14px}
+.railfoot a{color:var(--faint);text-decoration:none}
+.railfoot a:hover{color:var(--ink)}
+
+main{margin-left:250px;padding:26px 44px 90px;max-width:960px}
+.askpill{width:100%;border:1.5px solid var(--ink);border-radius:99px;background:var(--card);
+padding:13px 22px;font:16px 'Hanken Grotesk',sans-serif;outline:none;transition:box-shadow .3s var(--ease),transform .3s var(--ease)}
+.askpill:focus{box-shadow:4px 4px 0 0 var(--wash);transform:translateY(-1px)}
+.reply{margin-top:12px;border-left:3px solid var(--cobalt);background:var(--card);border-radius:0 12px 12px 0;padding:10px 16px;font-size:14.5px}
+.reply .soft{color:var(--muted)}
+.reply .chips{margin-top:6px}
+#stage{margin-top:26px}
+.crumb{font-size:12.5px;color:var(--faint);margin-bottom:10px}
+.crumb a{color:var(--faint);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.crumb a:hover{color:var(--ink)}
+h1{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.1}
+h1 .flag{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+color:var(--faint);border:1px solid var(--rule);border-radius:99px;padding:3px 10px;vertical-align:middle;margin-left:10px}
+.identity{font-family:'Newsreader',serif;font-style:italic;font-size:17px;color:var(--muted);margin:8px 0 2px;max-width:62ch}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+.chip{border:1px solid var(--rule);border-radius:99px;padding:4px 12px;font-size:12.5px;color:var(--muted);
+background:var(--bone);cursor:default}
+.chip.act{cursor:pointer;transition:all .25s var(--ease)}
+.chip.act:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip .mono{font-size:10.5px;color:inherit;opacity:.7}
+h2{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+font-weight:500;color:var(--muted);margin:30px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:6px}
+.promise{display:flex;gap:12px;align-items:baseline;padding:10px 0;border-bottom:1px dotted var(--rule)}
+.promise .glyph{font-family:'Spline Sans Mono',monospace;font-size:15px;flex:none;width:18px}
+.promise.contradicted .glyph{color:var(--bad)} .promise.partial .glyph{color:var(--amber)}
+.promise.kept .glyph{color:var(--ok)} .promise.unexercised .glyph{color:var(--faint)}
+.promise .words{font-weight:600;line-height:1.45}
+.promise .pm{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);font-weight:400;margin-top:2px}
+.promise.contradicted .pm b{color:var(--bad)} .promise.partial .pm b{color:var(--amber)}
+.pend{position:relative;border:1.5px solid var(--amber);border-radius:14px;background:var(--card);padding:14px 18px;margin:10px 0;
+box-shadow:4px 4px 0 0 rgba(180,104,30,.18)}
+.pend .pq{font-weight:700;font-size:15.5px}
+.pend .pmeta{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint);margin-top:3px}
+.pend .verbs{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.pend button{font:12px 'Spline Sans Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;
+cursor:pointer;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:99px;transition:transform .25s var(--ease)}
+.pend button:hover:not(:disabled){transform:translateY(-2px)}
+.pend button:disabled{opacity:.4}
+.pend .rej{font-size:12px;color:var(--muted);margin-left:auto}
+.pend .rej a{margin-left:7px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.pend .shapelink{font-size:12px}
+.pend .stamp{position:absolute;top:10px;right:14px;font-family:'Spline Sans Mono',monospace;font-size:11px;font-weight:600;
+letter-spacing:.12em;text-transform:uppercase;border:2px solid;border-radius:8px;padding:5px 11px;background:rgba(245,241,232,.92);
+animation:stampin .5s var(--spring) both}
+.pend .stamp.ok{color:var(--ok);border-color:var(--ok)} .pend .stamp.no{color:var(--bad);border-color:var(--bad)}
+.err{color:var(--bad);font-size:12.5px;font-style:italic;margin-top:6px}
+details.lives{margin-top:8px}
+details.lives summary{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);list-style:none}
+details.lives summary::before{content:'▸ '} details.lives[open] summary::before{content:'▾ '}
+details.lives summary:hover{color:var(--ink)}
+.path{font-family:'Spline Sans Mono',monospace;font-size:12px;padding:4px 0;color:var(--muted)}
+.path .note{color:var(--faint);font-size:10.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:16px}
+.ecard{border:1.5px solid var(--ink);border-radius:14px;background:var(--card);padding:16px 18px;cursor:pointer;
+box-shadow:4px 4px 0 0 var(--wash);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.ecard:hover{transform:translateY(-3px);box-shadow:6px 8px 0 0 var(--wash)}
+.ecard .en{font-weight:800;font-size:18px;letter-spacing:-.015em}
+.ecard .eid{font-family:'Newsreader',serif;font-style:italic;font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.4}
+.ecard .eg{margin-top:10px;font-family:'Spline Sans Mono',monospace;font-size:12px}
+.ecard .g-bad{color:var(--bad)} .ecard .g-part{color:var(--amber)} .ecard .g-ok{color:var(--ok)} .ecard .g-un{color:var(--faint)}
+.legend{margin-top:18px;font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint)}
+footer{margin:70px 0 0;padding-top:12px;border-top:3px double var(--ink);color:var(--faint);font-size:12px}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand">Meridian</div>
+  <div class="maplabel">The map</div>
+  <nav id="entlist"></nav>
+  <a class="needs quiet" id="needs">nothing needs you</a>
+  <div class="railfoot"><a id="ledgerlink">ledger</a><a id="mirrorlink">mirror</a></div>
+</aside>
+<main>
+  <input class="askpill" id="ask" placeholder="Ask the map anything — a name, a question, a memory…">
+  <div id="reply"></div>
+  <div id="stage"></div>
+  <footer>Every line here traces to a signed decision. Machines reason, humans decide.</footer>
+</main>
+<script>
+const WS = __WORKSPACE_JSON__;
+const GLYPH = {contradicted:"✖", partial:"◐", kept:"✔", unexercised:"·"};
+const REASONS = [["not_one_thing","not one thing"],["wrong_name","wrong name"],["bad_evidence","bad evidence"],["other","other…"]];
+let ENTITIES = [], FOCUSED = null;
+document.getElementById("ledgerlink").href = "/intent/" + encodeURIComponent(WS);
+document.getElementById("mirrorlink").href = "/mirror/" + encodeURIComponent(WS);
+
+function el(tag, cls, text){
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+function reviewer(){
+  let name = localStorage.getItem("meridian.reviewer");
+  if (!name){
+    name = (prompt("Your name (decisions are signed):") || "").trim();
+    if (name) localStorage.setItem("meridian.reviewer", name);
+  }
+  return name;
+}
+function glyphSpan(rollup){
+  const wrap = el("span", "glyphs");
+  const parts = [["contradicted","g-bad"],["partial","g-part"],["kept","g-ok"],["unexercised","g-un"]];
+  parts.forEach(([k, cls]) => {
+    if (rollup[k]) { wrap.appendChild(el("span", cls, `${rollup[k]}${GLYPH[k]} `)); }
+  });
+  if (!wrap.childNodes.length) wrap.appendChild(el("span", "g-un", "—"));
+  return wrap;
+}
+
+async function loadRail(focusId){
+  const d = await (await fetch(`/api/graph/${encodeURIComponent(WS)}`)).json();
+  ENTITIES = d.entities;
+  const nav = document.getElementById("entlist");
+  nav.replaceChildren();
+  d.entities.forEach(e => {
+    const row = el("button", "ent" + (e.status === "superseded" ? " frozen" : "") + (e.entity_id === FOCUSED ? " on" : ""));
+    row.appendChild(el("span", "", e.name));
+    row.appendChild(e.status === "superseded" ? el("span", "glyphs g-un", "frozen") : glyphSpan(e.rollup));
+    row.addEventListener("click", () => focus(e.entity_id));
+    nav.appendChild(row);
+  });
+  const needs = document.getElementById("needs");
+  needs.href = "/inbox/" + encodeURIComponent(WS);
+  if (d.awaiting){
+    needs.className = "needs";
+    needs.textContent = `${d.awaiting} thing${d.awaiting===1?"":"s"} need${d.awaiting===1?"s":""} you`;
+  } else {
+    needs.className = "needs quiet";
+    needs.textContent = "nothing needs you";
+  }
+  if (focusId) focus(focusId); else if (FOCUSED === null) overview();
+}
+
+function overview(){
+  FOCUSED = null;
+  document.querySelectorAll(".ent.on").forEach(n => n.classList.remove("on"));
+  const stage = document.getElementById("stage");
+  stage.replaceChildren();
+  const wrap = el("div", "rise");
+  wrap.appendChild(el("h1", "", `The map of ${WS}`));
+  wrap.appendChild(el("div", "identity", "Every thing your organization means, with the promises it keeps. Click one, or just ask."));
+  const grid = el("div", "grid");
+  ENTITIES.filter(e => e.status === "active").forEach(e => {
+    const c = el("div", "ecard");
+    c.appendChild(el("div", "en", e.name));
+    if (e.identity_sentence) c.appendChild(el("div", "eid", e.identity_sentence));
+    const eg = el("div", "eg");
+    eg.appendChild(glyphSpan(e.rollup));
+    c.appendChild(eg);
+    c.addEventListener("click", () => focus(e.entity_id));
+    grid.appendChild(c);
+  });
+  wrap.appendChild(grid);
+  wrap.appendChild(el("div", "legend", `${GLYPH.contradicted} contradicted · ${GLYPH.partial} partial · ${GLYPH.kept} kept · ${GLYPH.unexercised} not yet exercised`));
+  stage.appendChild(wrap);
+}
+
+async function focus(entityId){
+  FOCUSED = entityId;
+  const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/entity/${encodeURIComponent(entityId)}`);
+  if (!res.ok){ overview(); return; }
+  const e = await res.json();
+  document.querySelectorAll(".ent").forEach(n => n.classList.toggle("on", n.firstChild.textContent === e.name));
+  const stage = document.getElementById("stage");
+  stage.replaceChildren();
+  const wrap = el("div", "rise");
+
+  const crumb = el("div", "crumb");
+  const back = el("a", "", "the map");
+  back.addEventListener("click", overview);
+  crumb.appendChild(back);
+  crumb.append(" ▸ " + e.name);
+  wrap.appendChild(crumb);
+
+  const h = el("h1", "", e.name);
+  if (e.status === "superseded") h.appendChild(el("span", "flag", "frozen · superseded"));
+  wrap.appendChild(h);
+  if (e.identity_sentence) wrap.appendChild(el("div", "identity", e.identity_sentence));
+
+  const chips = el("div", "chips");
+  e.aliases.forEach(a => chips.appendChild(el("span", "chip", `“${a}”`)));
+  const teach = el("span", "chip act", "+ teach it a word");
+  teach.addEventListener("click", async () => {
+    const by = reviewer(); if (!by) return;
+    const term = (prompt(`Another word your org uses for “${e.name}”:`) || "").trim();
+    if (!term) return;
+    const r = await fetch(`/api/graph/${encodeURIComponent(WS)}/teach`, {method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({term, action:"alias", entity_id: e.entity_id, by})});
+    if (r.ok) focus(e.entity_id);
+  });
+  chips.appendChild(teach);
+  e.relations.forEach(r => {
+    const label = r.inverse
+      ? (r.relation === "part_of" ? `contains ${r.name}` : `needed by ${r.name}`)
+      : (r.relation === "part_of" ? `part of ${r.name}` : `depends on ${r.name}`);
+    const chip = el("span", "chip act", label + " →");
+    chip.addEventListener("click", () => focus(r.other_id));
+    chips.appendChild(chip);
+  });
+  wrap.appendChild(chips);
+
+  if (e.pending.length){
+    wrap.appendChild(el("h2", "", "what wants to change here"));
+    e.pending.forEach(p => wrap.appendChild(pendCard(p, e.entity_id)));
+  }
+
+  wrap.appendChild(el("h2", "", "what it promises"));
+  if (!e.promises.length) wrap.appendChild(el("div", "identity", "No promises yet — it holds a place, not yet a duty."));
+  e.promises.forEach(p => {
+    const row = el("div", "promise " + p.state);
+    row.appendChild(el("span", "glyph", GLYPH[p.state]));
+    const words = el("span", "words", "“" + p.statement + "”");
+    const pm = el("span", "pm");
+    const state = el("b", "", p.state === "unexercised" ? "not yet exercised" : p.state);
+    pm.appendChild(state);
+    pm.append(`${p.since_check ? " · since check #" + p.since_check : ""} · ${p.ref}${p.note ? " · " + p.note : ""}`);
+    words.appendChild(pm);
+    row.appendChild(words);
+    wrap.appendChild(row);
+  });
+
+  const lives = document.createElement("details");
+  lives.className = "lives";
+  lives.appendChild(el("summary", "", `where it lives — ${e.code.length} place${e.code.length===1?"":"s"} in the code` + (e.docs.length ? `, ${e.docs.length} document${e.docs.length===1?"":"s"}` : "")));
+  e.code.concat(e.docs).forEach(h => {
+    const p = el("div", "path", h.ref + " ");
+    if (h.note) p.appendChild(el("span", "note", "· " + h.note));
+    lives.appendChild(p);
+  });
+  if (e.code.length || e.docs.length){
+    wrap.appendChild(el("h2", "", "in the world"));
+    wrap.appendChild(lives);
+  }
+  stage.appendChild(wrap);
+}
+
+function pendCard(p, entityId){
+  const card = el("div", "pend");
+  card.appendChild(el("div", "pq", p.question));
+  card.appendChild(el("div", "pmeta",
+    `${p.diff_id} · ${p.stakes_label} stakes · ` +
+    ((p.proposed_by || "").startsWith("human:") ? `proposed by ${p.proposed_by.slice(6)}` : "proposed by the machine")));
+  const verbs = el("div", "verbs");
+  const approve = el("button", "", "Approve");
+  const err = el("div", "err");
+  approve.addEventListener("click", async () => {
+    const by = reviewer(); if (!by) return;
+    approve.disabled = true;
+    const ok = await decide(p.diff_id, {action:"approved", by}, err);
+    if (ok){ seal(card, "approved · " + by, "ok", entityId); } else approve.disabled = false;
+  });
+  verbs.appendChild(approve);
+  const shape = el("a", "shapelink", "shape it in the inbox →");
+  shape.href = "/inbox/" + encodeURIComponent(WS);
+  verbs.appendChild(shape);
+  const rej = el("span", "rej", "Reject:");
+  REASONS.forEach(([code, label]) => {
+    const a = el("a", "", label);
+    a.addEventListener("click", async () => {
+      const by = reviewer(); if (!by) return;
+      let text;
+      if (code === "other"){
+        text = (prompt("One sentence of reason — required, it teaches the system:") || "").trim();
+        if (!text) return;
+      } else {
+        text = (prompt("Optionally, one sentence to teach the system (Cancel to skip):") || "").trim();
+      }
+      if (await decide(p.diff_id, {action:"rejected", by, reason_code: code, reason_text: text}, err))
+        seal(card, "rejected", "no", entityId);
+    });
+    rej.appendChild(a);
+  });
+  verbs.appendChild(rej);
+  card.appendChild(verbs);
+  card.appendChild(err);
+  return card;
+}
+
+async function decide(diffId, body, errNode){
+  errNode.textContent = "";
+  const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/proposals/${diffId}/decision`, {
+    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  if (!res.ok){
+    const payload = await res.json().catch(()=>({}));
+    errNode.textContent = typeof payload.detail === "string" ? payload.detail : res.statusText;
+    return false;
+  }
+  return true;
+}
+function seal(card, text, kind, entityId){
+  card.appendChild(el("span", "stamp " + kind, text));
+  setTimeout(() => loadRail(entityId), 900);
+}
+
+// The ask is the spine: a name FOCUSES the lens; a question gets a
+// sentence; a miss teaches.
+document.getElementById("ask").addEventListener("keydown", async ev => {
+  if (ev.key !== "Enter") return;
+  const q = ev.target.value.trim();
+  const reply = document.getElementById("reply");
+  reply.replaceChildren();
+  if (!q) return;
+  const r = await fetch(`/api/ask/${encodeURIComponent(WS)}?q=${encodeURIComponent(q)}`);
+  if (!r.ok){ reply.appendChild(el("div", "reply", "Couldn't reach the map — try again in a moment.")); return; }
+  const d = await r.json();
+  if (d.entity){
+    if (d.forwarded_from){
+      const note = el("div", "reply rise");
+      note.append(`“${d.forwarded_from.name}” was retired`);
+      note.appendChild(el("span", "soft", ` (${(d.forwarded_from.superseded_at||"").slice(0,10)}, by ${d.forwarded_from.superseded_by_user||"—"}) — you were forwarded to ${d.entity.name}.`));
+      reply.appendChild(note);
+    }
+    focus(d.entity.entity_id);
+    ev.target.value = "";
+    return;
+  }
+  if (d.resolution && d.resolution.method === "status"){
+    const box = el("div", "reply rise");
+    box.appendChild(el("b", "", d.status_answer && d.status_answer.answer ? d.status_answer.answer : "Answered."));
+    reply.appendChild(box);
+    return;
+  }
+  if (d.card){
+    const box = el("div", "reply rise");
+    box.append(`Matched the area “${d.card.label}” — its promises live in the `);
+    const a = el("a", "", "ledger");
+    a.href = "/intent/" + encodeURIComponent(WS);
+    box.appendChild(a);
+    box.append(".");
+    reply.appendChild(box);
+    return;
+  }
+  const miss = el("div", "reply rise");
+  miss.appendChild(el("b", "", `Nothing on the map answers to “${q}”.`));
+  const chips = el("div", "chips");
+  const aliasChip = el("span", "chip act", "it's another name for something…");
+  aliasChip.addEventListener("click", async () => {
+    const by = reviewer(); if (!by) return;
+    const active = ENTITIES.filter(e => e.status === "active");
+    const menu = active.map((e,i)=>`${i+1}. ${e.name}`).join("\n");
+    const pick = parseInt(prompt(`“${q}” is another name for which?\n\n${menu}\n\nnumber:`), 10);
+    const target = active[pick-1]; if (!target) return;
+    const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/teach`, {method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({term: q, action:"alias", entity_id: target.entity_id, by})});
+    if (res.ok){ reply.replaceChildren(); focus(target.entity_id); }
+  });
+  const newChip = el("span", "chip act", "it's a new thing — propose it");
+  newChip.addEventListener("click", async () => {
+    const by = reviewer(); if (!by) return;
+    const note = (prompt("One sentence: what IS it?") || "").trim();
+    const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/teach`, {method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({term: q, action:"create", by, note})});
+    if (res.ok){ loadRail(); miss.appendChild(el("div", "soft", "Opened — it waits with the things that need you.")); }
+  });
+  chips.append(aliasChip, newChip);
+  miss.appendChild(chips);
+  reply.appendChild(miss);
+});
+
+loadRail();
+</script>
+</body>
+</html>

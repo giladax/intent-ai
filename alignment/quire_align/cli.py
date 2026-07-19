@@ -571,8 +571,9 @@ def up(
             fg=typer.colors.YELLOW,
         )
     typer.echo("doors:")
+    typer.echo(f"  the map (start here):        {base}/app/{workspace}")
     typer.echo(f"  inbox (decide proposals):    {base}/inbox/{workspace}")
-    typer.echo(f"  ask & teach (the ask box):   {base}/intent/{workspace}")
+    typer.echo(f"  promise ledger:              {base}/intent/{workspace}")
     typer.echo(f"  situation mirror:            {base}/mirror/{workspace}")
     typer.echo("commands while this runs:")
     typer.echo(f"  python3 -m quire_align.cli propose-entities {workspace}")
@@ -597,7 +598,7 @@ def up(
         import webbrowser
 
         threading.Timer(
-            1.2, webbrowser.open, [f"{base}/inbox/{workspace}"]
+            1.2, webbrowser.open, [f"{base}/app/{workspace}"]
         ).start()
 
     import uvicorn
@@ -628,8 +629,8 @@ def _resolve_port(host: str, port: int) -> tuple[int, bool]:
                 ours = spec.get("info", {}).get("title") == "Quire Align"
                 # Reuse only a CURRENT Quire — a stale process from an
                 # older session answers 404 on today's doors, which reads
-                # as the product being broken. Marker: the inbox route.
-                current = "/inbox/{workspace}" in (spec.get("paths") or {})
+                # as the product being broken. Marker: the newest door.
+                current = "/app/{workspace}" in (spec.get("paths") or {})
                 if ours and current:
                     return candidate, True
                 if ours:

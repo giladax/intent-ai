@@ -44,7 +44,7 @@ def ws(tmp_path) -> pathlib.Path:
         operations=[
             CreateEntity(entity_id="ent-payments", name="Payments",
                          identity_sentence="How money moves."),
-            Attach(entity_id="ent-payments", kind="promise", ref="OB-1"),
+            Attach(entity_id="ent-payments", kind="promise", ref="OB-101"),
         ],
     )], T0)
     decide(tmp_path, report["added"][0], "approved", by="gilad", now=T0)
@@ -107,7 +107,7 @@ def test_corrections_open_cards(ws):
     rename = correct(ws, "ent-payments", "rename", "dana", T1, name="Money Movement")
     assert rename.status == "open" and rename.operations[0].op == "rename"
     detach = correct(ws, "ent-payments", "detach", "dana", T1,
-                     kind="promise", ref="OB-1")
+                     kind="promise", ref="OB-101")
     assert detach.operations[0].op == "detach"
     assert len(open_proposals(load_diffs(ws))) == 2
     # approving the detach actually removes the holding
@@ -189,7 +189,7 @@ def test_forwarded_name_resolves_in_ask(ws, tmp_path):
     ), GraphDiff(
         diff_id="", question="Retire Payments?",
         operations=[Supersede(entity_id="ent-payments", successor_id="ent-commerce",
-                              promise_fates=[PromiseFate(ref="OB-1", fate="carried")])],
+                              promise_fates=[PromiseFate(ref="OB-101", fate="carried")])],
     )], T0)
     for diff_id in report["added"]:
         decide(ws, diff_id, "approved", by="gilad", now=T1)
@@ -199,3 +199,39 @@ def test_forwarded_name_resolves_in_ask(ws, tmp_path):
     assert answer["resolution"]["method"] == "entity-forwarded"
     assert answer["entity"]["name"] == "Commerce"
     assert answer["forwarded_from"]["name"] == "Payments"
+
+
+# -- the map app: rail rollups, entity focus, the front door --------------
+
+
+def test_graph_lists_rollups_and_awaiting(ws, tmp_path):
+    app = create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db"))
+    client = TestClient(app)
+    d = client.get(f"/api/graph/{ws}").json()
+    payments = next(e for e in d["entities"] if e["name"] == "Payments")
+    # OB-1 has no check yet: unexercised, never counted as kept (rule 4)
+    assert payments["rollup"]["unexercised"] == 1
+    assert payments["rollup"]["kept"] == 0
+    assert d["awaiting"] == 0
+
+
+def test_entity_focus_carries_statements_health_and_pending(ws, tmp_path):
+    app = create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db"))
+    client = TestClient(app)
+    correct(ws, "ent-payments", "rename", "dana", T1, name="Money Movement")
+    e = client.get(f"/api/graph/{ws}/entity/ent-payments").json()
+    assert e["name"] == "Payments"
+    assert e["promises"][0]["statement"].startswith("Premium-tier customers")
+    assert e["promises"][0]["state"] == "unexercised"
+    assert [p["diff_id"] for p in e["pending"]] == ["GD-2"]
+    assert client.get(f"/api/graph/{ws}/entity/ent-ghost").status_code == 404
+
+
+def test_app_page_serves_with_encoded_workspace(ws, tmp_path):
+    app = create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db"))
+    client = TestClient(app)
+    page = client.get(f"/app/{ws}")
+    assert page.status_code == 200
+    assert "__WORKSPACE_JSON__" not in page.text
+    assert "The map" in page.text
+    assert client.get("/app/nope-no-such-ws").status_code == 400

@@ -639,6 +639,16 @@ def create_app(store: Store | None = None) -> FastAPI:
         except GraphIntegrityError as error:
             raise HTTPException(409, str(error))
 
+    @app.get("/app/{workspace:path}")
+    def app_page(workspace: str):
+        import json
+
+        from fastapi.responses import HTMLResponse
+
+        _workspace_dir(workspace)
+        html = (STATIC / "app.html").read_text()
+        return HTMLResponse(html.replace("__WORKSPACE_JSON__", json.dumps(workspace)))
+
     @app.get("/inbox/{workspace:path}")
     def inbox_page(workspace: str):
         import json
@@ -652,15 +662,117 @@ def create_app(store: Store | None = None) -> FastAPI:
         html = (STATIC / "inbox.html").read_text()
         return HTMLResponse(html.replace("__WORKSPACE_JSON__", json.dumps(workspace)))
 
+    def _promise_health(adapter):
+        """Current health per promise from the latest check state — the
+        glyph vocabulary is exactly ✖ contradicted · ◐ partial · ✔ kept ·
+        '·' unexercised (rule 4: unexercised is never counted as kept)."""
+        from quire_align.timeline import build_timeline
+
+        analyses = app.state.store.list_analyses(repository=adapter.repository())
+        events = build_timeline(adapter, analyses)["events"]
+        current = events[-1]["state_after"] if events else {}
+        buckets = {
+            "contradicts": "contradicted",
+            "partially_satisfies": "partial",
+            "satisfies": "kept",
+        }
+
+        def health(ref: str) -> dict:
+            entry = current.get(ref) or {}
+            return {
+                "state": buckets.get(entry.get("status"), "unexercised"),
+                "since_check": entry.get("since"),
+            }
+
+        return health
+
+    @app.get("/api/graph/{workspace:path}/entity/{entity_id}")
+    def graph_entity(workspace: str, entity_id: str):
+        from quire_align.entity_graph import (
+            graph_state,
+            load_diffs,
+            open_proposals,
+            stakes_label,
+        )
+
+        diffs = load_diffs(_workspace_dir(workspace))
+        state = graph_state(diffs)
+        entity = state["entities"].get(entity_id)
+        if entity is None:
+            raise HTTPException(404, f"no entity '{entity_id}'")
+        adapter = _adapter(workspace)
+        statements = {o.obligation_id: o.statement for o in adapter.obligations()}
+        health = _promise_health(adapter)
+        promises = [
+            {
+                **h,
+                "statement": statements.get(h["ref"], h["ref"]),
+                **health(h["ref"]),
+            }
+            for h in entity["holdings"]
+            if h["kind"] == "promise"
+        ]
+        names = {eid: e["name"] for eid, e in state["entities"].items()}
+        relations = [
+            {**r, "name": names.get(r["other_id"], r["other_id"])}
+            for r in entity["relations"]
+        ]
+        relations += [
+            {"relation": r["relation"], "other_id": eid, "name": e["name"],
+             "inverse": True}
+            for eid, e in state["entities"].items()
+            for r in e["relations"]
+            if r["other_id"] == entity_id
+        ]
+        pending = [
+            {
+                "diff_id": d.diff_id,
+                "question": d.question,
+                "stakes_label": stakes_label(d.stakes),
+                "proposed_by": d.proposed_by,
+            }
+            for d in open_proposals(diffs)
+            if any(
+                entity_id in (getattr(op, "entity_id", ""), getattr(op, "other_id", ""),
+                              getattr(op, "successor_id", ""))
+                for op in d.operations
+            )
+        ]
+        return {
+            **entity,
+            "promises": promises,
+            "code": [h for h in entity["holdings"] if h["kind"] == "code"],
+            "docs": [h for h in entity["holdings"] if h["kind"] == "doc"],
+            "other_holdings": [
+                h for h in entity["holdings"]
+                if h["kind"] not in ("promise", "code", "doc")
+            ],
+            "relations": relations,
+            "pending": pending,
+        }
+
     @app.get("/api/graph/{workspace:path}")
     def graph(workspace: str):
-        from quire_align.entity_graph import graph_state, load_diffs
+        from quire_align.entity_graph import graph_state, load_diffs, open_proposals
 
-        state = graph_state(load_diffs(_workspace_dir(workspace)))
+        diffs = load_diffs(_workspace_dir(workspace))
+        state = graph_state(diffs)
+        try:
+            health = _promise_health(_adapter(workspace))
+        except HTTPException:
+            health = lambda ref: {"state": "unexercised", "since_check": None}  # noqa: E731
+        entities = []
+        for entity in sorted(
+            state["entities"].values(), key=lambda e: e["name"].lower()
+        ):
+            rollup = {"contradicted": 0, "partial": 0, "kept": 0, "unexercised": 0}
+            for h in entity["holdings"]:
+                if h["kind"] == "promise":
+                    rollup[health(h["ref"])["state"]] += 1
+            entities.append({**entity, "rollup": rollup})
         return {
-            "entities": sorted(
-                state["entities"].values(), key=lambda e: e["name"].lower()
-            )
+            "entities": entities,
+            "awaiting": len(open_proposals(diffs)),
         }
 
     # -- intent timeline (demo surface) -----------------------------------
