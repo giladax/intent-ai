@@ -96,11 +96,16 @@ border-radius:99px;padding:3px 10px;background:var(--bone);cursor:pointer;transi
 box-shadow:5px 5px 0 0 var(--wash);margin-top:14px}
 .xfocus.mood-observed{border-style:double;border-width:4px}
 .xfocus.mood-thought{border-style:dashed;border-color:var(--caution);box-shadow:5px 5px 0 0 rgba(180,104,30,.15)}
+.xfocus.mood-proposed{border-color:var(--caution);box-shadow:5px 5px 0 0 rgba(180,104,30,.15)}
+.xfocus.mood-declined{border-color:var(--broken);opacity:.85}
 .xbadge{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
 border-radius:99px;padding:2px 10px;border:1px solid}
 .xbadge.signed{color:var(--ok);border-color:var(--ok)}
 .xbadge.observed{color:var(--muted);border-color:var(--rule)}
 .xbadge.thought{color:var(--caution);border-color:var(--caution);border-style:dashed}
+.xbadge.proposed{color:var(--caution);border-color:var(--caution)}
+.xbadge.declined{color:var(--broken);border-color:var(--broken);text-decoration:line-through}
+.xbadge.kindbadge{color:var(--muted);border-color:var(--rule)}
 .xtitle{font-size:clamp(20px,2.4vw,26px);font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-top:8px}
 .xbody{font-family:'Newsreader',serif;font-style:italic;font-size:15.5px;color:var(--muted);margin-top:6px;white-space:pre-line}
 .xmeta{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint);margin-top:8px}
@@ -113,6 +118,10 @@ text-transform:uppercase;color:var(--faint);display:block;margin-bottom:4px}
 .xrow.hop:hover{background:var(--wash)}
 .xrow.mood-thought{border-left:3px dashed var(--caution)}
 .xrow.mood-observed{border-left:3px solid var(--rule)}
+.xrow.mood-proposed{border-left:3px solid var(--caution)}
+.xrow.mood-declined{border-left:3px solid var(--broken);opacity:.75}
+.xrow .xwhy .unfold{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:11px}
+.xrow.camefrom{background:var(--wash)}
 .xrow .xtop{display:flex;gap:10px;align-items:baseline}
 .xrow .xkind{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.08em;
 text-transform:uppercase;color:var(--faint);flex:none;width:72px}
@@ -910,9 +919,12 @@ async function workingThreads(slot, e){
 // reasoning first-class. One brain serves this and the MCP surface.
 const MOOD_HEADERS = {
   signed: "Signed — the law of the map",
+  proposed: "In quires — proposed, unsigned",
   observed: "Observed — what checks saw",
   thought: "Thought — the mind, unsigned",
+  declined: "Declined — refused, on the record",
 };
+const XNAMES = {}; // trail chips speak names, learned as you walk
 function exploreHash(trail){
   return "#/explore/" + trail.map(encodeURIComponent).join("/");
 }
@@ -961,12 +973,14 @@ async function explore(trail){
   }
   const d = await res.json();
 
-  // the trail: the walk itself, pasteable
-  if (trail.length > 1 || true){
+  // the trail: the walk itself, pasteable — chips speak names
+  XNAMES[focusRef] = (d.node.title || focusRef).slice(0, 34);
+  {
     const bar = el("div", "xtrail");
     bar.appendChild(el("span", "tsep", "the walk:"));
     trail.forEach((t, i) => {
-      const chip = el("span", "tchip", t);
+      const chip = el("span", "tchip", XNAMES[t] || t);
+      chip.title = t;
       chip.addEventListener("click", () => {
         location.hash = exploreHash(trail.slice(0, i + 1));
       });
@@ -982,7 +996,7 @@ async function explore(trail){
   badges.appendChild(el("span", "xbadge " + n.mood,
     n.mood === "thought" ? "thought · unsigned" : n.mood));
   badges.append(" ");
-  badges.appendChild(el("span", "xbadge observed", n.kind));
+  badges.appendChild(el("span", "xbadge kindbadge", n.kind));
   card.appendChild(badges);
   card.appendChild(el("div", "xtitle", n.title));
   if (n.body) card.appendChild(el("div", "xbody", n.body));
@@ -992,8 +1006,20 @@ async function explore(trail){
     r.appendChild(el("span", "rl", "the thinking — kept verbatim"));
     r.append(n.reasoning);
     card.appendChild(r);
+  } else if (n.evidence && n.evidence.length){
+    const r = el("div", "xreason");
+    r.appendChild(el("span", "rl", "proposed on this evidence"));
+    n.evidence.slice(0, 3).forEach(q => {
+      r.appendChild(el("div", "", `“${q.quote}” — ${q.source}`));
+    });
+    card.appendChild(r);
   }
   const acts = el("div", "chips");
+  if (n.kind === "check"){
+    const rec = el("span", "chip act", "open the receipt");
+    rec.addEventListener("click", () => receiptPane(n.ref));
+    acts.appendChild(rec);
+  }
   if (n.record){
     const rec = el("span", "chip act", "read the record →");
     rec.addEventListener("click", () => { location.hash = "#/entity/" + n.record; });
@@ -1032,7 +1058,9 @@ async function explore(trail){
   if (acts.childNodes.length) card.appendChild(acts);
   wrap.appendChild(card);
 
-  ["signed", "observed", "thought"].forEach(mood => {
+  const cameFrom = trail.length > 1 ? trail[trail.length - 2] : null;
+  let cameRow = null;
+  ["signed", "proposed", "observed", "thought", "declined"].forEach(mood => {
     const rows = d.neighbors.filter(x => x.mood === mood);
     if (!rows.length) return;
     wrap.appendChild(el("h2", "", MOOD_HEADERS[mood]));
@@ -1044,16 +1072,44 @@ async function explore(trail){
       if (x.ref) top.appendChild(el("span", "xarrow", "→"));
       row.appendChild(top);
       if (x.meta) row.appendChild(el("div", "xrmeta", x.meta));
-      if (x.why) row.appendChild(el("div", "xwhy", "why: " + x.why));
-      if (x.ref) row.addEventListener("click", () => {
-        location.hash = exploreHash([...trail, x.ref]);
-      });
+      if (x.why){
+        const why = el("div", "xwhy", "why: ");
+        if (x.why.length > 220){
+          const cut = x.why.slice(0, 200).replace(/\s+\S*$/, "");
+          const short = el("span", "", cut + "… ");
+          const more = el("a", "unfold", "more");
+          more.addEventListener("click", ev => {
+            ev.stopPropagation();
+            short.textContent = x.why + " ";
+            more.remove();
+          });
+          why.append(short, more);
+        } else {
+          why.append(x.why);
+        }
+        row.appendChild(why);
+      }
+      if (x.ref){
+        row.addEventListener("click", () => {
+          location.hash = exploreHash([...trail, x.ref]);
+        });
+        if (cameFrom && x.ref === cameFrom) cameRow = row;
+      }
       wrap.appendChild(row);
     });
   });
   wrap.appendChild(el("div", "legend",
-    "signed — a human's name is on it · observed — a check saw it · thought — the mind, unsigned · every row shows its why"));
+    "signed — a human's name is on it · in quires — proposed, unsigned · observed — a check saw it · "
+    + "thought — the mind, unsigned · declined — refused, kept on the record"
+    + (n.kind === "entity"
+       ? " · checks that merely looked are not shown here — open a check for its complete record"
+       : "")));
   stage.appendChild(wrap);
+  if (cameRow){
+    cameRow.classList.add("camefrom");
+    cameRow.scrollIntoView({block: "center"});
+    setTimeout(() => cameRow.classList.remove("camefrom"), 2600);
+  }
 }
 
 function thoughtSlip(m){
@@ -1166,6 +1222,11 @@ document.getElementById("ask").addEventListener("keydown", async ev => {
       });
       const chips = el("div", "chips");
       chips.appendChild(keep);
+      const walk = el("span", "chip act", "walk the structure →");
+      walk.addEventListener("click", () => {
+        location.hash = exploreHash([d.entity.entity_id]);
+      });
+      chips.appendChild(walk);
       note.appendChild(chips);
       reply.appendChild(note);
     }

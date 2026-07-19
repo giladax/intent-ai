@@ -61,6 +61,26 @@ def _diff_meta(diff) -> str:
     return f"declined by {d.by} · {d.at[:10]} · {reason}"
 
 
+def _diff_mood(diff) -> str:
+    """A declined proposal must NEVER wear ink (board round 1, C2): the
+    three diff states are three presentations — proposed / signed /
+    declined."""
+    return {"open": "proposed", "approved": "signed", "rejected": "declined"}[
+        diff.status
+    ]
+
+
+def _diff_why(diff) -> str:
+    """The middle link of the hero chain, honestly: the proposer's kept
+    thinking when it exists; otherwise the evidence the proposal stood
+    on (pre-reasoning-era diffs have custody too — quotes, not invented
+    thoughts)."""
+    if diff.reasoning:
+        return diff.reasoning
+    quote = next(iter(diff.evidence), None)
+    return f"proposed on this evidence: “{quote.quote}”" if quote else ""
+
+
 def _diffs_touching(diffs, entity_ids: set[str], promise_refs: set[str]):
     for d in diffs:
         for op in d.operations:
@@ -177,9 +197,9 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
         ))
     for d in _diffs_touching(diffs, {entity["entity_id"]}, refs):
         neighbors.append(_neighbor(
-            "thought" if d.status == "open" else "signed", "decision",
+            _diff_mood(d), "decision",
             d.question, ref=d.diff_id,
-            why=d.reasoning, meta=_diff_meta(d),
+            why=_diff_why(d), meta=_diff_meta(d),
         ))
     seen_checks = set()
     for a in sorted(analyses, key=lambda a: a.created_at):
@@ -194,7 +214,7 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
                 neighbors.append(_neighbor(
                     "observed", "check",
                     f"check #{a.pr_number}", ref=str(a.pr_number),
-                    why=impact.reasoning[:200],
+                    why=impact.reasoning,
                     meta=impact.relation.value.replace("_", " "),
                 ))
     for atom in atoms_for(workspace_dir, adapter, store,
@@ -209,6 +229,10 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
             "kind": "entity", "mood": "signed", "ref": entity["entity_id"],
             "title": entity["name"], "body": entity["identity_sentence"],
             "reasoning": creating.reasoning if creating else "",
+            "evidence": [
+                {"quote": q.quote, "source": q.source}
+                for q in (creating.evidence if creating else [])
+            ],
             "meta": (
                 _diff_meta(creating) if creating else ""
             ) + (" · frozen" if entity["status"] != "active" else ""),
@@ -223,6 +247,7 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
 
 def _around_promise(adapter, o, diffs, entities, mind, analyses) -> dict:
     ref = o.obligation_id
+    by_diff = {d.diff_id: d for d in diffs}
     current = _current_state(adapter, analyses)
     entry = current.get(ref) or {}
     bucket = _VERDICT_BUCKET.get(entry.get("status"), "not yet exercised")
@@ -234,24 +259,36 @@ def _around_promise(adapter, o, diffs, entities, mind, analyses) -> dict:
              if h["kind"] == "promise" and h["ref"] == ref), None
         )
         if holding:
+            via = by_diff.get(holding.get("via", ""))
             neighbors.append(_neighbor(
                 "signed", "entity", e["name"], ref=e["entity_id"],
                 why=holding.get("note", ""),
-                meta=f"holds it · via {holding.get('via', '')}",
+                meta="holds it · " + (_diff_meta(via) if via else
+                                      f"via {holding.get('via', '')}"),
             ))
     cps = {cp.control_point_id: cp for cp in adapter.control_points()}
-    for b in adapter.bindings():
+    bindings = list(adapter.bindings())
+    bound_count = {}
+    for b in bindings:
+        bound_count[b.control_point_id] = bound_count.get(b.control_point_id, 0) + 1
+    for b in bindings:
         if b.obligation_id == ref and b.control_point_id in cps:
             cp = cps[b.control_point_id]
+            # the description belongs to the CONTROL POINT; presenting it
+            # as this promise's edge rationale misattributes when several
+            # promises bind here (board round 1, C3)
+            solo = bound_count.get(b.control_point_id, 0) == 1
             neighbors.append(_neighbor(
                 "signed", "code", cp.path,
-                why=getattr(cp, "description", ""),
-                meta=b.relation.value.replace("_", " "),
+                why=getattr(cp, "description", "") if solo else "",
+                meta=b.relation.value.replace("_", " ")
+                + ("" if solo else " · control point shared by "
+                   f"{bound_count[b.control_point_id]} promises"),
             ))
     for d in _diffs_touching(diffs, set(), {ref}):
         neighbors.append(_neighbor(
-            "thought" if d.status == "open" else "signed", "decision",
-            d.question, ref=d.diff_id, why=d.reasoning, meta=_diff_meta(d),
+            _diff_mood(d), "decision",
+            d.question, ref=d.diff_id, why=_diff_why(d), meta=_diff_meta(d),
         ))
     for a in sorted(analyses, key=lambda a: a.created_at):
         for impact in a.obligation_impacts:
@@ -261,7 +298,7 @@ def _around_promise(adapter, o, diffs, entities, mind, analyses) -> dict:
                 neighbors.append(_neighbor(
                     "observed", "check",
                     f"check #{a.pr_number}", ref=str(a.pr_number),
-                    why=impact.reasoning[:200],
+                    why=impact.reasoning,
                     meta=impact.relation.value.replace("_", " ")
                     + (f" · {cite.reference}:{cite.start_line}" if cite else ""),
                 ))
@@ -305,7 +342,7 @@ def _around_diff(diff, entities, obligations, mind) -> dict:
     return {
         "node": {
             "kind": "decision", "ref": diff.diff_id,
-            "mood": "thought" if diff.status == "open" else "signed",
+            "mood": _diff_mood(diff),
             "title": diff.question,
             "body": quotes,
             "reasoning": diff.reasoning,
