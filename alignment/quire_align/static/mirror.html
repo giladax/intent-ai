@@ -114,13 +114,13 @@ async function load(){
   if(d.all_clear){
     hero.className = "hero ok" + risen;
     hero.innerHTML = `<div class="head">All promises hold.</div>
-      <div style="color:var(--dim);font-size:13px">Nothing is contradicting or partially delivering approved intent right now.</div>`;
+      <div style="color:var(--dim);font-size:13px">Nothing is broken or partly kept — every exercised promise is holding.</div>`;
   }else{
     hero.className = "hero red" + risen;
     const n = d.red_flags.length;
     hero.innerHTML = `<div class="head">${n} promise${n===1?" needs":"s need"} attention</div>` +
       d.red_flags.map(f=>`<div class="flag">
-        <span class="${f.health==="CONTRADICTED"?"h-CONTRADICTED":"h-partial"}">${esc(f.health)}</span>
+        <span class="${f.health==="broken"?"h-CONTRADICTED":"h-partial"}">${esc(f.health)}</span>
         — <b>${esc(f.statement.slice(0,110))}</b>
         <div class="where">${esc(f.area)} · since check #${f.since_check} · ${esc(f.obligation_id)}</div></div>`).join("");
   }
@@ -130,10 +130,10 @@ async function load(){
     return `<div class="area" onclick="location.href='/intent/${WS}'">
       <div class="label">◉ ${esc(a.label)}</div>
       <div class="counts">
-        ${r["satisfied"]?`<span class="dot d-ok"></span>${r["satisfied"]} satisfied<br>`:""}
-        ${r["partially delivered"]?`<span class="dot d-warn"></span>${r["partially delivered"]} partially delivered<br>`:""}
-        ${r["CONTRADICTED"]?`<span class="dot d-bad"></span>${r["CONTRADICTED"]} CONTRADICTED<br>`:""}
-        ${r["no evidence yet"]?`<span class="dot d-none"></span>${r["no evidence yet"]} no evidence yet`:""}
+        ${r["kept"]?`<span class="dot d-ok"></span>${r["kept"]} kept<br>`:""}
+        ${r["partly kept"]?`<span class="dot d-warn"></span>${r["partly kept"]} partly kept<br>`:""}
+        ${r["broken"]?`<span class="dot d-bad"></span>${r["broken"]} broken<br>`:""}
+        ${r["not yet exercised"]?`<span class="dot d-none"></span>${r["not yet exercised"]} not yet exercised`:""}
       </div></div>`;
   }).join("");
 

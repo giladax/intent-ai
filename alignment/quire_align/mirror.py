@@ -23,11 +23,15 @@ from quire_align.timeline import UNOBSERVED, build_timeline
 
 logger = logging.getLogger(__name__)
 
+# Promise health speaks the map's language (The Hush): kept / partly
+# kept / broken / not yet exercised. Check VERDICTS keep their own frozen
+# vocabulary (DISPLAY_LABELS) — a check's judgment and a promise's
+# standing are different things and read differently on purpose.
 HEALTH_LABELS = {
-    "satisfies": "satisfied",
-    "partially_satisfies": "partially delivered",
-    "contradicts": "CONTRADICTED",
-    UNOBSERVED: "no evidence yet",
+    "satisfies": "kept",
+    "partially_satisfies": "partly kept",
+    "contradicts": "broken",
+    UNOBSERVED: "not yet exercised",
 }
 
 # OFFLINE FALLBACK ONLY. Semantic routing belongs to the closed-enum LLM
@@ -78,7 +82,7 @@ def build_mirror(adapter, store, state: dict) -> dict:
     areas = []
     red_flags = []
     for group in state["groups"]:
-        rollup = {"satisfied": 0, "partially delivered": 0, "CONTRADICTED": 0, "no evidence yet": 0}
+        rollup = {label: 0 for label in HEALTH_LABELS.values()}
         reds = []
         for ob_id in group["obligation_ids"]:
             status = current.get(ob_id, {}).get("status", UNOBSERVED)
@@ -157,7 +161,7 @@ def route_status_question(route: str, mirror: dict) -> dict:
     """A direct answer for a status-shaped question, from mirror data."""
     if route == "whats_broken":
         if mirror["all_clear"]:
-            summary = "Nothing is currently contradicting or partially delivering a promise."
+            summary = "Nothing is broken or partly kept — every exercised promise is holding."
         else:
             # "Worst" must mean worst: a contradiction outranks a partial
             # delivery regardless of area iteration order.

@@ -709,8 +709,9 @@ def create_app(store: Store | None = None) -> FastAPI:
                 judge = faithfulness_judge
             except Exception as error:
                 logger.warning(
-                    "storyteller unavailable (%s) — serving the cached "
+                    "storyteller unavailable (%s: %s) — serving the cached "
                     "story, or none: a missing story is honest",
+                    type(error).__name__,
                     error,
                 )
         try:
@@ -719,7 +720,11 @@ def create_app(store: Store | None = None) -> FastAPI:
                 teller=teller, entity_id=entity_id, now=_now(), judge=judge,
             )
         except Exception as error:
-            logger.warning("story synthesis failed (%s) — serving cache", error)
+            logger.warning(
+                "story synthesis failed (%s: %s) — serving the cached story",
+                type(error).__name__,
+                error,
+            )
             from quire_align.story import _load_cache
 
             entry = _load_cache(ws_dir).get(
@@ -756,11 +761,19 @@ def create_app(store: Store | None = None) -> FastAPI:
             try:
                 thinker = MindLLM()
             except Exception as error:
-                logger.warning("mind unavailable (%s) — serving cache", error)
+                logger.warning(
+                    "mind unavailable (%s: %s) — serving cache",
+                    type(error).__name__,
+                    error,
+                )
         try:
             entry = get_mind(ws_dir, adapter, app.state.store, thinker=thinker, now=_now())
         except Exception as error:
-            logger.warning("mind sweep failed (%s) — serving cache", error)
+            logger.warning(
+                "mind sweep failed (%s: %s) — serving cache",
+                type(error).__name__,
+                error,
+            )
             import yaml as _yaml
 
             from quire_align.mind import _mind_file

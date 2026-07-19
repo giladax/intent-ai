@@ -30,6 +30,7 @@ import yaml
 from pydantic import BaseModel, Field
 
 from quire_align.entity_graph import graph_state, load_diffs
+from quire_align.fs import atomic_write_text
 from quire_align.llm_retry import invoke_with_retry
 
 STORY_MODEL = "claude-sonnet-4-6"
@@ -416,15 +417,8 @@ def get_story(
 
 def _write_cache(workspace_dir: pathlib.Path, cache: dict) -> None:
     """Atomic replace — the cache is disposable, a torn write is not."""
-    import os
-    import tempfile
-
-    path = _stories_file(workspace_dir)
-    payload = (
+    atomic_write_text(
+        _stories_file(workspace_dir),
         "# Derived narrative cache — disposable; never read by the fold.\n"
-        + yaml.safe_dump(cache, sort_keys=False, allow_unicode=True)
+        + yaml.safe_dump(cache, sort_keys=False, allow_unicode=True),
     )
-    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    with os.fdopen(fd, "w") as handle:
-        handle.write(payload)
-    os.replace(tmp, path)

@@ -6,8 +6,13 @@ freely mints nodes of ANY kind — concepts, tensions, questions, themes,
 boundaries, bets, whatever shape helps define and reason about the
 organization — with no cap, no suppression, no signing ceremony. Nodes
 here are thinking tools, clearly marked unsigned; a node that earns
-belief gets promoted through the existing proposal path, and one that
-doesn't just evaporates on the next sweep.
+belief gets promoted through the existing proposal path.
+
+Sweeps EVOLVE the mind rather than restart it (get_mind feeds the prior
+nodes back in): a thought that still holds keeps its birthday, one the
+mind drops is recorded retired with a why (or as "faded" when it simply
+wasn't re-derived), and a human dismissal is a signed verdict that stays
+dead across future sweeps unless the evidence is genuinely new.
 
 The one discipline kept is not-lying: every connection must point at
 something real (a promise, an entity, a check, a decision, a document).
@@ -15,8 +20,9 @@ Unresolvable connections drop; a node whose connections all drop was
 about nothing and drops with them. That isn't a rule for ceremony's
 sake — it's what keeps the mind attached to the world.
 
-Derived, disposable, regenerated when the world changes. Never read by
-the fold; never requires anyone's signature to exist.
+Derived, never read by the fold, never requires anyone's signature to
+exist. The nodes regenerate when the world changes; the dismissed list
+is the one part that is a signed human record, not derivation.
 """
 
 from __future__ import annotations
@@ -28,9 +34,13 @@ import yaml
 from pydantic import BaseModel, Field
 
 from quire_align.entity_graph import graph_state, load_diffs
+from quire_align.fs import atomic_write_text
 from quire_align.llm_retry import invoke_with_retry
 
 MIND_MODEL = "claude-sonnet-4-6"
+# retirements are a bounded trail, not an archive — enough to answer
+# "what did it used to think?", never an unbounded append-only log
+_RETIRED_KEPT = 40
 
 
 class Connection(BaseModel):
@@ -194,6 +204,16 @@ def _mind_file(workspace_dir: pathlib.Path) -> pathlib.Path:
     return workspace_dir / "mind.yaml"
 
 
+def _write_mind(workspace_dir: pathlib.Path, data: dict) -> None:
+    atomic_write_text(
+        _mind_file(workspace_dir),
+        "# The working mind — unsigned thinking tools; never read by the\n"
+        "# fold. Nodes regenerate when the world changes; the dismissed\n"
+        "# list is a signed human record and survives resweeps.\n"
+        + yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
+    )
+
+
 def _previous_block(cached: dict | None) -> str:
     """The mind's own prior nodes plus human-dismissed thoughts, rendered
     for the evolve pass. Evolution over regeneration (A-MEM/Mem0): keep,
@@ -251,24 +271,13 @@ def get_mind(
     entry = {
         "input_hash": input_hash,
         "nodes": node_dumps,
-        "retired": ((cached or {}).get("retired", []) + retired)[-40:],
+        "retired": ((cached or {}).get("retired", []) + retired)[-_RETIRED_KEPT:],
         "dismissed": (cached or {}).get("dismissed", []),
         "dropped_connections": dropped,
         "swept_at": now,
         "model": MIND_MODEL,
     }
-    import os
-    import tempfile
-
-    payload = (
-        "# The working mind — unsigned thinking tools; disposable;\n"
-        "# never read by the fold; regenerated when the world changes.\n"
-        + yaml.safe_dump(entry, sort_keys=False, allow_unicode=True)
-    )
-    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    with os.fdopen(fd, "w") as handle:
-        handle.write(payload)
-    os.replace(tmp, path)
+    _write_mind(workspace_dir, entry)
     return entry
 
 
@@ -287,16 +296,5 @@ def dismiss_thought(
     cached.setdefault("dismissed", []).append(
         {"name": name, "by": by, "at": now, "why": why}
     )
-    import os
-    import tempfile
-
-    payload = (
-        "# The working mind — unsigned thinking tools; disposable;\n"
-        "# never read by the fold; regenerated when the world changes.\n"
-        + yaml.safe_dump(cached, sort_keys=False, allow_unicode=True)
-    )
-    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    with os.fdopen(fd, "w") as handle:
-        handle.write(payload)
-    os.replace(tmp, path)
+    _write_mind(workspace_dir, cached)
     return cached

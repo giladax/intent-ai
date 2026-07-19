@@ -4,7 +4,7 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: 21c2104
+last-reviewed: 659094d
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 
@@ -211,3 +211,121 @@ Backlog (Tier 2, not applied):
 
 152 tests green (151 + 1 new). intent.html JS syntax-checked
 (node --check, workspace token substituted).
+
+## 2026-07-19 — tick over 21c2104..659094d (the Working Edition sprint; navigator excluded, under board review)
+
+Nineteen code commits: The Hush + UX pass, meaning-first card, story
+layer, relevance/atoms, working mind + evolution/triage,
+reasoning-on-nodes, receipts, repo-cognition evals, teach fixes, Quire
+rename, up/port/tracing fixes. dc053ba (the navigator — model.py and the
+#/explore surface) deliberately NOT reviewed: separate board review in
+flight; model.py and the explore route untouched. Respected as
+deliberate, not relitigated: the two-phase free-thinking mind design;
+salience/dismissal semantics; sign-is-human-only; Sonnet judges
+(understanding over tier dogma); the independently-phrased complement
+judges; prompt()-based dialogs; single-operator concurrency posture.
+
+Engineering findings/fixes (Tier 1, applied):
+- Atomic-write duplication (the mandated extraction): the
+  mkstemp/os.replace dance existed 4× — entity_graph._write_diffs (the
+  only copy with tmp cleanup on failure), story._write_cache, and BOTH
+  mind writers (get_mind, dismiss_thought — which also duplicated the
+  yaml header string and mid-function `import os/tempfile`). Extracted
+  `fs.atomic_write_text()` (mkdir + write + replace + cleanup, the
+  strongest variant's semantics); all four sites now use it; mind's two
+  writers share a `_write_mind()` that owns the header. entity_graph
+  sheds three stdlib imports.
+- mind.py docstring honesty: the module claimed nodes that don't earn
+  belief "just evaporate on the next sweep" and the whole file was
+  "disposable" — but sweeps now EVOLVE (prior nodes fed back, birthdays
+  kept, faded thoughts recorded retired) and the dismissed list is a
+  signed human record that deleting the file would destroy. Docstring
+  and the mind.yaml header now say so. The magic `[-40:]` retired-trail
+  cap is named `_RETIRED_KEPT` with rationale.
+- api.py story/mind fallbacks (the sprint's broad excepts): they DID
+  log, but only str(error) — a refused API key and an AttributeError
+  read identically. All four warnings now carry the exception type
+  (`%s: %s`), matching the /ask router-fallback precedent.
+- cli.py graph-decide and teach printed `str(error)` on KeyError —
+  repr-quoted output (`"no entity 'x'"`), the exact bug class api.py's
+  `_detail()` fixed last tick. Extracted `_error_text()`; both commands
+  use it.
+- cli.py `up` disagreed with itself about the front door: `--open` help
+  said "open the inbox", a fresh start opened /app (the map — the
+  declared front door since 330db3a), and the reuse-a-running-server
+  branch opened /inbox. Unified: the map, everywhere; help text fixed.
+- relevance.py `_mind_parts` imported `yaml as _yaml` mid-function —
+  moved to module top, alias dropped.
+- Route-order check (fragility pass): story/mind/checks routes were
+  audited against the greedy `:path` converter — safe by method and
+  pattern; the existing NOTE comments in api.py remain accurate.
+- evals/repo_cognition.py reviewed: anti-overfit design is sound (task
+  hints live only in judges; controls present; every case can fail).
+  No changes.
+
+Product-surface findings/fixes (Tier 1, applied):
+- The queued Hush item (deferred-tick note): promise-health vocabulary
+  still spoke pre-Hush dialect in THREE places — mirror.HEALTH_LABELS
+  ("satisfied / partially delivered / CONTRADICTED / no evidence yet"),
+  cli.py's private `_HEALTH_DISPLAY` twin, and mirror.html's rollup
+  template. These leak into the map's ask-box answers ("what's
+  broken?"). All unified to the map's words: kept / partly kept /
+  broken / not yet exercised; the whats_broken all-clear answer now
+  reads "Nothing is broken or partly kept — every exercised promise is
+  holding." Check VERDICTS (DISPLAY_LABELS) stay frozen — a check's
+  judgment and a promise's standing deliberately read differently.
+  `_HEALTH_DISPLAY` deleted; the ask CLI imports HEALTH_LABELS.
+- `up` listed "situation mirror" as a fourth door, but /mirror/<ws> has
+  307-forwarded to the map since the UX pass — two doors, one page.
+  Door removed (with a comment); test updated to pin its absence.
+- Checked and deliberately kept: story byline "N sentences withheld"
+  (the refusal voice, honest); "in quires" copy and the needdot; the
+  colophon ("Assembled from N signed decisions… Machines propose;
+  humans sign."); receipt-slip keys (observed/commit/analyzer/verdict);
+  the dismiss prompt ("Why is this noise? — it teaches the mind");
+  thoughtSlip showing raw salience token "probably-noise" (legible,
+  matches the schema's own vocabulary); reason-code flags in CLI help
+  (they ARE the values).
+
+Backlog (Tier 2, not applied):
+- RESOLVED this tick: atomic-write duplication (fs.atomic_write_text);
+  the queued mirror.py pre-Hush hero strings.
+- Carried: GraphHeuristics per-request construction in /ask;
+  adjudication budget-exhaustion silence; double regroup/write in
+  enrich_workspace; teach.correct part_of double fold; seed_quality
+  source-string parsing coupling.
+- Carried, grown — shared static/app.js: esc() ×2 (mirror/intent),
+  reviewer identity prompt now ×3 (inbox reviewer(), intent whoami(),
+  app reviewer()), plural() now in JS ×2 (app, inbox) plus text.plural
+  in Python, REASONS table ×2 (app, inbox), JSON-POST boilerplate ×2;
+  inbox masthead still hardcodes "(never more than 5)"; inbox load()
+  still has no fetch error handling.
+- Carried, grown — conftest workspace fixture: the
+  copytree-refund-agent + seed-graph skeleton now repeats in FIVE files
+  (test_teach, test_entity_propose, test_mind, test_story,
+  test_relevance), with identical `adapter`/`store` fixtures pasted 3×;
+  promote a writable-workspace fixture + shared store to conftest.py.
+- New: mirror.html is orphaned — no route serves it since /mirror began
+  redirecting to /app (updated this tick for vocabulary coherence
+  anyway); delete it or revive the route, a design-owner call.
+- New: api.py fallback paths import `story._load_cache` and
+  `mind._mind_file` privates — give story/mind small public cached
+  accessors so the API stops reaching into underscores.
+- New: judge scaffold (local Verdict model + ChatAnthropic +
+  invoke_with_retry) recurs across story.faithfulness_judge,
+  evals/repo_cognition.judge_case, and the complement judges — extract
+  the MECHANICS only; the judges' independent phrasing is deliberate
+  and must survive any helper.
+- New: cli._resolve_port swallows probe errors wholesale (`except
+  Exception: pass`) — right for the walk, but a debug-level log would
+  distinguish a hung occupant from a foreign server; the 10-port walk
+  width could be a named constant.
+- New: story._org_facts puts every approved diff's citation on the one
+  summary line (the prompt itself calls citation walls "inventory
+  wearing a costume") and appends a stray space when none exist.
+
+194 tests green (the 189 at the reviewed tip 659094d + 5 from the
+excluded navigator commit present in the working tree; no regressions,
+1 test updated for the door change). mirror.html JS syntax-checked
+(node --check, workspace token substituted); no other page scripts
+touched.

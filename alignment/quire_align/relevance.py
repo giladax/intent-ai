@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import pathlib
 
+import yaml
+
 from quire_align.atoms import atoms_for
 from quire_align.entity_graph import graph_state, load_diffs
 from quire_align.text import cosine_similarity, tf_idf_vectors, tokenize
@@ -104,12 +106,10 @@ def _mind_parts(workspace_dir, entity, refs) -> list[str]:
     """The working mind's thinking about an entity joins its vector —
     unsigned, but it is still what the map currently thinks the thing
     is about. Cache-only: vectors never trigger a sweep."""
-    import yaml as _yaml
-
     path = workspace_dir / "mind.yaml"
     if not path.exists():
         return []
-    cached = _yaml.safe_load(path.read_text()) or {}
+    cached = yaml.safe_load(path.read_text()) or {}
     touchable = refs | {entity["entity_id"]} | {
         h["ref"] for h in entity["holdings"]
     }

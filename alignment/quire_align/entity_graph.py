@@ -28,19 +28,18 @@ decision; nothing is ever removed.
 
 from __future__ import annotations
 
-import contextlib
 import copy
 import hashlib
 import json
-import os
 import pathlib
 import re
-import tempfile
 from datetime import datetime, timezone
 from typing import Literal, Union
 
 import yaml
 from pydantic import BaseModel, Field, TypeAdapter
+
+from quire_align.fs import atomic_write_text
 
 MAX_OPEN_PROPOSALS = 5
 
@@ -483,26 +482,16 @@ def load_diffs(workspace_dir: pathlib.Path) -> list[GraphDiff]:
 
 
 def _write_diffs(workspace_dir: pathlib.Path, diffs: list[GraphDiff]) -> None:
-    """Atomic replace: a crash mid-write must never truncate the log that
-    the module calls immutable history. (Concurrent writers are still a
-    read-modify-write race — acceptable for a single-operator local tool,
-    revisit before multi-user.)"""
-    path = graph_file(workspace_dir)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = yaml.safe_dump(
-        [d.model_dump(exclude_none=True) for d in diffs],
-        sort_keys=False,
-        allow_unicode=True,
+    """Atomic replace (fs.atomic_write_text): a crash mid-write must never
+    truncate the log that the module calls immutable history."""
+    atomic_write_text(
+        graph_file(workspace_dir),
+        yaml.safe_dump(
+            [d.model_dump(exclude_none=True) for d in diffs],
+            sort_keys=False,
+            allow_unicode=True,
+        ),
     )
-    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as handle:
-            handle.write(payload)
-        os.replace(tmp, path)
-    except BaseException:
-        with contextlib.suppress(OSError):
-            os.unlink(tmp)
-        raise
 
 
 def rejected_shape_keys(diffs: list[GraphDiff]) -> set[str]:

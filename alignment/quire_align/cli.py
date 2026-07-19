@@ -31,6 +31,15 @@ def _adapter(workspace: str):
         raise typer.BadParameter(str(error))
 
 
+def _error_text(error: BaseException) -> str:
+    # str(KeyError) wraps the message in repr quotes — unwrap it so the
+    # terminal reads a sentence, not a Python artifact (same bug class as
+    # the API's _detail helper).
+    if isinstance(error, KeyError) and error.args:
+        return str(error.args[0])
+    return str(error)
+
+
 def _llm(offline: bool, pr_number: int):
     if offline:
         from quire_align.canned import fake_for_pr, known_pr_numbers
@@ -257,12 +266,8 @@ _RESOLUTION_METHOD_LABELS = {
     "llm": "best guess",
 }
 
-_HEALTH_DISPLAY = {
-    "unobserved": "no evidence yet",
-    "satisfies": "satisfied",
-    "partially_satisfies": "partially satisfied",
-    "contradicts": "contradicted",
-}
+# one promise-health vocabulary everywhere — the mirror's (The Hush):
+# kept / partly kept / broken / not yet exercised
 
 
 @app.command()
@@ -283,6 +288,7 @@ def ask(
         resolve_term,
         save_alias,
     )
+    from quire_align.mirror import HEALTH_LABELS
 
     adapter = _adapter(workspace)
     ws_dir = workspace_mod.resolve_workspace_dir(workspace)
@@ -318,7 +324,7 @@ def ask(
         health = ob["health"]["status"]
         mark = {"satisfies": "🟢", "partially_satisfies": "🟡", "contradicts": "🔴"}.get(health, "⚪")
         weight = f" ({int(ob['weight'] * 100)}%)" if ob["weight"] < 1 else ""
-        health_label = _HEALTH_DISPLAY.get(health, health.replace("_", " "))
+        health_label = HEALTH_LABELS.get(health, health.replace("_", " "))
         typer.echo(
             f"   {mark} {ob['obligation_id']}{weight} [{health_label}] {ob.get('statement', '')[:76]}"
         )
@@ -489,7 +495,7 @@ def graph_decide(
             reason_code=reason, reason_text=note,
         )
     except (KeyError, GraphIntegrityError) as error:
-        typer.secho(str(error), fg=typer.colors.RED)
+        typer.secho(_error_text(error), fg=typer.colors.RED)
         raise typer.Exit(1)
     typer.secho(f"{decided.diff_id}: {decided.status}", fg=typer.colors.GREEN)
 
@@ -525,7 +531,7 @@ def teach(
         else:
             raise typer.BadParameter("say --alias-of <entity-id> or --new")
     except (KeyError, GraphIntegrityError) as error:
-        typer.secho(str(error), fg=typer.colors.RED)
+        typer.secho(_error_text(error), fg=typer.colors.RED)
         raise typer.Exit(1)
 
 
@@ -535,7 +541,7 @@ def up(
     port: int = typer.Option(8321),
     host: str = typer.Option("127.0.0.1"),
     open_browser: bool = typer.Option(
-        True, "--open/--no-open", help="open the inbox in your browser"
+        True, "--open/--no-open", help="open the map in your browser"
     ),
     print_only: bool = typer.Option(False, hidden=True),
 ):
@@ -573,8 +579,9 @@ def up(
     typer.echo("doors:")
     typer.echo(f"  the map (start here):        {base}/app/{workspace}")
     typer.echo(f"  inbox (decide proposals):    {base}/inbox/{workspace}")
+    # (/mirror/<ws> still answers, but it forwards to the map since the
+    # 2026-07-19 UX pass — listing it as a separate door would mislead)
     typer.echo(f"  promise ledger:              {base}/intent/{workspace}")
-    typer.echo(f"  situation mirror:            {base}/mirror/{workspace}")
     typer.echo("commands while this runs:")
     typer.echo(f"  python3 -m quire_align.cli propose-entities {workspace}")
     typer.echo(f"  python3 -m quire_align.cli entities {workspace}")
@@ -590,7 +597,8 @@ def up(
         if open_browser:
             import webbrowser
 
-            webbrowser.open(f"{base}/inbox/{workspace}")
+            # same front door as a fresh start — the map, not the inbox
+            webbrowser.open(f"{base}/app/{workspace}")
         return
 
     if open_browser:

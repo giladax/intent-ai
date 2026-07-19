@@ -100,6 +100,8 @@ def test_up_prints_the_doors_without_serving():
 
     result = CliRunner().invoke(app, ["up", "quire-brain", "--print-only", "--no-open"])
     assert result.exit_code == 0, result.output
-    for door in ("/inbox/quire-brain", "/intent/quire-brain", "/mirror/quire-brain"):
+    for door in ("/app/quire-brain", "/inbox/quire-brain", "/intent/quire-brain"):
         assert door in result.output
+    # /mirror forwards to the map since the UX pass — it is not a door
+    assert "/mirror/quire-brain" not in result.output
     assert "entities" in result.output and "awaiting a human" in result.output
