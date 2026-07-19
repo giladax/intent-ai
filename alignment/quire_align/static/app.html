@@ -269,17 +269,60 @@ function annLine(ann, rollup){
   return rollup.contradicted ? "alarm" : "warn";
 }
 
+const RING_OPEN = {"what-we-build": true}; // shelves remember their fold
 async function loadRail(){
-  const d = await (await fetch(`/api/graph/${encodeURIComponent(WS)}`)).json();
+  const [d, tree] = await Promise.all([
+    (await fetch(`/api/graph/${encodeURIComponent(WS)}`)).json(),
+    (await fetch(`/api/tree/${encodeURIComponent(WS)}`)).json(),
+  ]);
   ENTITIES = d.entities;
+  const rollups = Object.fromEntries(d.entities.map(e => [e.entity_id, e]));
   const nav = document.getElementById("entlist");
   nav.replaceChildren();
-  d.entities.forEach(e => {
-    const row = el("button", "ent" + (e.status === "superseded" ? " frozen" : "") + (e.entity_id === FOCUSED ? " on" : ""));
-    row.appendChild(el("span", "", e.name));
-    row.appendChild(e.status === "superseded" ? el("span", "alert", "frozen") : alertSpan(e.rollup));
-    row.addEventListener("click", () => { location.hash = "#/entity/" + e.entity_id; });
-    nav.appendChild(row);
+  // the entry node: the project, always first, always home
+  const rootRow = el("button", "ent rootrow");
+  rootRow.appendChild(el("span", "", tree.project));
+  rootRow.addEventListener("click", () => { location.hash = "#/map"; });
+  nav.appendChild(rootRow);
+  // the constant ring: shelves never move; membership is derived
+  tree.ring.forEach(branch => {
+    const head = el("button", "ent rbranch" + (branch.dormant ? " frozen" : ""));
+    head.appendChild(el("span", "",
+      (RING_OPEN[branch.id] ? "▾ " : "▸ ") + branch.name));
+    if (branch.count) head.appendChild(el("span", "alert quietcount", String(branch.count)));
+    head.title = branch.line;
+    head.addEventListener("click", () => {
+      RING_OPEN[branch.id] = !RING_OPEN[branch.id];
+      loadRail();
+    });
+    nav.appendChild(head);
+    if (!RING_OPEN[branch.id]) return;
+    if (branch.dormant){
+      nav.appendChild(el("div", "rkid soft", branch.empty));
+      return;
+    }
+    const renderKid = (node, depth) => {
+      const row = el("button", "ent rkid" + (node.ref === FOCUSED ? " on" : ""));
+      row.style.paddingLeft = (28 + depth * 14) + "px";
+      row.appendChild(el("span", "", node.name.length > 46
+        ? node.name.slice(0, 44).replace(/\s+\S*$/, "") + "…" : node.name));
+      const live = rollups[node.ref];
+      if (node.kind === "entity" && live) row.appendChild(alertSpan(live.rollup));
+      if (node.mark) row.appendChild(el("span", "alert", node.mark));
+      row.addEventListener("click", () => {
+        if (node.kind === "entity") location.hash = "#/entity/" + node.ref;
+        else if (node.kind === "proposal") location.href = "/inbox/" + encodeURIComponent(WS);
+        else if (node.ref) location.hash = exploreHash([node.ref]);
+      });
+      nav.appendChild(row);
+      // entities expand their nested entities only — the rail is a map,
+      // not a dump; leaves live on the record and in the navigator
+      (node.children || []).filter(c => c.kind === "entity" || c.kind === "section")
+        .forEach(c => renderKid(c, depth + 1));
+    };
+    const kids = branch.id === "whats-changing"
+      ? branch.children.slice(0, 5) : branch.children;
+    kids.forEach(c => renderKid(c, 0));
   });
   // The master caution is one readable banner in the reading column —
   // present while anything needs a human, absent when nothing does.
@@ -553,11 +596,11 @@ function quiresCard(p, entityId){
     `${p.diff_id} · ${p.stakes_label} stakes · ` +
     ((p.proposed_by || "").startsWith("human:")
       ? `proposed by ${p.proposed_by.slice(6)} · not signed`
-      : "the clerk proposes · not signed")));
+      : "proposed by the machine · not signed")));
   if (p.reasoning){
     const thinking = document.createElement("details");
     thinking.className = "lives";
-    thinking.appendChild(el("summary", "", "the clerk's thinking"));
+    thinking.appendChild(el("summary", "", "the thinking behind this proposal"));
     thinking.appendChild(el("div", "twhy", p.reasoning));
     card.appendChild(thinking);
   }
@@ -582,10 +625,10 @@ function quiresCard(p, entityId){
       const by = reviewer(); if (!by) return;
       let text;
       if (code === "other"){
-        text = (prompt("One sentence of reason — required. It teaches the clerk.") || "").trim();
+        text = (prompt("One sentence of reason — required. The machine learns from it.") || "").trim();
         if (!text) return;
       } else {
-        text = (prompt("Optionally, one sentence to teach the clerk (Cancel to skip):") || "").trim();
+        text = (prompt("Optionally, one sentence so the machine learns (Cancel to skip):") || "").trim();
       }
       if (await decide(p.diff_id, {action:"rejected", by, reason_code: code, reason_text: text}, err))
         seal(card, "declined", "no", entityId);

@@ -49,7 +49,7 @@ def _node(kind: str, ref: str, name: str, context: list[str], **extra) -> dict:
     }
 
 
-def derive_tree(workspace_dir: pathlib.Path, adapter, store) -> dict:
+def derive_tree(workspace_dir: pathlib.Path, adapter, store, include_thoughts: bool = True) -> dict:
     """The whole org as one tree rooted at the project."""
     import yaml
 
@@ -126,7 +126,7 @@ def derive_tree(workspace_dir: pathlib.Path, adapter, store) -> dict:
     #    still related, observably, to the project itself
     mind_path = workspace_dir / "mind.yaml"
     thoughts = []
-    if mind_path.exists():
+    if include_thoughts and mind_path.exists():
         thoughts = (yaml.safe_load(mind_path.read_text()) or {}).get("nodes", [])
     ref_to_entity: dict[str, str] = {}
     for entity in active:
@@ -180,3 +180,126 @@ def derive_tree(workspace_dir: pathlib.Path, adapter, store) -> dict:
         root["children"].append(branch)
 
     return root
+
+
+# -- the constant ring (docs/2026-07-19-top-level-structure.md) -----------
+# Grammar constant, membership dynamic: seven shelves an org reads cold.
+# Each shelf orders by its own law — subsumption, document structure,
+# time, stakes, salience — and only branch 1 uses the derived tree.
+
+def derive_ring(workspace_dir: pathlib.Path, adapter, store) -> dict:
+    import yaml
+
+    from quire_align.atoms import atoms_for
+    from quire_align.entity_graph import open_proposals, stakes_label
+    from quire_align.timeline import build_timeline
+
+    diffs = load_diffs(workspace_dir)
+    state = graph_state(diffs)
+    active = [e for e in state["entities"].values() if e["status"] == "active"]
+    obligations = list(adapter.obligations())
+    project = workspace_dir.name.replace("-", " ")
+
+    # branch 1 — the derived tree, entities only (thoughts keep their
+    # canonical shelf; entity records keep their own threads section)
+    tree = derive_tree(workspace_dir, adapter, store, include_thoughts=False)
+    build = [c for c in tree["children"] if c["kind"] == "entity"]
+
+    # branch 2 — the same promises through the spec door
+    by_spec: dict[str, dict] = {}
+    for o in obligations:
+        spec = by_spec.setdefault(o.source_reference or "unsourced", {})
+        spec.setdefault(o.source_section or "—", []).append(
+            _node("promise", o.obligation_id, o.statement,
+                  [project, o.source_reference or "unsourced"])
+        )
+    promised = [
+        {**_node("spec", ref, ref, [project]),
+         "children": [
+             {**_node("section", f"{ref}{sec}", sec, [project, ref]),
+              "children": rows}
+             for sec, rows in sections.items()
+         ]}
+        for ref, sections in sorted(by_spec.items())
+    ]
+
+    # branch 3 — time orders here, never containment
+    changing = [
+        _node("event", "", a["text"], [project],
+              at=a.get("at", ""), cites=a["cites"])
+        for a in reversed(atoms_for(workspace_dir, adapter, store)[-20:])
+    ]
+
+    # branch 4 — worst first: open questions + broken promises
+    analyses = store.list_analyses(repository=adapter.repository())
+    events = build_timeline(adapter, analyses)["events"]
+    current = events[-1]["state_after"] if events else {}
+    statements = {o.obligation_id: o.statement for o in obligations}
+    needs: list[dict] = []
+    for ref, entry in current.items():
+        if entry.get("status") == "contradicts":
+            needs.append(_node(
+                "promise", ref, statements.get(ref, ref), [project],
+                mark="broken", since=entry.get("since")))
+    for d in open_proposals(diffs):
+        needs.append(_node(
+            "proposal", d.diff_id, d.question, [project],
+            mark=f"{stakes_label(d.stakes)} stakes"))
+
+    # branch 5 — the mind's canonical shelf, salience first
+    mind_path = workspace_dir / "mind.yaml"
+    mind = (yaml.safe_load(mind_path.read_text()) or {}) if mind_path.exists() else {}
+    rank = {"important": 0, "ambiguous": 1}
+    wonders = [
+        _node("thought", n["name"], n["name"], [project],
+              gloss=n.get("gloss", ""), salience=n.get("salience", "ambiguous"),
+              thought_kind=n.get("kind", ""))
+        for n in sorted(mind.get("nodes", []),
+                        key=lambda n: rank.get(n.get("salience"), 2))
+    ]
+
+    # branch 6 — gaps by age; renders only when gaps exist
+    housed = {h["ref"] for e in active for h in e["holdings"] if h["kind"] == "promise"}
+    gaps = [
+        _node("promise", o.obligation_id, o.statement, [project])
+        for o in obligations if o.obligation_id not in housed
+    ]
+
+    broken = sum(1 for e in current.values() if e.get("status") == "contradicts")
+    ring = [
+        {"id": "what-we-build", "name": "What we build",
+         "line": "the capabilities this organization maintains",
+         "children": build, "count": len(build)},
+        {"id": "what-we-promised", "name": "What we promised",
+         "line": "the same promises, by the documents that made them",
+         "children": promised, "count": len(obligations)},
+        {"id": "whats-changing", "name": "What's changing",
+         "line": "signings, checks, and returns — newest first",
+         "children": changing, "count": len(changing)},
+        {"id": "what-needs-a-human", "name": "What needs a human",
+         "line": "unsigned questions and broken promises, worst first",
+         "children": needs, "count": len(needs)},
+        {"id": "what-the-mind-wonders", "name": "What the mind wonders",
+         "line": "unsigned thinking — tensions, questions, bets",
+         "children": wonders, "count": len(wonders)},
+    ]
+    if gaps:
+        ring.append({"id": "what-has-no-home", "name": "What has no home",
+                     "line": "promises without a place — visible until placed",
+                     "children": gaps, "count": len(gaps)})
+    ring.append({"id": "who-and-where", "name": "Who and where",
+                 "line": "people, channels, and sources — not yet connected",
+                 "children": [], "count": 0, "dormant": True,
+                 "empty": "No people or channels are connected yet. When "
+                 "they are, they will relate the map to the humans who "
+                 "shape it."})
+    return {
+        "project": project,
+        "vitals": {
+            "capabilities": len(active),
+            "promises": len(obligations),
+            "broken": broken,
+            "awaiting": len(open_proposals(diffs)),
+        },
+        "ring": ring,
+    }

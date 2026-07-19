@@ -796,6 +796,17 @@ def create_app(store: Store | None = None) -> FastAPI:
             ),
         }
 
+    @app.get("/api/tree/{workspace:path}")
+    def tree(workspace: str):
+        """The constant ring: the project card and its seven shelves —
+        grammar constant, membership dynamic (the derived tree lives
+        inside 'What we build' and only there)."""
+        from quire_align.hierarchy import derive_ring
+
+        return derive_ring(
+            _workspace_dir(workspace), _adapter(workspace), app.state.store
+        )
+
     @app.get("/api/checks/{workspace:path}/{check_number}")
     def check_receipt(workspace: str, check_number: int):
         """The check's receipt — a monospace slip of everything one run

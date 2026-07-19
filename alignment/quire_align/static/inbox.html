@@ -340,7 +340,7 @@ function card(p, uniformStakes){
   const human = (p.proposed_by || "").startsWith("human:");
   meta.append(human
     ? `${p.diff_id} · proposed by ${p.proposed_by.slice(6)} · not signed`
-    : `${p.diff_id} · the clerk proposes · not signed`);
+    : `${p.diff_id} · proposed by the machine · not signed`);
   if (!uniformStakes){
     meta.append(" · ");
     meta.appendChild(el("span", p.stakes_label === "high" ? "stakes-high" : "", `${p.stakes_label} stakes`));
@@ -403,7 +403,7 @@ function card(p, uniformStakes){
     // decides with the reasoning, not just the conclusion
     const thinking = document.createElement("details");
     thinking.className = "receipt";
-    thinking.appendChild(el("summary", "", "the clerk's thinking — why it proposes this"));
+    thinking.appendChild(el("summary", "", "the thinking behind this proposal — why the machine suggests it"));
     const body = el("div", "heldnote", p.reasoning);
     body.style.padding = "8px 2px 0";
     thinking.appendChild(body);

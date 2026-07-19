@@ -136,3 +136,41 @@ def test_thoughts_hang_where_they_think(ws, adapter, store):
     assert [t["name"] for t in thoughts] == ["Ceiling vs Tier"]
     loose = next(c for c in tree["children"] if c["ref"] == "open-threads")
     assert [t["name"] for t in loose["children"]] == ["Unanchored Thought"]
+
+
+def test_ring_grammar_constant_membership_dynamic(ws, adapter, store):
+    from quire_align.hierarchy import derive_ring
+
+    ring = derive_ring(ws, adapter, store)
+    assert ring["project"] == "refund agent"
+    ids = [b["id"] for b in ring["ring"]]
+    # the shelves never move; gaps shelf present only because gaps exist
+    assert ids == ["what-we-build", "what-we-promised", "whats-changing",
+                   "what-needs-a-human", "what-the-mind-wonders",
+                   "what-has-no-home", "who-and-where"]
+    build = ring["ring"][0]
+    assert [c["name"] for c in build["children"]][0] == "Payments"
+    # branch 1 never double-shelves thoughts
+    def no_thoughts(n):
+        assert n["kind"] != "thought"
+        for c in n.get("children", []):
+            no_thoughts(c)
+    for c in build["children"]:
+        no_thoughts(c)
+    promised = ring["ring"][1]
+    assert promised["count"] == len(list(adapter.obligations()))
+    assert promised["children"][0]["kind"] == "spec"
+    dormant = ring["ring"][-1]
+    assert dormant["dormant"] and dormant["empty"]
+    assert ring["vitals"]["capabilities"] == 3
+
+
+def test_ring_over_http(ws, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from quire_align.api import create_app
+
+    client = TestClient(create_app(store=Store(url=f"sqlite:///{tmp_path}/t.db")))
+    r = client.get(f"/api/tree/{ws}")
+    assert r.status_code == 200
+    assert r.json()["ring"][0]["id"] == "what-we-build"
