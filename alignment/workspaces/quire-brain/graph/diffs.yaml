@@ -439,3 +439,274 @@
       kind: code
       ref: src/pipeline/observe-events.ts
       note: ''
+- diff_id: GD-6
+  question: These 3 promises, 3 code locations and 1 document describe one thing —
+    call it Feature Resolution?
+  proposed_by: llm
+  evidence:
+  - quote: When resolving a Feature from a file or task and there are zero or more
+      than one match, Brain must return a candidate list rather than silently selecting
+      a match.
+    source: QUIREB-002 · prd MVP — Week 1 / Supported flow
+  - quote: Candidate lists and ids returned by the MCP surface must be structured
+      content, not prose that an agent must parse ids out of.
+    source: QUIREB-006 · prd MCP Surface
+  - quote: The served MCP surface must speak Feature only; legacy Topic tools over
+      .repo/ markdown must be retired or re-keyed onto Feature so that an agent never
+      sees two competing vocabularies and two data stores in one tool list.
+    source: QUIREB-007 · prd MCP Surface
+  operations:
+  - op: create_entity
+    entity_id: ent-feature-resolution
+    name: Feature Resolution
+    identity_sentence: The capability that looks up a Feature by file or task and
+      returns a structured candidate list when the match is ambiguous or absent, ensuring
+      agents never have to parse prose for IDs.
+    aliases:
+    - feature lookup
+    - feature matching
+    - candidate resolution
+  - op: attach
+    entity_id: ent-feature-resolution
+    kind: promise
+    ref: QUIREB-002
+    note: ''
+  - op: attach
+    entity_id: ent-feature-resolution
+    kind: promise
+    ref: QUIREB-006
+    note: ''
+  - op: attach
+    entity_id: ent-feature-resolution
+    kind: promise
+    ref: QUIREB-007
+    note: ''
+  - op: attach
+    entity_id: ent-feature-resolution
+    kind: code
+    ref: src/mcp/attention-formatter.ts
+    note: bound to QUIREB-006
+  - op: attach
+    entity_id: ent-feature-resolution
+    kind: code
+    ref: src/mcp/feature.ts
+    note: bound to QUIREB-002, QUIREB-006, QUIREB-007
+  - op: attach
+    entity_id: ent-feature-resolution
+    kind: code
+    ref: src/mcp/server.ts
+    note: bound to QUIREB-001, QUIREB-002, QUIREB-003, QUIREB-004, QUIREB-006, QUIREB-007,
+      QUIREB-008, QUIREB-009, QUIREB-011, QUIREB-012
+  - op: attach
+    entity_id: ent-feature-resolution
+    kind: doc
+    ref: docs/specs/2026-07-03-brain-api-review.md
+    note: bound to QUIREB-001, QUIREB-002, QUIREB-007
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  stakes: 2.4
+  shape_key: 640e5e3de2e8
+  status: open
+  proposed_at: '2026-07-19T08:11:25+00:00'
+- diff_id: GD-7
+  question: These 2 promises, 2 code locations and 1 document describe one thing —
+    call it Understanding Review?
+  proposed_by: llm
+  evidence:
+  - quote: Observations must not be automatically promoted to Current Understanding;
+      a human must approve, reject, or edit each pending observation through a review
+      UI.
+    source: QUIREB-008 · prd MVP — Week 1 / Supported flow
+  - quote: Understanding must change only through reviewable deltas, never silently.
+    source: QUIREB-011 · prd Product Principles
+  operations:
+  - op: create_entity
+    entity_id: ent-understanding-review
+    name: Understanding Review
+    identity_sentence: The human-gated workflow through which pending observations
+      become Current Understanding — every delta must be explicitly approved, rejected,
+      or edited through a review UI before it takes effect.
+    aliases:
+    - observation review
+    - pending observations
+    - understanding approval
+  - op: attach
+    entity_id: ent-understanding-review
+    kind: promise
+    ref: QUIREB-008
+    note: ''
+  - op: attach
+    entity_id: ent-understanding-review
+    kind: promise
+    ref: QUIREB-011
+    note: ''
+  - op: attach
+    entity_id: ent-understanding-review
+    kind: code
+    ref: src/mcp/server.ts
+    note: bound to QUIREB-001, QUIREB-002, QUIREB-003, QUIREB-004, QUIREB-006, QUIREB-007,
+      QUIREB-008, QUIREB-009, QUIREB-011, QUIREB-012
+  - op: attach
+    entity_id: ent-understanding-review
+    kind: code
+    ref: src/pipeline/observe-events.ts
+    note: bound to QUIREB-008, QUIREB-010, QUIREB-011
+  - op: attach
+    entity_id: ent-understanding-review
+    kind: doc
+    ref: docs/future-knowledge.md
+    note: bound to QUIREB-008
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  stakes: 2.0
+  shape_key: 020557b451aa
+  status: open
+  proposed_at: '2026-07-19T08:11:25+00:00'
+- diff_id: GD-8
+  question: These 1 promise, 2 code locations and 1 document describe one thing —
+    call it Raw Session Archive?
+  proposed_by: llm
+  evidence:
+  - quote: Every digested log must be copied to .intent/raw-sessions/ so that raw
+      session evidence is preserved beyond Claude Code's ~30-day purge.
+    source: QUIREB-005 · prd Status block / v0.3.2 amendments
+  operations:
+  - op: create_entity
+    entity_id: ent-raw-session-archive
+    name: Raw Session Archive
+    identity_sentence: The durable store under .intent/raw-sessions/ that preserves
+      every digested log beyond Claude Code's ~30-day purge window, keeping raw session
+      evidence permanently accessible.
+    aliases:
+    - session evidence
+    - raw sessions
+    - digest archive
+  - op: attach
+    entity_id: ent-raw-session-archive
+    kind: promise
+    ref: QUIREB-005
+    note: ''
+  - op: attach
+    entity_id: ent-raw-session-archive
+    kind: code
+    ref: src/agents/digest/run.ts
+    note: bound to QUIREB-005
+  - op: attach
+    entity_id: ent-raw-session-archive
+    kind: code
+    ref: src/cli/digest.ts
+    note: bound to QUIREB-005
+  - op: attach
+    entity_id: ent-raw-session-archive
+    kind: doc
+    ref: docs/handoffs/2026-07-04-digest-quality-audit-handoff.md
+    note: bound to QUIREB-005
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  stakes: 1.8
+  shape_key: 2c1b354e46c0
+  status: open
+  proposed_at: '2026-07-19T08:11:25+00:00'
+- diff_id: GD-9
+  question: These 1 promise and 3 code locations describe one thing — call it Artifact
+    Grounding?
+  proposed_by: llm
+  evidence:
+  - quote: Every piece of understanding must trace back to artifacts; no ungrounded
+      claims may exist in the system.
+    source: QUIREB-010 · prd Product Principles
+  operations:
+  - op: create_entity
+    entity_id: ent-artifact-grounding
+    name: Artifact Grounding
+    identity_sentence: The constraint that every piece of understanding must trace
+      back to a real artifact, making ungrounded claims inadmissible in the system.
+    aliases:
+    - traceability
+    - evidence grounding
+    - artifact tracing
+  - op: attach
+    entity_id: ent-artifact-grounding
+    kind: promise
+    ref: QUIREB-010
+    note: ''
+  - op: attach
+    entity_id: ent-artifact-grounding
+    kind: code
+    ref: src/eval/fidelity.ts
+    note: bound to QUIREB-010
+  - op: attach
+    entity_id: ent-artifact-grounding
+    kind: code
+    ref: src/pipeline/emit-events.ts
+    note: bound to QUIREB-004, QUIREB-010
+  - op: attach
+    entity_id: ent-artifact-grounding
+    kind: code
+    ref: src/pipeline/observe-events.ts
+    note: bound to QUIREB-008, QUIREB-010, QUIREB-011
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  stakes: 1.8
+  shape_key: d2aca3fa5e1e
+  status: open
+  proposed_at: '2026-07-19T08:11:25+00:00'
+- diff_id: GD-10
+  question: These 2 promises, 2 code locations and 2 documents describe one thing
+    — call it External System Boundaries?
+  proposed_by: llm
+  evidence:
+  - quote: Brain must never edit the source documents in external systems.
+    source: QUIREB-001 · prd Organizational Lifecycle
+  - quote: Brain must not store source artifacts; external systems of record stay
+      external and Brain owns only the understanding, evidence, and relationships
+      derived from them.
+    source: QUIREB-012 · prd Product Principles
+  operations:
+  - op: create_entity
+    entity_id: ent-external-system-boundaries
+    name: External System Boundaries
+    identity_sentence: The hard boundary that keeps Brain from touching or storing
+      source artifacts — external systems of record stay external, and Brain owns
+      only the understanding, evidence, and relationships derived from them.
+    aliases:
+    - source-of-truth boundary
+    - read-only external systems
+    - system of record separation
+  - op: attach
+    entity_id: ent-external-system-boundaries
+    kind: promise
+    ref: QUIREB-001
+    note: ''
+  - op: attach
+    entity_id: ent-external-system-boundaries
+    kind: promise
+    ref: QUIREB-012
+    note: ''
+  - op: attach
+    entity_id: ent-external-system-boundaries
+    kind: code
+    ref: src/agents/digest/output-schema.ts
+    note: bound to QUIREB-012
+  - op: attach
+    entity_id: ent-external-system-boundaries
+    kind: code
+    ref: src/mcp/server.ts
+    note: bound to QUIREB-001, QUIREB-002, QUIREB-003, QUIREB-004, QUIREB-006, QUIREB-007,
+      QUIREB-008, QUIREB-009, QUIREB-011, QUIREB-012
+  - op: attach
+    entity_id: ent-external-system-boundaries
+    kind: doc
+    ref: .repo/brain.md
+    note: bound to QUIREB-001, QUIREB-012
+  - op: attach
+    entity_id: ent-external-system-boundaries
+    kind: doc
+    ref: docs/specs/2026-07-03-brain-api-review.md
+    note: bound to QUIREB-001, QUIREB-002, QUIREB-007
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  stakes: 2.2
+  shape_key: dd4e49401ae0
+  status: open
+  proposed_at: '2026-07-19T08:11:25+00:00'
