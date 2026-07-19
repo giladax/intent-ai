@@ -58,8 +58,11 @@ class MindLLM:
     def __init__(self, model: str = MIND_MODEL) -> None:
         from langchain_anthropic import ChatAnthropic
 
+        # a truncated tool call parses SILENTLY to zero nodes — the
+        # budget must fit a full thinking sweep (reasoning fields are
+        # long by design; that's the point of keeping them)
         self._model = ChatAnthropic(
-            model=model, temperature=0.4, max_tokens=4096
+            model=model, temperature=0.4, max_tokens=16384
         ).with_structured_output(Mind)
 
     def sweep(self, corpus: str) -> Mind:
