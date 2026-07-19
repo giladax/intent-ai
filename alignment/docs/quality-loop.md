@@ -4,7 +4,7 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: 659094d
+last-reviewed: 55596cf
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 
@@ -329,3 +329,106 @@ excluded navigator commit present in the working tree; no regressions,
 1 test updated for the door change). mirror.html JS syntax-checked
 (node --check, workspace token substituted); no other page scripts
 touched.
+
+## 2026-07-20 — tick over 659094d..55596cf (navigator + ring)
+
+Four code commits: dc053ba (the navigator — model.py, /api/model,
+#/explore; previously excluded, now board-certified and reviewed
+end-to-end for the first time), 76d5b12 (board round-1 fixes +
+hierarchy.py/derive_tree + tests), 95b7cb1 (derive_ring, /api/tree, the
+ring rail, clerk-lingo purge), 55596cf (trail-chip resolution,
+constellation density control). Docs/workspace commits skipped per
+precedent. Not relitigated (settled): the board-certified navigator
+design (moods, custody fallback, disclosure lines), the CPO-signed
+seven-shelf ring grammar, sign-is-human-only, prompt() dialogs, T4
+ref-shadowing deferral.
+
+Engineering findings/fixes (Tier 1, applied):
+- THREE mind.yaml readers had accreted (model._mind_cache, hierarchy's
+  two inline yaml reads, relevance._mind_parts) plus the api.py mind
+  fallback reaching into `_mind_file` and mind.py's own two — the
+  mandated extraction: `mind.read_mind_cache()` (read-only, {} when
+  never swept, "a view must never trigger a sweep" stated once). All
+  seven sites converted; relevance and hierarchy shed their yaml
+  imports; the api.py private-import backlog item is half-cleared
+  (story._load_cache remains).
+- The last-event `state_after` fold existed in SEVEN files — extracted
+  `timeline.current_state()`; model.py and hierarchy.py (the in-range
+  files) use it; mirror/story/ask/api call sites carried as backlog
+  (they also use `events` and deserve their own touch).
+- model.py re-declared the promise-health vocabulary as a private
+  `_VERDICT_BUCKET` — the exact "private twin" class last tick's Hush
+  unification killed in cli.py. Replaced with a `_health()` helper over
+  mirror.HEALTH_LABELS + timeline.UNOBSERVED; one vocabulary, one home.
+- T5 thresholds PEGGED (the round-2 CTO's honesty note: "thresholds
+  pegged" was asserted but pegged nowhere): comment on model.around and
+  derive_ring — memo layer owed at ~100–150 checks or a read over
+  ~2.5s, whichever first; round 1's ~300–500 figure marked stale.
+  hierarchy's docstring no longer calls the ring "cheap".
+- Magic numbers named: model `[-6:]` → _RECENT_EVENTS_SHOWN;
+  hierarchy `[-20:]` → _CHANGING_SHOWN; app.html rail slice(0,5) →
+  RAIL_PULSE, name clips 46/44 + 34/32 → one `clip()` helper with
+  RAIL_CLIP/CHIP_CLIP (also fixes the round-1 residual: pasted-ancestor
+  chips stored an un-ellipsized 32-slice and re-rendered inconsistently
+  on later walks — both paths now store and show the same word-boundary
+  clip), density 14 → CROWDED_SKY, why-fold 220/200 → WHY_FOLD/WHY_LEDE.
+- model.py duplication: the getattr entity-id triple appeared in both
+  _diffs_touching and _around_diff — extracted _op_entity_ids().
+- model.py docstring honesty: "every neighbor row carries its why"
+  overclaimed after the board's own C3 fix (a shared control point's
+  rationale is deliberately withheld; relations and events carry none)
+  — now says "when the store holds one".
+- _around_thought rendered "first seen  · unsigned" when first_seen was
+  absent — guarded.
+- hierarchy comment said "gaps by age" but the code renders ledger
+  order — comment now tells the truth; derive_tree's unused `store`
+  param documented as deliberate (uniform reader signature).
+- Checked, accepted as-is: /api/model and /api/tree route order (unique
+  literal prefixes; the greedy :path anchors on "/around/"); the
+  trail-chip fetch `.catch((){})` (cosmetic name resolution — failure
+  degrades to the id-with-tooltip the paste recipient already had;
+  comment now says so); `max(mine, key=created_at)` latest-analysis
+  resolution (T4, settled).
+
+Product-surface findings/fixes (Tier 1, applied):
+- The navigator's not-found copy said a missing ref "may have been
+  retold or dismissed" — "retold" is the STORY's word (retold_after)
+  and has never applied to a node; dismissed thoughts actually still
+  resolve by name. Now: "It may have faded from the mind's trail, or
+  the name may be mistyped" — faded is the mind's own vocabulary.
+- Checked and deliberately kept: the seven shelf names and their lines
+  (CPO-signed grammar); the dormant who-and-where empty state; the
+  density-note sentence (honest, counts the hidden, names the shelf);
+  MOOD_HEADERS and the navigator legend ("in quires" glossed both
+  places); rail marks speaking Hush words ("broken", "high stakes");
+  "proposed by the machine" (the clerk purge, complete — no clerk
+  remains in any rendered string); the 404 detail "nothing in the
+  brain answers to '{ref}'".
+
+Backlog (Tier 2, not applied):
+- RESOLVED this tick: three-reader mind-cache duplication; T5
+  thresholds unpegged; the round-1 pasted-chip residual.
+- New: adopt timeline.current_state in mirror.py/story.py/ask.py/api.py
+  at their next touch (four remaining inline folds).
+- New: explore() in app.html is ~230 lines doing trail, focus card,
+  authority chips, and mood sections — split candidates exist
+  (trailBar(), focusCard()) when it next grows.
+- New: derive_ring's branch builders and loadRail's renderKid both
+  re-encode "which kinds hop where" (entity → record, proposal → inbox,
+  else navigator) — a third surface wanting this mapping should force a
+  shared table.
+- Carried: shared static/app.js (esc ×2, reviewer identity ×3, plural
+  ×2, REASONS ×2, JSON-POST boilerplate); conftest workspace fixture
+  (now SIX files with test_model/test_hierarchy's copytree+seed
+  skeleton — promote to conftest.py); GraphHeuristics per-request
+  construction; adjudication budget-exhaustion silence; double
+  regroup/write in enrich_workspace; seed_quality source-string
+  parsing; mirror.html orphaned; story._load_cache private import from
+  api.py; judge-scaffold mechanics extraction; _resolve_port swallowed
+  probe errors; story._org_facts citation wall + stray space.
+
+196 tests green before and after (no count change — pure refactor +
+strings). app.html JS syntax-checked (node --check, workspace token
+substituted); inbox/mirror pages untouched this tick. workspaces/, the
+scale dossier, docs/reviews/, the PRD, and the runbook untouched per
+brief. No commits — the parent lands it.

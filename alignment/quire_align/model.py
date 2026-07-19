@@ -10,7 +10,9 @@ the contract, analyses, atoms, the mind cache).
 The hero walk this module exists to serve: a claim → the reasoning that
 produced it → the check receipt → the exact file:line the check
 observed → who signed what along the way. Every neighbor row carries
-its *why*; every signed hop names its signer.
+its *why* when the store holds one (a shared control point's rationale
+is deliberately not borrowed — board C3); every signed hop names its
+signer.
 """
 
 from __future__ import annotations
@@ -18,30 +20,22 @@ from __future__ import annotations
 import pathlib
 import re
 
-import yaml
-
 from quire_align.atoms import atoms_for
 from quire_align.entity_graph import graph_state, load_diffs
+from quire_align.mind import read_mind_cache
+from quire_align.mirror import HEALTH_LABELS
+from quire_align.timeline import UNOBSERVED, current_state
 
-_VERDICT_BUCKET = {
-    "contradicts": "broken",
-    "partially_satisfies": "partly kept",
-    "satisfies": "kept",
-}
-
-
-def _mind_cache(workspace_dir: pathlib.Path) -> dict:
-    path = workspace_dir / "mind.yaml"
-    if not path.exists():
-        return {}
-    return yaml.safe_load(path.read_text()) or {}
+# An entity focus shows its freshest events only — the full stream lives
+# on the "What's changing" shelf and each check's receipt.
+_RECENT_EVENTS_SHOWN = 6
 
 
-def _current_state(adapter, analyses) -> dict:
-    from quire_align.timeline import build_timeline
-
-    events = build_timeline(adapter, analyses)["events"]
-    return events[-1]["state_after"] if events else {}
+def _health(entry: dict) -> str:
+    """One promise-health vocabulary everywhere (The Hush): the mirror's
+    labels — kept / partly kept / broken / not yet exercised — never a
+    private twin of them."""
+    return HEALTH_LABELS.get(entry.get("status"), HEALTH_LABELS[UNOBSERVED])
 
 
 def _neighbor(mood, kind, label, ref="", why="", meta="") -> dict:
@@ -81,14 +75,19 @@ def _diff_why(diff) -> str:
     return f"proposed on this evidence: “{quote.quote}”" if quote else ""
 
 
+def _op_entity_ids(op) -> set[str]:
+    """Every entity an operation touches, whichever field names it."""
+    return {
+        getattr(op, "entity_id", ""), getattr(op, "other_id", ""),
+        getattr(op, "successor_id", ""),
+    } - {""}
+
+
 def _diffs_touching(diffs, entity_ids: set[str], promise_refs: set[str]):
     for d in diffs:
         for op in d.operations:
-            targets = {
-                getattr(op, "entity_id", ""), getattr(op, "other_id", ""),
-                getattr(op, "successor_id", ""),
-            }
-            if targets & entity_ids or getattr(op, "ref", None) in promise_refs:
+            if (_op_entity_ids(op) & entity_ids
+                    or getattr(op, "ref", None) in promise_refs):
                 yield d
                 break
 
@@ -110,11 +109,17 @@ def _mind_neighbors(mind: dict, touchable: set[str]) -> list[dict]:
 
 
 def around(workspace_dir: pathlib.Path, adapter, store, ref: str) -> dict | None:
+    # Chosen debt (board T5, deferral accepted round 2): every call
+    # refolds the graph, rebuilds the timeline, and re-reads the mind —
+    # O(analyses × obligations) per view. Pegged: a memo layer is owed
+    # at ~100–150 checks, or when a read exceeds ~2.5s, whichever comes
+    # first (the round-2 CTO's re-pegged trigger; round 1's "~300–500
+    # checks" figure is stale and must not be cited).
     diffs = load_diffs(workspace_dir)
     state = graph_state(diffs)
     entities = state["entities"]
     obligations = {o.obligation_id: o for o in adapter.obligations()}
-    mind = _mind_cache(workspace_dir)
+    mind = read_mind_cache(workspace_dir)
     analyses = store.list_analyses(repository=adapter.repository())
 
     if ref in entities:
@@ -167,7 +172,7 @@ def around(workspace_dir: pathlib.Path, adapter, store, ref: str) -> dict | None
 def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
                    obligations, mind, analyses) -> dict:
     refs = {h["ref"] for h in entity["holdings"] if h["kind"] == "promise"}
-    current = _current_state(adapter, analyses)
+    current = current_state(adapter, analyses)
     creating = next(
         (d for d in diffs if d.diff_id == entity.get("created_via")), None
     )
@@ -176,7 +181,7 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
         if h["kind"] == "promise":
             o = obligations.get(h["ref"])
             entry = current.get(h["ref"]) or {}
-            bucket = _VERDICT_BUCKET.get(entry.get("status"), "not yet exercised")
+            bucket = _health(entry)
             since = entry.get("since")
             neighbors.append(_neighbor(
                 "signed", "promise",
@@ -218,7 +223,7 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
                     meta=impact.relation.value.replace("_", " "),
                 ))
     for atom in atoms_for(workspace_dir, adapter, store,
-                          entity_id=entity["entity_id"])[-6:]:
+                          entity_id=entity["entity_id"])[-_RECENT_EVENTS_SHOWN:]:
         neighbors.append(_neighbor("observed", "event", atom["text"]))
     neighbors += _mind_neighbors(
         mind, refs | {entity["entity_id"]}
@@ -248,9 +253,9 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
 def _around_promise(adapter, o, diffs, entities, mind, analyses) -> dict:
     ref = o.obligation_id
     by_diff = {d.diff_id: d for d in diffs}
-    current = _current_state(adapter, analyses)
+    current = current_state(adapter, analyses)
     entry = current.get(ref) or {}
-    bucket = _VERDICT_BUCKET.get(entry.get("status"), "not yet exercised")
+    bucket = _health(entry)
     since = entry.get("since")
     neighbors: list[dict] = []
     for e in entities.values():
@@ -322,10 +327,7 @@ def _around_promise(adapter, o, diffs, entities, mind, analyses) -> dict:
 def _around_diff(diff, entities, obligations, mind) -> dict:
     neighbors: list[dict] = []
     for op in diff.operations:
-        for eid in filter(None, {
-            getattr(op, "entity_id", ""), getattr(op, "other_id", ""),
-            getattr(op, "successor_id", ""),
-        }):
+        for eid in _op_entity_ids(op):
             if eid in entities:
                 neighbors.append(_neighbor(
                     "signed", "entity", entities[eid]["name"], ref=eid,
@@ -424,14 +426,16 @@ def _around_thought(node, mind, entities, obligations) -> dict:
             neighbors.append(_neighbor(
                 "signed", "path", ref, why=c.get("why", ""),
             ))
+    first_seen = node.get("first_seen", "")[:10]
     return {
         "node": {
             "kind": node.get("kind", "thought"), "mood": "thought",
             "ref": node["name"], "title": node["name"],
             "body": node.get("gloss", ""),
             "reasoning": node.get("reasoning", ""),
-            "meta": f"{node.get('salience', 'ambiguous')} · first seen "
-            f"{node.get('first_seen', '')[:10]} · unsigned",
+            "meta": node.get("salience", "ambiguous")
+            + (f" · first seen {first_seen}" if first_seen else "")
+            + " · unsigned",
             "status": "active",
         },
         "neighbors": neighbors,

@@ -20,7 +20,10 @@ DYNAMICALLY from how the graph actually connects —
   relation to the project, honestly labeled).
 
 Every node carries its context path ("brain › MCP Surface") so no name
-ever renders as a bare word again. Derived, cheap, recomputed on read.
+ever renders as a bare word again. Derived, recomputed on read — the
+tree is cheap (graph fold only); the ring's time and stakes shelves
+also read the store, under the same pegged-recompute debt as
+model.around (see derive_ring).
 """
 
 from __future__ import annotations
@@ -28,10 +31,15 @@ from __future__ import annotations
 import pathlib
 
 from quire_align.entity_graph import graph_state, load_diffs
+from quire_align.mind import read_mind_cache
 
 # A nests under B when this share of A's world lives inside B's world
 # and B is the larger of the two — subsumption, not mere overlap.
 _SUBSUME_SHARE = 0.6
+
+# "What's changing" is a pulse, not the archive — the newest atoms only;
+# the full stream lives on records and receipts.
+_CHANGING_SHOWN = 20
 
 
 def _refs_of(entity: dict) -> set[str]:
@@ -50,9 +58,10 @@ def _node(kind: str, ref: str, name: str, context: list[str], **extra) -> dict:
 
 
 def derive_tree(workspace_dir: pathlib.Path, adapter, store, include_thoughts: bool = True) -> dict:
-    """The whole org as one tree rooted at the project."""
-    import yaml
+    """The whole org as one tree rooted at the project.
 
+    ``store`` is unused today; kept so every derived reader shares one
+    signature (workspace_dir, adapter, store)."""
     diffs = load_diffs(workspace_dir)
     state = graph_state(diffs)
     active = [e for e in state["entities"].values() if e["status"] == "active"]
@@ -124,10 +133,10 @@ def derive_tree(workspace_dir: pathlib.Path, adapter, store, include_thoughts: b
 
     # 4) the mind's thoughts hang where they think — anchorless ones are
     #    still related, observably, to the project itself
-    mind_path = workspace_dir / "mind.yaml"
-    thoughts = []
-    if include_thoughts and mind_path.exists():
-        thoughts = (yaml.safe_load(mind_path.read_text()) or {}).get("nodes", [])
+    thoughts = (
+        read_mind_cache(workspace_dir).get("nodes", [])
+        if include_thoughts else []
+    )
     ref_to_entity: dict[str, str] = {}
     for entity in active:
         ref_to_entity[entity["entity_id"]] = entity["entity_id"]
@@ -188,11 +197,12 @@ def derive_tree(workspace_dir: pathlib.Path, adapter, store, include_thoughts: b
 # time, stakes, salience — and only branch 1 uses the derived tree.
 
 def derive_ring(workspace_dir: pathlib.Path, adapter, store) -> dict:
-    import yaml
-
+    # Same pegged-recompute debt as model.around (board T5): atoms +
+    # timeline + fold per request. The memo layer is owed at ~100–150
+    # checks or a read over ~2.5s, whichever comes first.
     from quire_align.atoms import atoms_for
     from quire_align.entity_graph import open_proposals, stakes_label
-    from quire_align.timeline import build_timeline
+    from quire_align.timeline import current_state
 
     diffs = load_diffs(workspace_dir)
     state = graph_state(diffs)
@@ -227,13 +237,12 @@ def derive_ring(workspace_dir: pathlib.Path, adapter, store) -> dict:
     changing = [
         _node("event", "", a["text"], [project],
               at=a.get("at", ""), cites=a["cites"])
-        for a in reversed(atoms_for(workspace_dir, adapter, store)[-20:])
+        for a in reversed(atoms_for(workspace_dir, adapter, store)[-_CHANGING_SHOWN:])
     ]
 
     # branch 4 — worst first: open questions + broken promises
     analyses = store.list_analyses(repository=adapter.repository())
-    events = build_timeline(adapter, analyses)["events"]
-    current = events[-1]["state_after"] if events else {}
+    current = current_state(adapter, analyses)
     statements = {o.obligation_id: o.statement for o in obligations}
     needs: list[dict] = []
     for ref, entry in current.items():
@@ -247,8 +256,7 @@ def derive_ring(workspace_dir: pathlib.Path, adapter, store) -> dict:
             mark=f"{stakes_label(d.stakes)} stakes"))
 
     # branch 5 — the mind's canonical shelf, salience first
-    mind_path = workspace_dir / "mind.yaml"
-    mind = (yaml.safe_load(mind_path.read_text()) or {}) if mind_path.exists() else {}
+    mind = read_mind_cache(workspace_dir)
     rank = {"important": 0, "ambiguous": 1}
     wonders = [
         _node("thought", n["name"], n["name"], [project],
@@ -258,7 +266,8 @@ def derive_ring(workspace_dir: pathlib.Path, adapter, store) -> dict:
                         key=lambda n: rank.get(n.get("salience"), 2))
     ]
 
-    # branch 6 — gaps by age; renders only when gaps exist
+    # branch 6 — the gaps shelf, in the ledger's order; renders only
+    # when gaps exist
     housed = {h["ref"] for e in active for h in e["holdings"] if h["kind"] == "promise"}
     gaps = [
         _node("promise", o.obligation_id, o.statement, [project])

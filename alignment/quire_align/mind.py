@@ -204,6 +204,21 @@ def _mind_file(workspace_dir: pathlib.Path) -> pathlib.Path:
     return workspace_dir / "mind.yaml"
 
 
+def read_mind_cache(workspace_dir: pathlib.Path) -> dict:
+    """The last sweep's cache, read-only — ``{}`` when no sweep has run.
+
+    The one way in for readers (the relevance vectors, the navigator,
+    the ring, API fallbacks): a view must never trigger a sweep, and the
+    file's shape is this module's business, nobody else's. Extracted
+    2026-07-20 (quality loop) — the same read had grown independent
+    copies in model, hierarchy (twice), relevance, the API's fallback,
+    and this module's own two writers."""
+    path = _mind_file(workspace_dir)
+    if not path.exists():
+        return {}
+    return yaml.safe_load(path.read_text()) or {}
+
+
 def _write_mind(workspace_dir: pathlib.Path, data: dict) -> None:
     atomic_write_text(
         _mind_file(workspace_dir),
@@ -242,10 +257,7 @@ def get_mind(
     thinker=None → cache only."""
     corpus, universe = _corpus_and_universe(workspace_dir, adapter, store)
     input_hash = hashlib.sha256(corpus.encode()).hexdigest()[:16]
-    path = _mind_file(workspace_dir)
-    cached = None
-    if path.exists():
-        cached = yaml.safe_load(path.read_text()) or None
+    cached = read_mind_cache(workspace_dir) or None  # None = never swept
     if cached and cached.get("input_hash") == input_hash:
         return cached
     if thinker is None:
@@ -287,8 +299,7 @@ def dismiss_thought(
     """Human-validated trash: a signed dismissal. The thought leaves the
     mind and stays dead across future sweeps unless evidence is new —
     triage IS part of the work, and this half of it is the human's."""
-    path = _mind_file(workspace_dir)
-    cached = (yaml.safe_load(path.read_text()) or {}) if path.exists() else {}
+    cached = read_mind_cache(workspace_dir)
     lowered = name.lower()
     cached["nodes"] = [
         n for n in cached.get("nodes", []) if n["name"].lower() != lowered

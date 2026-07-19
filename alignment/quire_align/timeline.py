@@ -156,6 +156,15 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
     }
 
 
+def current_state(adapter, analyses: list[PRAnalysis]) -> dict:
+    """Every promise's standing now: the last event's ``state_after``,
+    ``{}`` before any check has run. Extracted 2026-07-20 (quality loop)
+    — the same two-line fold had spread to seven call sites; new readers
+    use this instead of re-deriving it."""
+    events = build_timeline(adapter, analyses)["events"]
+    return events[-1]["state_after"] if events else {}
+
+
 def _distinct(values: list[str]) -> list[str]:
     seen: list[str] = []
     for value in values:

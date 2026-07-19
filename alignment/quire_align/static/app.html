@@ -270,6 +270,14 @@ function annLine(ann, rollup){
 }
 
 const RING_OPEN = {"what-we-build": true}; // shelves remember their fold
+const RAIL_PULSE = 5;  // "What's changing" on the rail is a pulse — the shelf holds the rest
+const RAIL_CLIP = 46;  // a rail row stays one line at the rail's width
+const CHIP_CLIP = 34;  // a trail chip stays a chip, not a sentence
+// word-boundary clip with an honest ellipsis — never a mid-word cut
+function clip(text, max){
+  return text.length > max
+    ? text.slice(0, max - 2).replace(/\s+\S*$/, "") + "…" : text;
+}
 async function loadRail(){
   const [d, tree] = await Promise.all([
     (await fetch(`/api/graph/${encodeURIComponent(WS)}`)).json(),
@@ -304,8 +312,7 @@ async function loadRail(){
     const renderKid = (node, depth) => {
       const row = el("button", "ent rkid" + (node.ref === FOCUSED ? " on" : ""));
       row.style.paddingLeft = (28 + depth * 14) + "px";
-      row.appendChild(el("span", "", node.name.length > 46
-        ? node.name.slice(0, 44).replace(/\s+\S*$/, "") + "…" : node.name));
+      row.appendChild(el("span", "", clip(node.name, RAIL_CLIP)));
       const live = rollups[node.ref];
       if (node.kind === "entity" && live) row.appendChild(alertSpan(live.rollup));
       if (node.mark) row.appendChild(el("span", "alert", node.mark));
@@ -321,7 +328,7 @@ async function loadRail(){
         .forEach(c => renderKid(c, depth + 1));
     };
     const kids = branch.id === "whats-changing"
-      ? branch.children.slice(0, 5) : branch.children;
+      ? branch.children.slice(0, RAIL_PULSE) : branch.children;
     kids.forEach(c => renderKid(c, 0));
   });
   // The master caution is one readable banner in the reading column —
@@ -752,9 +759,11 @@ function drawConstellation(canvas, mindNodes){
   });
   // density control: a crowded sky shows the important thoughts only —
   // and the legend says so, honestly (ambiguous ones stay one click
-  // away in the navigator's shelf)
+  // away in the navigator's shelf). CROWDED_SKY is the star count past
+  // which the canvas stops reading as a map at this stage size.
   let shown = mindNodes || [];
-  const crowded = active.length + shown.length > 14;
+  const CROWDED_SKY = 14;
+  const crowded = active.length + shown.length > CROWDED_SKY;
   if (crowded) shown = shown.filter(m => (m.salience || "") === "important");
   shown.forEach((m, i) => {
     const anchors = [...new Set((m.connects || []).map(c => refToEntity[c.ref]).filter(Boolean))];
@@ -984,6 +993,8 @@ const MOOD_HEADERS = {
   declined: "Declined — refused, on the record",
 };
 const XNAMES = {}; // trail chips speak names, learned as you walk
+const WHY_FOLD = 220; // a why longer than this folds to a lede (board U1: ledes, not walls)
+const WHY_LEDE = 200; // …of about this much — the gap keeps "more" from hiding one word
 function exploreHash(trail){
   return "#/explore/" + trail.map(encodeURIComponent).join("/");
 }
@@ -1023,7 +1034,7 @@ async function explore(trail){
   if (!res.ok){
     wrap.appendChild(el("h1", "", "Nothing answers to that"));
     wrap.appendChild(el("div", "identity",
-      `The brain holds nothing addressed “${focusRef}”. It may have been retold or dismissed.`));
+      `The brain holds nothing addressed “${focusRef}”. It may have faded from the mind's trail, or the name may be mistyped.`));
     const again = el("a", "", "start over");
     again.addEventListener("click", () => { location.hash = "#/explore"; });
     wrap.appendChild(again);
@@ -1033,11 +1044,7 @@ async function explore(trail){
   const d = await res.json();
 
   // the trail: the walk itself, pasteable — chips speak names
-  {
-    const full = d.node.title || focusRef;
-    XNAMES[focusRef] = full.length > 34
-      ? full.slice(0, 32).replace(/\s+\S*$/, "") + "…" : full;
-  }
+  XNAMES[focusRef] = clip(d.node.title || focusRef, CHIP_CLIP);
   {
     const bar = el("div", "xtrail");
     bar.appendChild(el("span", "tsep", "the walk:"));
@@ -1045,16 +1052,16 @@ async function explore(trail){
       const chip = el("span", "tchip", XNAMES[t] || t);
       chip.title = t;
       // a pasted trail arrives with unvisited ancestors — resolve their
-      // names quietly so the walk never speaks ids
+      // names quietly so the walk never speaks ids. Failure is fine:
+      // the chip already shows the id with a tooltip, so a lost fetch
+      // degrades to exactly what the paste recipient had before.
       if (!XNAMES[t] && t !== focusRef){
         fetch(`/api/model/${encodeURIComponent(WS)}/around/${encodeURIComponent(t)}`)
           .then(r => r.ok ? r.json() : null)
           .then(a => {
             if (a && a.node && a.node.title){
-              XNAMES[t] = a.node.title.slice(0, 32);
-              const cut = XNAMES[t].length < (a.node.title || "").length;
-              chip.textContent = cut
-                ? XNAMES[t].replace(/\s+\S*$/, "") + "…" : XNAMES[t];
+              XNAMES[t] = clip(a.node.title, CHIP_CLIP);
+              chip.textContent = XNAMES[t];
             }
           }).catch(() => {});
       }
@@ -1151,8 +1158,8 @@ async function explore(trail){
       if (x.meta) row.appendChild(el("div", "xrmeta", x.meta));
       if (x.why){
         const why = el("div", "xwhy", "why: ");
-        if (x.why.length > 220){
-          const cut = x.why.slice(0, 200).replace(/\s+\S*$/, "");
+        if (x.why.length > WHY_FOLD){
+          const cut = x.why.slice(0, WHY_LEDE).replace(/\s+\S*$/, "");
           const short = el("span", "", cut + "… ");
           const more = el("a", "unfold", "more");
           more.addEventListener("click", ev => {

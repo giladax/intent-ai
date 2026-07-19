@@ -774,12 +774,9 @@ def create_app(store: Store | None = None) -> FastAPI:
                 type(error).__name__,
                 error,
             )
-            import yaml as _yaml
+            from quire_align.mind import read_mind_cache
 
-            from quire_align.mind import _mind_file
-
-            path = _mind_file(ws_dir)
-            entry = _yaml.safe_load(path.read_text()) if path.exists() else None
+            entry = read_mind_cache(ws_dir) or None
         return {"mind": entry}
 
     @app.post("/api/mind/{workspace:path}/dismiss")
