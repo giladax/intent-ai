@@ -93,3 +93,13 @@ def test_mind_endpoint_serves_cache_offline(ws, store):
                              connects=[Connection(ref="OB-101")])])), now=T0)
     r = client.get(f"/api/mind/{ws}", params={"llm": False})
     assert r.json()["mind"]["nodes"][0]["kind"] == "theme"
+
+
+def test_reasoning_survives_on_mind_nodes(ws, adapter, store):
+    thinker = FakeMind(Mind(nodes=[
+        ConceptNode(kind="tension", name="T", gloss="g",
+                    reasoning="I noticed the ceiling and the tier rule pull apart.",
+                    connects=[Connection(ref="OB-101")]),
+    ]))
+    entry = get_mind(ws, adapter, store, thinker=thinker, now=T0)
+    assert entry["nodes"][0]["reasoning"].startswith("I noticed")

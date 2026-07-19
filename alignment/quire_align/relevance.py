@@ -57,9 +57,17 @@ def node_documents(
     """One document per active entity: everything connected to it, as
     text. The vector drifts as the node's story evolves — 'the thing
     that broke last week' is literally in the vector."""
-    state = graph_state(load_diffs(workspace_dir))
+    diffs = load_diffs(workspace_dir)
+    state = graph_state(diffs)
     statements = {o.obligation_id: o.statement for o in adapter.obligations()}
     atoms = atoms_for(workspace_dir, adapter, store)
+    # the thinking kept on signed diffs reflects back into the map's
+    # memory — the reasoning that grouped an entity is part of what it
+    # MEANS, and it is where the connective vocabulary lives
+    reasoning_by_diff = {
+        d.diff_id: d.reasoning for d in diffs
+        if d.status == "approved" and d.reasoning
+    }
     docs: dict[str, dict] = {}
     for entity in state["entities"].values():
         if entity["status"] != "active":
@@ -70,6 +78,10 @@ def node_documents(
         parts = [entity["name"], entity["identity_sentence"]]
         parts += entity["aliases"]
         parts += [statements.get(r, "") for r in refs]
+        touching = {entity.get("created_via", "")} | {
+            h.get("via", "") for h in entity["holdings"]
+        }
+        parts += [reasoning_by_diff[d] for d in touching if d in reasoning_by_diff]
         parts += [
             h["ref"].replace("/", " ").replace("_", " ")
             for h in entity["holdings"]
@@ -80,11 +92,32 @@ def node_documents(
             if a.get("entity_id") == entity["entity_id"]
             or a.get("promise") in refs
         ]
+        parts += _mind_parts(workspace_dir, entity, refs)
         docs[entity["entity_id"]] = {
             "name": entity["name"],
             "terms": _terms(" ".join(p for p in parts if p)),
         }
     return docs
+
+
+def _mind_parts(workspace_dir, entity, refs) -> list[str]:
+    """The working mind's thinking about an entity joins its vector —
+    unsigned, but it is still what the map currently thinks the thing
+    is about. Cache-only: vectors never trigger a sweep."""
+    import yaml as _yaml
+
+    path = workspace_dir / "mind.yaml"
+    if not path.exists():
+        return []
+    cached = _yaml.safe_load(path.read_text()) or {}
+    touchable = refs | {entity["entity_id"]} | {
+        h["ref"] for h in entity["holdings"]
+    }
+    return [
+        " ".join(p for p in (n.get("name"), n.get("gloss"), n.get("reasoning")) if p)
+        for n in cached.get("nodes", [])
+        if any(c.get("ref") in touchable for c in n.get("connects", []))
+    ]
 
 
 def resolve_semantic(

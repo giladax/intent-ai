@@ -398,6 +398,17 @@ function card(p, uniformStakes){
   };
   refresh();
   c.appendChild(plain);
+  if (p.reasoning){
+    // the thinking that produced this proposal, verbatim — the human
+    // decides with the reasoning, not just the conclusion
+    const thinking = document.createElement("details");
+    thinking.className = "receipt";
+    thinking.appendChild(el("summary", "", "the clerk's thinking — why it proposes this"));
+    const body = el("div", "heldnote", p.reasoning);
+    body.style.padding = "8px 2px 0";
+    thinking.appendChild(body);
+    c.appendChild(thinking);
+  }
   c.appendChild(receipt);
   renderEditor(editor, editState, refresh);
   c.appendChild(editor);

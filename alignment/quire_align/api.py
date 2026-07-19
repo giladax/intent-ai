@@ -893,6 +893,7 @@ def create_app(store: Store | None = None) -> FastAPI:
                 "question": d.question,
                 "stakes_label": stakes_label(d.stakes),
                 "proposed_by": d.proposed_by,
+                "reasoning": d.reasoning,
             }
             for d in open_proposals(diffs)
             if any(

@@ -113,6 +113,7 @@ def teach_create(
         diff_id="",
         question=f"“{term}” is a thing the map lacks — create it?",
         proposed_by=f"human:{by}",
+        reasoning=note,
         evidence=[
             EvidenceQuote(quote=note or term, source=f"taught by {by}"),
         ],
@@ -178,6 +179,7 @@ def correct(
         diff_id="",
         question=question,
         proposed_by=f"human:{by}",
+        reasoning=note,
         evidence=[EvidenceQuote(quote=note or question, source=f"said by {by}")],
         operations=operations,
     )

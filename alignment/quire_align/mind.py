@@ -42,6 +42,11 @@ class ConceptNode(BaseModel):
     kind: str = Field(description="freeform — concept, tension, question, theme, boundary, bet, smell, whatever fits")
     name: str
     gloss: str = Field(description="one sentence a person reads and gets it")
+    reasoning: str = Field(
+        default="",
+        description="the thinking that led here — kept on the node "
+        "verbatim, shown to humans, embedded into the map's memory",
+    )
     connects: list[Connection] = Field(default_factory=list)
 
 
@@ -58,6 +63,19 @@ class MindLLM:
         ).with_structured_output(Mind)
 
     def sweep(self, corpus: str) -> Mind:
+        # An empty mind is a known structured-output failure mode (the
+        # model calls the tool with no nodes); one nudged retry recovers
+        # it — thinking is the job, not optional.
+        first = self._sweep(corpus)
+        if first.nodes:
+            return first
+        return self._sweep(
+            corpus
+            + "\n\n(Your previous attempt returned ZERO nodes — that is a "
+            "failure to think, not restraint. Produce the nodes now.)"
+        )
+
+    def _sweep(self, corpus: str) -> Mind:
         return invoke_with_retry(
             self._model,
             "You are the working mind of an organization's map. Below is "
@@ -76,6 +94,9 @@ class MindLLM:
             "mechanically; a connection to nothing is dropped) with one "
             "line of why. Prefer nodes that connect ACROSS records — the "
             "map already knows what sits inside one.\n\n"
+            "Record your reasoning on every node — the actual thinking "
+            "that led you there, verbatim. It stays on the node: humans "
+            "read it, and the map embeds it as memory.\n\n"
             "Produce the nodes NOW, in the structured output — a corpus "
             "this size should yield at least five; an empty mind is a "
             "failure to think, not restraint.\n\n"
@@ -133,7 +154,7 @@ def validate_mind(mind: Mind, universe: set[str]) -> tuple[list[ConceptNode], in
         if resolved:
             kept.append(ConceptNode(
                 kind=node.kind, name=node.name, gloss=node.gloss,
-                connects=resolved,
+                reasoning=node.reasoning, connects=resolved,
             ))
     return kept, dropped_connections
 

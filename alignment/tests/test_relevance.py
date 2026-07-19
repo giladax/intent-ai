@@ -171,3 +171,17 @@ def test_exact_name_outranks_status_router(ws, store):
     r = client.get(f"/api/ask/{ws}", params={"q": "Risk Review", "llm": False}).json()
     assert r["resolution"]["method"] == "entity"
     assert r["entity"]["name"] == "Risk Review"
+
+
+def test_diff_reasoning_joins_the_entity_vector(ws, adapter, store):
+    from quire_align.entity_graph import GraphDiff as GD
+
+    report = append_proposals(ws, [GD(
+        diff_id="", question="Create Chargebacks?",
+        reasoning="grouped around the quixotic dispute-window heuristic",
+        operations=[CreateEntity(entity_id="ent-cb", name="Chargebacks")],
+    )], T1)
+    decide(ws, report["added"][0], "approved", by="gilad", now=T1)
+    docs = node_documents(ws, adapter, store)
+    hit = resolve_semantic("quixotic dispute-window heuristic", docs)
+    assert hit and not hit.get("refused") and hit["entity_id"] == "ent-cb"

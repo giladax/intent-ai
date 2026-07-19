@@ -50,6 +50,12 @@ class EntityCandidate(BaseModel):
     part_of: str = Field(
         default="", description="name of a broader entity in THIS list, or empty"
     )
+    reasoning: str = Field(
+        default="",
+        description="your thinking, kept verbatim on the proposal: what "
+        "you noticed, what you weighed, what you rejected and why — "
+        "humans read it on the card and the map embeds it",
+    )
 
 
 class EntityCandidates(BaseModel):
@@ -95,7 +101,10 @@ class EntityProposerLLM:
             "keeps apart. Do not invent entities no promise supports.\n"
             "- aliases: other words the org uses for the same thing.\n"
             "- part_of: only when one entity is clearly inside another in "
-            "this same list.\n\n"
+            "this same list.\n"
+            "- reasoning: record your actual thinking per entity — it is "
+            "kept on the proposal verbatim, shown to the human who "
+            "decides, and embedded into the map's memory.\n\n"
             f"## Derived areas (mechanical, advisory)\n{areas_block}\n\n"
             f"## Approved promises\n{promises_block}",
         )
@@ -370,6 +379,7 @@ def seed_proposals(
                 question=_question(candidate.name, len(candidate.member_obligation_ids),
                                    len(code_paths), len(doc_paths)),
                 proposed_by="llm",
+                reasoning=candidate.reasoning,
                 evidence=[
                     EvidenceQuote(
                         quote=q.quote,

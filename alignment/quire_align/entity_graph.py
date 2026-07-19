@@ -145,6 +145,13 @@ class GraphDiff(BaseModel):
     evidence: list[EvidenceQuote] = Field(default_factory=list)
     operations: list[Operation] = Field(default_factory=list)
     mechanics_note: str = ""  # footnote, never the argument
+    # The thinking that produced this proposal — kept ON the node, not
+    # discarded with the LLM call: it reflects the reasoning to humans
+    # (the clerk's thinking, expandable on the card), reflects it back to
+    # the system (it joins the entity's relevance vector once signed),
+    # and sets the shape every future source attaches with — a Claude
+    # session's analysis is just another reasoning-bearing node.
+    reasoning: str = ""
     stakes: float = 0.0
     shape_key: str = ""
     status: Literal["open", "approved", "rejected"] = "open"

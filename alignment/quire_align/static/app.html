@@ -506,6 +506,13 @@ function quiresCard(p, entityId){
     ((p.proposed_by || "").startsWith("human:")
       ? `proposed by ${p.proposed_by.slice(6)} · not signed`
       : "the clerk proposes · not signed")));
+  if (p.reasoning){
+    const thinking = document.createElement("details");
+    thinking.className = "lives";
+    thinking.appendChild(el("summary", "", "the clerk's thinking"));
+    thinking.appendChild(el("div", "twhy", p.reasoning));
+    card.appendChild(thinking);
+  }
   const verbs = el("div", "verbs");
   const sign = el("button", "", "Sign");
   const err = el("div", "err");
@@ -863,6 +870,7 @@ function thoughtSlip(m){
   slip.appendChild(head);
   slip.appendChild(el("div", "fs", m.name));
   slip.appendChild(el("div", "fr", m.gloss));
+  if (m.reasoning) slip.appendChild(el("div", "fr", "thinking: " + m.reasoning));
   (m.connects || []).forEach(c => {
     slip.appendChild(el("div", "fc", `${c.ref}${c.why ? " — " + c.why : ""}`));
   });
