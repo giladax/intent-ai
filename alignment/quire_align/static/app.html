@@ -82,6 +82,11 @@ font-family:'Spline Sans Mono',monospace;font-size:12px;padding:14px 16px}
 .slip .fr{color:var(--muted);margin-top:2px}
 .slip .fc{color:var(--faint);margin-top:1px}
 .slip .slipsig{border-top:1px dashed var(--rule);margin-top:10px;padding-top:8px;color:var(--muted)}
+.thread{border:1px dashed var(--rule);border-radius:12px;background:var(--bone);padding:10px 14px;margin:8px 0}
+.thread .tkind{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+color:var(--caution);border:1px dashed var(--caution);border-radius:99px;padding:1px 8px;margin-right:6px}
+.thread .tgloss{font-size:14px;margin-top:4px}
+.thread .twhy{font-size:12px;color:var(--muted);margin-top:3px;font-style:italic}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
 .chip{border:1px solid var(--rule);border-radius:99px;padding:4px 13px;font-size:13.5px;color:var(--muted);
 background:var(--bone);cursor:default}
@@ -435,6 +440,12 @@ async function focus(entityId, promiseRef){
     wrap.appendChild(row);
   });
 
+  // the working mind's threads through this record — unsigned thinking,
+  // any kind, arriving lazily so the record never waits on it
+  const threadsSlot = el("div");
+  wrap.appendChild(threadsSlot);
+  workingThreads(threadsSlot, e);
+
   if (e.code.length || e.docs.length){
     wrap.appendChild(el("h2", "", "Where it lives"));
     const lives = document.createElement("details");
@@ -596,12 +607,13 @@ function constellation(){
     "amber — partly kept", "dashed ring — not yet exercised by any check"];
   if (anyRelations) bits.push("solid thread — a signed relation");
   if (anyShared) bits.push("faint thread — a shared promise");
+  bits.push("hollow dashed — the mind's unsigned thinking");
   wrap.appendChild(el("div", "legend", bits.join(" · ")));
   stage.appendChild(wrap);
-  drawConstellation(canvas);
+  fetchMind().then(nodes => drawConstellation(canvas, nodes));
 }
 
-function drawConstellation(canvas){
+function drawConstellation(canvas, mindNodes){
   const active = ENTITIES.filter(e => e.status === "active");
   const W = Math.min(880, canvas.parentElement.clientWidth || 880), H = 520;
   const scale = window.devicePixelRatio || 1;
@@ -628,6 +640,25 @@ function drawConstellation(canvas){
       const shared = promisesOf(active[i]).filter(p => promisesOf(active[j]).includes(p));
       if (shared.length) edges.push({a: active[i].entity_id, b: active[j].entity_id, kind: "shared", label: shared.join(", ")});
     }
+  // the mind's nodes join the sky — hollow, dashed, unsigned thinking
+  const refToEntity = {};
+  active.forEach(e => {
+    refToEntity[e.entity_id] = e.entity_id;
+    (e.holdings || []).forEach(h => { refToEntity[h.ref] = e.entity_id; });
+  });
+  (mindNodes || []).forEach((m, i) => {
+    const anchors = [...new Set((m.connects || []).map(c => refToEntity[c.ref]).filter(Boolean))];
+    if (!anchors.length) return;
+    const id = "mind:" + i;
+    nodes.push({
+      id, name: m.name, mind: m, r: 7,
+      x: W/2 + Math.cos((i + 0.5) / Math.max(mindNodes.length, 1) * 2 * Math.PI) * 230,
+      y: H/2 + Math.sin((i + 0.5) / Math.max(mindNodes.length, 1) * 2 * Math.PI) * 185,
+      vx: 0, vy: 0,
+    });
+    byId[id] = nodes[nodes.length - 1];
+    anchors.forEach(a => edges.push({a: id, b: a, kind: "thought"}));
+  });
 
   function tick(){
     // springs on threads, gentle repulsion everywhere, a soft centering
@@ -667,12 +698,23 @@ function drawConstellation(canvas){
     ctx.lineWidth = 1;
     for (const e of edges){
       const a = byId[e.a], b = byId[e.b];
-      ctx.strokeStyle = e.kind === "relation" ? "rgba(28,26,21,.55)" : "rgba(28,26,21,.16)";
-      ctx.setLineDash(e.kind === "relation" ? [] : [3, 4]);
+      ctx.strokeStyle = e.kind === "relation" ? "rgba(28,26,21,.55)"
+        : e.kind === "thought" ? "rgba(180,104,30,.28)" : "rgba(28,26,21,.16)";
+      ctx.setLineDash(e.kind === "relation" ? [] : e.kind === "thought" ? [2, 5] : [3, 4]);
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     }
     ctx.setLineDash([]);
     for (const n of nodes){
+      if (n.mind){
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(180,104,30,.75)"; ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(28,26,21,.62)";
+        ctx.font = "italic 12px 'Newsreader', serif";
+        ctx.textAlign = "center";
+        ctx.fillText(n.name, n.x, n.y + n.r + 14);
+        continue;
+      }
       const t = tone(n);
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI);
       ctx.fillStyle = "#FAF4E4"; ctx.fill();
@@ -698,7 +740,9 @@ function drawConstellation(canvas){
     const rect = canvas.getBoundingClientRect();
     const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
     const hit = nodes.find(n => Math.hypot(n.x - x, n.y - y) <= n.r + 6);
-    if (hit) location.hash = "#/entity/" + hit.id;
+    if (!hit) return;
+    if (hit.mind){ thoughtSlip(hit.mind); return; }
+    location.hash = "#/entity/" + hit.id;
   });
   canvas.addEventListener("mousemove", ev => {
     const rect = canvas.getBoundingClientRect();
@@ -760,6 +804,70 @@ async function tellStory(scope, slot, entityId){
     + (withheld ? ` · ${withheld} sentence${withheld===1?"":"s"} withheld` : ""));
   box.appendChild(byline);
   slot.replaceWith ? slot.replaceWith(box) : slot.appendChild(box);
+}
+
+// The working mind: unsigned thinking nodes of any kind, no cap. They
+// help define and reason; they bind nothing until someone signs.
+let MIND = null;
+async function fetchMind(){
+  if (MIND !== null) return MIND;
+  try {
+    const d = await (await fetch(`/api/mind/${encodeURIComponent(WS)}`)).json();
+    MIND = (d.mind && d.mind.nodes) || [];
+  } catch (e) { MIND = []; }
+  return MIND;
+}
+function entityRefs(e){
+  const refs = new Set([e.entity_id]);
+  (e.holdings || []).forEach(h => refs.add(h.ref));
+  (e.promises || []).forEach(p => refs.add(p.ref));
+  (e.code || []).concat(e.docs || []).forEach(h => refs.add(h.ref));
+  return refs;
+}
+async function workingThreads(slot, e){
+  const nodes = await fetchMind();
+  const refs = entityRefs(e);
+  const mine = nodes.filter(n => (n.connects || []).some(c => refs.has(c.ref)));
+  if (!mine.length) return;
+  const box = el("div", "rise");
+  box.appendChild(el("h2", "", "Working threads — the mind, unsigned"));
+  mine.forEach(n => {
+    const t = el("div", "thread");
+    const head = el("div", "thead");
+    head.appendChild(el("span", "tkind", n.kind));
+    head.appendChild(el("b", "", " " + n.name));
+    t.appendChild(head);
+    t.appendChild(el("div", "tgloss", n.gloss));
+    const here = (n.connects || []).find(c => refs.has(c.ref));
+    if (here && here.why) t.appendChild(el("div", "twhy", `here because: ${here.why}`));
+    const elsewhere = (n.connects || []).filter(c => !refs.has(c.ref)).slice(0, 4);
+    if (elsewhere.length){
+      const row = el("div", "twhy");
+      row.append("also touches: ");
+      elsewhere.forEach(c => { row.appendChild(el("span", "cchip", c.ref)); row.append(" "); });
+      t.appendChild(row);
+    }
+    box.appendChild(t);
+  });
+  box.appendChild(el("div", "twhy", "Thinking tools, not decisions — nothing here binds until someone signs it."));
+  slot.replaceWith(box);
+}
+
+function thoughtSlip(m){
+  document.querySelectorAll(".slip").forEach(n => n.remove());
+  const slip = el("aside", "slip rise");
+  const head = el("div", "sliphead", `${m.kind} — unsigned`);
+  const close = el("a", "slipclose", "✕");
+  close.addEventListener("click", () => slip.remove());
+  head.appendChild(close);
+  slip.appendChild(head);
+  slip.appendChild(el("div", "fs", m.name));
+  slip.appendChild(el("div", "fr", m.gloss));
+  (m.connects || []).forEach(c => {
+    slip.appendChild(el("div", "fc", `${c.ref}${c.why ? " — " + c.why : ""}`));
+  });
+  slip.appendChild(el("div", "slipsig", "a thinking tool, not a decision"));
+  document.body.appendChild(slip);
 }
 
 // The check's receipt as a slip, in place — never raw JSON in a tab.

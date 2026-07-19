@@ -1,3 +1,4 @@
 
 # derived narrative caches — disposable, mutate on read
 workspaces/*/stories.yaml
+workspaces/*/mind.yaml

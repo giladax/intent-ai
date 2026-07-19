@@ -717,6 +717,32 @@ def create_app(store: Store | None = None) -> FastAPI:
             )
         return {"story": entry}
 
+    @app.get("/api/mind/{workspace:path}")
+    def mind(workspace: str, llm: bool = True):
+        """The working mind — the machine's unsigned thinking nodes, any
+        kind, no cap. Resweep happens only when the world changed."""
+        from quire_align.mind import MindLLM, get_mind
+
+        ws_dir = _workspace_dir(workspace)
+        adapter = _adapter(workspace)
+        thinker = None
+        if llm:
+            try:
+                thinker = MindLLM()
+            except Exception as error:
+                logger.warning("mind unavailable (%s) — serving cache", error)
+        try:
+            entry = get_mind(ws_dir, adapter, app.state.store, thinker=thinker, now=_now())
+        except Exception as error:
+            logger.warning("mind sweep failed (%s) — serving cache", error)
+            import yaml as _yaml
+
+            from quire_align.mind import _mind_file
+
+            path = _mind_file(ws_dir)
+            entry = _yaml.safe_load(path.read_text()) if path.exists() else None
+        return {"mind": entry}
+
     @app.get("/api/checks/{workspace:path}/{check_number}")
     def check_receipt(workspace: str, check_number: int):
         """The check's receipt — a monospace slip of everything one run
