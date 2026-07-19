@@ -641,6 +641,48 @@ def create_app(store: Store | None = None) -> FastAPI:
         except GraphIntegrityError as error:
             raise HTTPException(409, str(error))
 
+    @app.get("/api/story/{workspace:path}/entity/{entity_id}")
+    def story_entity(workspace: str, entity_id: str, llm: bool = True):
+        return _story(workspace, "entity", llm, entity_id=entity_id)
+
+    @app.get("/api/story/{workspace:path}/org")
+    def story_org(workspace: str, llm: bool = True):
+        return _story(workspace, "org", llm)
+
+    def _story(workspace: str, scope: str, llm: bool, entity_id: str = ""):
+        from quire_align.story import StorytellerLLM, get_story
+
+        ws_dir = _workspace_dir(workspace)
+        adapter = _adapter(workspace)
+        if scope == "entity":
+            from quire_align.entity_graph import graph_state, load_diffs
+
+            if entity_id not in graph_state(load_diffs(ws_dir))["entities"]:
+                raise HTTPException(404, f"no entity '{entity_id}'")
+        teller = None
+        if llm:
+            try:
+                teller = StorytellerLLM()
+            except Exception as error:
+                logger.warning(
+                    "storyteller unavailable (%s) — serving the cached "
+                    "story, or none: a missing story is honest",
+                    error,
+                )
+        try:
+            entry = get_story(
+                ws_dir, adapter, app.state.store, scope,
+                teller=teller, entity_id=entity_id, now=_now(),
+            )
+        except Exception as error:
+            logger.warning("story synthesis failed (%s) — serving cache", error)
+            from quire_align.story import _load_cache
+
+            entry = _load_cache(ws_dir).get(
+                f"entity:{entity_id}" if scope == "entity" else "org"
+            )
+        return {"story": entry}
+
     @app.get("/api/checks/{workspace:path}/{check_number}")
     def check_receipt(workspace: str, check_number: int):
         """The check's receipt — a monospace slip of everything one run

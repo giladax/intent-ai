@@ -62,6 +62,12 @@ h1{font-size:clamp(28px,3.4vw,38px);font-weight:800;letter-spacing:-.03em;line-h
 h1 .flag{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
 color:var(--faint);border:1px solid var(--rule);border-radius:99px;padding:3px 10px;vertical-align:middle;margin-left:10px}
 .identity{font-family:'Newsreader',serif;font-style:italic;font-size:18.5px;color:var(--muted);margin:8px 0 2px;max-width:60ch;line-height:1.55}
+.story{max-width:64ch;font-size:16px;line-height:1.65;color:var(--ink);margin:14px 0 2px}
+.story .cchip{font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--muted);
+background:var(--wash);border-radius:6px;padding:1px 6px;margin:0 2px;vertical-align:2px;
+text-decoration:none;white-space:nowrap;transition:background .25s var(--ease)}
+.story a.cchip:hover{background:var(--ink);color:var(--paper)}
+.story .byline{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:8px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
 .chip{border:1px solid var(--rule);border-radius:99px;padding:4px 13px;font-size:13.5px;color:var(--muted);
 background:var(--bone);cursor:default}
@@ -263,9 +269,11 @@ function overview(){
   }, 0);
   const anyTrouble = active.some(e => e.rollup && (e.rollup.contradicted || e.rollup.partial));
   wrap.appendChild(el("h1", "", `The map of ${WS}`));
-  wrap.appendChild(el("div", "identity",
+  const subtitle = el("div", "identity",
     `${plural(active.length, "name")} holding ${plural(promises, "promise")} — the organization as it stands.` +
-    (anyTrouble ? "" : " All quiet: every exercised promise is holding.")));
+    (anyTrouble ? "" : " All quiet: every exercised promise is holding."));
+  wrap.appendChild(subtitle);
+  tellStory("org", subtitle);
   const grid = el("div", "grid");
   active.forEach(e => {
     const c = el("div", "ecard");
@@ -348,6 +356,9 @@ async function focus(entityId, promiseRef){
   if (e.status === "superseded") h.appendChild(el("span", "flag", "frozen · superseded"));
   wrap.appendChild(h);
   if (e.identity_sentence) wrap.appendChild(el("div", "identity", e.identity_sentence));
+  const storySlot = el("div", "story");
+  wrap.appendChild(storySlot);
+  tellStory("entity", storySlot, e.entity_id);
 
   const chips = el("div", "chips");
   e.aliases.forEach(a => chips.appendChild(el("span", "chip", `“${a}”`)));
@@ -529,6 +540,51 @@ function route(){
   else overview();
 }
 window.addEventListener("hashchange", route);
+
+// The story layer: the clerk narrates the plot, every clause cited.
+// The static line stays visible until the story arrives — never a
+// spinner where prose was; a missing story is honest.
+function citeLink(cite){
+  if (cite.kind === "promise"){
+    const home = ENTITIES.find(e => (e.holdings || []).some(h => h.kind === "promise" && h.ref === cite.ref));
+    const a = el("a", "cchip", cite.ref);
+    if (home) a.href = `#/entity/${home.entity_id}/${cite.ref}`;
+    return a;
+  }
+  if (cite.kind === "check"){
+    const a = el("a", "cchip", "#" + String(cite.ref).replace(/^#/, ""));
+    a.href = `/api/checks/${encodeURIComponent(WS)}/${String(cite.ref).replace(/^#/, "")}`;
+    a.title = "the check's receipt";
+    return a;
+  }
+  if (cite.kind === "diff"){
+    const a = el("a", "cchip", cite.ref);
+    a.href = "/inbox/" + encodeURIComponent(WS);
+    a.title = "the decision";
+    return a;
+  }
+  return el("span", "cchip", "taught: “" + cite.ref + "”");
+}
+async function tellStory(scope, slot, entityId){
+  const url = scope === "entity"
+    ? `/api/story/${encodeURIComponent(WS)}/entity/${encodeURIComponent(entityId)}`
+    : `/api/story/${encodeURIComponent(WS)}/org`;
+  let data;
+  try { data = await (await fetch(url)).json(); } catch (e) { return; }
+  const story = data && data.story;
+  if (!story || !story.sentences || !story.sentences.length) return;
+  const box = el("div", "story rise");
+  story.sentences.forEach(s => {
+    box.append(s.text + " ");
+    (s.cites || []).forEach(c => box.appendChild(citeLink(c)));
+    box.append(" ");
+  });
+  const byline = el("span", "byline",
+    `told ${String(story.generated_at || "").slice(0, 10)}`
+    + (story.dropped ? ` · ${story.dropped} uncited sentence${story.dropped===1?"":"s"} withheld` : ""));
+  box.appendChild(byline);
+  slot.replaceWith ? slot.replaceWith(box) : slot.appendChild(box);
+}
 
 // The ask is the spine: a name focuses the record; a question gets a
 // sentence; a miss refuses to guess, then offers to learn.

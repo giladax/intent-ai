@@ -1,0 +1,99 @@
+# Derived narrative cache — disposable; never read by the fold.
+org:
+  scope: org
+  input_hash: b630ff45db47e32c
+  sentences:
+  - text: 'The MCP surface is returning prose where structured content is required,
+      breaking its promise since check #7.'
+    cites:
+    - kind: promise
+      ref: QUIREB-006
+    - kind: check
+      ref: '7'
+  - text: On 2026-07-18 the cpo refused GD-1 on the recorded ground that the wrong
+      name had been proposed, then signed GD-2, GD-3, GD-4, and GD-5 — the last two
+      after edits — seating four names on the map that day.
+    cites:
+    - kind: diff
+      ref: GD-1
+    - kind: diff
+      ref: GD-2
+    - kind: diff
+      ref: GD-3
+    - kind: diff
+      ref: GD-4
+    - kind: diff
+      ref: GD-5
+  - text: 'Those four groupings now house 9 of 12 approved promises, with write-provenance
+      capture partly kept and MCP activity logging holding since check #7.'
+    cites:
+    - kind: diff
+      ref: GD-2
+    - kind: diff
+      ref: GD-3
+    - kind: diff
+      ref: GD-4
+    - kind: diff
+      ref: GD-5
+    - kind: promise
+      ref: QUIREB-003
+    - kind: promise
+      ref: QUIREB-004
+    - kind: check
+      ref: '7'
+  - text: Five unsigned proposals — Feature Resolution, Understanding Review, Raw
+      Session Archive, Artifact Grounding, and External System Boundaries — sit in
+      quires awaiting the cpo's hand.
+    cites:
+    - kind: diff
+      ref: GD-6
+    - kind: diff
+      ref: GD-7
+    - kind: diff
+      ref: GD-8
+    - kind: diff
+      ref: GD-9
+    - kind: diff
+      ref: GD-10
+  dropped: 0
+  generated_at: '2026-07-19T10:24:05+00:00'
+  model: claude-sonnet-4-6
+entity:ent-feature:
+  scope: entity:ent-feature
+  input_hash: 86329e2de97833b1
+  sentences:
+  - text: 'QUIREB-006 is broken since check #7: the MCP surface is returning prose
+      where candidate lists and ids must be structured content.'
+    cites:
+    - kind: promise
+      ref: QUIREB-006
+    - kind: check
+      ref: '7'
+  - text: On 2026-07-18, cpo signed GD-2, consolidating three promises and four code
+      locations under the single canonical entity Feature, and signed GD-3, consolidating
+      two promises and seven code locations under MCP Surface.
+    cites:
+    - kind: diff
+      ref: GD-2
+    - kind: diff
+      ref: GD-3
+  - text: QUIREB-007, requiring the MCP surface to speak Feature only and retire legacy
+      Topic tools over .repo/ markdown, has not yet been exercised by any check.
+    cites:
+    - kind: promise
+      ref: QUIREB-007
+  - text: QUIREB-002, requiring Brain to return a canonical response when resolving
+      a Feature from a file or task with zero or more than one match, likewise remains
+      unexercised.
+    cites:
+    - kind: promise
+      ref: QUIREB-002
+  - text: A proposal to consolidate three promises, three code locations, and one
+      document under a further entity called Feature Resolution sits unsigned, in
+      quires.
+    cites:
+    - kind: diff
+      ref: GD-6
+  dropped: 0
+  generated_at: '2026-07-19T10:24:05+00:00'
+  model: claude-sonnet-4-6
