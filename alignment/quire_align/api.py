@@ -85,6 +85,12 @@ class CorrectRequest(BaseModel):
     note: str = ""
 
 
+class DismissRequest(BaseModel):
+    name: str
+    by: str
+    why: str = ""
+
+
 class DecisionRequest(BaseModel):
     action: Literal["approved", "rejected"]  # anything else fails at the edge
     by: str
@@ -697,10 +703,10 @@ def create_app(store: Store | None = None) -> FastAPI:
         judge = None
         if llm:
             try:
-                from quire_align.story import haiku_faithfulness_judge
+                from quire_align.story import faithfulness_judge
 
                 teller = StorytellerLLM()
-                judge = haiku_faithfulness_judge
+                judge = faithfulness_judge
             except Exception as error:
                 logger.warning(
                     "storyteller unavailable (%s) — serving the cached "
@@ -746,6 +752,20 @@ def create_app(store: Store | None = None) -> FastAPI:
             path = _mind_file(ws_dir)
             entry = _yaml.safe_load(path.read_text()) if path.exists() else None
         return {"mind": entry}
+
+    @app.post("/api/mind/{workspace:path}/dismiss")
+    def mind_dismiss(workspace: str, request: DismissRequest):
+        """Human-validated trash: the signed half of triage. The thought
+        stays dead across sweeps unless the evidence is new."""
+        from quire_align.mind import dismiss_thought
+
+        return {
+            "dismissed": request.name,
+            "mind": dismiss_thought(
+                _workspace_dir(workspace), request.name, request.by,
+                _now(), why=request.why,
+            ),
+        }
 
     @app.get("/api/checks/{workspace:path}/{check_number}")
     def check_receipt(workspace: str, check_number: int):

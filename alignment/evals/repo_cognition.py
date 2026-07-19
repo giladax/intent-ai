@@ -136,7 +136,8 @@ def judge_case(case: dict, nodes: list[dict]) -> dict:
         for n in nodes
     )
     model = ChatAnthropic(
-        model="claude-haiku-4-5", temperature=0, max_tokens=512
+        # judges are understanding instruments — model follows the need
+        model="claude-sonnet-4-6", temperature=0, max_tokens=768
     ).with_structured_output(Verdict)
     verdict = invoke_with_retry(
         model,

@@ -47,71 +47,98 @@ class ConceptNode(BaseModel):
         description="the thinking that led here — kept on the node "
         "verbatim, shown to humans, embedded into the map's memory",
     )
+    salience: str = Field(
+        default="ambiguous",
+        description="your own triage of this thought: 'important' (a "
+        "human should see this), 'ambiguous' (real but unresolved — "
+        "worth holding), or 'probably-noise' (kept only until someone "
+        "confirms it's trash). Be honest — triage IS part of the work.",
+    )
     connects: list[Connection] = Field(default_factory=list)
+
+
+class RetiredNode(BaseModel):
+    name: str
+    why: str = Field(default="", description="why this thought no longer holds")
 
 
 class Mind(BaseModel):
     nodes: list[ConceptNode] = Field(default_factory=list)
+    retired: list[RetiredNode] = Field(
+        default_factory=list,
+        description="previous nodes that no longer hold, each with why",
+    )
 
 
 class MindLLM:
+    """Two-phase, per the owner's directive and the SOTA findings: the
+    goal is maximum understanding, so THINKING RUNS FREE (plain prose,
+    no schema to strangle or truncate it) and STRUCTURE HAPPENS AT THE
+    EDGE (a second pass extracts nodes from the mind's own notes). The
+    empty-tool-call and silent-truncation failures were both symptoms of
+    forcing structure onto thought."""
+
     def __init__(self, model: str = MIND_MODEL) -> None:
         from langchain_anthropic import ChatAnthropic
 
-        # a truncated tool call parses SILENTLY to zero nodes — the
-        # budget must fit a full thinking sweep (reasoning fields are
-        # long by design; that's the point of keeping them)
-        self._model = ChatAnthropic(
-            model=model, temperature=0.4, max_tokens=16384
+        self._thinker = ChatAnthropic(
+            model=model, temperature=0.6, max_tokens=8192
+        )
+        self._structurer = ChatAnthropic(
+            model=model, temperature=0, max_tokens=16384
         ).with_structured_output(Mind)
 
-    def sweep(self, corpus: str) -> Mind:
-        # An empty mind is a known structured-output failure mode (the
-        # model calls the tool with no nodes); one nudged retry recovers
-        # it — thinking is the job, not optional.
-        first = self._sweep(corpus)
-        if first.nodes:
-            return first
-        return self._sweep(
-            corpus
-            + "\n\n(Your previous attempt returned ZERO nodes — that is a "
-            "failure to think, not restraint. Produce the nodes now.)"
-        )
-
-    def _sweep(self, corpus: str) -> Mind:
-        return invoke_with_retry(
-            self._model,
+    def sweep(self, corpus: str, previous: str = "") -> Mind:
+        notes = self._thinker.invoke(
             "You are the working mind of an organization's map. Below is "
-            "everything the map knows. Think out loud by CREATING NODES — "
-            "as many as genuinely help define and reason about this "
-            "organization. There is no cap and no ceremony: these are "
-            "thinking tools, not decisions.\n\n"
-            "Make nodes of any kind you find useful — a concept two "
-            "records share but nobody named; a tension between two "
-            "promises; an open question the evidence raises; a boundary "
-            "the org keeps circling; a theme in what keeps breaking; a "
-            "bet the org seems to be making. Name the kind freely.\n\n"
-            "Each node: a short name in the org's language, one honest "
-            "gloss sentence, and its connections — every connection MUST "
-            "use a real id or path from the corpus (they are checked "
-            "mechanically; a connection to nothing is dropped) with one "
-            "line of why. Prefer nodes that connect ACROSS records — the "
-            "map already knows what sits inside one.\n\n"
-            "Record your reasoning on every node — the actual thinking "
-            "that led you there, verbatim. It stays on the node: humans "
-            "read it, and the map embeds it as memory.\n\n"
-            "Produce the nodes NOW, in the structured output — a corpus "
-            "this size should yield at least five; an empty mind is a "
-            "failure to think, not restraint.\n\n"
-            f"## The corpus\n{corpus}",
+            "everything the map knows. THINK, in plain prose — no format, "
+            "no schema, no restraint. Notice what helps define and reason "
+            "about this organization: concepts two records share but "
+            "nobody named; tensions between promises; open questions the "
+            "evidence raises; boundaries the org keeps circling; themes "
+            "in what keeps breaking; bets the org seems to be making; "
+            "reversals of its own doctrine; anything else. Ground every "
+            "observation in the real ids and paths you see — name them "
+            "as you think.\n"
+            + (
+                "\n## Your previous sweep's nodes\nEvolve your own mind, "
+                "don't restart it: keep what still holds (sharpen it if "
+                "the evidence moved), retire what no longer holds and say "
+                "why, and add what is new since.\n" + previous + "\n"
+                if previous
+                else ""
+            )
+            + f"\n## The corpus\n{corpus}"
+        ).content
+        mind = invoke_with_retry(
+            self._structurer,
+            "Below are YOUR OWN thinking notes about an organization. "
+            "Extract every distinct thought as a node — kind (freeform), "
+            "name, one-sentence gloss, the reasoning verbatim from your "
+            "notes, and its connections (the real ids/paths your notes "
+            "cite; they are checked mechanically). If the notes retire "
+            "any previous node, list it under retired with the why. Lose "
+            "NOTHING that the notes contain.\n\n"
+            f"## The notes\n{notes}",
+        )
+        if mind.nodes:
+            return mind
+        # structure-extraction refused despite notes existing — one retry
+        return invoke_with_retry(
+            self._structurer,
+            "Extract EVERY distinct thought from these notes as nodes — "
+            "an empty extraction of non-empty notes is a failure.\n\n"
+            f"## The notes\n{notes}",
         )
 
 
 class FakeMind:
     def __init__(self, canned: Mind) -> None:
         self._canned = canned
+        self.last_previous = ""
 
-    def sweep(self, corpus: str) -> Mind:
+    def sweep(self, corpus: str, previous: str = "") -> Mind:
+        self.last_previous = previous
         return self._canned
 
 
@@ -157,13 +184,35 @@ def validate_mind(mind: Mind, universe: set[str]) -> tuple[list[ConceptNode], in
         if resolved:
             kept.append(ConceptNode(
                 kind=node.kind, name=node.name, gloss=node.gloss,
-                reasoning=node.reasoning, connects=resolved,
+                reasoning=node.reasoning, salience=node.salience,
+                connects=resolved,
             ))
     return kept, dropped_connections
 
 
 def _mind_file(workspace_dir: pathlib.Path) -> pathlib.Path:
     return workspace_dir / "mind.yaml"
+
+
+def _previous_block(cached: dict | None) -> str:
+    """The mind's own prior nodes plus human-dismissed thoughts, rendered
+    for the evolve pass. Evolution over regeneration (A-MEM/Mem0): keep,
+    sharpen, retire with reasons — never restart cold. A human dismissal
+    is validated trash: it stays dead unless the evidence is NEW."""
+    if not cached:
+        return ""
+    lines = [
+        f"- [{n['kind']} · {n.get('salience', 'ambiguous')}] {n['name']}: "
+        f"{n['gloss']} (first seen {n.get('first_seen', '?')[:10]})"
+        for n in cached.get("nodes", [])
+    ]
+    for d in cached.get("dismissed", []):
+        lines.append(
+            f"- DISMISSED BY {d.get('by', 'a human')}: “{d['name']}”"
+            + (f" — {d['why']}" if d.get("why") else "")
+            + " (do not re-mint unless the evidence is genuinely new)"
+        )
+    return "\n".join(lines)
 
 
 def get_mind(
@@ -181,11 +230,29 @@ def get_mind(
         return cached
     if thinker is None:
         return cached  # a stale mind still helps; None when never swept
-    mind = thinker.sweep(corpus)
+    mind = thinker.sweep(corpus, previous=_previous_block(cached))
     nodes, dropped = validate_mind(mind, universe)
+    # continuity: a re-derived thought keeps its birthday; one that
+    # vanished without a declared retirement is recorded as faded
+    prior = {n["name"].lower(): n for n in (cached or {}).get("nodes", [])}
+    node_dumps = []
+    for n in nodes:
+        dump = n.model_dump()
+        dump["first_seen"] = prior.get(n.name.lower(), {}).get("first_seen", now)
+        node_dumps.append(dump)
+    current_names = {n.name.lower() for n in nodes}
+    retired = [r.model_dump() | {"at": now} for r in mind.retired]
+    declared = {r["name"].lower() for r in retired}
+    retired += [
+        {"name": p["name"], "why": "faded — not re-derived", "at": now}
+        for name, p in prior.items()
+        if name not in current_names and name not in declared
+    ]
     entry = {
         "input_hash": input_hash,
-        "nodes": [n.model_dump() for n in nodes],
+        "nodes": node_dumps,
+        "retired": ((cached or {}).get("retired", []) + retired)[-40:],
+        "dismissed": (cached or {}).get("dismissed", []),
         "dropped_connections": dropped,
         "swept_at": now,
         "model": MIND_MODEL,
@@ -203,3 +270,33 @@ def get_mind(
         handle.write(payload)
     os.replace(tmp, path)
     return entry
+
+
+def dismiss_thought(
+    workspace_dir: pathlib.Path, name: str, by: str, now: str, why: str = ""
+) -> dict:
+    """Human-validated trash: a signed dismissal. The thought leaves the
+    mind and stays dead across future sweeps unless evidence is new —
+    triage IS part of the work, and this half of it is the human's."""
+    path = _mind_file(workspace_dir)
+    cached = (yaml.safe_load(path.read_text()) or {}) if path.exists() else {}
+    lowered = name.lower()
+    cached["nodes"] = [
+        n for n in cached.get("nodes", []) if n["name"].lower() != lowered
+    ]
+    cached.setdefault("dismissed", []).append(
+        {"name": name, "by": by, "at": now, "why": why}
+    )
+    import os
+    import tempfile
+
+    payload = (
+        "# The working mind — unsigned thinking tools; disposable;\n"
+        "# never read by the fold; regenerated when the world changes.\n"
+        + yaml.safe_dump(cached, sort_keys=False, allow_unicode=True)
+    )
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    with os.fdopen(fd, "w") as handle:
+        handle.write(payload)
+    os.replace(tmp, path)
+    return cached

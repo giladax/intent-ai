@@ -298,7 +298,7 @@ _BUDGETS = {
 }
 
 
-def haiku_faithfulness_judge(sentence: str, facts: str) -> bool:
+def faithfulness_judge(sentence: str, facts: str) -> bool:
     """The content gate, owed since the first live falsehood ('the last
     two after edits' — plausible, cited, wrong): a sentence must make
     ONLY claims the facts support. Selection and summary are fine; any
@@ -316,8 +316,11 @@ def haiku_faithfulness_judge(sentence: str, facts: str) -> bool:
             "compressing them into a detail the facts don't state is not."
         )
 
+    # Sonnet, deliberately: this judge guards TRUTH in user-facing prose
+    # (it once let an attribution inversion through on the small model).
+    # Model choice follows the understanding requirement, not tier dogma.
     model = ChatAnthropic(
-        model="claude-haiku-4-5", temperature=0, max_tokens=256
+        model="claude-sonnet-4-6", temperature=0, max_tokens=512
     ).with_structured_output(Verdict)
     verdict = invoke_with_retry(
         model,

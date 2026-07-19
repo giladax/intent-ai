@@ -834,14 +834,18 @@ function entityRefs(e){
 async function workingThreads(slot, e){
   const nodes = await fetchMind();
   const refs = entityRefs(e);
-  const mine = nodes.filter(n => (n.connects || []).some(c => refs.has(c.ref)));
+  const rank = {important: 0, ambiguous: 1};
+  const mine = nodes
+    .filter(n => (n.connects || []).some(c => refs.has(c.ref)))
+    .sort((a, b) => (rank[a.salience] ?? 2) - (rank[b.salience] ?? 2));
   if (!mine.length) return;
   const box = el("div", "rise");
   box.appendChild(el("h2", "", "Working threads — the mind, unsigned"));
   mine.forEach(n => {
     const t = el("div", "thread");
+    if ((n.salience || "") === "probably-noise") t.style.opacity = ".55";
     const head = el("div", "thead");
-    head.appendChild(el("span", "tkind", n.kind));
+    head.appendChild(el("span", "tkind", n.kind + (n.salience === "important" ? " · important" : "")));
     head.appendChild(el("b", "", " " + n.name));
     t.appendChild(head);
     t.appendChild(el("div", "tgloss", n.gloss));
@@ -863,7 +867,7 @@ async function workingThreads(slot, e){
 function thoughtSlip(m){
   document.querySelectorAll(".slip").forEach(n => n.remove());
   const slip = el("aside", "slip rise");
-  const head = el("div", "sliphead", `${m.kind} — unsigned`);
+  const head = el("div", "sliphead", `${m.kind} · ${m.salience || "ambiguous"} — unsigned`);
   const close = el("a", "slipclose", "✕");
   close.addEventListener("click", () => slip.remove());
   head.appendChild(close);
@@ -874,7 +878,19 @@ function thoughtSlip(m){
   (m.connects || []).forEach(c => {
     slip.appendChild(el("div", "fc", `${c.ref}${c.why ? " — " + c.why : ""}`));
   });
-  slip.appendChild(el("div", "slipsig", "a thinking tool, not a decision"));
+  const sig = el("div", "slipsig", "a thinking tool, not a decision · ");
+  const dismiss = el("a", "", "dismiss — it's noise");
+  dismiss.style.cursor = "pointer";
+  dismiss.addEventListener("click", async () => {
+    const by = reviewer(); if (!by) return;
+    const why = (prompt("Why is this noise? (optional — it teaches the mind)") || "").trim();
+    const r = await fetch(`/api/mind/${encodeURIComponent(WS)}/dismiss`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({name: m.name, by, why})});
+    if (r.ok){ MIND = null; slip.remove(); route(); }
+  });
+  sig.appendChild(dismiss);
+  slip.appendChild(sig);
   document.body.appendChild(slip);
 }
 
