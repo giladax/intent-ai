@@ -5,32 +5,40 @@
 <title>Intent Ledger — __WORKSPACE__</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=IBM+Plex+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Spline+Sans+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+/* Warm lens-chat language on the same bones: the variable NAMES kept
+   their old dark-theme meanings (--ink is the page, --paper is the
+   text) so every downstream rule and inline style keeps working. */
 :root{
-  --ink:#0e100f; --panel:#151816; --panel2:#1b1f1c; --line:#2a2f2b;
-  --paper:#e8e3d8; --dim:#8a8f88; --faint:#565b55;
-  --ok:#7dd87d; --warn:#e8b054; --drift:#e07840; --bad:#e05252;
-  --unk:#9aa0a6; --ungov:#6b8fa3; --none:#4c524d; --accent:#d8c08a;
+  --ink:#EFE5CE; --panel:#F5F1E8; --panel2:#FAF4E4; --line:rgba(28,26,21,.16);
+  --paper:#1C1A15; --dim:rgba(28,26,21,.62); --faint:rgba(28,26,21,.42);
+  --ok:#2E6B58; --warn:#B4681E; --drift:#C2561F; --bad:#D8492B;
+  --unk:rgba(28,26,21,.5); --ungov:#2B49D8; --none:rgba(28,26,21,.35); --accent:#2B49D8;
+  --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:var(--ink)}
 body{
-  font-family:'IBM Plex Mono',monospace; color:var(--paper); font-size:13px;
-  background:
-    radial-gradient(1200px 500px at 80% -10%, rgba(216,192,138,.05), transparent 60%),
-    repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.008) 2px 4px),
-    var(--ink);
+  font-family:'Spline Sans Mono',monospace; color:var(--paper); font-size:13px;
+  background:var(--ink);
   min-height:100vh;
 }
+::selection{background:var(--paper);color:var(--ink)}
+@keyframes rise{from{opacity:0;transform:translateY(12px);filter:blur(6px)}
+to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.28);opacity:1}}
 .masthead{
   display:flex; align-items:baseline; gap:24px; padding:26px 32px 18px;
-  border-bottom:1px solid var(--line);
+  border-bottom:3px double var(--paper);
+  animation:rise .7s var(--ease) both;
 }
 .masthead h1{
-  font-family:'Fraunces',serif; font-weight:900; font-size:30px; letter-spacing:-.5px;
+  font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:26px; letter-spacing:-.02em;
+  display:inline-flex; align-items:center; gap:9px;
 }
-.masthead h1 em{color:var(--accent); font-style:normal}
+.masthead h1::after{content:''; width:8px; height:8px; border-radius:50%; background:var(--ok); animation:breathe 5.4s ease-in-out infinite}
+.masthead h1 em{color:var(--paper); font-style:normal}
 .meta{color:var(--dim); font-size:12px}
 .meta b{color:var(--paper); font-weight:600}
 .contracts{margin-left:auto; display:flex; gap:6px; align-items:center}
@@ -46,7 +54,7 @@ body{
 .tick{flex:1; min-width:6px; max-width:26px; background:var(--none); opacity:.55;
   height:14px; transition:height .15s ease, opacity .15s; border-radius:1px 1px 0 0}
 .tick:hover{opacity:1}
-.tick.sel{height:40px; opacity:1; box-shadow:0 0 10px rgba(232,227,216,.25)}
+.tick.sel{height:40px; opacity:1; box-shadow:0 0 10px rgba(28,26,21,.3)}
 .tick.revised{border-top:3px solid var(--accent)}
 .scrub-row{display:flex; gap:14px; align-items:center; padding:8px 0 6px; color:var(--dim); font-size:11px}
 .scrub-row button{
@@ -62,7 +70,7 @@ body{
 
 /* ledger */
 .ledger{border-right:1px solid var(--line); overflow-y:auto; max-height:calc(100vh - 170px)}
-.ev{padding:12px 18px; border-bottom:1px solid rgba(42,47,43,.6); cursor:pointer; position:relative}
+.ev{padding:12px 18px; border-bottom:1px solid rgba(28,26,21,.12); cursor:pointer; position:relative}
 .ev:hover{background:var(--panel)}
 .ev.sel{background:var(--panel2)}
 .ev.sel::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent)}
@@ -70,27 +78,27 @@ body{
 .ev .head{display:flex; gap:8px; align-items:center; margin:3px 0}
 .ev .prn{color:var(--dim)}
 .ev .title{font-size:12px; color:var(--paper); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.badge{font-size:10px; padding:2px 7px; border-radius:2px; letter-spacing:.6px; font-weight:600; white-space:nowrap}
-.b-ALIGNED{background:rgba(125,216,125,.13); color:var(--ok); border:1px solid rgba(125,216,125,.35)}
-.b-PARTIAL{background:rgba(232,176,84,.13); color:var(--warn); border:1px solid rgba(232,176,84,.35)}
-.b-POSSIBLE_DRIFT{background:rgba(224,120,64,.13); color:var(--drift); border:1px solid rgba(224,120,64,.4)}
-.b-OFF_INTENT{background:rgba(224,82,82,.15); color:var(--bad); border:1px solid rgba(224,82,82,.4)}
-.b-UNKNOWN{background:rgba(154,160,166,.12); color:var(--unk); border:1px solid rgba(154,160,166,.3)}
-.b-UNGOVERNED{background:rgba(107,143,163,.12); color:var(--ungov); border:1px solid rgba(107,143,163,.3)}
-.b-NO_MATERIAL_IMPACT{background:rgba(76,82,77,.2); color:var(--none); border:1px solid var(--none)}
+.badge{font-size:10px; padding:2px 8px; border-radius:99px; letter-spacing:.6px; font-weight:600; white-space:nowrap}
+.b-ALIGNED{background:rgba(46,107,88,.12); color:var(--ok); border:1px solid rgba(46,107,88,.4)}
+.b-PARTIAL{background:rgba(180,104,30,.12); color:var(--warn); border:1px solid rgba(180,104,30,.4)}
+.b-POSSIBLE_DRIFT{background:rgba(194,86,31,.12); color:var(--drift); border:1px solid rgba(194,86,31,.45)}
+.b-OFF_INTENT{background:rgba(216,73,43,.12); color:var(--bad); border:1px solid rgba(216,73,43,.45)}
+.b-UNKNOWN{background:rgba(28,26,21,.07); color:var(--unk); border:1px solid rgba(28,26,21,.25)}
+.b-UNGOVERNED{background:rgba(43,73,216,.09); color:var(--ungov); border:1px solid rgba(43,73,216,.35)}
+.b-NO_MATERIAL_IMPACT{background:rgba(28,26,21,.06); color:var(--none); border:1px solid var(--none)}
 .revision-marker{
-  padding:8px 18px; font-size:10px; letter-spacing:1.4px; color:var(--accent);
-  background:repeating-linear-gradient(-45deg, rgba(216,192,138,.06) 0 8px, transparent 8px 16px);
+  padding:8px 18px; font-size:10px; letter-spacing:1.4px; color:var(--ungov);
+  background:repeating-linear-gradient(-45deg, rgba(43,73,216,.06) 0 8px, transparent 8px 16px);
   border-bottom:1px solid var(--line); text-transform:uppercase;
 }
 
 /* stage */
 .stage{padding:22px 30px; overflow-y:auto; max-height:calc(100vh - 170px)}
-.stage h2{font-family:'Fraunces',serif; font-weight:600; font-size:17px; margin-bottom:4px}
+.stage h2{font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:19px; letter-spacing:-.015em; margin-bottom:4px}
 .stage .sub{color:var(--dim); font-size:11px; margin-bottom:16px}
 .effect{border:1px solid var(--line); background:var(--panel); padding:14px 16px; margin-bottom:20px}
 .effect h3{font-size:11px; letter-spacing:1.4px; color:var(--accent); text-transform:uppercase; margin-bottom:9px}
-.change{display:flex; gap:10px; align-items:baseline; padding:5px 0; border-top:1px dashed rgba(42,47,43,.8)}
+.change{display:flex; gap:10px; align-items:baseline; padding:5px 0; border-top:1px dashed rgba(28,26,21,.16)}
 .change:first-of-type{border-top:none}
 .change .ob{color:var(--paper); font-weight:600; min-width:86px}
 .state-word{font-weight:600}
@@ -103,7 +111,7 @@ body{
 .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; margin-bottom:22px}
 .ob-card{border:1px solid var(--line); background:var(--panel); padding:12px 14px; position:relative; transition:border-color .2s}
 .ob-card.changed{border-color:var(--accent); animation:flash .9s ease}
-@keyframes flash{0%{background:rgba(216,192,138,.15)}100%{background:var(--panel)}}
+@keyframes flash{0%{background:rgba(43,73,216,.1)}100%{background:var(--panel)}}
 .ob-card .top{display:flex; gap:8px; align-items:baseline; margin-bottom:6px}
 .ob-card .kind{font-size:10px; color:var(--faint); letter-spacing:.8px; text-transform:uppercase}
 .ob-card .id{font-weight:600}
@@ -113,28 +121,37 @@ body{
 .ob-card .cps span{color:var(--dim)}
 .ob-card .since{font-size:10px; color:var(--faint); margin-top:6px}
 .lamp{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px}
-.l-satisfies{background:var(--ok); box-shadow:0 0 8px rgba(125,216,125,.6)}
-.l-partially_satisfies{background:var(--warn); box-shadow:0 0 8px rgba(232,176,84,.6)}
-.l-contradicts{background:var(--bad); box-shadow:0 0 8px rgba(224,82,82,.7)}
+.l-satisfies{background:var(--ok); box-shadow:0 0 7px rgba(46,107,88,.45)}
+.l-partially_satisfies{background:var(--warn); box-shadow:0 0 7px rgba(180,104,30,.45)}
+.l-contradicts{background:var(--bad); box-shadow:0 0 7px rgba(216,73,43,.5)}
 .l-unobserved{background:var(--none)}
 
-.inbox{border:1px solid rgba(107,143,163,.4); background:rgba(107,143,163,.07); padding:13px 16px}
+.inbox{border:1px solid rgba(43,73,216,.3); border-radius:12px; background:rgba(43,73,216,.05); padding:13px 16px}
 .inbox h3{font-size:11px; letter-spacing:1.4px; color:var(--ungov); text-transform:uppercase; margin-bottom:8px}
 .inbox .item{padding:4px 0; color:var(--dim); font-size:12px}
 .inbox .item b{color:var(--paper)}
 .inbox .empty{color:var(--faint); font-style:italic; font-size:12px}
+#askBox{transition:transform .35s var(--ease), box-shadow .35s var(--ease)}
+#askBox:focus{outline:none; transform:translateY(-2px); box-shadow:0 10px 26px -14px rgba(28,26,21,.4)}
+#askBox::placeholder{color:var(--faint)}
+#askCard{animation:rise .55s var(--ease) both}
+/* teach/correct affordances read as whisper chips — hover inverts to ink */
+.teachBtn{border-radius:99px!important; transition:background .3s var(--ease), color .3s var(--ease)}
+.teachBtn:hover{background:#1C1A15!important; color:#EFE5CE!important; border-color:#1C1A15!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 footer{padding:10px 32px; color:var(--faint); font-size:10px; border-top:1px solid var(--line); letter-spacing:.6px}
 .newpill{position:fixed; bottom:22px; right:26px; background:var(--accent); color:var(--ink);
-  padding:8px 14px; font-weight:600; cursor:pointer; border-radius:2px; display:none; box-shadow:0 4px 18px rgba(0,0,0,.5)}
+  padding:8px 14px; font-weight:600; cursor:pointer; border-radius:99px; display:none; box-shadow:0 8px 22px -8px rgba(28,26,21,.4)}
 </style>
 </head>
 <body>
 <div class="masthead">
   <h1>Intent<em>·</em>Ledger</h1>
   <div class="meta" id="meta">loading…</div>
-  <input type="text" id="askBox" placeholder="ask in your words… ⏎"
-    style="font:inherit; font-size:12px; background:var(--panel); border:1px solid var(--line);
-    color:var(--paper); padding:7px 12px; width:230px; border-radius:2px; margin-left:auto">
+  <input type="text" id="askBox" placeholder="Ask the map anything — a name, a question, a memory…"
+    style="font-family:'Hanken Grotesk',sans-serif; font-size:13.5px; background:var(--panel2);
+    border:1.5px solid var(--paper); color:var(--paper); padding:9px 18px; width:320px;
+    border-radius:99px; margin-left:auto">
   <div class="contracts" id="contracts"></div>
 </div>
 <div id="askCard" style="display:none; border-bottom:1px solid var(--accent); background:var(--panel2); padding:16px 32px"></div>
@@ -365,7 +382,7 @@ document.getElementById("askBox").addEventListener("keydown", async ev=>{
   const lamp = s=>({satisfies:"l-satisfies",partially_satisfies:"l-partially_satisfies",contradicts:"l-contradicts"}[s]||"l-unobserved");
   box.innerHTML = `
     <div style="display:flex; gap:14px; align-items:baseline; margin-bottom:10px">
-      <span style="font-family:'Fraunces',serif; font-size:17px; color:var(--accent)">◉ “${esc(c.label)}”</span>
+      <span style="font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:18px; letter-spacing:-.015em; color:var(--paper)">◉ “${esc(c.label)}”</span>
       <span style="color:var(--faint); font-size:11px">${esc(c.group_id)}</span>
       <span style="color:var(--faint); font-size:11px">${how}</span>
       ${d.resolution.method!=="alias" ? `<button id="saveAliasBtn" data-term="${esc(q)}" data-anchor="${esc(c.anchor)}"
@@ -454,7 +471,7 @@ function renderEntityAnswer(box, q, d){
   box.innerHTML = `
     ${fwd ? `<div style="font-size:11px;color:var(--warn);margin-bottom:8px">“${esc(fwd.name)}” was superseded ${esc((fwd.superseded_at||"").slice(0,10))} by ${esc(fwd.superseded_by_user||"")} (${esc(fwd.via||"")}) — you were forwarded here.</div>`:""}
     <div style="display:flex; gap:14px; align-items:baseline; margin-bottom:6px">
-      <span style="font-family:'Fraunces',serif; font-size:17px; color:var(--accent)">◈ ${esc(e.name)}</span>
+      <span style="font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:18px; letter-spacing:-.015em; color:var(--paper)">◈ ${esc(e.name)}</span>
       <span style="color:var(--faint); font-size:11px">entity · human-approved</span>
       <span style="margin-left:auto;color:var(--faint);font-size:10px;cursor:pointer" onclick="this.parentElement.parentElement.style.display='none'">✕ close</span>
     </div>
