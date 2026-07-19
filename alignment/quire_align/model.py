@@ -1,0 +1,402 @@
+"""The shared brain's read surface: any ref → its focus card and typed
+neighborhood, with the reasoning on every edge.
+
+This is the composition the navigator renders and the MCP surface will
+wrap (`quire_around(ref)`): one brain, two clients — no privileged
+human data, no privileged agent data. Read-only; zero LLM calls at view
+time; everything composes from what the stores already hold (the fold,
+the contract, analyses, atoms, the mind cache).
+
+The hero walk this module exists to serve: a claim → the reasoning that
+produced it → the check receipt → the exact file:line the check
+observed → who signed what along the way. Every neighbor row carries
+its *why*; every signed hop names its signer.
+"""
+
+from __future__ import annotations
+
+import pathlib
+import re
+
+import yaml
+
+from quire_align.atoms import atoms_for
+from quire_align.entity_graph import graph_state, load_diffs
+
+_VERDICT_BUCKET = {
+    "contradicts": "broken",
+    "partially_satisfies": "partly kept",
+    "satisfies": "kept",
+}
+
+
+def _mind_cache(workspace_dir: pathlib.Path) -> dict:
+    path = workspace_dir / "mind.yaml"
+    if not path.exists():
+        return {}
+    return yaml.safe_load(path.read_text()) or {}
+
+
+def _current_state(adapter, analyses) -> dict:
+    from quire_align.timeline import build_timeline
+
+    events = build_timeline(adapter, analyses)["events"]
+    return events[-1]["state_after"] if events else {}
+
+
+def _neighbor(mood, kind, label, ref="", why="", meta="") -> dict:
+    return {
+        "mood": mood, "kind": kind, "label": label,
+        "ref": ref, "why": why, "meta": meta,
+    }
+
+
+def _diff_meta(diff) -> str:
+    if diff.status == "open":
+        return "in quires — unsigned"
+    d = diff.decision
+    if diff.status == "approved":
+        return f"signed by {d.by} · {d.at[:10]}" + (" · amended" if d.amended else "")
+    reason = d.reason_code.replace("_", " ")
+    return f"declined by {d.by} · {d.at[:10]} · {reason}"
+
+
+def _diffs_touching(diffs, entity_ids: set[str], promise_refs: set[str]):
+    for d in diffs:
+        for op in d.operations:
+            targets = {
+                getattr(op, "entity_id", ""), getattr(op, "other_id", ""),
+                getattr(op, "successor_id", ""),
+            }
+            if targets & entity_ids or getattr(op, "ref", None) in promise_refs:
+                yield d
+                break
+
+
+def _mind_neighbors(mind: dict, touchable: set[str]) -> list[dict]:
+    rows = []
+    for n in mind.get("nodes", []):
+        hit = next(
+            (c for c in n.get("connects", []) if c.get("ref") in touchable), None
+        )
+        if hit:
+            rows.append(_neighbor(
+                "thought", n.get("kind", "thought"),
+                n["name"] + " — " + n.get("gloss", ""),
+                ref=n["name"], why=hit.get("why", ""),
+                meta=n.get("salience", "ambiguous"),
+            ))
+    return rows
+
+
+def around(workspace_dir: pathlib.Path, adapter, store, ref: str) -> dict | None:
+    diffs = load_diffs(workspace_dir)
+    state = graph_state(diffs)
+    entities = state["entities"]
+    obligations = {o.obligation_id: o for o in adapter.obligations()}
+    mind = _mind_cache(workspace_dir)
+    analyses = store.list_analyses(repository=adapter.repository())
+
+    if ref in entities:
+        return _around_entity(
+            workspace_dir, adapter, store, entities[ref], diffs, entities,
+            obligations, mind, analyses,
+        )
+    if ref in obligations:
+        return _around_promise(
+            adapter, obligations[ref], diffs, entities, mind, analyses
+        )
+    if re.fullmatch(r"GD-\d+", ref):
+        diff = next((d for d in diffs if d.diff_id == ref), None)
+        return _around_diff(diff, entities, obligations, mind) if diff else None
+    if ref.isdigit():
+        mine = [a for a in analyses if a.pr_number == int(ref)]
+        return _around_check(
+            max(mine, key=lambda a: a.created_at), entities, obligations, mind
+        ) if mine else None
+    lowered = ref.lower()
+    node = next(
+        (n for n in mind.get("nodes", []) if n["name"].lower() == lowered), None
+    )
+    if node:
+        return _around_thought(node, mind, entities, obligations)
+    # history: a retired or dismissed thought is still addressable
+    for section, badge in (("retired", "retired"), ("dismissed", "dismissed")):
+        past = next(
+            (x for x in mind.get(section, []) if x["name"].lower() == lowered),
+            None,
+        )
+        if past:
+            return {
+                "node": {
+                    "kind": "thought", "mood": "thought", "ref": past["name"],
+                    "title": past["name"],
+                    "body": past.get("why", ""),
+                    "reasoning": "",
+                    "meta": f"{badge}"
+                    + (f" by {past['by']}" if past.get("by") else "")
+                    + (f" · {past.get('at', '')[:10]}" if past.get("at") else ""),
+                    "status": badge,
+                },
+                "neighbors": [],
+                "authority": {},
+            }
+    return None
+
+
+def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
+                   obligations, mind, analyses) -> dict:
+    refs = {h["ref"] for h in entity["holdings"] if h["kind"] == "promise"}
+    current = _current_state(adapter, analyses)
+    creating = next(
+        (d for d in diffs if d.diff_id == entity.get("created_via")), None
+    )
+    neighbors: list[dict] = []
+    for h in entity["holdings"]:
+        if h["kind"] == "promise":
+            o = obligations.get(h["ref"])
+            entry = current.get(h["ref"]) or {}
+            bucket = _VERDICT_BUCKET.get(entry.get("status"), "not yet exercised")
+            since = entry.get("since")
+            neighbors.append(_neighbor(
+                "signed", "promise",
+                o.statement if o else h["ref"], ref=h["ref"],
+                why=h.get("note", ""),
+                meta=bucket + (f" · since check #{since}" if since else ""),
+            ))
+        else:
+            neighbors.append(_neighbor(
+                "signed", h["kind"], h["ref"], why=h.get("note", "")
+            ))
+    for r in entity["relations"]:
+        other = entities.get(r["other_id"], {})
+        neighbors.append(_neighbor(
+            "signed", "relation",
+            f"{r['relation'].replace('_', ' ')} {other.get('name', r['other_id'])}",
+            ref=r["other_id"],
+        ))
+    for d in _diffs_touching(diffs, {entity["entity_id"]}, refs):
+        neighbors.append(_neighbor(
+            "thought" if d.status == "open" else "signed", "decision",
+            d.question, ref=d.diff_id,
+            why=d.reasoning, meta=_diff_meta(d),
+        ))
+    seen_checks = set()
+    for a in sorted(analyses, key=lambda a: a.created_at):
+        for impact in a.obligation_impacts:
+            # material findings only — a check that merely LOOKED and
+            # found nothing related is not part of this node's mental
+            # model (it stays complete on the check's own focus)
+            if (impact.obligation_id in refs
+                    and impact.relation.value != "unrelated"
+                    and a.pr_number not in seen_checks):
+                seen_checks.add(a.pr_number)
+                neighbors.append(_neighbor(
+                    "observed", "check",
+                    f"check #{a.pr_number}", ref=str(a.pr_number),
+                    why=impact.reasoning[:200],
+                    meta=impact.relation.value.replace("_", " "),
+                ))
+    for atom in atoms_for(workspace_dir, adapter, store,
+                          entity_id=entity["entity_id"])[-6:]:
+        neighbors.append(_neighbor("observed", "event", atom["text"]))
+    neighbors += _mind_neighbors(
+        mind, refs | {entity["entity_id"]}
+        | {h["ref"] for h in entity["holdings"]},
+    )
+    return {
+        "node": {
+            "kind": "entity", "mood": "signed", "ref": entity["entity_id"],
+            "title": entity["name"], "body": entity["identity_sentence"],
+            "reasoning": creating.reasoning if creating else "",
+            "meta": (
+                _diff_meta(creating) if creating else ""
+            ) + (" · frozen" if entity["status"] != "active" else ""),
+            "status": entity["status"],
+            "record": entity["entity_id"],
+        },
+        "neighbors": neighbors,
+        "authority": {"teach": entity["entity_id"]}
+        if entity["status"] == "active" else {},
+    }
+
+
+def _around_promise(adapter, o, diffs, entities, mind, analyses) -> dict:
+    ref = o.obligation_id
+    current = _current_state(adapter, analyses)
+    entry = current.get(ref) or {}
+    bucket = _VERDICT_BUCKET.get(entry.get("status"), "not yet exercised")
+    since = entry.get("since")
+    neighbors: list[dict] = []
+    for e in entities.values():
+        holding = next(
+            (h for h in e["holdings"]
+             if h["kind"] == "promise" and h["ref"] == ref), None
+        )
+        if holding:
+            neighbors.append(_neighbor(
+                "signed", "entity", e["name"], ref=e["entity_id"],
+                why=holding.get("note", ""),
+                meta=f"holds it · via {holding.get('via', '')}",
+            ))
+    cps = {cp.control_point_id: cp for cp in adapter.control_points()}
+    for b in adapter.bindings():
+        if b.obligation_id == ref and b.control_point_id in cps:
+            cp = cps[b.control_point_id]
+            neighbors.append(_neighbor(
+                "signed", "code", cp.path,
+                why=getattr(cp, "description", ""),
+                meta=b.relation.value.replace("_", " "),
+            ))
+    for d in _diffs_touching(diffs, set(), {ref}):
+        neighbors.append(_neighbor(
+            "thought" if d.status == "open" else "signed", "decision",
+            d.question, ref=d.diff_id, why=d.reasoning, meta=_diff_meta(d),
+        ))
+    for a in sorted(analyses, key=lambda a: a.created_at):
+        for impact in a.obligation_impacts:
+            if (impact.obligation_id == ref
+                    and impact.relation.value != "unrelated"):
+                cite = next(iter(impact.evidence), None)
+                neighbors.append(_neighbor(
+                    "observed", "check",
+                    f"check #{a.pr_number}", ref=str(a.pr_number),
+                    why=impact.reasoning[:200],
+                    meta=impact.relation.value.replace("_", " ")
+                    + (f" · {cite.reference}:{cite.start_line}" if cite else ""),
+                ))
+    neighbors += _mind_neighbors(mind, {ref})
+    source = f"{o.source_reference} {o.source_section}".strip()
+    return {
+        "node": {
+            "kind": "promise", "mood": "signed", "ref": ref,
+            "title": o.statement,
+            "body": (f"from {source}" if source else "")
+            + (f' — “{o.source_quote}”' if getattr(o, "source_quote", "") else ""),
+            "reasoning": "",
+            "meta": bucket + (f" · since check #{since}" if since else ""),
+            "status": bucket,
+        },
+        "neighbors": neighbors,
+        "authority": {},
+    }
+
+
+def _around_diff(diff, entities, obligations, mind) -> dict:
+    neighbors: list[dict] = []
+    for op in diff.operations:
+        for eid in filter(None, {
+            getattr(op, "entity_id", ""), getattr(op, "other_id", ""),
+            getattr(op, "successor_id", ""),
+        }):
+            if eid in entities:
+                neighbors.append(_neighbor(
+                    "signed", "entity", entities[eid]["name"], ref=eid,
+                    meta=op.op.replace("_", " "),
+                ))
+        pref = getattr(op, "ref", None)
+        if pref and pref in obligations:
+            neighbors.append(_neighbor(
+                "signed", "promise", obligations[pref].statement, ref=pref,
+                why=getattr(op, "note", ""), meta=op.op,
+            ))
+    neighbors += _mind_neighbors(mind, {diff.diff_id})
+    quotes = "\n".join(f"“{q.quote}” — {q.source}" for q in diff.evidence)
+    return {
+        "node": {
+            "kind": "decision", "ref": diff.diff_id,
+            "mood": "thought" if diff.status == "open" else "signed",
+            "title": diff.question,
+            "body": quotes,
+            "reasoning": diff.reasoning,
+            "meta": _diff_meta(diff),
+            "status": diff.status,
+        },
+        "neighbors": neighbors,
+        "authority": {"decide_in_inbox": True} if diff.status == "open" else {},
+    }
+
+
+def _around_check(analysis, entities, obligations, mind) -> dict:
+    from quire_align.analysis.render import DISPLAY_LABELS
+
+    neighbors: list[dict] = []
+    for impact in analysis.obligation_impacts:
+        o = obligations.get(impact.obligation_id)
+        cites = "; ".join(
+            f"{e.reference}:{e.start_line}" for e in impact.evidence[:2]
+        )
+        excerpt = next(
+            (e.excerpt for e in impact.evidence if e.excerpt), ""
+        )
+        neighbors.append(_neighbor(
+            "signed", "promise",
+            o.statement if o else impact.obligation_id,
+            ref=impact.obligation_id,
+            why=impact.reasoning,
+            meta=impact.relation.value.replace("_", " ")
+            + (f" · {cites}" if cites else "")
+            + (f" · “{excerpt[:90]}”" if excerpt else ""),
+        ))
+    neighbors += _mind_neighbors(
+        mind, {str(analysis.pr_number), f"check #{analysis.pr_number}"}
+    )
+    return {
+        "node": {
+            "kind": "check", "mood": "observed", "ref": str(analysis.pr_number),
+            "title": f"check #{analysis.pr_number} — {DISPLAY_LABELS[analysis.classification]}",
+            "body": f"commit {analysis.head_sha[:12]} · analyzer "
+            f"{analysis.analyzer_version} · "
+            f"{analysis.created_at.isoformat(timespec='seconds')[:16]}",
+            "reasoning": "",
+            "meta": (
+                f"reviewed: {analysis.review_state.value} · {analysis.reviewer}"
+                if analysis.reviewer else ""
+            ),
+            "status": analysis.classification.value,
+        },
+        "neighbors": neighbors,
+        "authority": {},
+    }
+
+
+def _around_thought(node, mind, entities, obligations) -> dict:
+    neighbors: list[dict] = []
+    for c in node.get("connects", []):
+        ref = c.get("ref", "")
+        if ref in entities:
+            neighbors.append(_neighbor(
+                "signed", "entity", entities[ref]["name"], ref=ref,
+                why=c.get("why", ""),
+            ))
+        elif ref in obligations:
+            neighbors.append(_neighbor(
+                "signed", "promise", obligations[ref].statement, ref=ref,
+                why=c.get("why", ""),
+            ))
+        elif re.fullmatch(r"GD-\d+", ref):
+            neighbors.append(_neighbor(
+                "signed", "decision", ref, ref=ref, why=c.get("why", ""),
+            ))
+        elif ref.isdigit():
+            neighbors.append(_neighbor(
+                "observed", "check", f"check #{ref}", ref=ref,
+                why=c.get("why", ""),
+            ))
+        else:
+            neighbors.append(_neighbor(
+                "signed", "path", ref, why=c.get("why", ""),
+            ))
+    return {
+        "node": {
+            "kind": node.get("kind", "thought"), "mood": "thought",
+            "ref": node["name"], "title": node["name"],
+            "body": node.get("gloss", ""),
+            "reasoning": node.get("reasoning", ""),
+            "meta": f"{node.get('salience', 'ambiguous')} · first seen "
+            f"{node.get('first_seen', '')[:10]} · unsigned",
+            "status": "active",
+        },
+        "neighbors": neighbors,
+        "authority": {"dismiss": node["name"]},
+    }

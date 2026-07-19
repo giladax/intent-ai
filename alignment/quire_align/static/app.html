@@ -87,6 +87,39 @@ font-family:'Spline Sans Mono',monospace;font-size:12px;padding:14px 16px}
 color:var(--caution);border:1px dashed var(--caution);border-radius:99px;padding:1px 8px;margin-right:6px}
 .thread .tgloss{font-size:14px;margin-top:4px}
 .thread .twhy{font-size:12px;color:var(--muted);margin-top:3px;font-style:italic}
+.xtrail{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;align-items:center}
+.xtrail .tchip{font-family:'Spline Sans Mono',monospace;font-size:11px;border:1px solid var(--rule);
+border-radius:99px;padding:3px 10px;background:var(--bone);cursor:pointer;transition:all .25s var(--ease)}
+.xtrail .tchip:hover{background:var(--ink);color:var(--paper)}
+.xtrail .tsep{color:var(--faint);font-size:11px}
+.xfocus{border:1.5px solid var(--ink);border-radius:14px;background:var(--card);padding:18px 22px;
+box-shadow:5px 5px 0 0 var(--wash);margin-top:14px}
+.xfocus.mood-observed{border-style:double;border-width:4px}
+.xfocus.mood-thought{border-style:dashed;border-color:var(--caution);box-shadow:5px 5px 0 0 rgba(180,104,30,.15)}
+.xbadge{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+border-radius:99px;padding:2px 10px;border:1px solid}
+.xbadge.signed{color:var(--ok);border-color:var(--ok)}
+.xbadge.observed{color:var(--muted);border-color:var(--rule)}
+.xbadge.thought{color:var(--caution);border-color:var(--caution);border-style:dashed}
+.xtitle{font-size:clamp(20px,2.4vw,26px);font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-top:8px}
+.xbody{font-family:'Newsreader',serif;font-style:italic;font-size:15.5px;color:var(--muted);margin-top:6px;white-space:pre-line}
+.xmeta{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--faint);margin-top:8px}
+.xreason{background:var(--bone);border-left:3px solid var(--ink);border-radius:0 10px 10px 0;
+padding:10px 14px;margin-top:12px;font-size:14.5px;line-height:1.55}
+.xreason .rl{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.12em;
+text-transform:uppercase;color:var(--faint);display:block;margin-bottom:4px}
+.xrow{padding:9px 0 9px 12px;border-bottom:1px dotted var(--rule);border-left:3px solid transparent;cursor:default}
+.xrow.hop{cursor:pointer;transition:background .25s var(--ease)}
+.xrow.hop:hover{background:var(--wash)}
+.xrow.mood-thought{border-left:3px dashed var(--caution)}
+.xrow.mood-observed{border-left:3px solid var(--rule)}
+.xrow .xtop{display:flex;gap:10px;align-items:baseline}
+.xrow .xkind{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.08em;
+text-transform:uppercase;color:var(--faint);flex:none;width:72px}
+.xrow .xlabel{font-weight:600;font-size:14.5px;line-height:1.4}
+.xrow .xarrow{margin-left:auto;color:var(--faint)}
+.xrow .xrmeta{font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);margin:2px 0 0 82px}
+.xrow .xwhy{font-style:italic;color:var(--muted);font-size:13px;margin:3px 0 0 82px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
 .chip{border:1px solid var(--rule);border-radius:99px;padding:4px 13px;font-size:13.5px;color:var(--muted);
 background:var(--bone);cursor:default}
@@ -156,7 +189,7 @@ footer{margin:70px 0 0;padding-top:12px;border-top:3px double var(--ink);color:v
   <div class="brand">Quire</div>
   <div class="maplabel">The map</div>
   <nav id="entlist"></nav>
-  <div class="railfoot"><a id="inboxlink">in quires</a><a href="#/constellation">constellation</a><a id="ledgerlink">ledger</a></div>
+  <div class="railfoot"><a id="inboxlink">in quires</a><a href="#/explore">navigator</a><a href="#/constellation">constellation</a><a id="ledgerlink">ledger</a></div>
 </aside>
 <main>
   <input class="askpill" id="ask" placeholder="Ask for a name, a promise, or a doubt.">
@@ -397,6 +430,12 @@ async function focus(entityId, promiseRef){
     if (r.ok) focus(e.entity_id);
   });
   chips.appendChild(teach);
+  const structure = el("span", "chip act", "structure →");
+  structure.title = "walk this node's connections and reasoning in the navigator";
+  structure.addEventListener("click", () => {
+    location.hash = "#/explore/" + encodeURIComponent(e.entity_id);
+  });
+  chips.appendChild(structure);
   wrap.appendChild(chips);
 
   if (e.pending.length){
@@ -575,6 +614,7 @@ function route(){
   const parts = (location.hash || "#/map").replace(/^#\/?/, "").split("/");
   if (parts[0] === "entity" && parts[1]) focus(parts[1], parts[2]);
   else if (parts[0] === "constellation") constellation();
+  else if (parts[0] === "explore") explore(parts.slice(1).map(decodeURIComponent));
   else overview();
 }
 window.addEventListener("hashchange", route);
@@ -862,6 +902,158 @@ async function workingThreads(slot, e){
   });
   box.appendChild(el("div", "twhy", "Thinking tools, not decisions — nothing here binds until someone signs it."));
   slot.replaceWith(box);
+}
+
+// The navigator: search a node, walk the mental model. The hero
+// interaction is the chain of custody — claim → reasoning → receipt →
+// file:line → who signed — with the three moods unmistakable and the
+// reasoning first-class. One brain serves this and the MCP surface.
+const MOOD_HEADERS = {
+  signed: "Signed — the law of the map",
+  observed: "Observed — what checks saw",
+  thought: "Thought — the mind, unsigned",
+};
+function exploreHash(trail){
+  return "#/explore/" + trail.map(encodeURIComponent).join("/");
+}
+async function explore(trail){
+  FOCUSED = null;
+  document.querySelector("main").insertBefore(
+    document.getElementById("banner"), document.getElementById("reply"));
+  document.querySelectorAll(".ent.on").forEach(n => n.classList.remove("on"));
+  const stage = document.getElementById("stage");
+  stage.replaceChildren();
+  const wrap = el("div", "rise");
+  const crumb = el("div", "crumb");
+  const back = el("a", "", "the map");
+  back.addEventListener("click", () => { location.hash = "#/map"; });
+  crumb.appendChild(back);
+  crumb.append(" ▸ navigator");
+  wrap.appendChild(crumb);
+
+  if (!trail.length){
+    wrap.appendChild(el("h1", "", "The navigator"));
+    wrap.appendChild(el("div", "identity",
+      "Search any word above, or start from a name — then walk: every claim opens to its reasoning, its receipt, and who signed it."));
+    const chips = el("div", "chips");
+    ENTITIES.filter(e => e.status === "active").forEach(e => {
+      const chip = el("span", "chip act", e.name);
+      chip.addEventListener("click", () => { location.hash = exploreHash([e.entity_id]); });
+      chips.appendChild(chip);
+    });
+    wrap.appendChild(chips);
+    stage.appendChild(wrap);
+    return;
+  }
+
+  const focusRef = trail[trail.length - 1];
+  const res = await fetch(
+    `/api/model/${encodeURIComponent(WS)}/around/${encodeURIComponent(focusRef)}`);
+  if (!res.ok){
+    wrap.appendChild(el("h1", "", "Nothing answers to that"));
+    wrap.appendChild(el("div", "identity",
+      `The brain holds nothing addressed “${focusRef}”. It may have been retold or dismissed.`));
+    const again = el("a", "", "start over");
+    again.addEventListener("click", () => { location.hash = "#/explore"; });
+    wrap.appendChild(again);
+    stage.appendChild(wrap);
+    return;
+  }
+  const d = await res.json();
+
+  // the trail: the walk itself, pasteable
+  if (trail.length > 1 || true){
+    const bar = el("div", "xtrail");
+    bar.appendChild(el("span", "tsep", "the walk:"));
+    trail.forEach((t, i) => {
+      const chip = el("span", "tchip", t);
+      chip.addEventListener("click", () => {
+        location.hash = exploreHash(trail.slice(0, i + 1));
+      });
+      bar.appendChild(chip);
+      if (i < trail.length - 1) bar.appendChild(el("span", "tsep", "→"));
+    });
+    wrap.appendChild(bar);
+  }
+
+  const n = d.node;
+  const card = el("div", "xfocus mood-" + n.mood);
+  const badges = el("div");
+  badges.appendChild(el("span", "xbadge " + n.mood,
+    n.mood === "thought" ? "thought · unsigned" : n.mood));
+  badges.append(" ");
+  badges.appendChild(el("span", "xbadge observed", n.kind));
+  card.appendChild(badges);
+  card.appendChild(el("div", "xtitle", n.title));
+  if (n.body) card.appendChild(el("div", "xbody", n.body));
+  if (n.meta) card.appendChild(el("div", "xmeta", n.meta));
+  if (n.reasoning){
+    const r = el("div", "xreason");
+    r.appendChild(el("span", "rl", "the thinking — kept verbatim"));
+    r.append(n.reasoning);
+    card.appendChild(r);
+  }
+  const acts = el("div", "chips");
+  if (n.record){
+    const rec = el("span", "chip act", "read the record →");
+    rec.addEventListener("click", () => { location.hash = "#/entity/" + n.record; });
+    acts.appendChild(rec);
+  }
+  if (d.authority && d.authority.teach){
+    const teach = el("span", "chip act", "+ teach it a word");
+    teach.addEventListener("click", async () => {
+      const by = reviewer(); if (!by) return;
+      const term = (prompt(`Another word for “${n.title}”:`) || "").trim();
+      if (!term) return;
+      await fetch(`/api/graph/${encodeURIComponent(WS)}/teach`, {method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({term, action: "alias", entity_id: d.authority.teach, by})});
+      route();
+    });
+    acts.appendChild(teach);
+  }
+  if (d.authority && d.authority.dismiss){
+    const dis = el("span", "chip act", "dismiss — it's noise");
+    dis.addEventListener("click", async () => {
+      const by = reviewer(); if (!by) return;
+      const why = (prompt("Why is this noise? (optional)") || "").trim();
+      const r2 = await fetch(`/api/mind/${encodeURIComponent(WS)}/dismiss`, {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name: d.authority.dismiss, by, why})});
+      if (r2.ok){ MIND = null; route(); }
+    });
+    acts.appendChild(dis);
+  }
+  if (d.authority && d.authority.decide_in_inbox){
+    const dec = el("a", "chip act", "signing happens in the inbox →");
+    dec.href = "/inbox/" + encodeURIComponent(WS);
+    acts.appendChild(dec);
+  }
+  if (acts.childNodes.length) card.appendChild(acts);
+  wrap.appendChild(card);
+
+  ["signed", "observed", "thought"].forEach(mood => {
+    const rows = d.neighbors.filter(x => x.mood === mood);
+    if (!rows.length) return;
+    wrap.appendChild(el("h2", "", MOOD_HEADERS[mood]));
+    rows.forEach(x => {
+      const row = el("div", "xrow mood-" + mood + (x.ref ? " hop" : ""));
+      const top = el("div", "xtop");
+      top.appendChild(el("span", "xkind", x.kind));
+      top.appendChild(el("span", "xlabel", x.label));
+      if (x.ref) top.appendChild(el("span", "xarrow", "→"));
+      row.appendChild(top);
+      if (x.meta) row.appendChild(el("div", "xrmeta", x.meta));
+      if (x.why) row.appendChild(el("div", "xwhy", "why: " + x.why));
+      if (x.ref) row.addEventListener("click", () => {
+        location.hash = exploreHash([...trail, x.ref]);
+      });
+      wrap.appendChild(row);
+    });
+  });
+  wrap.appendChild(el("div", "legend",
+    "signed — a human's name is on it · observed — a check saw it · thought — the mind, unsigned · every row shows its why"));
+  stage.appendChild(wrap);
 }
 
 function thoughtSlip(m){

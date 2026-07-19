@@ -727,6 +727,22 @@ def create_app(store: Store | None = None) -> FastAPI:
             )
         return {"story": entry}
 
+    @app.get("/api/model/{workspace:path}/around/{ref}")
+    def model_around(workspace: str, ref: str):
+        """The shared brain's read surface: any ref → focus card + typed
+        neighborhood with the reasoning on every edge. The navigator
+        renders this; the MCP surface wraps it (quire_around) — one
+        brain, two clients. Read-only; no LLM at view time."""
+        from quire_align.model import around
+
+        result = around(
+            _workspace_dir(workspace), _adapter(workspace),
+            app.state.store, ref,
+        )
+        if result is None:
+            raise HTTPException(404, f"nothing in the brain answers to '{ref}'")
+        return result
+
     @app.get("/api/mind/{workspace:path}")
     def mind(workspace: str, llm: bool = True):
         """The working mind — the machine's unsigned thinking nodes, any
