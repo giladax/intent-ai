@@ -1,0 +1,22 @@
+# Local commit ranges analyzed as PRs: number → {base, head, title}.
+# Add an entry and run `analyze <workspace> <number>` to check a commit.
+1:
+  base: 595f1ad09c0c0193bd7f2b738d9606dfb3a377dd^
+  head: 595f1ad09c0c0193bd7f2b738d9606dfb3a377dd
+  title: Add participant awareness, intent/clarity calibration, fix date parsing
+2:
+  base: 6e8c7b6df0ac742fa88bc4385490fa42df0330cc^
+  head: 6e8c7b6df0ac742fa88bc4385490fa42df0330cc
+  title: Fix digestion pipeline, alert system, and message ID tracking
+3:
+  base: b63cd8583b3fc4503098aa1a839bc76be20ee9f1^
+  head: b63cd8583b3fc4503098aa1a839bc76be20ee9f1
+  title: Add 4 end-to-end conversation evals, fix model IDs, full suite report
+4:
+  base: ab1ce2a78d39da53275094751ad9262f26838d3c^
+  head: ab1ce2a78d39da53275094751ad9262f26838d3c
+  title: Improve digest scorer, add dedup/staleness/type detection, persist cursor
+5:
+  base: e00c1d8e9ac363ca59f94a92ae3de15ca2d31c63^
+  head: e00c1d8e9ac363ca59f94a92ae3de15ca2d31c63
+  title: Add real-time per-message CEO alerts, fix mention parsing

@@ -1,0 +1,6 @@
+# Approved intent sources, read from the repo checkout.
+# status governs authority: only `approved` sources feed the analyzer.
+- reference: DESIGN
+  path: docs/DESIGN.md
+  status: approved
+  version: onboard-1

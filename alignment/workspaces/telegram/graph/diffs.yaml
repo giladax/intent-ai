@@ -1,0 +1,721 @@
+- diff_id: GD-1
+  question: These 1 promise and 2 code locations describe one thing — call it Message
+    Ingestion?
+  proposed_by: llm
+  evidence:
+  - quote: Every raw message must be saved to the database before any other processing
+      occurs.
+    source: TELEGR-002 · DESIGN Architecture
+  operations:
+  - op: create_entity
+    entity_id: ent-message-ingestion
+    name: Message Ingestion
+    identity_sentence: The step that saves every raw group message to the database
+      before any other processing can touch it.
+    aliases:
+    - raw message saving
+    - message persistence
+    - pre-processing save
+  - op: attach
+    entity_id: ent-message-ingestion
+    kind: promise
+    ref: TELEGR-002
+    note: ''
+  - op: attach
+    entity_id: ent-message-ingestion
+    kind: code
+    ref: src/telegram/handlers.ts
+    note: bound to TELEGR-001, TELEGR-002
+  - op: attach
+    entity_id: ent-message-ingestion
+    kind: code
+    ref: src/telegram/saveMessage.ts
+    note: bound to TELEGR-002
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: TELEGR-002 is a single, atomic durability guarantee about the write-first
+    contract. It doesn't belong with digestion (which transforms facts) or with the
+    pipeline cursor (which tracks progress). It is the entry gate for all data and
+    deserves its own entity so the org can reason about it independently. The name
+    'Message Ingestion' is product-language and scoped — it does not describe most
+    promises.
+  stakes: 1.6
+  shape_key: 7f1a4b42c02d
+  status: approved
+  proposed_at: '2026-07-19T15:29:32+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:31:13+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-2
+  question: These 1 promise and 3 code locations describe one thing — call it Group
+    Chat Behaviour?
+  proposed_by: llm
+  evidence:
+  - quote: Scout must never respond to regular (non-command) messages in the group
+      chat.
+    source: TELEGR-001 · DESIGN Quiet by Default
+  operations:
+  - op: create_entity
+    entity_id: ent-group-chat-behaviour
+    name: Group Chat Behaviour
+    identity_sentence: The rules governing how Scout participates — and deliberately
+      does not participate — in the group chat.
+    aliases:
+    - chat presence
+    - command handling
+    - group message handling
+  - op: attach
+    entity_id: ent-group-chat-behaviour
+    kind: promise
+    ref: TELEGR-001
+    note: ''
+  - op: attach
+    entity_id: ent-group-chat-behaviour
+    kind: code
+    ref: src/evals/cases/conversation.ts
+    note: bound to TELEGR-001
+  - op: attach
+    entity_id: ent-group-chat-behaviour
+    kind: code
+    ref: src/telegram/handlers.ts
+    note: bound to TELEGR-001, TELEGR-002
+  - op: attach
+    entity_id: ent-group-chat-behaviour
+    kind: code
+    ref: src/telegram/parseCommand.ts
+    note: bound to TELEGR-001
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: TELEGR-001 is a behavioural constraint on Scout's chat presence — it
+    is about what Scout does NOT do in the group, which is a distinct product-level
+    decision. It pairs conceptually with command parsing but is not the same thing
+    as routing or digestion. Keeping it separate makes the 'silence contract' visible
+    on the map. The name is scoped to the group chat surface, not the whole product.
+  stakes: 1.8
+  shape_key: e0da9ab475e7
+  status: approved
+  proposed_at: '2026-07-19T15:29:32+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:31:13+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: true
+    final_operations:
+    - op: create_entity
+      entity_id: ent-group-chat-behaviour
+      name: Quiet by Default
+      identity_sentence: The rules governing how Scout participates — and deliberately
+        does not participate — in the group chat.
+      aliases:
+      - chat presence
+      - command handling
+      - group message handling
+      - group chat behaviour
+    - op: attach
+      entity_id: ent-group-chat-behaviour
+      kind: promise
+      ref: TELEGR-001
+      note: ''
+    - op: attach
+      entity_id: ent-group-chat-behaviour
+      kind: code
+      ref: src/evals/cases/conversation.ts
+      note: bound to TELEGR-001
+    - op: attach
+      entity_id: ent-group-chat-behaviour
+      kind: code
+      ref: src/telegram/handlers.ts
+      note: bound to TELEGR-001, TELEGR-002
+    - op: attach
+      entity_id: ent-group-chat-behaviour
+      kind: code
+      ref: src/telegram/parseCommand.ts
+      note: bound to TELEGR-001
+- diff_id: GD-3
+  question: These 2 promises and 3 code locations describe one thing — call it Fact
+    Merge Pipeline?
+  proposed_by: llm
+  evidence:
+  - quote: The alert check must run before facts are merged, so new facts are not
+      mistakenly treated as already known.
+    source: TELEGR-003 · DESIGN Digestion Pipeline
+  - quote: Facts must be deduplicated by source message overlap AND content similarity
+      (Jaccard > 0.6) during the merge step.
+    source: TELEGR-004 · DESIGN Digestion Pipeline
+  operations:
+  - op: create_entity
+    entity_id: ent-fact-merge-pipeline
+    name: Fact Merge Pipeline
+    identity_sentence: The digestion sub-step that deduplicates and merges extracted
+      facts using source-overlap and content-similarity checks before committing them
+      to the knowledge store.
+    aliases:
+    - fact deduplication
+    - fact merging
+    - merge step
+  - op: attach
+    entity_id: ent-fact-merge-pipeline
+    kind: promise
+    ref: TELEGR-003
+    note: ''
+  - op: attach
+    entity_id: ent-fact-merge-pipeline
+    kind: promise
+    ref: TELEGR-004
+    note: ''
+  - op: attach
+    entity_id: ent-fact-merge-pipeline
+    kind: code
+    ref: src/alerts/checkAlert.ts
+    note: bound to TELEGR-003, TELEGR-007, TELEGR-009
+  - op: attach
+    entity_id: ent-fact-merge-pipeline
+    kind: code
+    ref: src/digestion/graph.ts
+    note: bound to TELEGR-003, TELEGR-006, TELEGR-007, TELEGR-008
+  - op: attach
+    entity_id: ent-fact-merge-pipeline
+    kind: code
+    ref: src/digestion/mergeFacts.ts
+    note: bound to TELEGR-003, TELEGR-004
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: TELEGR-003 and TELEGR-004 are both about the integrity of the fact-merge
+    operation. TELEGR-004 defines the deduplication algorithm; TELEGR-003 defines
+    the ordering constraint that protects that algorithm from false positives. They
+    are two sides of the same correctness guarantee for the merge step. Grouping them
+    here — rather than scattering TELEGR-003 into the alert entity — keeps the merge
+    contract whole. The name is narrower than 'Digestion Pipeline' (which also covers
+    stale sweeping and the cursor).
+  stakes: 2.0
+  shape_key: bde4367ae5ec
+  status: approved
+  proposed_at: '2026-07-19T15:29:32+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:31:13+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: true
+    final_operations:
+    - op: create_entity
+      entity_id: ent-fact-merge-pipeline
+      name: Fact Merging
+      identity_sentence: The digestion sub-step that deduplicates and merges extracted
+        facts using source-overlap and content-similarity checks before committing
+        them to the knowledge store.
+      aliases:
+      - fact deduplication
+      - fact merging
+      - merge step
+      - fact merge pipeline
+    - op: attach
+      entity_id: ent-fact-merge-pipeline
+      kind: promise
+      ref: TELEGR-003
+      note: ''
+    - op: attach
+      entity_id: ent-fact-merge-pipeline
+      kind: promise
+      ref: TELEGR-004
+      note: ''
+    - op: attach
+      entity_id: ent-fact-merge-pipeline
+      kind: code
+      ref: src/digestion/graph.ts
+      note: bound to TELEGR-003, TELEGR-006, TELEGR-007, TELEGR-008
+    - op: attach
+      entity_id: ent-fact-merge-pipeline
+      kind: code
+      ref: src/digestion/mergeFacts.ts
+      note: bound to TELEGR-003, TELEGR-004
+- diff_id: GD-4
+  question: These 2 promises and 4 code locations describe one thing — call it Digestion
+    Pipeline?
+  proposed_by: llm
+  evidence:
+  - quote: The digestion pipeline must sweep stale facts — marking overdue deadlines
+      and action items as resolved — on every digestion cycle.
+    source: TELEGR-006 · DESIGN Digestion Pipeline
+  - quote: The pipeline must track a lastDigestedMessageId cursor so each run only
+      processes new messages since the last digestion, with no re-processing.
+    source: TELEGR-008 · DESIGN Digestion Pipeline
+  operations:
+  - op: create_entity
+    entity_id: ent-digestion-pipeline
+    name: Digestion Pipeline
+    identity_sentence: The recurring cycle that processes new messages into facts,
+      sweeps stale items, and advances the progress cursor — forming the core knowledge-maintenance
+      loop.
+    aliases:
+    - digestion cycle
+    - digestion sweep
+    - pipeline run
+  - op: attach
+    entity_id: ent-digestion-pipeline
+    kind: promise
+    ref: TELEGR-006
+    note: ''
+  - op: attach
+    entity_id: ent-digestion-pipeline
+    kind: promise
+    ref: TELEGR-008
+    note: ''
+  - op: attach
+    entity_id: ent-digestion-pipeline
+    kind: code
+    ref: src/digestion/graph.ts
+    note: bound to TELEGR-003, TELEGR-006, TELEGR-007, TELEGR-008
+  - op: attach
+    entity_id: ent-digestion-pipeline
+    kind: code
+    ref: src/digestion/sweepStale.ts
+    note: bound to TELEGR-006
+  - op: attach
+    entity_id: ent-digestion-pipeline
+    kind: code
+    ref: src/digestion/trigger.ts
+    note: bound to TELEGR-008
+  - op: attach
+    entity_id: ent-digestion-pipeline
+    kind: code
+    ref: src/digestion/updateState.ts
+    note: bound to TELEGR-008
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: 'TELEGR-006 (stale sweep) and TELEGR-008 (cursor / idempotency) are both
+    properties of the digestion cycle as a whole — they describe what every run must
+    do and how it knows where to start. Fact Merge Pipeline is a child of this entity
+    because it is one sub-step within the cycle. The name ''Digestion Pipeline'' is
+    well-scoped: it covers the cycle mechanics without describing the entire product.'
+  stakes: 2.2
+  shape_key: 7f1af65da9e2
+  status: approved
+  proposed_at: '2026-07-19T15:29:32+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:31:13+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-5
+  question: These 2 promises and 5 code locations describe one thing — call it CEO
+    Alert Delivery?
+  proposed_by: llm
+  evidence:
+  - quote: CEO alerts must be sent as a private DM, not posted in the group chat.
+    source: TELEGR-005 · DESIGN Quiet by Default
+  - quote: Scout may send a CEO alert DM only when the model judges the CEO would
+      regret missing the information if they were busy for a few hours.
+    source: TELEGR-009 · DESIGN CEO Alerts
+  operations:
+  - op: create_entity
+    entity_id: ent-ceo-alert-delivery
+    name: CEO Alert Delivery
+    identity_sentence: The capability that decides when Scout should send a CEO alert
+      and delivers it as a private DM rather than posting in the group.
+    aliases:
+    - CEO DM
+    - alert delivery
+    - private alert
+  - op: attach
+    entity_id: ent-ceo-alert-delivery
+    kind: promise
+    ref: TELEGR-005
+    note: ''
+  - op: attach
+    entity_id: ent-ceo-alert-delivery
+    kind: promise
+    ref: TELEGR-009
+    note: ''
+  - op: attach
+    entity_id: ent-ceo-alert-delivery
+    kind: code
+    ref: src/alerts/checkAlert.ts
+    note: bound to TELEGR-003, TELEGR-007, TELEGR-009
+  - op: attach
+    entity_id: ent-ceo-alert-delivery
+    kind: code
+    ref: src/alerts/checkMessageAlert.ts
+    note: bound to TELEGR-007, TELEGR-009
+  - op: attach
+    entity_id: ent-ceo-alert-delivery
+    kind: code
+    ref: src/alerts/index.ts
+    note: bound to TELEGR-005
+  - op: attach
+    entity_id: ent-ceo-alert-delivery
+    kind: code
+    ref: src/alerts/sendAlert.ts
+    note: bound to TELEGR-005
+  - op: attach
+    entity_id: ent-ceo-alert-delivery
+    kind: code
+    ref: src/evals/cases/alert.ts
+    note: bound to TELEGR-009
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: 'TELEGR-005 and TELEGR-009 are both about the CEO alert feature: one
+    sets the delivery channel (private DM), the other sets the triggering threshold
+    (regret heuristic). They are two halves of the same user-facing capability. Separating
+    them would leave each half without context. The mechanical areas split them across
+    ''alerts/sent/private'' and ''send/judges/would'', but from a product perspective
+    they are one thing: the CEO alert.'
+  stakes: 2.4
+  shape_key: 86b25056a4d3
+  status: approved
+  proposed_at: '2026-07-19T15:29:32+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:31:13+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: true
+    final_operations:
+    - op: create_entity
+      entity_id: ent-ceo-alert-delivery
+      name: CEO Alerts
+      identity_sentence: The capability that decides when Scout should send a CEO
+        alert and delivers it as a private DM rather than posting in the group.
+      aliases:
+      - CEO DM
+      - alert delivery
+      - private alert
+      - CEO alert delivery
+    - op: attach
+      entity_id: ent-ceo-alert-delivery
+      kind: promise
+      ref: TELEGR-005
+      note: ''
+    - op: attach
+      entity_id: ent-ceo-alert-delivery
+      kind: promise
+      ref: TELEGR-009
+      note: ''
+    - op: attach
+      entity_id: ent-ceo-alert-delivery
+      kind: code
+      ref: src/alerts/checkAlert.ts
+      note: bound to TELEGR-003, TELEGR-007, TELEGR-009
+    - op: attach
+      entity_id: ent-ceo-alert-delivery
+      kind: code
+      ref: src/alerts/checkMessageAlert.ts
+      note: bound to TELEGR-007, TELEGR-009
+    - op: attach
+      entity_id: ent-ceo-alert-delivery
+      kind: code
+      ref: src/alerts/index.ts
+      note: bound to TELEGR-005
+    - op: attach
+      entity_id: ent-ceo-alert-delivery
+      kind: code
+      ref: src/alerts/sendAlert.ts
+      note: bound to TELEGR-005
+    - op: attach
+      entity_id: ent-ceo-alert-delivery
+      kind: code
+      ref: src/evals/cases/alert.ts
+      note: bound to TELEGR-009
+- diff_id: GD-6
+  question: These 1 promise and 3 code locations describe one thing — call it Group
+    Chat Handler?
+  proposed_by: llm
+  evidence:
+  - quote: Scout must never respond to regular (non-command) messages in the group
+      chat.
+    source: TELEGR-001 · DESIGN Quiet by Default
+  operations:
+  - op: create_entity
+    entity_id: ent-group-chat-handler
+    name: Group Chat Handler
+    identity_sentence: The component that governs how Scout behaves in the group chat,
+      enforcing command-only interaction and parsing incoming commands.
+    aliases:
+    - command handler
+    - chat interaction rules
+    - group message handler
+  - op: attach
+    entity_id: ent-group-chat-handler
+    kind: promise
+    ref: TELEGR-001
+    note: ''
+  - op: attach
+    entity_id: ent-group-chat-handler
+    kind: code
+    ref: src/evals/cases/conversation.ts
+    note: bound to TELEGR-001
+  - op: attach
+    entity_id: ent-group-chat-handler
+    kind: code
+    ref: src/telegram/handlers.ts
+    note: bound to TELEGR-001, TELEGR-002
+  - op: attach
+    entity_id: ent-group-chat-handler
+    kind: code
+    ref: src/telegram/parseCommand.ts
+    note: bound to TELEGR-001
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: TELEGR-001 is specifically about Scout's behavior in the group chat context
+    — a distinct surface from DMs and from the internal pipeline. It pairs with the
+    command-parsing code (src/telegram/parseCommand.ts, src/telegram/handlers.ts)
+    and is the org-facing rule for 'what Scout does in the chat'. Keeping it separate
+    from the digestion pipeline and alert delivery is correct because it governs a
+    different interaction surface.
+  stakes: 1.8
+  shape_key: 92a7feb26045
+  status: rejected
+  proposed_at: '2026-07-19T15:31:21+00:00'
+  decision:
+    action: rejected
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:32:23+00:00'
+    reason_code: other
+    reason_text: 'Duplicate: TELEGR-001 and these code locations are already held
+      by the approved entity ''Quiet by Default'' (renamed from Group Chat Behaviour),
+      so the name-dedup missed it.'
+    amended: false
+- diff_id: GD-7
+  question: These 2 promises and 10 code locations describe one thing — call it Router?
+  proposed_by: llm
+  evidence:
+  - quote: The router must use the Haiku model for digestion, alert checks, and routing
+      decisions; the Sonnet model must be used for briefings, research, and Q&A.
+    source: TELEGR-007 · DESIGN Model Orchestration
+  - quote: The router must always return both an intent value and a clarity value,
+      which together control the depth of the model's response.
+    source: TELEGR-011 · DESIGN The Router Prescribes Context
+  operations:
+  - op: create_entity
+    entity_id: ent-router
+    name: Router
+    identity_sentence: The central routing layer that classifies every request by
+      intent and clarity, selects the appropriate model tier, and dispatches to the
+      correct handler.
+    aliases:
+    - intent router
+    - request router
+    - model router
+  - op: attach
+    entity_id: ent-router
+    kind: promise
+    ref: TELEGR-007
+    note: ''
+  - op: attach
+    entity_id: ent-router
+    kind: promise
+    ref: TELEGR-011
+    note: ''
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/alerts/checkAlert.ts
+    note: bound to TELEGR-003, TELEGR-007, TELEGR-009
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/alerts/checkMessageAlert.ts
+    note: bound to TELEGR-007, TELEGR-009
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/config/env.ts
+    note: bound to TELEGR-007
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/digestion/graph.ts
+    note: bound to TELEGR-003, TELEGR-006, TELEGR-007, TELEGR-008
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/evals/cases/router.ts
+    note: bound to TELEGR-007, TELEGR-011
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/pipeline/process.ts
+    note: bound to TELEGR-007, TELEGR-010
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/router/index.ts
+    note: bound to TELEGR-011
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/router/route.ts
+    note: bound to TELEGR-007, TELEGR-011
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/types/index.ts
+    note: bound to TELEGR-011
+  - op: attach
+    entity_id: ent-router
+    kind: code
+    ref: src/types/schemas.ts
+    note: bound to TELEGR-011
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: 'TELEGR-007 and TELEGR-011 both describe invariants of the routing layer
+    itself: 011 defines the router''s output contract (intent + clarity), and 007
+    defines the router''s model-selection policy. They are both ''router must…'' promises
+    and belong together. The mechanical areas placed them in separate clusters (''model/haiku/checks''
+    and ''value/return/both''), but they are clearly about the same component. Naming
+    it ''Router'' matches the org''s own code structure (src/router/).'
+  stakes: 3.4
+  shape_key: 21d839b71096
+  status: approved
+  proposed_at: '2026-07-19T15:31:21+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:32:23+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: true
+    final_operations:
+    - op: create_entity
+      entity_id: ent-router
+      name: Router
+      identity_sentence: The central routing layer that classifies every request by
+        intent and clarity, selects the appropriate model tier, and dispatches to
+        the correct handler.
+      aliases:
+      - intent router
+      - request router
+      - model router
+    - op: attach
+      entity_id: ent-router
+      kind: promise
+      ref: TELEGR-007
+      note: ''
+    - op: attach
+      entity_id: ent-router
+      kind: promise
+      ref: TELEGR-011
+      note: ''
+    - op: attach
+      entity_id: ent-router
+      kind: code
+      ref: src/config/env.ts
+      note: bound to TELEGR-007
+    - op: attach
+      entity_id: ent-router
+      kind: code
+      ref: src/evals/cases/router.ts
+      note: bound to TELEGR-007, TELEGR-011
+    - op: attach
+      entity_id: ent-router
+      kind: code
+      ref: src/pipeline/process.ts
+      note: bound to TELEGR-007, TELEGR-010
+    - op: attach
+      entity_id: ent-router
+      kind: code
+      ref: src/router/index.ts
+      note: bound to TELEGR-011
+    - op: attach
+      entity_id: ent-router
+      kind: code
+      ref: src/router/route.ts
+      note: bound to TELEGR-007, TELEGR-011
+    - op: attach
+      entity_id: ent-router
+      kind: code
+      ref: src/types/index.ts
+      note: bound to TELEGR-011
+    - op: attach
+      entity_id: ent-router
+      kind: code
+      ref: src/types/schemas.ts
+      note: bound to TELEGR-011
+- diff_id: GD-8
+  question: These 1 promise and 2 code locations describe one thing — call it Research
+    Commands?
+  proposed_by: llm
+  evidence:
+  - quote: Research commands must use Claude's server-side web_search and web_fetch
+      tools, with no external search API dependencies.
+    source: TELEGR-010 · DESIGN Model Orchestration
+  operations:
+  - op: create_entity
+    entity_id: ent-research-commands
+    name: Research Commands
+    identity_sentence: The set of commands that fulfill research and Q&A requests
+      using Claude's built-in web search and fetch tools, with no external API dependencies.
+    aliases:
+    - web research
+    - search commands
+    - Claude research tools
+  - op: attach
+    entity_id: ent-research-commands
+    kind: promise
+    ref: TELEGR-010
+    note: ''
+  - op: attach
+    entity_id: ent-research-commands
+    kind: code
+    ref: src/pipeline/composePrompt.ts
+    note: bound to TELEGR-010
+  - op: attach
+    entity_id: ent-research-commands
+    kind: code
+    ref: src/pipeline/process.ts
+    note: bound to TELEGR-007, TELEGR-010
+  mechanics_note: the file attachments come from approved code links, not from reasoning
+    — each is individually removable in Edit
+  reasoning: TELEGR-010 is a self-contained promise about a specific command category
+    — research/Q&A — and its tooling constraint. It doesn't fold naturally into the
+    Router (which governs dispatch logic, not tool selection) or the Group Chat Handler
+    (which governs silence rules). It maps to a distinct product capability the org
+    would name and discuss separately. One promise is sufficient when it fully defines
+    a named capability.
+  stakes: 1.6
+  shape_key: ea329b3be546
+  status: approved
+  proposed_at: '2026-07-19T15:31:21+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:32:24+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-9
+  question: Fact Merging is part of Digestion Pipeline — says claude (assisted onboarding)
+  proposed_by: human:claude (assisted onboarding)
+  evidence:
+  - quote: 'Realizes the relation the first seeding pass deferred: fact merging is
+      a sub-step of the digestion cycle.'
+    source: said by claude (assisted onboarding)
+  operations:
+  - op: relate
+    entity_id: ent-fact-merge-pipeline
+    relation: part_of
+    other_id: ent-digestion-pipeline
+  mechanics_note: ''
+  reasoning: 'Realizes the relation the first seeding pass deferred: fact merging
+    is a sub-step of the digestion cycle.'
+  stakes: 0.5
+  shape_key: 61eed30966d9
+  status: approved
+  proposed_at: '2026-07-19T15:32:35+00:00'
+  decision:
+    action: approved
+    by: claude (assisted onboarding)
+    at: '2026-07-19T15:32:41+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
