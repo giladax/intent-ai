@@ -551,6 +551,10 @@ def up(
     entities = graph_state(diffs)["entities"]
     active = [e for e in entities.values() if e["status"] == "active"]
     awaiting = len(open_proposals(diffs))
+
+    already_running = False
+    if not print_only:
+        port, already_running = _resolve_port(host, port)
     base = f"http://{host}:{port}"
 
     typer.secho(f"workspace: {workspace}  ({ws_dir})", bold=True)
@@ -577,6 +581,17 @@ def up(
     if print_only:
         return
 
+    if already_running:
+        typer.secho(
+            f"already serving on port {port} — using the running server",
+            fg=typer.colors.CYAN,
+        )
+        if open_browser:
+            import webbrowser
+
+            webbrowser.open(f"{base}/inbox/{workspace}")
+        return
+
     if open_browser:
         import threading
         import webbrowser
@@ -590,6 +605,32 @@ def up(
     from quire_align.api import create_app
 
     uvicorn.run(create_app(), host=host, port=port)
+
+
+def _resolve_port(host: str, port: int) -> tuple[int, bool]:
+    """(port, already_running). If the requested port is busy: reuse it
+    when the occupant is a Quire server, otherwise walk to a free one."""
+    import socket
+    import urllib.request
+
+    for candidate in range(port, port + 10):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            free = probe.connect_ex((host, candidate)) != 0
+        if free:
+            return candidate, False
+        try:
+            with urllib.request.urlopen(
+                f"http://{host}:{candidate}/openapi.json", timeout=1.5
+            ) as response:
+                import json
+
+                if json.load(response).get("info", {}).get("title") == "Quire Align":
+                    return candidate, True
+        except Exception:
+            pass  # busy, but not ours — try the next port
+    raise typer.BadParameter(
+        f"no free port in {port}..{port + 9} and none of them is a Quire server"
+    )
 
 
 if __name__ == "__main__":
