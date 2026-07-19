@@ -21,14 +21,24 @@ _env_loaded = False
 
 def load_env() -> None:
     """Load credentials once: repo-root .env (ANTHROPIC_API_KEY,
-    LANGSMITH_*, GITHUB_TOKEN) then any local .env overrides."""
+    LANGSMITH_*, GITHUB_TOKEN) then any local .env overrides.
+
+    LangSmith TRACING defaults OFF for product paths — it is telemetry,
+    and an exhausted trace quota spams every CLI run with rate-limit
+    errors that read like failures. Opt back in with QUIRE_TRACE=1
+    (eval work); the LangSmith dataset client is unaffected either way."""
     global _env_loaded
     if _env_loaded:
         return
+    import os
+
     from dotenv import load_dotenv
 
     load_dotenv(_ROOT.parent / ".env")
     load_dotenv()
+    if os.environ.get("QUIRE_TRACE") != "1":
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"
+        os.environ["LANGSMITH_TRACING"] = "false"
     _env_loaded = True
 
 
