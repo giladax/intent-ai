@@ -529,5 +529,68 @@ def teach(
         raise typer.Exit(1)
 
 
+@app.command()
+def up(
+    workspace: str = typer.Argument("quire-brain", help="workspace dir or name"),
+    port: int = typer.Option(8321),
+    host: str = typer.Option("127.0.0.1"),
+    open_browser: bool = typer.Option(
+        True, "--open/--no-open", help="open the inbox in your browser"
+    ),
+    print_only: bool = typer.Option(False, hidden=True),
+):
+    """The common setup, one command: check credentials, show where the
+    map stands, print every door, open the inbox, start serving."""
+    import os
+
+    from quire_align.entity_graph import graph_state, load_diffs, open_proposals
+    from quire_align.text import plural as _plural
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    diffs = load_diffs(ws_dir)
+    entities = graph_state(diffs)["entities"]
+    active = [e for e in entities.values() if e["status"] == "active"]
+    awaiting = len(open_proposals(diffs))
+    base = f"http://{host}:{port}"
+
+    typer.secho(f"workspace: {workspace}  ({ws_dir})", bold=True)
+    typer.echo(
+        f"  the map: {_plural(len(active), 'entity', 'entities')}, "
+        f"{_plural(awaiting, 'proposal')} awaiting a human"
+    )
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        typer.echo("  credentials: ANTHROPIC_API_KEY found — live features on")
+    else:
+        typer.secho(
+            "  credentials: no ANTHROPIC_API_KEY — checks and proposals that "
+            "need the model will fail; offline analysis still works",
+            fg=typer.colors.YELLOW,
+        )
+    typer.echo("doors:")
+    typer.echo(f"  inbox (decide proposals):    {base}/inbox/{workspace}")
+    typer.echo(f"  ask & teach (the ask box):   {base}/intent/{workspace}")
+    typer.echo(f"  situation mirror:            {base}/mirror/{workspace}")
+    typer.echo("commands while this runs:")
+    typer.echo(f"  python3 -m quire_align.cli propose-entities {workspace}")
+    typer.echo(f"  python3 -m quire_align.cli entities {workspace}")
+    typer.echo(f"  python3 -m quire_align.cli teach {workspace} <term> --alias-of <entity-id> --by you")
+    if print_only:
+        return
+
+    if open_browser:
+        import threading
+        import webbrowser
+
+        threading.Timer(
+            1.2, webbrowser.open, [f"{base}/inbox/{workspace}"]
+        ).start()
+
+    import uvicorn
+
+    from quire_align.api import create_app
+
+    uvicorn.run(create_app(), host=host, port=port)
+
+
 if __name__ == "__main__":
     app()

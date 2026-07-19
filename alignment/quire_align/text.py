@@ -72,8 +72,9 @@ def jaccard_similarity(a: set, b: set) -> float:
     return len(a & b) / max(len(a | b), 1)
 
 
-def plural(n: int, noun: str) -> str:
+def plural(n: int, noun: str, nouns: str = "") -> str:
     """'1 promise' / '3 promises' — '(s)' reads as template residue.
+    Pass ``nouns`` for irregular plurals ('entity' → 'entities').
     Promoted from mirror.py once a third caller appeared (mirror, the
     enrich CLI, entity-proposal card questions)."""
-    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+    return f"{n} {noun}" if n == 1 else f"{n} {nouns or noun + 's'}"

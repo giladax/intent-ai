@@ -91,3 +91,15 @@ def test_main_guard_is_last_statement_in_cli_module():
         "the `if __name__ == '__main__'` guard must be the last top-level "
         "statement in cli.py — something was appended after it"
     )
+
+
+def test_up_prints_the_doors_without_serving():
+    from typer.testing import CliRunner
+
+    from quire_align.cli import app
+
+    result = CliRunner().invoke(app, ["up", "quire-brain", "--print-only", "--no-open"])
+    assert result.exit_code == 0, result.output
+    for door in ("/inbox/quire-brain", "/intent/quire-brain", "/mirror/quire-brain"):
+        assert door in result.output
+    assert "entities" in result.output and "awaiting a human" in result.output
