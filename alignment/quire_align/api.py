@@ -220,7 +220,7 @@ def create_app(store: Store | None = None) -> FastAPI:
         repo = pathlib.Path(request.repo).expanduser().resolve()
         llm = ProposerLLM()
         all_obligations, all_bindings, notes = [], [], []
-        for doc_rel in request.docs:
+        for doc_index, doc_rel in enumerate(request.docs, start=1):
             doc = (repo / doc_rel).read_text()
             reference = pathlib.Path(doc_rel).stem
             candidates = llm.extract_obligations(doc)
@@ -234,9 +234,22 @@ def create_app(store: Store | None = None) -> FastAPI:
             obligations, bindings, doc_notes = validate_candidates(
                 candidates, binding_candidates, doc, scoped_tree
             )
+            # Draft ids restart per doc (each LLM call numbers from 1) —
+            # namespace them by doc before pooling, or two docs' OB-DRAFT-001s
+            # collapse in the approval id_map and bindings land on the wrong
+            # promise (found live in the pydantic scale run).
+            def _ns(draft_id: str) -> str:
+                return f"D{doc_index}-{draft_id}"
             for o in obligations:
-                all_obligations.append({**o.model_dump(), "source_reference": reference})
-            all_bindings.extend(b.model_dump() for b in bindings)
+                all_obligations.append({
+                    **o.model_dump(),
+                    "obligation_id": _ns(o.obligation_id),
+                    "source_reference": reference,
+                })
+            all_bindings.extend(
+                {**b.model_dump(), "obligation_id": _ns(b.obligation_id)}
+                for b in bindings
+            )
             notes.extend(doc_notes)
 
         # Control-point ids are minted HERE, server-side, from the full path
@@ -396,7 +409,9 @@ def create_app(store: Store | None = None) -> FastAPI:
         from quire_align.entity_graph import graph_state, load_diffs, resolve_entity
 
         ws_dir = _workspace_dir(workspace)
-        entity_state = graph_state(load_diffs(ws_dir))
+        from quire_align.entity_graph import read_state
+
+        entity_state = read_state(ws_dir)[1]
         entity_hit = resolve_entity(entity_state, q)
         if entity_hit and entity_hit["entity"]:
             return {
@@ -697,7 +712,9 @@ def create_app(store: Store | None = None) -> FastAPI:
         if scope == "entity":
             from quire_align.entity_graph import graph_state, load_diffs
 
-            if entity_id not in graph_state(load_diffs(ws_dir))["entities"]:
+            from quire_align.entity_graph import read_state
+
+            if entity_id not in read_state(ws_dir)[1]["entities"]:
                 raise HTTPException(404, f"no entity '{entity_id}'")
         teller = None
         judge = None
@@ -886,10 +903,10 @@ def create_app(store: Store | None = None) -> FastAPI:
         """Current health per promise from the latest check state — the
         glyph vocabulary is exactly ✖ contradicted · ◐ partial · ✔ kept ·
         '·' unexercised (rule 4: unexercised is never counted as kept)."""
-        from quire_align.timeline import build_timeline
+        from quire_align.timeline import cached_timeline
 
         analyses = app.state.store.list_analyses(repository=adapter.repository())
-        events = build_timeline(adapter, analyses)["events"]
+        events = cached_timeline(adapter, analyses)["events"]
         current = events[-1]["state_after"] if events else {}
         buckets = {
             "contradicts": "contradicted",

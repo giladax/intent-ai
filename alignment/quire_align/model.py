@@ -115,8 +115,9 @@ def around(workspace_dir: pathlib.Path, adapter, store, ref: str) -> dict | None
     # at ~100–150 checks, or when a read exceeds ~2.5s, whichever comes
     # first (the round-2 CTO's re-pegged trigger; round 1's "~300–500
     # checks" figure is stale and must not be cited).
-    diffs = load_diffs(workspace_dir)
-    state = graph_state(diffs)
+    from quire_align.entity_graph import read_state
+
+    diffs, state = read_state(workspace_dir)  # read-only; never mutated
     entities = state["entities"]
     obligations = {o.obligation_id: o for o in adapter.obligations()}
     mind = read_mind_cache(workspace_dir)

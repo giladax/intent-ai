@@ -473,6 +473,39 @@ def graph_file(workspace_dir: pathlib.Path) -> pathlib.Path:
     return workspace_dir / "graph" / "diffs.yaml"
 
 
+# Read-path cache: the fold recomputes on every request, and the scale
+# run (2026-07-20 dossier) measured reads grazing the 2.5s trouble line
+# at a tenth of the pegged check volume — the ~1s floor was this
+# parse+fold. Keyed on the diff file's signature; a write changes the
+# signature, so staleness is impossible. READ-ONLY CONTRACT: callers of
+# read_state must never mutate what it returns — writers (append/decide)
+# always load fresh via load_diffs.
+_READ_CACHE: dict[str, tuple[tuple, list, dict]] = {}
+
+
+def _file_sig(path: pathlib.Path) -> tuple:
+    try:
+        st = path.stat()
+        return (st.st_mtime_ns, st.st_size)
+    except FileNotFoundError:
+        return (0, 0)
+
+
+def read_state(workspace_dir: pathlib.Path) -> tuple[list[GraphDiff], dict]:
+    """(diffs, folded state) for READ paths — cached until the log
+    changes on disk. Never mutate the returned objects."""
+    path = graph_file(workspace_dir)
+    key = str(path)
+    sig = _file_sig(path)
+    hit = _READ_CACHE.get(key)
+    if hit and hit[0] == sig:
+        return hit[1], hit[2]
+    diffs = load_diffs(workspace_dir)
+    state = graph_state(diffs)
+    _READ_CACHE[key] = (sig, diffs, state)
+    return diffs, state
+
+
 def load_diffs(workspace_dir: pathlib.Path) -> list[GraphDiff]:
     path = graph_file(workspace_dir)
     if not path.exists():

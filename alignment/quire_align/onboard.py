@@ -127,6 +127,14 @@ def write_workspace(
     # moment the contract becomes approved. "OB-DRAFT-7" on a live ledger
     # means the approval step failed at its one job.
     prefix = "".join(c for c in workflow_id.upper() if c.isalnum())[:6] or "OB"
+    incoming = [o["obligation_id"] for o in obligations]
+    if len(set(incoming)) != len(incoming):
+        dupes = sorted({i for i in incoming if incoming.count(i) > 1})
+        raise ValueError(
+            "duplicate draft obligation ids would collapse in the id map "
+            f"and mis-house bindings: {', '.join(dupes)} — namespace draft "
+            "ids per source document before approval"
+        )
     id_map = {
         o["obligation_id"]: f"{prefix}-{i + 1:03d}"
         for i, o in enumerate(obligations)

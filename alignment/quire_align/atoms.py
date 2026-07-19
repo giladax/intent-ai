@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pathlib
 
-from quire_align.entity_graph import graph_state, load_diffs
+from quire_align.entity_graph import graph_state, load_diffs, read_state
 
 _FLIP_LABEL = {
     "satisfies": "kept",
@@ -102,10 +102,10 @@ def _decision_atoms(diffs, promise_sets_rejected) -> list[dict]:
 def _flip_atoms(adapter, store) -> list[dict]:
     """Verdict changes per promise, walked from the check timeline — the
     wounds and recoveries that make a story a story."""
-    from quire_align.timeline import build_timeline
+    from quire_align.timeline import cached_timeline
 
     analyses = store.list_analyses(repository=adapter.repository())
-    events = build_timeline(adapter, analyses)["events"]
+    events = cached_timeline(adapter, analyses)["events"]
     atoms: list[dict] = []
     prior: dict[str, str] = {}
     for event in events:
@@ -143,7 +143,7 @@ def atoms_for(
 ) -> list[dict]:
     """All atoms for a workspace, oldest first; optionally scoped to one
     entity (its diffs, its promises' flips, its teachings)."""
-    diffs = load_diffs(workspace_dir)
+    diffs, _state = read_state(workspace_dir)  # read-only
     rejected_sets = {
         frozenset(
             op.ref for op in d.operations
@@ -155,8 +155,7 @@ def atoms_for(
     rejected_sets.discard(frozenset())
     atoms = _decision_atoms(diffs, rejected_sets) + _flip_atoms(adapter, store)
     if entity_id:
-        state = graph_state(diffs)
-        entity = state["entities"].get(entity_id)
+        entity = _state["entities"].get(entity_id)
         refs = (
             {h["ref"] for h in entity["holdings"] if h["kind"] == "promise"}
             if entity else set()

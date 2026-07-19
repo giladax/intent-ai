@@ -58,8 +58,9 @@ def node_documents(
     """One document per active entity: everything connected to it, as
     text. The vector drifts as the node's story evolves — 'the thing
     that broke last week' is literally in the vector."""
-    diffs = load_diffs(workspace_dir)
-    state = graph_state(diffs)
+    from quire_align.entity_graph import read_state
+
+    diffs, state = read_state(workspace_dir)  # read-only; never mutated
     statements = {o.obligation_id: o.statement for o in adapter.obligations()}
     atoms = atoms_for(workspace_dir, adapter, store)
     # the thinking kept on signed diffs reflects back into the map's

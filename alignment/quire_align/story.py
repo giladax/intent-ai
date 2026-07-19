@@ -375,18 +375,28 @@ def get_story(
     teller=None → cache only (a missing story is honest). judge runs at
     generation time only — the faithfulness gate on each sentence."""
     key = f"entity:{entity_id}" if scope == "entity" else "org"
-    facts = (
-        _entity_facts(workspace_dir, adapter, store, entity_id)
-        if scope == "entity"
-        else _org_facts(workspace_dir, adapter, store)
-    )
-    input_hash = hashlib.sha256(facts.encode()).hexdigest()[:16]
+    # Cheap staleness key (scale-run fix): hashing the FULL fact corpus
+    # per request was half the story read cost — the inputs' signatures
+    # (the diff log on disk + the analyses fingerprint) change exactly
+    # when the facts would. Facts are built only on a miss.
+    from quire_align.entity_graph import _file_sig, graph_file
+    from quire_align.timeline import _analyses_sig
+
+    analyses = store.list_analyses(repository=adapter.repository())
+    input_hash = hashlib.sha256(repr((
+        _file_sig(graph_file(workspace_dir)), _analyses_sig(analyses), key,
+    )).encode()).hexdigest()[:16]
     cache = _load_cache(workspace_dir)
     cached = cache.get(key)
     if cached and cached.get("input_hash") == input_hash:
         return cached
     if teller is None:
         return cached  # stale is better than hollow; None when never told
+    facts = (
+        _entity_facts(workspace_dir, adapter, store, entity_id)
+        if scope == "entity"
+        else _org_facts(workspace_dir, adapter, store)
+    )
     story = teller.tell(key, facts, _BUDGETS[scope])
     kept, dropped = validate_story(
         story, _universe(workspace_dir, adapter, store)

@@ -62,8 +62,9 @@ def derive_tree(workspace_dir: pathlib.Path, adapter, store, include_thoughts: b
 
     ``store`` is unused today; kept so every derived reader shares one
     signature (workspace_dir, adapter, store)."""
-    diffs = load_diffs(workspace_dir)
-    state = graph_state(diffs)
+    from quire_align.entity_graph import read_state
+
+    diffs, state = read_state(workspace_dir)  # read-only; never mutated
     active = [e for e in state["entities"].values() if e["status"] == "active"]
     statements = {o.obligation_id: o.statement for o in adapter.obligations()}
 
@@ -204,8 +205,9 @@ def derive_ring(workspace_dir: pathlib.Path, adapter, store) -> dict:
     from quire_align.entity_graph import open_proposals, stakes_label
     from quire_align.timeline import current_state
 
-    diffs = load_diffs(workspace_dir)
-    state = graph_state(diffs)
+    from quire_align.entity_graph import read_state
+
+    diffs, state = read_state(workspace_dir)  # read-only; never mutated
     active = [e for e in state["entities"].values() if e["status"] == "active"]
     obligations = list(adapter.obligations())
     project = workspace_dir.name.replace("-", " ")

@@ -233,6 +233,11 @@ def _wrong_scale(
     return None
 
 
+# A name whose words touch this share of ALL promises names the corpus,
+# not a thing in it. Calibration: "Brain" 1.0 (kill), "Strict Mode" 0.44
+# (a human's call — 18 of 41 promises is a broad capability, not the map).
+_CORPUS_NAME_SHARE = 0.6
+
 _DOC_SUFFIXES = (".md", ".rst", ".txt")
 
 

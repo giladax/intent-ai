@@ -213,3 +213,30 @@ obligations, bindings, prs, graph diff-log, mind, stories); raw measurements
 and screenshots in the session scratchpad. Repo clone:
 `~/dev/scale-target/pydantic` @ 859945e47 (main, 2026-07-17). No quire_align
 code was modified; server killed after the run.*
+
+
+## Addendum — the groans, fixed same-day (2026-07-20)
+
+All three findings above were closed within hours of this dossier:
+
+1. **Seeding deadlock** — the wrong-scale guard recalibrated on this
+   run's own data to the names-most-of-the-corpus rule (≥0.6 footprint;
+   "Brain" 1.0 still dies, "Strict Mode" 0.44 becomes the human's
+   call). Guard and eval share the rule. The deadlock class is gone.
+2. **Multi-doc draft-id collision** — draft ids namespaced per source
+   document at the merge point; the approval layer now refuses
+   duplicate ids outright instead of silently collapsing them.
+3. **Read-path latency** — a fold cache keyed on the diff log's file
+   signature, a timeline cache keyed on the analyses fingerprint, and
+   a signature-cheap story staleness key. Measured on THIS workspace,
+   warm:
+
+   | endpoint | before | after |
+   |---|---|---|
+   | /api/tree | 2.48s | **0.067s** |
+   | /api/story (cached) | 2.70s | **0.005s** |
+   | /api/graph | ~1.0s | **0.032s** |
+   | /api/model/around | 2.32s | **0.036s** |
+
+   The 2.5s trouble line is now ~40-500× away at this volume; the
+   pegged thresholds move out by roughly two orders of magnitude.

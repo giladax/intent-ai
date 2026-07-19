@@ -156,12 +156,33 @@ def build_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
     }
 
 
+# The timeline is a pure fold over stored analyses — cache it per
+# (repository, analyses fingerprint) so hot read paths stop rebuilding
+# it on every request (scale-run finding: this was half the ~1s floor).
+_TIMELINE_CACHE: dict[str, tuple[tuple, dict]] = {}
+
+
+def _analyses_sig(analyses: list[PRAnalysis]) -> tuple:
+    return (len(analyses), max((a.created_at for a in analyses), default=None))
+
+
+def cached_timeline(adapter, analyses: list[PRAnalysis]) -> dict:
+    key = adapter.repository()
+    sig = _analyses_sig(analyses)
+    hit = _TIMELINE_CACHE.get(key)
+    if hit and hit[0] == sig:
+        return hit[1]
+    built = build_timeline(adapter, analyses)
+    _TIMELINE_CACHE[key] = (sig, built)
+    return built
+
+
 def current_state(adapter, analyses: list[PRAnalysis]) -> dict:
     """Every promise's standing now: the last event's ``state_after``,
     ``{}`` before any check has run. Extracted 2026-07-20 (quality loop)
     — the same two-line fold had spread to seven call sites; new readers
-    use this instead of re-deriving it."""
-    events = build_timeline(adapter, analyses)["events"]
+    use this instead of re-deriving it. Served from the timeline cache."""
+    events = cached_timeline(adapter, analyses)["events"]
     return events[-1]["state_after"] if events else {}
 
 

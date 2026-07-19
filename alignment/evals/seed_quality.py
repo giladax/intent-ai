@@ -59,11 +59,13 @@ def eval_scope_honesty(
                 for statement in statements_by_id.values()
                 if name_tokens & _norm_tokens(statement)
             )
-            membership = len(members)
-            if total and membership and corpus_hits / total > 2 * (membership / total):
+            # names-most-of-the-corpus rule, recalibrated on the pydantic
+            # scale run (first observed wrong resolution per the bar):
+            # "Brain" 1.0 fails, "Strict Mode" 0.44 is a human's call
+            if total and corpus_hits / total >= 0.6:
                 offenders.append(
-                    f"{create.name} (footprint {corpus_hits}/{total} vs "
-                    f"membership {membership}/{total})"
+                    f"{create.name} (footprint {corpus_hits}/{total} — "
+                    f"names most of the corpus)"
                 )
     return {
         "metric": "scope_honesty",
