@@ -4,7 +4,18 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: 7680a08
+last-reviewed: 0aab0cf
+
+## 2026-07-21 — SHA advance over 7680a08..0aab0cf (no fresh agent)
+
+The sole new commit is 0aab0cf — the previous tick itself, which applied
+that tick's agent-recommended Tier-1 fixes (structured `broken` flag,
+unified session ref, plain-language push labels, the blind-spot warning).
+Those changes were already agent-derived, hand-verified, and test-gated
+(229 passed). Re-dispatching an agent to review the fixes an agent just
+recommended is circular, so this tick only advances last-reviewed — same
+precedent as the 2026-07-17 bootstrap ("the tip commit is the reviewed
+state"). Next substantive commit past 0aab0cf gets a full dual-lens review.
 
 ## 2026-07-20 — tick over 1531e1a..7680a08 (session + comms + alarms; agent review)
 
