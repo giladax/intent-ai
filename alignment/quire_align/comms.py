@@ -39,32 +39,32 @@ def _channel_map(workspace_dir: pathlib.Path) -> dict[str, str]:
     return (yaml.safe_load(path.read_text()) or {}) if path.exists() else {}
 
 
-def relate_message(msg: dict, entities: dict, channels: dict) -> list[dict]:
-    """Which entities a message touches, each with the QUOTE that tied it.
-    Rung 1: a human-mapped channel. Rung 2: the entity's name/alias words
-    appearing verbatim in the text. No tie, no relation."""
+def _relate_text(text: str, entities: dict, channels: dict, channel: str) -> list[dict]:
+    """Which entities a piece of text touches, each with the QUOTE that
+    tied it. Rung 1: a human-mapped channel. Rung 2: the entity's
+    name/alias words appearing verbatim. No tie, no relation."""
     ties: list[dict] = []
-    ch = msg.get("channel", "")
-    if ch in channels and channels[ch] in entities:
-        ties.append({"entity_id": channels[ch], "why": f"posted in {ch}"})
-    text = msg.get("text", "")
+    if channel in channels and channels[channel] in entities:
+        ties.append({"entity_id": channels[channel], "why": f"posted in {channel}"})
     text_tokens = set(tokenize(text, min_len=3, keep_digits=True))
     for eid, e in entities.items():
         if any(t["entity_id"] == eid for t in ties):
             continue
-        vocab = [e["name"], *e.get("aliases", [])]
-        for phrase in vocab:
+        for phrase in [e["name"], *e.get("aliases", [])]:
             ptoks = set(tokenize(phrase, min_len=3, keep_digits=True))
             if not (ptoks and ptoks <= text_tokens):
                 continue
             # A single short generic word is not a strong tie — "Risk"
             # matching inside "high-risk refunds" is noise, not a relation.
-            # Require a multi-word name or a specific (>=5 char) token.
             if len(ptoks) == 1 and max(len(t) for t in ptoks) < 5:
                 continue
             ties.append({"entity_id": eid, "why": f"names “{phrase}”"})
             break
     return ties
+
+
+def relate_message(msg: dict, entities: dict, channels: dict) -> list[dict]:
+    return _relate_text(msg.get("text", ""), entities, channels, msg.get("channel", ""))
 
 
 def messages_as_events(workspace_dir: pathlib.Path, entities: dict) -> list:

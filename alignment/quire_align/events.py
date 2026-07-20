@@ -23,10 +23,11 @@ from quire_align.entity_graph import read_state
 
 
 class ActivityEvent(BaseModel):
-    source: str  # slack | telegram | git | quire
-    kind: str    # message | thread | decision | commit | check | session | signing
+    source: str  # slack | telegram | git | quire | docs
+    kind: str    # message | thread | decision | doc | commit | check | session | signing
     ts: str
     actor: str = ""
+    role: str = ""                        # dev | pm | stakeholder | system
     text: str = ""                        # verbatim, quotable
     entities: list[str] = Field(default_factory=list)   # entity ids it touches
     promises: list[str] = Field(default_factory=list)
@@ -110,6 +111,27 @@ def events_for(workspace_dir: pathlib.Path, adapter=None, store=None) -> list[Ac
     # comms — attention
     events += messages_as_events(workspace_dir, entities)
 
+    # authored docs — where PMs and stakeholders STATE intent (a spec, a
+    # PRD, a strategy note). Intent authorship, related to the areas it
+    # names; it counts as attention (the org articulating a thing).
+    from quire_align.comms import _relate_text
+    from quire_align.comms import _channel_map
+    channels = _channel_map(workspace_dir)
+    for d in _load(workspace_dir, "docs.yaml") or []:
+        ties = _relate_text(
+            (d.get("title", "") + " " + d.get("text", "")), entities, {}, "")
+        events.append(ActivityEvent(
+            source="docs", kind="doc", ts=str(d.get("ts", "")),
+            actor=d.get("author", ""), text=d.get("title") or d.get("text", "")[:120],
+            entities=sorted({t["entity_id"] for t in ties}),
+            ref=d.get("id", ""),
+        ))
+
+    # stamp each event's author role from the org's people map
+    roles = _load(workspace_dir, "people.yaml") or {}
+    for e in events:
+        e.role = roles.get(e.actor, e.role or ("system" if e.source == "quire" else ""))
+
     return sorted(events, key=lambda e: e.ts or "")
 
 
@@ -125,7 +147,7 @@ def _suffix_match(a: str, b: str) -> bool:
 # coding session). A signing is governance — the map deciding, not the
 # code changing — so it rides the timeline but is not dev density; else
 # every entity's own creation would read as "built".
-_COMMS = {"message", "thread", "decision"}
+_COMMS = {"message", "thread", "decision", "doc"}  # doc = intent authorship, org attention
 _DEV = {"commit", "check", "session"}
 
 
