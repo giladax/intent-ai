@@ -1,0 +1,53 @@
+- session_id: sess-cli-flag-rename-01
+  actor: kai
+  digested_at: '2026-07-08T11:20:00+00:00'
+  title: Clean up the export flag naming
+  summary: Renamed --out to --output on the export command so the flag reads clearly.
+  decisions:
+  - choice: rename --out to --output
+    why: "--out was ambiguous — people kept asking if it meant output file or output format"
+    rejected: leaving --out as-is
+  reasoning: >-
+    Spent five minutes on the export command today. --out has bugged me for a
+    while — half the issues in the tracker are people confused whether it's the
+    output path or the output format. Renamed it to --output in cmd/export.go,
+    updated the help text and the flag registration, ran the command locally and
+    it does exactly what --out used to do. Tests green. Quick win, moving on.
+  touched_paths:
+  - repo/cmd/export.go
+  - repo/cmd/flags.go
+  turns: 14
+- session_id: sess-config-loader-02
+  actor: kai
+  digested_at: '2026-07-10T09:45:00+00:00'
+  title: Config loader handles the old schema
+  summary: Made the loader read v1-major config files and migrate them in memory.
+  decisions:
+  - choice: detect the old schema version and up-convert on read
+    why: we bumped the config schema and I do not want to strand anyone's existing file
+    rejected: hard-failing on the old schema and telling people to rewrite their config
+  reasoning: >-
+    Bumped the config schema last week and realized old files would break, which
+    we explicitly promised not to do. Added a version sniff in config/load.go —
+    if it sees the v1-major shape it up-converts in memory before validation, so
+    an old file loads and behaves exactly as it did. Added a fixture with a real
+    old config and asserted it loads clean. This one I was careful about.
+  touched_paths:
+  - repo/config/load.go
+  turns: 26
+- session_id: sess-plugins-doc-03
+  actor: devon
+  digested_at: '2026-07-11T16:30:00+00:00'
+  title: Tidy the plugin loader comments
+  summary: Doc-only pass over the plugin loader, no behavior change.
+  decisions:
+  - choice: add comments explaining the isolation boundary
+    why: the recover() around plugin init was not obvious to a new reader
+    rejected: ''
+  reasoning: >-
+    Read through host/plugins.go while onboarding. The panic recovery around
+    plugin init is the thing that keeps a bad plugin from taking down the host,
+    but nothing said so. Added comments, no code change. Left it as I found it.
+  touched_paths:
+  - repo/host/plugins.go
+  turns: 8

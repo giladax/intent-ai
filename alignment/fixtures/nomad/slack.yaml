@@ -1,0 +1,20 @@
+# This team barely uses Slack. A couple of low-signal messages, nothing
+# about the export flag rename — nobody was watching when it broke.
+- id: n1
+  channel: '#team'
+  actor: sam
+  ts: '2026-07-07T15:30:00+00:00'
+  kind: message
+  text: pushing the release to Thursday, ok with everyone?
+- id: n2
+  channel: '#team'
+  actor: devon
+  ts: '2026-07-07T15:41:00+00:00'
+  kind: message
+  text: works for me
+- id: n3
+  channel: '#random'
+  actor: kai
+  ts: '2026-07-09T18:00:00+00:00'
+  kind: message
+  text: coffee machine on 3 is dead again

@@ -1,0 +1,131 @@
+- diff_id: GD-1
+  question: Create CLI?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-cli
+    name: CLI
+    identity_sentence: The command surface — commands, flags, and exit codes.
+    aliases:
+    - command line
+    - flags
+  - op: attach
+    entity_id: ent-cli
+    kind: promise
+    ref: OB-CLI-1
+    note: ''
+  - op: attach
+    entity_id: ent-cli
+    kind: promise
+    ref: OB-CLI-2
+    note: ''
+  - op: attach
+    entity_id: ent-cli
+    kind: promise
+    ref: OB-CLI-3
+    note: ''
+  - op: attach
+    entity_id: ent-cli
+    kind: code
+    ref: repo/cmd/export.go
+    note: ''
+  - op: attach
+    entity_id: ent-cli
+    kind: code
+    ref: repo/cmd/flags.go
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 2.0
+  shape_key: b7d0009eb24c
+  status: approved
+  proposed_at: '2026-06-30T10:00:00+00:00'
+  decision:
+    action: approved
+    by: kai
+    at: '2026-06-30T10:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-2
+  question: Create Config?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-config
+    name: Config
+    identity_sentence: How settings files are read, validated, and migrated.
+    aliases:
+    - configuration
+    - settings
+  - op: attach
+    entity_id: ent-config
+    kind: promise
+    ref: OB-CFG-1
+    note: ''
+  - op: attach
+    entity_id: ent-config
+    kind: promise
+    ref: OB-CFG-2
+    note: ''
+  - op: attach
+    entity_id: ent-config
+    kind: code
+    ref: repo/config/load.go
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.6
+  shape_key: 0e678779f5b5
+  status: approved
+  proposed_at: '2026-06-30T11:00:00+00:00'
+  decision:
+    action: approved
+    by: sam
+    at: '2026-06-30T11:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-3
+  question: Create Plugins?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-plugins
+    name: Plugins
+    identity_sentence: Third-party extensions and the isolation that keeps them from
+      crashing the host.
+    aliases:
+    - plugin
+    - extensions
+  - op: attach
+    entity_id: ent-plugins
+    kind: promise
+    ref: OB-PLG-1
+    note: ''
+  - op: attach
+    entity_id: ent-plugins
+    kind: promise
+    ref: OB-PLG-2
+    note: ''
+  - op: attach
+    entity_id: ent-plugins
+    kind: code
+    ref: repo/host/plugins.go
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.6
+  shape_key: b3560c1467cb
+  status: approved
+  proposed_at: '2026-07-01T09:00:00+00:00'
+  decision:
+    action: approved
+    by: devon
+    at: '2026-07-01T09:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false

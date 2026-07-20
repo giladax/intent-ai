@@ -1,0 +1,81 @@
+# Helios comms export. #ledger-eng is mapped to ent-ledger (channels.yaml);
+# #finance-product is unmapped, so those messages tie only when they name an
+# area verbatim. Reporting is deliberately never discussed anywhere.
+
+# --- #ledger-eng: the double-entry break lights up the channel -------------
+- id: m1
+  channel: '#ledger-eng'
+  actor: elena
+  ts: '2026-06-16T08:40:00+00:00'
+  kind: message
+  text: something's off in the ledger — end-of-day balances aren't netting to
+    zero on the payroll accounts. debits with no opposite credit.
+- id: m2
+  channel: '#ledger-eng'
+  actor: priya
+  ts: '2026-06-16T08:47:00+00:00'
+  kind: message
+  text: that started after the posting throughput change landed. the opposite
+    entry isn't getting written on some postings.
+- id: m3
+  channel: '#ledger-eng'
+  actor: jun
+  ts: '2026-06-16T08:53:00+00:00'
+  kind: message
+  text: confirmed on my end — I can reproduce it whenever a batch write fails
+    partway. we commit the debit and the credit leg never shows up. that's the
+    double-entry invariant broken.
+- id: m4
+  channel: '#ledger-eng'
+  actor: elena
+  ts: '2026-06-16T09:05:00+00:00'
+  kind: message
+  text: so the derived-opposite-entry view is fine on the happy path but not
+    under partial failure. we can't ship an unbalanced ledger, this is the one
+    invariant we don't get to bend.
+- id: m5
+  channel: '#ledger-eng'
+  actor: priya
+  ts: '2026-06-16T09:12:00+00:00'
+  kind: message
+  text: agreed. I'll revert the shortcut and put both legs back in one
+    transaction with a sum-to-zero assertion before commit. we lose the 2x but
+    correctness wins. marcus, we'll get you throughput a safer way.
+- id: m6
+  channel: '#ledger-eng'
+  actor: jun
+  ts: '2026-06-16T09:20:00+00:00'
+  kind: decision
+  text: 'decision: revert the derived opposite-entry, restore the paired insert,
+    and gate any future posting optimization behind a balance assertion. priya
+    owns the fix.'
+
+# --- #finance-product: reconciliation settled calmly, no drama -------------
+- id: m7
+  channel: '#finance-product'
+  actor: elena
+  ts: '2026-06-14T10:00:00+00:00'
+  kind: message
+  text: quick one on reconciliation — when a cycle closes with an unmatched
+    entry, do we flag it right then or wait for the next run?
+- id: m8
+  channel: '#finance-product'
+  actor: priya
+  ts: '2026-06-14T10:08:00+00:00'
+  kind: decision
+  text: 'decision: reconciliation flags unmatched entries at cycle close, same
+    day. waiting a run breaks the within-one-cycle promise.'
+
+# --- ambient noise, ties to nothing ----------------------------------------
+- id: m9
+  channel: '#general'
+  actor: marcus
+  ts: '2026-06-15T12:30:00+00:00'
+  kind: message
+  text: coffee machine on 3 is down again
+- id: m10
+  channel: '#general'
+  actor: jun
+  ts: '2026-06-20T12:00:00+00:00'
+  kind: message
+  text: who's around for the sprint demo friday

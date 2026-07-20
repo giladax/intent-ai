@@ -1,0 +1,58 @@
+# First-person coding sessions in the collision window.
+# tomas firefights the Alerts incident. aisha does a routine send-path refactor
+# and, with no idea, drops the opt-in gate — the Consent break. ben does a small
+# Delivery tidy. Note aisha's session: it reads like a clean-up, not a mistake.
+
+- session_id: sess-alerts-firefight-01
+  actor: tomas
+  digested_at: '2026-07-14T09:30:00+00:00'
+  title: Get pages off the disk-write critical path
+  summary: Moved the audit write off the alert dispatch path so paging no longer blocks on a slow disk write.
+  decisions:
+  - choice: dispatch the page first, write the audit record asynchronously after
+    why: the synchronous audit write was blocking every page and stalling the worker pool under load
+    rejected: keeping the write inline but on a faster disk
+  reasoning: >
+    Traced the alert latency to a synchronous audit write that a deploy added inside
+    the dispatch path last night. Under real morning traffic the workers backed up
+    behind the disk write and the 60-second SLA slipped to minutes. I pulled the audit
+    write out of the hot path — pages fire immediately and the record is written on a
+    background worker. Verified with a synthetic threshold event: paged in under 5s.
+  touched_paths:
+  - repo/alerts/dispatch.py
+  - repo/alerts/audit.py
+  turns: 51
+
+- session_id: sess-sendpath-refactor-02
+  actor: aisha
+  digested_at: '2026-07-14T09:10:00+00:00'
+  title: Tidy the notification send path
+  summary: Refactored the send path into a single pipeline function and cleaned up the pre-send checks.
+  decisions:
+  - choice: collapse the scattered pre-send checks into one validate_and_send helper
+    why: the send path had grown three near-duplicate check blocks across two modules and was hard to follow
+    rejected: leaving the duplicated blocks in place
+  reasoning: >
+    The send path had accumulated cruft — a couple of modules each ran their own
+    pre-send validation and they had drifted out of sync. I pulled everything into a
+    single validate_and_send helper and routed both call sites through it. Removed the
+    old redundant check blocks. Ran the unit tests I knew about, green. Quiet cleanup,
+    nothing behavioral — just less duplication. Shipped between incident pings.
+  touched_paths:
+  - repo/messaging/send.py
+  - repo/consent/gate.py
+  turns: 34
+
+- session_id: sess-delivery-backoff-03
+  actor: ben
+  digested_at: '2026-07-15T14:00:00+00:00'
+  title: Cap the delivery retry backoff
+  summary: Added a ceiling to the exponential backoff so a failing recipient does not retry forever.
+  decisions:
+  - choice: cap the backoff at 5 minutes
+  reasoning: >
+    The delivery retry backoff had no upper bound, so a permanently failing recipient
+    could grow the interval without limit. Added a max interval. Small, contained.
+  touched_paths:
+  - repo/delivery/retry.py
+  turns: 14

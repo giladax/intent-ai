@@ -1,0 +1,117 @@
+# The attention-collision window: 2026-07-14.
+# #incidents explodes over a production Alerts SLA miss — tomas, aisha, ben,
+# dr-liu firefight for hours. MEANWHILE the same team ships an unrelated
+# refactor that quietly drops the opt-in check. Not one message here touches
+# Consent — every eye is on the incident. That silence is the story.
+
+# ---- #incidents : the loud Alerts firefight ----
+- id: m1
+  channel: '#incidents'
+  actor: dr-liu
+  ts: '2026-07-14T08:02:00+00:00'
+  kind: message
+  text: "i'm on-call and i did NOT get paged. patient vitals tripped the threshold at 07:58 and my pager is silent. this is the 60 second promise. where are the alerts?"
+- id: m2
+  channel: '#incidents'
+  actor: tomas
+  ts: '2026-07-14T08:05:00+00:00'
+  kind: message
+  text: "confirmed, i see the threshold event in the logs at 07:58:11 but no page went out. declaring an incident. the 60 second alerts SLA is blown in prod right now."
+- id: m3
+  channel: '#incidents'
+  actor: aisha
+  ts: '2026-07-14T08:08:00+00:00'
+  kind: message
+  text: "jumping in. first guess is the pager provider is rate limiting us — we had a spike of test alerts this morning. checking their status page."
+- id: m4
+  channel: '#incidents'
+  actor: ben
+  ts: '2026-07-14T08:12:00+00:00'
+  kind: message
+  text: "provider status is green, no rate limit errors in our egress metrics. i don't think it's them. the alerts never left our side."
+- id: m5
+  channel: '#incidents'
+  actor: tomas
+  ts: '2026-07-14T08:16:00+00:00'
+  kind: message
+  text: "agreed ben. i'm tracing the alert worker. the threshold evaluator fired, it enqueued the page job, and then... the queue depth is climbing. workers look stuck."
+- id: m6
+  channel: '#incidents'
+  actor: dr-liu
+  ts: '2026-07-14T08:19:00+00:00'
+  kind: message
+  text: "for what it's worth i just got three pages at once, all for the 07:58 event. so they ARE firing, just minutes late. that's worse than never for triage."
+- id: m7
+  channel: '#incidents'
+  actor: aisha
+  ts: '2026-07-14T08:24:00+00:00'
+  kind: message
+  text: "so it's latency, not loss. the alerts are queued and draining slowly. why would the worker pool stall out of nowhere this morning?"
+- id: m8
+  channel: '#incidents'
+  actor: ben
+  ts: '2026-07-14T08:31:00+00:00'
+  kind: message
+  text: "dead end on my side: the backoff config for delivery retries is unchanged, i thought we might be starving the pool with retries but no."
+- id: m9
+  channel: '#incidents'
+  actor: tomas
+  ts: '2026-07-14T08:40:00+00:00'
+  kind: message
+  text: "found it. a deploy last night added a synchronous audit write inside the alert dispatch path. every page now blocks on a slow disk write. under load the workers back up and the 60 second SLA slips to minutes."
+- id: m10
+  channel: '#incidents'
+  actor: aisha
+  ts: '2026-07-14T08:44:00+00:00'
+  kind: message
+  text: "that fits the timeline exactly — the audit write shipped at 23:40 last night, first slow page this morning under real traffic. nice find tomas."
+- id: m11
+  channel: '#incidents'
+  actor: ben
+  ts: '2026-07-14T08:49:00+00:00'
+  kind: message
+  text: "fix is obvious then: make the audit write async / off the dispatch path. the page must not wait on it. i can pair on the patch."
+- id: m12
+  channel: '#incidents'
+  actor: tomas
+  ts: '2026-07-14T09:35:00+00:00'
+  kind: decision
+  text: "decision: move the audit write off the alert dispatch path, dispatch pages first and log after. patch is in, deploying now. watching the queue depth."
+- id: m13
+  channel: '#incidents'
+  actor: dr-liu
+  ts: '2026-07-14T10:10:00+00:00'
+  kind: message
+  text: "pages are instant again, tested with a synthetic threshold event and got paged in under 5 seconds. the alerts SLA is back. thank you all, that was a long morning."
+- id: m14
+  channel: '#incidents'
+  actor: tomas
+  ts: '2026-07-14T10:20:00+00:00'
+  kind: message
+  text: "closing the incident. writing up the postmortem for the alerts latency. good hunting everyone."
+
+# ---- #eng : a little ambient chatter, mostly about the same fire ----
+- id: m15
+  channel: '#eng'
+  actor: aisha
+  ts: '2026-07-14T07:30:00+00:00'
+  kind: message
+  text: "morning — starting on that notification pipeline refactor today, just tidying the send path, should be a quiet one."
+- id: m16
+  channel: '#eng'
+  actor: ben
+  ts: '2026-07-14T08:50:00+00:00'
+  kind: message
+  text: "heads up everyone, all hands are on the alerts incident in #incidents this morning, code review will be slow."
+- id: m17
+  channel: '#eng'
+  actor: tomas
+  ts: '2026-07-14T10:30:00+00:00'
+  kind: message
+  text: "alerts fire is out. postmortem doc going up this afternoon if anyone wants to review."
+- id: m18
+  channel: '#eng'
+  actor: dr-liu
+  ts: '2026-07-15T09:00:00+00:00'
+  kind: message
+  text: "thanks again for yesterday. triage is smooth again now that paging is fast."

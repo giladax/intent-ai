@@ -1,0 +1,13 @@
+# Vela — healthcare messaging. Approved behavioral promises across three areas.
+obligations:
+  # Consent — the compliance spine.
+  - {obligation_id: OB-CONSENT-1, kind: hard_rule, statement: "No message is ever sent without a recorded opt-in for that recipient.", source_reference: vela-prd, source_section: "#consent"}
+  - {obligation_id: OB-CONSENT-2, kind: invariant, statement: "A revoked opt-in stops all future messages within one send cycle.", source_reference: vela-prd, source_section: "#consent"}
+  - {obligation_id: OB-CONSENT-3, kind: permission, statement: "A recipient may hold separate opt-ins per message category.", source_reference: vela-prd, source_section: "#consent"}
+  # Alerts — the on-call SLA.
+  - {obligation_id: OB-ALERTS-1, kind: hard_rule, statement: "Alerts to the on-call clinician fire within 60 seconds of a threshold breach.", source_reference: vela-prd, source_section: "#alerts"}
+  - {obligation_id: OB-ALERTS-2, kind: invariant, statement: "Every threshold breach pages exactly one on-call clinician, never zero.", source_reference: vela-prd, source_section: "#alerts"}
+  # Delivery — the send pipeline.
+  - {obligation_id: OB-DELIVERY-1, kind: invariant, statement: "A delivery failure retries with exponential backoff before it is dropped.", source_reference: vela-prd, source_section: "#delivery"}
+  - {obligation_id: OB-DELIVERY-2, kind: hard_rule, statement: "PHI never appears in a log line.", source_reference: vela-prd, source_section: "#delivery"}
+  - {obligation_id: OB-DELIVERY-3, kind: permission, statement: "A message may be batched with others to the same recipient within a send cycle.", source_reference: vela-prd, source_section: "#delivery"}

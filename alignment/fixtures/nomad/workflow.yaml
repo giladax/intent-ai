@@ -1,0 +1,4 @@
+workflow_id: nomad
+requirements: {provider: fixture, reference: nomad-prd}
+repositories:
+  - {provider: fixture, repository: nomad-cli, path: repo}

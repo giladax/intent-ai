@@ -141,19 +141,28 @@ def collisions(events: list[ActivityEvent]) -> list[dict]:
             continue
         for eid in e.entities:
             slot = by_entity.setdefault(eid, {"attention": 0, "dev": 0,
-                                              "actors": set(), "broken": False})
+                                              "actors": set(), "checks": []})
             slot[bucket] += 1
             if e.actor:
                 slot["actors"].add(e.actor)
-            if e.kind == "check" and "contradict" in (e.text or "").lower():
-                slot["broken"] = True
+            if e.kind == "check":
+                slot["checks"].append((e.ts, "contradict" in (e.text or "").lower()))
     out = []
     for eid, s in by_entity.items():
         a, d = s["attention"], s["dev"]
-        if s["broken"] and a:
+        # broken reflects CURRENT state — the latest check by time, not
+        # "ever contradicted" (the old latch made recovery invisible; the
+        # Helios recovery fixture exposed it). recovered = broke earlier,
+        # holds now.
+        checks = sorted(s["checks"])
+        broken = bool(checks) and checks[-1][1]
+        recovered = (not broken) and any(c[1] for c in checks)
+        if broken and a:
             signal = "drift-in-context"   # broke, and the org was discussing it
-        elif s["broken"]:
+        elif broken:
             signal = "silent-drift"       # broke, and NOBODY was watching — worst
+        elif recovered:
+            signal = "recovered"          # broke, then a check confirmed it holds again
         elif a >= 3 and d == 0:
             signal = "all-talk-gap"       # discussed at length, nothing built
         elif d >= 2 and a == 0:
@@ -165,5 +174,6 @@ def collisions(events: list[ActivityEvent]) -> list[dict]:
         out.append({
             "entity_id": eid, "attention": a, "dev": d,
             "actors": sorted(s["actors"]), "signal": signal,
+            "recovered": recovered,
         })
     return sorted(out, key=lambda x: -(x["attention"] + x["dev"]))

@@ -2,25 +2,19 @@
 MULTI-USER org stream (PRs/checks, coding sessions, Slack messages) and
 surface the cross-source patterns — without being told to look?
 
-Fixture: fixtures/acme-stream — a fictional commerce org with four
-areas, five people, and a stream carrying embedded ground truths. Per
-the blind-subagent-eval playbook, the truths live only in the checks
-below; controls catch over-flagging. Deterministic collision detection
-is checked directly; the narrative layer (does the story SEE the arc?)
-is judged.
+Four fixtures, each INDEPENDENTLY authored by a different "developer"
+subagent for a different domain, so the collision detector cannot be
+overfit to one hand-made stream (the blind-subagent-eval discipline):
+- acme-stream (commerce) — drift-in-context, all-talk-gap, silent-build
+- helios (fintech ledger) — recovered (broke then a check confirmed it
+  holds), aligned, silent-build
+- nomad (dev-tools CLI) — silent-drift (broke, nobody watching)
+- vela (health messaging) — the ATTENTION COLLISION: max attention on an
+  Alerts incident while Consent silently drifts
 
-    python3 -m evals.event_stream
-
-The embedded patterns (ground truth — NOT told to the machinery):
-- Payments: a promise decided in Slack (#payments-eng, dana),
-  reasoned in a session (sam), drifted in a PR, caught by check #201 →
-  attention AND dev, broken → 'drift-in-context'.
-- Checkout: much discussed (#product), nothing built → 'all-talk-gap'.
-- Notifications: shipped (session + check), zero discussion →
-  'silent-build-risk'.
-- Risk: a bare word ('high-risk') must NOT strongly relate messages to
-  the fraud entity — a noise control.
-- Controls: no database migration, no security incident happened.
+The ground truths live only in the checks below; controls catch a
+detector that manufactures events. Deterministic collision signals are
+checked directly. Run: python3 -m evals.event_stream
 """
 
 from __future__ import annotations
@@ -31,63 +25,73 @@ import sys
 from quire_align.adapters.fixture import FixtureWorkspace
 from quire_align.events import collisions, events_for
 
-WS = pathlib.Path(__file__).resolve().parents[1] / "fixtures" / "acme-stream"
+FIXTURES = pathlib.Path(__file__).resolve().parents[1] / "fixtures"
 
-
-def _collisions() -> dict:
-    adapter = FixtureWorkspace(WS)
-    return {c["entity_id"]: c for c in collisions(events_for(WS, adapter, None))}
-
-
-# Deterministic ground-truth checks on the collision signals.
-DETERMINISTIC = [
-    ("payments-drift-in-context", "ent-payments", "drift-in-context",
-     "a promise discussed in Slack, drifted in code, caught by a check"),
-    ("checkout-all-talk-gap", "ent-checkout", "all-talk-gap",
+# (org, entity, accepted signals, why) — the embedded ground truths.
+CASES = [
+    ("acme-stream", "ent-payments", ("drift-in-context",),
+     "a promise decided in Slack, drifted in code, caught by a check"),
+    ("acme-stream", "ent-checkout", ("all-talk-gap",),
      "discussed at length, nothing shipped"),
-    ("notifications-silent-build", "ent-notifications", "silent-build-risk",
+    ("acme-stream", "ent-notifications", ("silent-build-risk",),
      "shipped with zero discussion"),
-    ("risk-not-over-related", "ent-risk", ("quiet", "(absent)"),
-     "a bare word ('high-risk') must not raise a false signal on Risk — "
-     "no attention, so absent from the activity list is correct"),
+    ("acme-stream", "ent-risk", ("quiet", "(absent)"),
+     "a bare word ('high-risk') must not raise a false signal"),
+    ("helios", "ent-ledger", ("recovered",),
+     "broke, then a later check confirmed it holds again"),
+    ("helios", "ent-reconciliation", ("aligned",),
+     "calmly decided and correctly built"),
+    ("helios", "ent-reporting", ("silent-build-risk",),
+     "money-path code shipped with no review"),
+    ("nomad", "ent-cli", ("silent-drift",),
+     "a flag rename broke back-compat and NOBODY was watching"),
+    ("vela", "ent-alerts", ("aligned", "drift-in-context"),
+     "a loud incident soaked up all the attention"),
+    ("vela", "ent-consent", ("silent-drift",),
+     "opt-in broke while every eye was on the Alerts incident"),
 ]
 
+# Per-org sanity: multi-source, multi-user.
+ORGS = ["acme-stream", "helios", "nomad", "vela"]
 
-def _multi_source_multi_user() -> tuple[bool, str]:
-    evs = events_for(WS, FixtureWorkspace(WS), None)
-    sources = {e.source for e in evs}
-    users = {e.actor for e in evs if e.actor}
-    ok = len(sources) >= 3 and len(users) >= 4
-    return ok, f"sources={sorted(sources)} users={sorted(users)}"
+
+def _signals(org: str) -> dict:
+    ws = FIXTURES / org
+    return {c["entity_id"]: c for c in collisions(events_for(ws, FixtureWorkspace(ws), None))}
 
 
 def run() -> int:
-    signals = _collisions()
     failures = 0
+    cache: dict[str, dict] = {}
 
-    ok, detail = _multi_source_multi_user()
-    print(f"  {'PASS' if ok else 'FAIL'} multi-source-multi-user: {detail}")
-    failures += 0 if ok else 1
-
-    for cid, eid, want, why in DETERMINISTIC:
-        got = signals.get(eid, {}).get("signal", "(absent)")
-        wants = (want,) if isinstance(want, str) else want
-        ok = got in wants
+    for org in ORGS:
+        ws = FIXTURES / org
+        evs = events_for(ws, FixtureWorkspace(ws), None)
+        sources = {e.source for e in evs}
+        users = {e.actor for e in evs if e.actor}
+        ok = len(sources) >= 3 and len(users) >= 4
         failures += 0 if ok else 1
-        print(f"  {'PASS' if ok else 'FAIL'} {cid}: want {wants}, got '{got}' — {why}")
+        print(f"  {'PASS' if ok else 'FAIL'} {org} multi-source/user: "
+              f"{len(sources)} sources, {len(users)} users, {len(evs)} events")
+        # controls: no manufactured DATABASE migration or SECURITY breach
+        # (specific phrases — 'migrate' alone is a legitimate config-schema
+        # operation, so a bare-substring control false-positives on it)
+        corpus = " ".join(e.text.lower() for e in evs)
+        for term in ("database migration", "migrated the database",
+                     "security breach", "data breach", "breached"):
+            if term in corpus:
+                print(f"  FAIL {org} control: manufactured '{term}'")
+                failures += 1
 
-    # controls: the stream must not manufacture events that never happened
-    evs = events_for(WS, FixtureWorkspace(WS), None)
-    corpus = " ".join(e.text.lower() for e in evs)
-    for term, label in (("migrat", "a database migration"),
-                        ("breach", "a security incident"),
-                        ("incident", "a security incident")):
-        present = term in corpus
-        print(f"  {'PASS' if not present else 'FAIL'} control-no-{label.split()[-1]}: "
-              f"'{term}' absent")
-        failures += 1 if present else 0
+    print()
+    for org, eid, wants, why in CASES:
+        sig = cache.setdefault(org, _signals(org)).get(eid, {}).get("signal", "(absent)")
+        ok = sig in wants
+        failures += 0 if ok else 1
+        print(f"  {'PASS' if ok else 'FAIL'} {org}/{eid.replace('ent-','')}: "
+              f"want {wants}, got '{sig}' — {why}")
 
-    print(f"\n{'all clear' if not failures else str(failures) + ' failing'}")
+    print(f"\n{'all clear — one taxonomy, four independent orgs' if not failures else str(failures) + ' failing'}")
     return 1 if failures else 0
 
 

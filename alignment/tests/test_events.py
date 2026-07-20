@@ -31,6 +31,28 @@ def test_collision_signals_match_embedded_patterns():
     assert sig.get("ent-risk") in (None, "quiet")      # no false relation
 
 
+def test_recovery_reads_current_state_not_ever_broken():
+    """The Helios fixture: Ledger broke (check 301) then a later check
+    (302) found it holds — the collision must read 'recovered', not latch
+    on the past contradiction (the bug the recovery fixture exposed)."""
+    ws = pathlib.Path(__file__).parent.parent / "fixtures" / "helios"
+    sig = {c["entity_id"]: c for c in collisions(events_for(ws, FixtureWorkspace(ws), None))}
+    assert sig["ent-ledger"]["signal"] == "recovered"
+    assert sig["ent-ledger"]["recovered"] is True
+
+
+def test_four_independent_orgs_span_the_taxonomy():
+    """One collision detector, four independently-authored fixtures —
+    every signal represented (anti-overfit)."""
+    seen = set()
+    for org in ("acme-stream", "helios", "nomad", "vela"):
+        ws = pathlib.Path(__file__).parent.parent / "fixtures" / org
+        for c in collisions(events_for(ws, FixtureWorkspace(ws), None)):
+            seen.add(c["signal"])
+    assert {"drift-in-context", "silent-drift", "all-talk-gap",
+            "silent-build-risk", "aligned", "recovered"} <= seen
+
+
 def test_comms_relation_is_quote_backed_and_noise_filtered():
     entities = {
         "ent-payments": {"name": "Payments", "aliases": ["refunds"], "holdings": []},

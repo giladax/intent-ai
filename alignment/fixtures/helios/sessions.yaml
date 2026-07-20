@@ -1,0 +1,89 @@
+- session_id: sess-posting-throughput-01
+  actor: marcus
+  digested_at: '2026-06-15T18:00:00+00:00'
+  started_at: '2026-06-15T15:00:00+00:00'
+  title: Speed up the posting hot path
+  summary: Batched the posting writes to cut p99 latency on high-volume days;
+    collapsed the debit and credit inserts into one write.
+  decisions:
+  - choice: write the primary entry in the batch and derive the opposite entry lazily
+    why: the double insert was doubling round-trips and posting p99 was blowing our SLO on payroll days
+    rejected: keeping the paired insert inside one transaction (looked slower in the benchmark)
+  reasoning: |
+    Postings were the bottleneck — every posting did two inserts (the debit and
+    its opposite credit) in the same txn, and on payroll-run days that doubled
+    write volume was pushing p99 past 400ms. I refactored post() in
+    repo/ledger/postings.py to write the primary leg in the batch and build the
+    opposite leg from a derived view instead of a second insert. Benchmarks
+    looked great — 2x throughput. I convinced myself the derived view was
+    equivalent to the second write. It compiles, tests that only assert the
+    primary leg pass. Shipping behind the throughput flag.
+  touched_paths:
+  - repo/ledger/postings.py
+  turns: 51
+- session_id: sess-restore-double-entry-02
+  actor: priya
+  digested_at: '2026-06-17T13:00:00+00:00'
+  started_at: '2026-06-17T09:30:00+00:00'
+  title: Restore the paired-insert invariant on postings
+  summary: Reverted the derived-opposite-entry shortcut; every posting writes both
+    legs in one transaction again, with a balance assertion at commit.
+  decisions:
+  - choice: write both legs inside one transaction and assert sum-to-zero before commit
+    why: the derived view was not equivalent under partial batch failure — a crashed batch left orphan debits with no credit, so the ledger didn't net to zero
+    rejected: patching the derived view to be crash-safe (too subtle to trust on the money path; correctness beats the 2x)
+  reasoning: |
+    Marcus's batching was fast but it broke the core invariant: OB-LED-1 says
+    every posting has an equal and opposite entry. The derived-opposite view was
+    fine on the happy path, but when a batch write failed halfway we committed
+    debits whose credit leg never materialized — unbalanced ledger, which is the
+    one thing a double-entry system may never do. I put the paired insert back
+    inside a single transaction in repo/ledger/postings.py and added an explicit
+    assert that debits + credits == 0 before commit, so a future optimization
+    can't silently drop the second leg again. We lose Marcus's 2x, but I'd
+    rather fix throughput with a real batched-transaction primitive than trade
+    away balance. Also touched balance.py to recompute affected account totals.
+  touched_paths:
+  - repo/ledger/postings.py
+  - repo/ledger/balance.py
+  turns: 44
+- session_id: sess-reconcile-flagging-03
+  actor: elena
+  digested_at: '2026-06-19T16:00:00+00:00'
+  started_at: '2026-06-19T13:00:00+00:00'
+  title: Flag unmatched entries within the cycle
+  summary: Added the within-cycle unmatched-entry flag to the reconciliation matcher,
+    exactly as agreed in the thread.
+  decisions:
+  - choice: raise an unmatched-entry flag at the end of each reconciliation cycle
+    why: OB-REC-1 requires any unmatched entry to surface within one cycle, not to wait for the next run
+    rejected: a nightly sweep (would miss the one-cycle guarantee by up to a day)
+  reasoning: |
+    Straightforward one. We'd already settled the shape in #finance-product: when
+    a reconciliation cycle closes, anything still unmatched gets flagged then,
+    not deferred to the next run. I added the end-of-cycle unmatched check to
+    repo/reconcile/matcher.py, emitting a flag per orphan entry with the cycle id
+    so ops can see it the same day. No surprises — built what we said we'd build.
+  touched_paths:
+  - repo/reconcile/matcher.py
+  turns: 19
+- session_id: sess-cashflow-report-04
+  actor: jun
+  digested_at: '2026-06-18T20:00:00+00:00'
+  started_at: '2026-06-18T17:00:00+00:00'
+  title: Add the weekly cash-flow statement
+  summary: New weekly cash-flow report drawn from committed balances; wired it into
+    the statements module.
+  decisions:
+  - choice: build the cash-flow view off committed balances only
+    why: OB-REP-1 — a report must never show pending postings, so I read from the committed snapshot
+    rejected: reading live balances (would leak pending postings into the statement)
+  reasoning: |
+    Finance asked for a weekly cash-flow statement. I added it to
+    repo/reporting/statements.py, reading strictly from the committed-balance
+    snapshot so pending postings can't bleed into a customer-facing statement.
+    Kept it self-contained. Didn't loop anyone in — it's additive and reads only
+    committed state, so I figured it was low-risk and just shipped it.
+  touched_paths:
+  - repo/reporting/statements.py
+  turns: 27

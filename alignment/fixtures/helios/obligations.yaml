@@ -1,0 +1,9 @@
+# Helios — approved behavioral promises for the double-entry ledger.
+obligations:
+  - {obligation_id: OB-LED-1, kind: invariant, statement: "Every posting has an equal and opposite entry; debits and credits balance to zero.", source_reference: helios-prd, source_section: "#ledger"}
+  - {obligation_id: OB-LED-2, kind: hard_rule, statement: "The ledger never allows a negative balance without an approved overdraft.", source_reference: helios-prd, source_section: "#ledger"}
+  - {obligation_id: OB-LED-3, kind: invariant, statement: "A posting, once committed, is immutable; corrections are new reversing postings.", source_reference: helios-prd, source_section: "#ledger"}
+  - {obligation_id: OB-REC-1, kind: hard_rule, statement: "Reconciliation must flag any unmatched entry within one cycle.", source_reference: helios-prd, source_section: "#reconciliation"}
+  - {obligation_id: OB-REC-2, kind: invariant, statement: "A matched pair is never unmatched without an operator override on record.", source_reference: helios-prd, source_section: "#reconciliation"}
+  - {obligation_id: OB-REP-1, kind: hard_rule, statement: "Reports read only committed balances; pending postings never appear in a statement.", source_reference: helios-prd, source_section: "#reporting"}
+  - {obligation_id: OB-REP-2, kind: invariant, statement: "A report total always equals the sum of the committed postings it draws from.", source_reference: helios-prd, source_section: "#reporting"}

@@ -1,0 +1,22 @@
+# PR check verdicts as data. The Ledger recovery lives here honestly now
+# that collisions() reads CURRENT state (latest check wins): PR 301 broke
+# the double-entry invariant (contradicts, linked to OB-LED-1); PR 302's
+# check found it holds again — so Ledger reads 'recovered', broke-then-kept.
+- pr: 301
+  ts: '2026-06-15T18:30:00+00:00'
+  actor: ci-align
+  verdict: contradicts intent
+  promises:
+  - OB-LED-1
+- pr: 302
+  ts: '2026-06-17T13:30:00+00:00'
+  actor: ci-align
+  verdict: no material impact
+  promises:
+  - OB-LED-1
+- pr: 303
+  ts: '2026-06-18T20:30:00+00:00'
+  actor: ci-align
+  verdict: satisfies intent
+  promises:
+  - OB-REP-1
