@@ -2,103 +2,43 @@
 # reasoning is the agent's own words, verbatim. The transcript is
 # the external source of record.
 - session_id: 5b31a1bb-3f6b-4d03-b418-a6c0f0ab704c
-  title: 'Brain v0.3: PRD Fix, Measurement v2 Spec, API Review, Observability Design,
-    Full UI Redesign'
-  summary: 'Audited the MVP eval harness (found it structurally invalid), rewrote
-    the PRD hypothesis and measurement spec, produced a critical Brain API review,
-    designed and built a full editorial UI redesign (ink-and-paper journal metaphor),
-    and wrote the successor handoff — all blocked on one ungated precondition: drizzle/0007
-    has never been applied.'
-  decisions:
-  - choice: 'Redefine the MVP hypothesis: treatment arm must serve only Brain-derived
-      constraints (traceable to digested sessions or approved observations)'
-    why: Hand-authored constraints prove 'telling an agent the answer helps' — close
-      to consensus in 2026. The falsifiable claim unique to Brain is that context
-      it derived from sessions beats the repo's docs.
-    rejected: Keeping the original hypothesis ('feature-aware context improves agent
-      performance') with hand-authored constraints in the treatment arm
-  - choice: Fix CVR detection to use deterministic structural checks on diffs (pgEnum/CHECK,
-      missing try/catch, innerJoin) with Haiku as tie-breaker only
-    why: Every current violationLooksLike is structurally detectable; one false positive
-      kills a true pass. All three validity holes (CVR floor unreachable, free treatment
-      exploration, fragile judge) are spec-level flaws the code faithfully implements.
-    rejected: Single Haiku judge as sole arbiter with zero tolerance
-  - choice: 'Two-repo design: intent-ai as primary measurement target, story-time
-      as generalization arm after seeding'
-    why: Session log audit showed only intent-ai (9 logs) and telegram (1 log) have
-      any Claude Code history — all other repos' transcripts have been purged. There
-      is nothing for Brain to digest elsewhere today.
-    rejected: Swapping intent-ai for another repo entirely
-  - choice: Count brain MCP calls as exploratory, or promote tokens-to-completion
-      to primary efficiency metric
-    why: An agent that replaces 8 Greps with brain_enter + brain_search scores a large
-      ETC win with identical information-gathering work — the metric measures which
-      tool namespace was used, not exploration effort.
-    rejected: Keeping ETC as-is (counts only Read/Grep/Glob, not brain_* calls)
-  - choice: 'Full editorial UI redesign: ink-and-paper journal metaphor, native elements
-      replacing shadcn Cards/Buttons/Badges, shadcn tokens remapped at root'
-    why: The Journal page made the contrast worse — one editorial page inside a default-shadcn
-      wireframe. The decision was made to give the whole product a coherent role in
-      the metaphor.
-    rejected: Redesigning only the Journal page and leaving the rest as shadcn wireframe
-  - choice: Collapse chat panel by default behind an 'Ask the Brain' chip
-    why: The open chat panel was dead quarter-screen space — the 'Ask the Journal'
-      selection-aware feature it's meant to host doesn't exist yet.
-    rejected: Leaving the chat panel open (its default state)
-  - choice: Remove Overview and Knowledge Tree from nav
-    why: Both served the retired Topic ontology; they are nav-orphaned dead ends.
-    rejected: Keeping them as nav items
-  - choice: Frame the debounced session digestion cron as a wanted feature in the
-      handoff, leaving the mechanism (daemon-trigger vs. OS cron vs. in-process scheduler)
-      open for the successor
-    why: Digesting mid-session wastes LLM calls and truncates the narrative; the design
-      choice between trigger mechanisms is a real open question the successor should
-      own.
-    rejected: Specifying the mechanism
-  - choice: Name drizzle/0007 as the single gating precondition for all workstreams
-    why: Everything — measurement, Journal, live brain_enter — is hollow until the
-      migration runs once and one real session closes the loop. A single agent told
-      'make one treatment session happen end-to-end' would have advanced the MVP more
-      than two full workstreams.
-    rejected: Treating it as one of several parallel next steps
-  reasoning: 'The session opened with an independent audit of four prior workstreams.
-    The core finding: the eval harness faithfully implements a broken spec. Three
-    validity holes identified — (1) baseline already has the answers in-prompt via
-    CLAUDE.md, making the CVR floor unreachable; (2) brain MCP calls aren''t counted
-    as exploration, so treatment exploration is free by construction; (3) CVR=0 hinges
-    on a single Haiku judge with zero tolerance. Deeper: the MVP was proving the wrong
-    half of the wedge — "telling an agent the answer helps" rather than "Brain-derived
-    context beats docs." The hypothesis was rewritten to require that every constraint
-    in the treatment arm trace to a digested session or approved observation.
+  title: session 5b31a1bb
+  summary: 332 turns touching 21 files
+  decisions: []
+  reasoning: 'I''ll read the handoff document to see what''s needed.
 
 
-    Feature-as-routing-key insight: CVR measures constraint delivery; Feature is just
-    the index. The product survives Feature''s death fine, which is good news for
-    the substrate and bad news for "Feature is the primary unit" as a load-bearing
-    principle. The durable pitch is "constraints and observations, delivered in-context."
+    Now I''ll skim the four commits — stats first, then the load-bearing pieces (measurement
+    harness, write path).
 
 
-    The two-repo design was chosen over a repo swap: intent-ai stays primary (only
-    repo with real Brain evidence), story-time added as a generalization arm after
-    seeding. The session-log evaporation finding (Claude Code purges after ~30 days)
-    reframes the daemon as existential, not nice-to-have.
+    The harness is where the validity question lives. Let me read its key files, plus
+    the feature resolver.
 
 
-    For the UI: the Journal page was built first to the editorial spec (field journal,
-    not dashboard — Newsreader serif, timeline spine, red-ink margin notes, stamp
-    buttons). On seeing the contrast with the remaining shadcn wireframe pages, the
-    decision was made to redesign the entire app. shadcn tokens were remapped at the
-    root; native elements replaced Cards/Buttons/Badges. Each page got a role: Features→atlas
-    ledger, Feature detail→dossier, Review→gate, Sessions→record. Chat panel collapsed
-    by default (was dead quarter-screen space) behind an "Ask the Brain" chip. Overview
-    and Knowledge Tree removed from nav (retired Topic ontology).
+    I''ve read the three docs and skimmed all four commits, including a close read
+    of the harness (`src/eval/mvp-eval.ts`, `transcript-metrics.ts`, `mvp-task-criteria.ts`,
+    `run-mvp-eval.ts`) and the resolver (`src/mcp/feature.ts`). Independent view below.
 
 
-    The recurring honest caveat throughout: everything is unit-tested and visually
-    verified against a mock API, but nothing has touched a real database. drizzle/0007
-    is unapplied, brain_enter has never resolved a real feature, and the treatment
-    arm is still a throw new Error. The gating step is one migration + one live session,
-    not another workstream.'
+    ## Verdict
+
+
+    The engineering is disciplined and the self-awareness in the PRD is real. But
+    the experiment as designed will very likely return an inconclusive result for
+    structural reasons, and even a clean pass would prove something you already believe
+    rather than the thing that''s uniquely yours. Specifics:
+
+
+    **1. The MVP is proving the wrong half of the wedge.** "Context injected at task
+    start helps an agent" is close to consensus in 2026 — nobody skeptical of Brain
+    doubts it. What''s contested and uniquely yours is that Brain can *produce* that
+    context automatically and improve it across sessions. The MVP tests hand-curated
+    context: manual features, manual file map, hand-written constraints, `currentUnderstanding`
+    = human-approved text. If it passes, you''ve shown that telling an agent the answer
+    helps — the observe→approve→improve loop, which is the actual system, is built
+    (WS-A/B) but sits outside the measurement entirely. The falsifiable claim worth
+    a week is "co'
   touched_paths:
   - docs/handoffs/2026-07-03-brain-v03-successor-handoff.md
   - docs/handoffs/2026-07-03-observability-design-handoff.md
@@ -124,5 +64,5 @@
   pr: 7
   started_at: '2026-07-03T10:58:25.821Z'
   turns: 332
-  digested_at: '2026-07-20T09:50:00+00:00'
+  digested_at: '2026-07-20T10:13:51+00:00'
   source: /Users/giladkoch/.claude/projects/-Users-giladkoch-dev-intent-ai/5b31a1bb-3f6b-4d03-b418-a6c0f0ab704c.jsonl

@@ -20,10 +20,30 @@ from quire_align.models import (
 )
 
 
-def _normalize(text: str) -> str:
-    # Models occasionally HTML-escape code excerpts (`&gt;` for `>`); treat
-    # that as the same citation rather than failing verbatim matching.
-    return " ".join(html.unescape(text).split())
+# An excerpt shorter than this, or made only of punctuation/operators,
+# carries no evidentiary weight — a bare `+` or `def` "matches" almost
+# any source. Citations for material findings must quote real substance
+# (blind review 2026-07-20, B1: presence was not relevance).
+_MIN_EXCERPT_CHARS = 12
+
+
+def _normalize_line(text: str) -> str:
+    """Whitespace/HTML-tolerant but PRESERVES line structure — a
+    multi-line excerpt must appear as contiguous lines in the source, not
+    be assembled from fragments scattered across the file (B1: the old
+    normalizer flattened newlines, so scattered tokens matched)."""
+    return "\n".join(
+        " ".join(html.unescape(ln).split()) for ln in text.splitlines()
+    ).strip()
+
+
+def _substantive(excerpt: str) -> bool:
+    stripped = _normalize_line(excerpt)
+    return len(stripped) >= _MIN_EXCERPT_CHARS and any(c.isalnum() for c in stripped)
+
+
+def _excerpt_in(excerpt: str, source: str) -> bool:
+    return _normalize_line(excerpt) in _normalize_line(source)
 
 
 def validate_evidence_item(
@@ -35,15 +55,15 @@ def validate_evidence_item(
     artifacts: list[ArtifactSnapshot],
 ) -> bool:
     if item.type == EvidenceType.DIFF_HUNK:
-        return bool(item.excerpt) and _normalize(item.excerpt) in _normalize(diff)
+        return _substantive(item.excerpt) and _excerpt_in(item.excerpt, diff)
 
     if item.type == EvidenceType.ARTIFACT_SECTION:
         artifact = next((a for a in artifacts if a.reference == item.reference), None)
         if artifact is None:
             return False
-        if item.excerpt:
-            return _normalize(item.excerpt) in _normalize(artifact.content)
-        return True
+        # An artifact citation with no substantive quote is not a citation
+        # (no-quote-no-render) — empty excerpts no longer get a free pass.
+        return _substantive(item.excerpt) and _excerpt_in(item.excerpt, artifact.content)
 
     # File-based evidence: FILE_LINES, SYMBOL, TEST.
     content = adapter.file_content(pr, item.reference, "head")
@@ -51,13 +71,26 @@ def validate_evidence_item(
         content = adapter.file_content(pr, item.reference, "base")
     if content is None:
         return False
-    if item.excerpt and _normalize(item.excerpt) not in _normalize(content):
-        return False
+    lines = content.splitlines()
     if item.end_line:
         if item.start_line < 1 or item.end_line < item.start_line:
             return False
-        if item.start_line > len(content.splitlines()):
+        if item.start_line > len(lines):
             return False
+    if item.excerpt:
+        if not _substantive(item.excerpt):
+            return False
+        # The excerpt must appear AT the cited lines, not merely somewhere
+        # in the file — a pointer to line 500 quoting line 10 is not
+        # evidence. A small window tolerates off-by-a-few citations.
+        if item.end_line:
+            lo, hi = max(0, item.start_line - 3), min(len(lines), item.end_line + 3)
+            if not _excerpt_in(item.excerpt, "\n".join(lines[lo:hi])):
+                return False
+        elif not _excerpt_in(item.excerpt, content):
+            return False
+    elif not (item.symbol or item.end_line):
+        return False  # neither excerpt, symbol, nor lines → nothing checkable
     if item.symbol and item.symbol.split(".")[-1] not in content:
         return False
     return True

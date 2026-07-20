@@ -156,3 +156,42 @@ def test_session_is_a_citable_source_in_the_story(ws, adapter, store):
     kept, dropped = validate_story(story, universe)
     # a session citation resolves AND licenses 'because' (reason-bearing)
     assert dropped == 0 and kept[0].cites[0].kind == "session"
+
+
+# -- adversarial (blind review 2026-07-20) --------------------------------
+
+def test_reader_survives_malformed_and_empty_jsonl(ws):
+    t = ws / "bad.jsonl"
+    t.write_text('not json\n{"broken\n\n{"message": {"role": "assistant", "content": "x"}}\n')
+    raw = read_transcript(t)  # must not raise
+    assert raw.turns >= 0
+
+
+def test_ambiguous_session_prefix_refuses(ws):
+    import yaml
+    (ws / "sessions.yaml").write_text(yaml.safe_dump([
+        {"session_id": "aaaabbbbcccc1", "title": "one", "touched_paths": []},
+        {"session_id": "aaaabbbbcccc2", "title": "two", "touched_paths": []},
+    ]))
+    # a prefix shared by both must NOT silently return the first (B4)
+    assert find_session(ws, "aaaabbbbcccc") is None
+    # the exact id still resolves
+    assert find_session(ws, "aaaabbbbcccc1")["title"] == "one"
+
+
+def test_session_matches_entity_outside_this_repo(ws, adapter, store):
+    """A transcript from a different absolute root still relates by
+    basename/suffix (B3)."""
+    import json
+    t = ws / "elsewhere.jsonl"
+    t.write_text("\n".join(json.dumps(x) for x in [
+        {"sessionId": "zzz999", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "editing the guard"},
+            {"type": "tool_use", "name": "Write",
+             "input": {"file_path": "/opt/someorg/service/repo/guard.py"}},
+        ]}},
+    ]))
+    digest_session(ws, t, _digester(), T0, pr=None)
+    from quire_align.entity_graph import graph_state, load_diffs
+    entity = graph_state(load_diffs(ws))["entities"]["ent-refunds"]
+    assert sessions_for_entity(ws, adapter, store, entity), "matched by basename"
