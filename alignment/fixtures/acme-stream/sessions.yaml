@@ -27,3 +27,48 @@
   touched_paths:
   - repo/notify/sender.py
   turns: 22
+- session_id: sess-refund-guard-ceiling-03
+  actor: priya
+  digested_at: '2026-06-22T18:00:00+00:00'
+  title: Re-sync refund guard ceiling with policy limit
+  summary: Made the tool-side guard read the ceiling from one source so the guard
+    and the policy stop drifting apart.
+  decisions:
+  - choice: have guard.py enforce the ceiling from a single shared constant, not its
+      own hardcoded copy
+    why: rui flagged the guard ceiling and the policy limit drifting again; two copies
+      of the same number will always rot
+    rejected: bumping the guard's hardcoded ceiling to match today's policy (fixes
+      it once, drifts again next change)
+  reasoning: 'I started in refunds/guard.py expecting a simple off-by-one and found
+    the real problem: the guard had its own hardcoded ceiling and policy.py had another.
+    OB-PAY-3 says the guard enforces the ceiling independently of the decision policy
+    — that means independent ENFORCEMENT, not an independent copy of the number that
+    can silently disagree. I pulled the limit into one shared constant both read, so
+    the guard still fails closed on its own but can never enforce a stale value. Did
+    not touch the human-approval rule; that is a separate promise and I left it alone.'
+  touched_paths:
+  - repo/refunds/guard.py
+  - repo/refunds/policy.py
+  turns: 31
+- session_id: sess-fraud-paging-04
+  actor: omar
+  digested_at: '2026-06-24T17:00:00+00:00'
+  title: Wire fraud-score threshold to on-call paging
+  summary: Connected the fraud scorer to the pager so scores over the threshold actually
+    page the on-call risk owner.
+  decisions:
+  - choice: page on-call synchronously the moment the score crosses the threshold,
+      inside score.py
+    why: OB-RISK-1 promises a page, and until now a high score just got logged and
+      nobody was woken up
+    rejected: emitting a metric and letting a separate alerting rule page later — too
+      much lag for a fraud decision that needs a human in minutes
+  reasoning: The fraud score was computed and stored but the escalation half of the
+    promise was never wired. I added the page call in risk/score.py right where the
+    threshold comparison happens, so paging is part of scoring rather than a downstream
+    hope. Kept it fail-safe — if paging errors, we still record the high score and
+    surface it, we never swallow a fraud signal.
+  touched_paths:
+  - repo/risk/score.py
+  turns: 27

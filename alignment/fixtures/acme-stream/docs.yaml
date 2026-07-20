@@ -1,0 +1,62 @@
+# Authored intent — the org STATING what it wants, in the words of the
+# people accountable for it. A PM's spec and an exec's direction note are
+# where obligations like OB-PAY-1 come FROM. events.py reads these as
+# kind='doc' (source='docs'), relates them to entities by the areas they
+# name, and counts them as ATTENTION — the org articulating a thing.
+
+- id: DOC-STRAT-Q3
+  author: vp-eng
+  title: 'Q3 Direction: Trust is the moat'
+  ts: '2026-06-09T08:00:00+00:00'
+  text: >
+    This quarter we compete on trust, not features. One line is
+    non-negotiable: compliance. High-risk refunds must ALWAYS be
+    human-approved before any payout leaves Acme — no batch exception, no
+    latency excuse, no "temporary" auto-approve. If a shortcut on refunds
+    saves us a day and costs us an audit finding, we do not take it. I am
+    holding engineering and product jointly accountable for this. Everything
+    else on the roadmap is negotiable against user impact; this one is not.
+
+- id: DOC-REFUND-SPEC
+  author: maya
+  title: 'Refund Policy Spec'
+  ts: '2026-06-09T15:00:00+00:00'
+  text: >
+    Owner: maya (PM, Payments). Derived from the Q3 direction note and
+    reviewed with dana.
+
+    The problem for the customer: a wrongly-issued refund is money we can't
+    reliably claw back, and a refund we wrongly withhold erodes trust. So we
+    draw a bright line by risk.
+
+    Behavior we are committing to (this is where OB-PAY-1 comes from):
+    high-risk refunds ALWAYS require a human approval before payout. Premium
+    customers may receive automatic refunds up to $100 (OB-PAY-2) — that is
+    the ONLY auto path, and it is capped. The tool-side guard enforces the
+    ceiling independently of whatever the decision policy says (OB-PAY-3), so
+    a policy bug can never quietly raise the ceiling.
+
+    Explicitly out of scope for automation: the batch export path. It is
+    tempting to auto-approve there for speed. We will not. Batch refunds are
+    still refunds; the human-approval rule has no batch exception.
+
+    Success = zero high-risk payouts without a recorded human approval.
+
+- id: DOC-FRAUD-SPEC
+  author: maya
+  title: 'Fraud Escalation Spec'
+  ts: '2026-06-10T15:00:00+00:00'
+  text: >
+    Owner: maya (PM). Sibling to the refund work — same trust theme,
+    different surface.
+
+    When a fraud score crosses the threshold, we do not silently absorb the
+    risk and we do not silently block the customer. We page the on-call
+    owner (OB-RISK-1) so a human decides fast. The user impact we're
+    protecting: a legitimate high-value buyer should not be dead-ended by an
+    automated fraud flag, and a genuine bad actor should not slip through
+    while everyone assumes someone else looked. Fraud escalation is a paging
+    contract, not a scoring tweak.
+
+    Priority: P1 this quarter, just under refunds. Tradeoff accepted: a few
+    extra pages to on-call is cheaper than one missed fraud loss.

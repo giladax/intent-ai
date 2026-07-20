@@ -18,3 +18,15 @@
   ts: '2026-07-09T18:00:00+00:00'
   kind: message
   text: coffee machine on 3 is dead again
+- id: n4
+  channel: '#team'
+  actor: mira
+  ts: '2026-07-12T14:20:00+00:00'
+  kind: message
+  text: pinned the plugin load order, tests green
+- id: n5
+  channel: '#team'
+  actor: robin
+  ts: '2026-06-22T08:15:00+00:00'
+  kind: message
+  text: reminder — we never break a user's upgrade in a minor. that's the reputation.

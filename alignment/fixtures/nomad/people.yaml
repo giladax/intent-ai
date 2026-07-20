@@ -1,0 +1,12 @@
+# The org roster: every actor who shows up in the stream → their role.
+# Nomad is a small, heads-down team. Devs ship; one founder-PM writes the
+# occasional spec; the founder sets direction. Comms are sparse by design —
+# which is the whole tragedy: the compat promise was written down and
+# mandated, and the drift still went unwatched.
+kai: dev
+sam: dev
+devon: dev
+mira: dev
+jae: pm            # founder-PM — writes the specs when there's a spec to write
+robin: stakeholder # founder / exec — sets direction, rarely posts
+nomad-bot: system

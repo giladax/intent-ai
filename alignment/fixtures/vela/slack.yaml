@@ -115,3 +115,76 @@
   ts: '2026-07-15T09:00:00+00:00'
   kind: message
   text: "thanks again for yesterday. triage is smooth again now that paging is fast."
+
+# ---- #eng : nadia and carlos, all on the same fire and its follow-ups ----
+# Every eng message in the incident window is about Alerts (or Delivery). Not
+# one names the opt-in gate — that is exactly why the drift went unseen.
+- id: m19
+  channel: '#eng'
+  actor: nadia
+  ts: '2026-07-14T08:35:00+00:00'
+  kind: message
+  text: "i'm on the alerts incident with tomas. once the fix is in i want to add queue-depth backpressure so a stalled dispatch worker can't silently blow the 60 second SLA again."
+- id: m20
+  channel: '#eng'
+  actor: carlos
+  ts: '2026-07-14T09:05:00+00:00'
+  kind: message
+  text: "same, heads-down on the alerts fire this morning. shelving my delivery retry follow-up until paging is stable, don't want to touch the send pipeline while it's all hands."
+- id: m21
+  channel: '#eng'
+  actor: nadia
+  ts: '2026-07-14T10:40:00+00:00'
+  kind: message
+  text: "alerts backpressure patch is up — bounded page queue plus a depth gauge, alarms at depth 50 so we see a stall before the SLA does. review when the dust settles."
+- id: m22
+  channel: '#eng'
+  actor: carlos
+  ts: '2026-07-15T15:25:00+00:00'
+  kind: message
+  text: "picking my delivery work back up now the fire's out: dead-lettering messages that exhaust the backoff cap so a failed send is never dropped without a trace."
+- id: m23
+  channel: '#incidents'
+  actor: nadia
+  ts: '2026-07-14T08:38:00+00:00'
+  kind: message
+  text: "tomas i can pair on this. while you patch the audit write i'll instrument the alert dispatch queue so we can watch the depth drain in real time."
+
+# ---- #product : hana (PM) — patient safety, compliance, priorities ----
+# All BEFORE the incident. hana articulates the promises; note she reminds the
+# org about the opt-in rule weeks ahead of the break, and it still gets no eyes
+# when it matters. No #product message lands during the incident window.
+- id: m24
+  channel: '#product'
+  actor: hana
+  ts: '2026-06-04T10:30:00+00:00'
+  kind: message
+  text: "shipped the opt-in spec. bottom line for eng: no message goes out without a recorded opt-in on file, and the opt-in check runs before any downstream work. this is patient safety and HIPAA, not a nice-to-have — please treat the opt-in check as a safety control."
+- id: m25
+  channel: '#product'
+  actor: hana
+  ts: '2026-06-18T10:30:00+00:00'
+  kind: message
+  text: "alerts SLA spec is up. the on-call clinician must be paged within 60 seconds of a threshold breach, exactly one clinician, never zero. a late page is a triage failure — nothing may sit on the alerts dispatch path that can delay it."
+- id: m26
+  channel: '#product'
+  actor: hana
+  ts: '2026-07-01T09:00:00+00:00'
+  kind: message
+  text: "sprint priorities: 1) harden the alerts paging path against latency, 2) delivery retry safety. the opt-in rule and its gate are already in force and non-negotiable, so keep them intact through any send-path refactor."
+
+# ---- #leadership : vp-product (stakeholder) — the compliance mandate ----
+# Dated well before the incident. The exec draws the hard line; the org then
+# spends the incident window looking elsewhere while that very line breaks.
+- id: m27
+  channel: '#leadership'
+  actor: vp-product
+  ts: '2026-05-28T16:15:00+00:00'
+  kind: message
+  text: "making this a company mandate, not a guideline: a recorded opt-in is our HIPAA hard line. no message leaves vela without a recorded opt-in, ever — no test, no migration, no exception. engineering treats the opt-in gate like a medical-device control. this is the one line we do not cross."
+- id: m28
+  channel: '#leadership'
+  actor: vp-product
+  ts: '2026-07-05T11:00:00+00:00'
+  kind: message
+  text: "reinforcing ahead of the busy stretch: patient safety promises are load-bearing. the opt-in rule and the alerts SLA are both hard rules — if a refactor risks either, it stops and gets a second set of eyes. we do not trade safety for velocity."

@@ -87,3 +87,57 @@
   touched_paths:
   - repo/reporting/statements.py
   turns: 27
+- session_id: sess-batched-txn-primitive-05
+  actor: wei
+  digested_at: '2026-06-22T17:00:00+00:00'
+  started_at: '2026-06-22T13:00:00+00:00'
+  title: Give postings a real batched-transaction primitive
+  summary: Added a batched-transaction primitive that writes both legs of every
+    posting atomically, so we get throughput back without the derived-view
+    shortcut that broke the double-entry invariant.
+  decisions:
+  - choice: batch whole paired-insert transactions, not individual leg writes
+    why: this is the safe way to get marcus's 2x back — each transaction still writes the debit and its opposite credit together and asserts sum-to-zero before commit, so a partial batch failure rolls back the whole posting instead of orphaning a debit
+    rejected: reviving the lazy derived-opposite view under a crash-safe wrapper (priya was right — too subtle to trust on the money path)
+  reasoning: |
+    After priya restored the paired insert I picked up the throughput problem
+    the honest way. The old batching was fast because it dropped the second
+    write; the fix has to keep both legs and still be fast. I built a
+    batched-transaction primitive in repo/ledger/postings.py that groups whole
+    paired-insert transactions into one batch — every posting in the batch
+    still writes its debit and the opposite credit together, and the sum-to-zero
+    assertion runs per transaction before commit. If a batch fails partway, the
+    failed transaction rolls back cleanly; we never commit a debit whose credit
+    leg didn't land. Benchmarks show most of marcus's throughput back with the
+    invariant fully intact. I matched the assertion to raj's Ledger Integrity
+    Spec: sum(debits) + sum(credits) == 0 at commit, no exceptions. Also updated
+    balance.py so the batched path recomputes account totals the same way the
+    single-posting path does.
+  touched_paths:
+  - repo/ledger/postings.py
+  - repo/ledger/balance.py
+  turns: 38
+- session_id: sess-operator-override-audit-06
+  actor: sofia
+  digested_at: '2026-06-23T18:30:00+00:00'
+  started_at: '2026-06-23T14:00:00+00:00'
+  title: Record operator overrides when a matched pair is unmatched
+  summary: Made reconciliation refuse to unmatch a matched pair without a recorded
+    operator override, writing an audit entry for every break of a match.
+  decisions:
+  - choice: block un-matching a matched pair unless an operator override is on record
+    why: OB-REC-2 says a matched pair is never silently unmatched, and nadia's reconciliation spec makes the operator-override trail a compliance requirement — ops needs to see who broke a match and why
+    rejected: allowing a soft unmatch that logs after the fact (a silent unmatch even for a moment is the thing the invariant forbids)
+  reasoning: |
+    Picked up the P1 from nadia's reconciliation spec. The matcher already
+    flagged unmatched entries within the cycle, but nothing stopped an already
+    matched pair from being torn apart without a paper trail. I changed
+    repo/reconcile/matcher.py so that breaking a match requires an operator
+    override object — operator id, reason, timestamp — and the matcher refuses
+    the unmatch and raises if it's missing. Every override writes an audit
+    entry alongside the reconciliation cycle id, so the same-day flagging story
+    and the override story share one trail ops can read. Left the ledger
+    postings alone — this is purely on the reconcile side.
+  touched_paths:
+  - repo/reconcile/matcher.py
+  turns: 31

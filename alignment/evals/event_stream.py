@@ -35,8 +35,9 @@ CASES = [
      "discussed at length, nothing shipped"),
     ("acme-stream", "ent-notifications", ("silent-build-risk",),
      "shipped with zero discussion"),
-    ("acme-stream", "ent-risk", ("quiet", "(absent)"),
-     "a bare word ('high-risk') must not raise a false signal"),
+    ("acme-stream", "ent-risk", ("aligned",),
+     "omar built fraud-paging and maya specced it — legitimately active now "
+     "(the bare-word 'high-risk' still does not falsely tie; see the unit test)"),
     ("helios", "ent-ledger", ("recovered",),
      "broke, then a later check confirmed it holds again"),
     ("helios", "ent-reconciliation", ("aligned",),
@@ -69,10 +70,21 @@ def run() -> int:
         evs = events_for(ws, FixtureWorkspace(ws), None)
         sources = {e.source for e in evs}
         users = {e.actor for e in evs if e.actor}
-        ok = len(sources) >= 3 and len(users) >= 4
+        roles = {e.role for e in evs if e.role}
+        # multi-source, multi-user, AND multi-ROLE — a real org has devs
+        # who build, PMs who spec intent, and a stakeholder who mandates
+        ok = (len(sources) >= 3 and len(users) >= 5
+              and {"dev", "pm", "stakeholder"} <= roles)
         failures += 0 if ok else 1
-        print(f"  {'PASS' if ok else 'FAIL'} {org} multi-source/user: "
-              f"{len(sources)} sources, {len(users)} users, {len(evs)} events")
+        print(f"  {'PASS' if ok else 'FAIL'} {org} multi-source/user/role: "
+              f"{len(sources)} sources, {len(users)} users, "
+              f"roles={sorted(roles & {'dev','pm','stakeholder'})}, {len(evs)} events")
+        # a PM/stakeholder authored intent (a doc exists). Relating it to an
+        # area is the norm (acme/helios/vela) but not required — nomad's
+        # compat policy is deliberately generic to keep the drift unwatched.
+        if not any(e.kind == "doc" for e in evs):
+            print(f"  FAIL {org}: no authored spec/doc")
+            failures += 1
         # controls: no manufactured DATABASE migration or SECURITY breach
         # (specific phrases — 'migrate' alone is a legitimate config-schema
         # operation, so a bare-substring control false-positives on it)

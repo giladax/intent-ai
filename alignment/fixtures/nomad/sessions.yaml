@@ -51,3 +51,38 @@
   touched_paths:
   - repo/host/plugins.go
   turns: 8
+- session_id: sess-plugin-order-04
+  actor: mira
+  digested_at: '2026-07-12T14:10:00+00:00'
+  title: Pin the plugin load order
+  summary: Sorted the plugin discovery list so load order is deterministic run to run.
+  decisions:
+  - choice: sort discovered plugins by name before init
+    why: the filesystem walk returned them in whatever order the OS felt like, so init order drifted between machines
+    rejected: leaving it to directory-walk order
+  reasoning: >-
+    Onboarding week, second session. Noticed host/plugins.go inits whatever the
+    directory walk hands back, which is non-deterministic across machines — a
+    plugin's setup could run before another's on my laptop and after it on CI.
+    Sorted the discovered list by name before the init loop so the order is
+    fixed. Added a test asserting two runs give the same order. Small, shipped.
+  touched_paths:
+  - repo/host/plugins.go
+  turns: 11
+- session_id: sess-config-errmsg-05
+  actor: mira
+  digested_at: '2026-07-13T10:05:00+00:00'
+  title: Louder error on an unreadable settings file
+  summary: Made a bad settings file fail with a clear message instead of a bare stack trace.
+  decisions:
+  - choice: wrap the read error with the file path and a one-line hint
+    why: a corrupt file dumped a raw error and people could not tell which file
+    rejected: leaving the raw error through
+  reasoning: >-
+    Hit a garbled file locally and the error was a wall of Go internals with no
+    path. Wrapped the read failure in config/load.go with the offending path and
+    a short hint. Still fails loud and non-zero, just readable now. No behavior
+    change beyond the message.
+  touched_paths:
+  - repo/config/load.go
+  turns: 9

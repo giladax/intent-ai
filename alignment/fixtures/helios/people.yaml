@@ -1,0 +1,26 @@
+# Helios org roster — every actor mapped to its ROLE.
+# events.py stamps each event's author role from this map; unlisted actors
+# fall back to "" (or "system" for quire-sourced signings).
+#
+#   dev         — writes code, reasons in sessions, debugs in #ledger-eng
+#   pm          — authors specs, frames correctness/audit requirements, decides in #finance-product
+#   stakeholder — the exec: strategy docs + mandates, correctness-as-existential voice
+#   system      — CI and the map itself
+
+# devs — the recovery arc + the two new hands
+priya: dev
+marcus: dev
+elena: dev
+jun: dev
+wei: dev
+sofia: dev
+
+# product managers — they spec the invariant, they don't code it
+raj: pm
+nadia: pm
+
+# stakeholder — the exec who mandated correctness
+cto: stakeholder
+
+# CI
+ci-align: system

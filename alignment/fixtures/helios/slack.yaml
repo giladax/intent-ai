@@ -66,6 +66,88 @@
   text: 'decision: reconciliation flags unmatched entries at cycle close, same
     day. waiting a run breaks the within-one-cycle promise.'
 
+# --- #leadership: the CTO mandate (names Ledger → ties to ent-ledger) -------
+- id: m11
+  channel: '#leadership'
+  actor: cto
+  ts: '2026-06-04T08:15:00+00:00'
+  kind: decision
+  text: 'mandate: Ledger correctness is existential and comes before every
+    throughput target. Every change to the postings path ships with a
+    sum-to-zero assertion at commit — if debits and credits don''t net to zero,
+    it does not merge. A single unbalanced posting is a regulatory event. I''ll
+    back correctness over speed every time.'
+
+# --- #finance-product: PMs spec and prioritize (name areas to tie) ----------
+- id: m12
+  channel: '#finance-product'
+  actor: raj
+  ts: '2026-06-05T09:30:00+00:00'
+  kind: message
+  text: shipped the Ledger integrity spec — it states the double-entry invariant
+    as the contract. every posting has an equal and opposite entry and the
+    postings sum to zero. that's the promise the rest of Helios builds on.
+- id: m13
+  channel: '#finance-product'
+  actor: nadia
+  ts: '2026-06-06T11:00:00+00:00'
+  kind: message
+  text: reconciliation spec is up. same-cycle flagging of any unmatched entry is
+    P0 for settlement; the operator-override trail is P1. it all rests on the
+    ledger postings netting to zero — if a posting is unbalanced, matching is
+    meaningless.
+- id: m14
+  channel: '#finance-product'
+  actor: raj
+  ts: '2026-06-16T10:30:00+00:00'
+  kind: decision
+  text: 'decision: correctness on the ledger postings is P0 over the throughput
+    win. per the integrity spec and the CTO mandate, restore the double-entry
+    invariant first, chase the 2x after. priya''s revert is the right call.'
+- id: m15
+  channel: '#finance-product'
+  actor: nadia
+  ts: '2026-06-23T15:00:00+00:00'
+  kind: message
+  text: the operator-override audit trail on reconciliation closes the OB-REC-2
+    gap from the spec — good. ops can now see who unmatched a matched pair and
+    why, within the cycle.
+
+# --- #ledger-eng: the two new hands (channel-mapped → ent-ledger) -----------
+- id: m16
+  channel: '#ledger-eng'
+  actor: wei
+  ts: '2026-06-21T14:00:00+00:00'
+  kind: message
+  text: taking the throughput problem back up now that the invariant's restored.
+    plan is a batched-transaction primitive that keeps both legs together — we
+    batch whole paired inserts, not individual writes, so a partial failure
+    rolls the whole posting back instead of orphaning a debit.
+- id: m17
+  channel: '#ledger-eng'
+  actor: priya
+  ts: '2026-06-21T14:20:00+00:00'
+  kind: message
+  text: that's exactly the safe version — as long as the sum-to-zero assertion
+    still runs per transaction before commit, go for it. that's the primitive I
+    wished existed when I reverted.
+- id: m18
+  channel: '#ledger-eng'
+  actor: wei
+  ts: '2026-06-22T16:30:00+00:00'
+  kind: message
+  text: batched-transaction primitive landed. most of the 2x is back and the
+    double-entry invariant holds under partial batch failure — assertion fires
+    per transaction, unbalanced batches roll back clean.
+- id: m19
+  channel: '#ledger-eng'
+  actor: sofia
+  ts: '2026-06-23T14:30:00+00:00'
+  kind: message
+  text: on the reconcile side — wiring the operator-override record so we can''t
+    unmatch a matched pair without a trail. nadia flagged it as the OB-REC-2
+    compliance gap. not touching the ledger postings, purely reconciliation.
+
 # --- ambient noise, ties to nothing ----------------------------------------
 - id: m9
   channel: '#general'

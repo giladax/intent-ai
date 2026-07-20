@@ -28,7 +28,8 @@ def test_collision_signals_match_embedded_patterns():
     assert sig["ent-payments"] == "drift-in-context"   # discussed + drifted + caught
     assert sig["ent-checkout"] == "all-talk-gap"       # talked, not built
     assert sig["ent-notifications"] == "silent-build-risk"  # built, not talked
-    assert sig.get("ent-risk") in (None, "quiet")      # no false relation
+    # (Risk's bare-word noise filter is pinned in the relation test below;
+    # after the multi-role expansion Risk has real fraud-paging activity.)
 
 
 def test_recovery_reads_current_state_not_ever_broken():
@@ -71,3 +72,14 @@ def test_comms_relation_is_quote_backed_and_noise_filtered():
     ties = relate_message(
         {"channel": "", "text": "the refunds path is slow"}, entities, {})
     assert any(t["entity_id"] == "ent-payments" for t in ties)
+
+
+def test_orgs_are_multi_role_with_authored_intent():
+    """Every org has devs (build), PMs (spec intent), a stakeholder
+    (mandate), and at least one authored doc relating to a real area."""
+    for org in ("acme-stream", "helios", "nomad", "vela"):
+        ws = pathlib.Path(__file__).parent.parent / "fixtures" / org
+        evs = events_for(ws, FixtureWorkspace(ws), None)
+        roles = {e.role for e in evs if e.role}
+        assert {"dev", "pm", "stakeholder"} <= roles, f"{org} missing a role"
+        assert any(e.kind == "doc" for e in evs), f"{org} has no authored doc"
