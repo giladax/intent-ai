@@ -125,4 +125,4 @@ def test_render_is_push_ready_with_receipts():
     assert "CRITICAL" in msg
     assert "Receipts:" in msg
     assert "OB-CONSENT-1" in msg  # the promise ref is quotable in the push
-    assert "to: stakeholder" in msg
+    assert "to: exec" in msg      # roles rendered in plain language for the push

@@ -4,7 +4,58 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: 1531e1a
+last-reviewed: 7680a08
+
+## 2026-07-20 — tick over 1531e1a..7680a08 (session + comms + alarms; agent review)
+
+Ten commits since the last tick landed three new subsystems: session
+ingestion (`session.py`), comms + org event stream (`comms.py`,
+`events.py`), and the proactive alarm layer (`alarms.py`), plus the
+evidence-gate / injection hardening from the blind review. One
+general-purpose agent reviewed the changed source under both lenses.
+Overall read: high-quality, disciplined code — quote-or-drop enforced
+throughout, prose in the alarm narration is genuinely CPO-ready.
+
+**Tier-1 applied (this commit):**
+- `events.py` — **live-store break detection was dead in production**
+  (highest-impact find). Break was sniffed as `"contradict" in text`, but a
+  live check's verdict is the Classification enum `"OFF_INTENT"`, which
+  contains no such substring — so every drift/silent-drift alarm was green
+  on fixtures and would never fire against a real analysis store. Fixed by
+  carrying a structured `broken` flag on the check event, computed from the
+  classification (live) or the verdict phrase (fixture), and mapping the
+  live enum to the same human verdict vocabulary the fixtures use
+  (`_VERDICT_TEXT`) — which also kills an "OFF_INTENT" product-surface leak.
+  Regression test added (`test_break_is_read_from_the_structured_flag…`).
+- `events.py`/`alarms.py` — `collisions()` and the alarm break-check now
+  read the structured flag, not the substring.
+- `model.py:466` — session node ref used `session_id[:8]` while every other
+  surface uses the canonical `session_ref()` (`_REF_LEN=12`, bumped from 8
+  for collision-safety in blind review B4); same session showed two ref
+  strings. Now calls `session_ref(record)`.
+- `alarms.py` — `render_telegram` used unguarded `_ICON[...]`/`_RANK[...]`;
+  now `.get()` with fallbacks (defensive against a future signal→severity).
+- `alarms.py` — push receipts/roles rendered raw taxonomy (`gap: 14d`,
+  `to: stakeholder, pm, dev`). Added plain-language maps: `gap`→"coverage",
+  roles→"exec/product/engineering".
+- `cli.py watch` — "N loud" → "N urgent"; and a swallowed `Store()` error no
+  longer yields a false "all quiet" — a live workspace with no fixture
+  checks and an unreachable store now warns "this is a blind spot, not an
+  all-clear" (the one thing an intent-assurance product must never claim).
+- `evidence.py` — clarified the 1-based/0-based context-window comment.
+
+**Tier-2 deferred (logged, not applied):**
+- `prompts.py` — declared intent (PR title/body, attacker-controlled) sits
+  in the trusted region above the injection fence. Moving it inside is a
+  prompt change → needs a fidelity/EDD run before applying (memory:
+  EDD-for-LLM-tasks). Deterministic verdict mitigates severity today.
+- `alarms.py` receipt/audience taxonomy — a fuller user-facing label map
+  (incl. `mandate`) is design-level; revisit when wiring real delivery.
+- `evidence.py` empty-excerpt tightening is an intentional behavior change
+  already shipped; confirm no eval regression when live credits return.
+
+Gate: `python3 -m pytest` → 229 passed. Both evals all-clear
+(event_stream, alarms). Imports smoke-checked.
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 

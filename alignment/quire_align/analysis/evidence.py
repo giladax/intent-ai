@@ -82,7 +82,9 @@ def validate_evidence_item(
             return False
         # The excerpt must appear AT the cited lines, not merely somewhere
         # in the file — a pointer to line 500 quoting line 10 is not
-        # evidence. A small window tolerates off-by-a-few citations.
+        # evidence. A small window tolerates off-by-a-few citations. Note
+        # start/end_line are 1-based while `lines` is 0-based, so the window
+        # is a few lines either side of the cite, not an exact slice.
         if item.end_line:
             lo, hi = max(0, item.start_line - 3), min(len(lines), item.end_line + 3)
             if not _excerpt_in(item.excerpt, "\n".join(lines[lo:hi])):

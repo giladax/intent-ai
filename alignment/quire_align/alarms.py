@@ -109,7 +109,7 @@ def alarms_for(workspace_dir: pathlib.Path, adapter=None, store=None,
                          policy, window_days, ref_now)
         if alarm and alarm.dedup_key not in seen:
             out.append(alarm)
-    return sorted(out, key=lambda a: (_RANK[a.severity], a.entity_name))
+    return sorted(out, key=lambda a: (_RANK.get(a.severity, 99), a.entity_name))
 
 
 def _compose(workspace_dir, events, obligations, c, ent, name, policy,
@@ -124,8 +124,7 @@ def _compose(workspace_dir, events, obligations, c, ent, name, policy,
                                      f" by {signing.actor}"))
 
     # the promise that is (or was) in play, and the breaking check
-    break_check = _latest(events, eid, "check",
-                          where=lambda e: "contradict" in (e.text or "").lower())
+    break_check = _latest(events, eid, "check", where=lambda e: e.broken)
     ob_ids = (break_check.promises if break_check else []) or [
         h["ref"] for h in ent.get("holdings", []) if h["kind"] == "promise"]
     statement = next((obligations[o] for o in ob_ids if o in obligations), "")
@@ -203,17 +202,26 @@ def _narrate(signal, name, statement, break_check, signing, attention,
 
 # -- delivery: compose now, send later -------------------------------------
 
+# Plain-language labels for the push, so a reader who has never seen Quire's
+# internal taxonomy still understands the receipt and the routing.
+_RECEIPT_LABEL = {"signing": "signed", "promise": "promise", "check": "check",
+                  "mandate": "mandate", "gap": "coverage"}
+_AUDIENCE_LABEL = {"stakeholder": "exec", "pm": "product", "dev": "engineering"}
+
+
 def render_telegram(alarm: Alarm) -> str:
     """A push-ready message. Telegram/Slack wiring is a post-raise fast-follow
     behind this same shape — the org maps a role → a chat the way channels.yaml
     maps a channel → an entity."""
-    lines = [f"{_ICON[alarm.severity]} *{alarm.severity.upper()}* — {alarm.headline}",
+    icon = _ICON.get(alarm.severity, "•")
+    lines = [f"{icon} *{alarm.severity.upper()}* — {alarm.headline}",
              "", alarm.story, "", "_Receipts:_"]
     for r in alarm.receipts:
         note = f" — {r.note}" if r.note else ""
-        lines.append(f"  • {r.kind}: `{r.ref}`{note}")
+        lines.append(f"  • {_RECEIPT_LABEL.get(r.kind, r.kind)}: `{r.ref}`{note}")
     lines.append("")
-    lines.append(f"_to: {', '.join(alarm.audience)}_")
+    to = ", ".join(_AUDIENCE_LABEL.get(role, role) for role in alarm.audience)
+    lines.append(f"_to: {to}_")
     return "\n".join(lines)
 
 

@@ -5,9 +5,33 @@ import pathlib
 
 from quire_align.adapters.fixture import FixtureWorkspace
 from quire_align.comms import relate_message
-from quire_align.events import collisions, events_for
+from quire_align.events import ActivityEvent, collisions, events_for
 
 WS = pathlib.Path(__file__).parent.parent / "fixtures" / "acme-stream"
+
+
+def test_break_is_read_from_the_structured_flag_not_the_verdict_text():
+    """Regression: a live check's verdict is the Classification enum
+    ("OFF_INTENT"), which does NOT contain the substring "contradict" — so
+    break detection must key off the structured `broken` flag, not sniff the
+    text. Two checks carry a break in their flag but never say "contradict";
+    the entity must still read as broken (silent-drift, no attention)."""
+    events = [
+        ActivityEvent(source="git", kind="check", ts="2026-07-01T00:00:00+00:00",
+                      ref="1", entities=["ent-x"], text="OFF_INTENT", broken=True),
+        ActivityEvent(source="git", kind="check", ts="2026-07-02T00:00:00+00:00",
+                      ref="2", entities=["ent-x"], text="OFF_INTENT", broken=True),
+    ]
+    sig = {c["entity_id"]: c for c in collisions(events)}
+    assert sig["ent-x"]["broken"] is True
+    assert sig["ent-x"]["signal"] == "silent-drift"
+    # and a passing latest check clears it, even though text never mentions it
+    events.append(ActivityEvent(source="git", kind="check",
+                                ts="2026-07-03T00:00:00+00:00", ref="3",
+                                entities=["ent-x"], text="ALIGNED", broken=False))
+    cleared = {c["entity_id"]: c for c in collisions(events)}
+    assert cleared["ent-x"]["broken"] is False
+    assert cleared["ent-x"]["signal"] == "recovered"
 
 
 def _adapter():

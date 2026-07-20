@@ -717,19 +717,33 @@ def watch(
         adapter = _adapter(workspace)
     except typer.BadParameter:
         adapter = None
-    store = None
+    store, store_error = None, None
     if adapter is not None:
         try:
             store = Store()
-        except Exception:
-            store = None
+        except Exception as error:  # offline fixtures carry their own checks
+            store_error = error
+
+    # A live workspace with no fixture checks needs the store to see checks.
+    # If that store is unreachable, an empty result is NOT "all clear" — it
+    # is a blind spot, and reporting a false all-clear is the one thing this
+    # product must never do. Warn instead of quietly reassuring.
+    checks_blind = (store_error is not None and store is None
+                    and not (ws_dir / "checks.yaml").exists())
 
     alarms = alarms_for(ws_dir, adapter, store, window_days=window_days)
+    if checks_blind:
+        typer.secho(
+            f"⚠ could not reach the analysis store ({_error_text(store_error)}) — "
+            "checks did not load, so drift alarms may be incomplete. This is a "
+            "blind spot, not an all-clear.", fg=typer.colors.RED)
     if not alarms:
-        typer.secho("all quiet — nothing warrants a page.", fg=typer.colors.GREEN)
+        msg = ("no checks loaded — cannot vouch for anything." if checks_blind
+               else "all quiet — nothing warrants a page.")
+        typer.secho(msg, fg=typer.colors.YELLOW if checks_blind else typer.colors.GREEN)
         return
     loud = sum(1 for a in alarms if a.severity in ("critical", "high"))
-    typer.secho(f"⚡ {len(alarms)} alarm(s), {loud} loud — page order:\n",
+    typer.secho(f"⚡ {len(alarms)} alarm(s), {loud} urgent — page order:\n",
                 fg=typer.colors.YELLOW)
     deliver(alarms, ConsoleNotifier())
 

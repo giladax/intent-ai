@@ -433,6 +433,8 @@ def _around_session(record, entities) -> dict:
     its key decisions listed, related to the PR it produced and the
     entities whose code it touched. Observed evidence — it happened; the
     reasoning is the agent's own words, not our inference."""
+    from quire_align.session import session_ref
+
     touched = set(record.get("touched_paths", []))
     neighbors: list[dict] = []
     if record.get("pr") is not None:
@@ -463,7 +465,7 @@ def _around_session(record, entities) -> dict:
     return {
         "node": {
             "kind": "session", "mood": "observed",
-            "ref": record.get("_ref") or ("session-" + record["session_id"][:8]),
+            "ref": record.get("_ref") or session_ref(record),
             "title": record.get("title") or record["session_id"][:12],
             "body": body,
             "reasoning": record.get("reasoning", ""),

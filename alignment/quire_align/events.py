@@ -21,6 +21,25 @@ import yaml
 from pydantic import BaseModel, Field
 
 from quire_align.entity_graph import read_state
+from quire_align.models import Classification
+
+# A live analysis speaks the Classification enum; a fixture check speaks a
+# human verdict phrase. One vocabulary at the event boundary, so the stream
+# reads the same whether it came from the store or a fixture — and so the
+# break signal is computed from the classification, never sniffed from text.
+_VERDICT_TEXT: dict[Classification, str] = {
+    Classification.OFF_INTENT: "contradicts intent",
+    Classification.ALIGNED: "satisfies intent",
+    Classification.NO_MATERIAL_IMPACT: "no material impact",
+    Classification.PARTIAL: "partially satisfies intent",
+    Classification.POSSIBLE_DRIFT: "possible drift",
+    Classification.UNGOVERNED: "ungoverned change",
+    Classification.UNKNOWN: "unclear",
+}
+# The classifications that mean the promise is currently BROKEN (a
+# contradiction). Fixture checks carry the phrase "contradicts intent",
+# which maps here too.
+_BROKEN_VERDICTS = {Classification.OFF_INTENT}
 
 
 class ActivityEvent(BaseModel):
@@ -35,6 +54,7 @@ class ActivityEvent(BaseModel):
     paths: list[str] = Field(default_factory=list)
     ref: str = ""                         # addressable id (session-…, GD-…, #7)
     channel: str = ""
+    broken: bool = False                  # a check that found a contradiction
 
 
 def _load(workspace_dir: pathlib.Path, name: str):
@@ -94,7 +114,8 @@ def events_for(workspace_dir: pathlib.Path, adapter=None, store=None) -> list[Ac
     if checks is None and adapter is not None and store is not None:
         checks = [
             {"pr": a.pr_number, "ts": a.created_at.isoformat(),
-             "verdict": a.classification.value,
+             "verdict": _VERDICT_TEXT.get(a.classification, a.classification.value),
+             "broken": a.classification in _BROKEN_VERDICTS,
              "promises": [i.obligation_id for i in a.obligation_impacts
                           if i.relation.value != "unrelated"]}
             for a in store.list_analyses(repository=adapter.repository())
@@ -102,11 +123,17 @@ def events_for(workspace_dir: pathlib.Path, adapter=None, store=None) -> list[Ac
     for c in checks or []:
         touched_ents = sorted({promise_to_entity[p] for p in c.get("promises", [])
                                if p in promise_to_entity})
+        # A fixture check states a verdict phrase; derive its break from that
+        # phrase. A live check already carries a structured `broken`. Either
+        # way the break is a fact on the event, not a substring guess later.
+        broken = c.get("broken")
+        if broken is None:
+            broken = "contradict" in str(c.get("verdict", "")).lower()
         events.append(ActivityEvent(
             source="git", kind="check", ts=str(c.get("ts", "")),
             actor=c.get("actor", ""), text=c.get("verdict", ""),
             ref=str(c.get("pr", "")), entities=touched_ents,
-            promises=c.get("promises", []),
+            promises=c.get("promises", []), broken=bool(broken),
         ))
 
     # comms — attention
@@ -203,7 +230,7 @@ def collisions(events: list[ActivityEvent], window_days: float | None = None,
             slot = by_entity.setdefault(eid, {"attention": 0, "dev": 0,
                                               "actors": set(), "checks": []})
             if e.kind == "check":
-                slot["checks"].append((e.ts, "contradict" in (e.text or "").lower()))
+                slot["checks"].append((e.ts, e.broken))
             if bucket and in_window:
                 slot[bucket] += 1
                 if e.actor:
