@@ -37,7 +37,7 @@ def eval_scope_honesty(
 ) -> dict:
     """The 'Brain' error, mechanically: an entity name must not name the
     whole corpus. Fails when the name matches the workspace id, or its
-    lexical footprint across ALL promises exceeds twice its membership."""
+    lexical footprint touches most of the promises (>= 0.6 of the corpus)."""
     total = len(statements_by_id)
     offenders = []
     for diff in proposals:

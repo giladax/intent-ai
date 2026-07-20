@@ -75,7 +75,7 @@ def get_variant(name: str) -> AnalyzerConfig:
     return _VARIANTS[name].model_copy(deep=True)
 
 
-DEFAULT = register_variant(AnalyzerConfig())
+register_variant(AnalyzerConfig())  # the default "linear-v1" variant
 
 # A wider net: assess every obligation in the contract, no short-circuits,
 # and let the LLM judge even obligations with untouched bindings.

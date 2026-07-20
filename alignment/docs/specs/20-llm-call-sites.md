@@ -24,8 +24,12 @@ a miss is recoverable. Every model is a constructor arg — swappable.
 
 Legend: **det-gate** = the mechanical check that decides what renders /
 survives. T = temperature. All structured outputs are Pydantic via
-`.with_structured_output`; all wrapped in `llm_retry.invoke_with_retry`
-(retries validation/parse errors only).
+`.with_structured_output`. The pipeline, onboarding, seeding, grouping,
+mind-structurer, story, and repo-cognition calls wrap in
+`llm_retry.invoke_with_retry` (retries validation/parse errors only); the
+mind *thinker* (#11, free prose — nothing to validate), `ask.haiku_pick`
+(#15), and `seed_quality._haiku_complement_judge` (#16) call `.invoke`
+directly.
 
 ### A. Analysis pipeline (`analysis/llm.py:AnthropicAlignmentLLM`)
 
