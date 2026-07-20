@@ -15,6 +15,7 @@ mutates; the stream is a fold, cheap, recomputed on read.
 from __future__ import annotations
 
 import pathlib
+from datetime import datetime, timedelta, timezone
 
 import yaml
 from pydantic import BaseModel, Field
@@ -141,6 +142,22 @@ def _suffix_match(a: str, b: str) -> bool:
         os.path.basename(a) == os.path.basename(b) and bool(os.path.basename(a)))
 
 
+def parse_ts(ts: str) -> datetime | None:
+    """Best-effort ISO parse → aware UTC datetime. Returns None for a ts we
+    can't place on the clock; callers treat un-placeable events as always
+    in-window (we never window OUT what we can't time)."""
+    if not ts:
+        return None
+    try:
+        d = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            d = datetime.fromisoformat(ts[:10])
+        except ValueError:
+            return None
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
 # -- the collision: attention vs dev, per entity ---------------------------
 
 # Attention = comms. Dev = activity on the CODE (a commit, a check, a
@@ -151,24 +168,46 @@ _COMMS = {"message", "thread", "decision", "doc"}  # doc = intent authorship, or
 _DEV = {"commit", "check", "session"}
 
 
-def collisions(events: list[ActivityEvent]) -> list[dict]:
+def collisions(events: list[ActivityEvent], window_days: float | None = None,
+               now: str | None = None) -> list[dict]:
     """For each entity: how much ATTENTION (comms) vs DEV (code) it drew,
     and the quadrant signal. The plan's four quadrants — aligned /
     all-talk-gap / silent-build-risk / (drift-in-context handled at the
-    story layer). Deterministic; no LLM."""
+    story layer). Deterministic; no LLM.
+
+    window_days scopes the ATTENTION/DEV density to a recent window ending
+    at `now` (default: the newest event's time) — the read a proactive
+    alarm needs: "is anyone watching this *now*", not "did anyone ever". It
+    deliberately does NOT window the check history: a promise that broke and
+    was never re-checked is still broken now, so broken/recovered always
+    read the full record. Default (no window) counts all-time, so the
+    embedded ground truths are unchanged."""
+    cutoff = None
+    if window_days is not None:
+        stamps = [d for d in (parse_ts(e.ts) for e in events) if d]
+        ref = parse_ts(now) if now else (max(stamps) if stamps else None)
+        cutoff = ref - timedelta(days=window_days) if ref else None
+
     by_entity: dict[str, dict] = {}
     for e in events:
         bucket = "attention" if e.kind in _COMMS else "dev" if e.kind in _DEV else None
-        if bucket is None:
+        # a check contributes to broken-state regardless of the window; only
+        # its dev-density contribution respects the window.
+        if bucket is None and e.kind != "check":
             continue
+        in_window = True
+        if cutoff is not None:
+            d = parse_ts(e.ts)
+            in_window = d is None or d >= cutoff
         for eid in e.entities:
             slot = by_entity.setdefault(eid, {"attention": 0, "dev": 0,
                                               "actors": set(), "checks": []})
-            slot[bucket] += 1
-            if e.actor:
-                slot["actors"].add(e.actor)
             if e.kind == "check":
                 slot["checks"].append((e.ts, "contradict" in (e.text or "").lower()))
+            if bucket and in_window:
+                slot[bucket] += 1
+                if e.actor:
+                    slot["actors"].add(e.actor)
     out = []
     for eid, s in by_entity.items():
         a, d = s["attention"], s["dev"]
@@ -196,6 +235,7 @@ def collisions(events: list[ActivityEvent]) -> list[dict]:
         out.append({
             "entity_id": eid, "attention": a, "dev": d,
             "actors": sorted(s["actors"]), "signal": signal,
-            "recovered": recovered,
+            "broken": broken, "recovered": recovered,
+            "window_days": window_days,
         })
     return sorted(out, key=lambda x: -(x["attention"] + x["dev"]))

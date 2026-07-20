@@ -701,5 +701,38 @@ def digest_session(
         typer.echo(f"  ◆ {d['choice']}")
 
 
+@app.command()
+def watch(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+    window_days: float = typer.Option(14, help="'is anyone watching' window"),
+):
+    """The tap on the shoulder: fire the alarms this org warrants right now,
+    loudest first. A CEO does not read a dashboard — they get told the one
+    thing on fire, who signed it, what broke it, and that nobody is watching.
+    Silent on everything that is healthy."""
+    from quire_align.alarms import ConsoleNotifier, alarms_for, deliver
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    try:
+        adapter = _adapter(workspace)
+    except typer.BadParameter:
+        adapter = None
+    store = None
+    if adapter is not None:
+        try:
+            store = Store()
+        except Exception:
+            store = None
+
+    alarms = alarms_for(ws_dir, adapter, store, window_days=window_days)
+    if not alarms:
+        typer.secho("all quiet — nothing warrants a page.", fg=typer.colors.GREEN)
+        return
+    loud = sum(1 for a in alarms if a.severity in ("critical", "high"))
+    typer.secho(f"⚡ {len(alarms)} alarm(s), {loud} loud — page order:\n",
+                fg=typer.colors.YELLOW)
+    deliver(alarms, ConsoleNotifier())
+
+
 if __name__ == "__main__":
     app()
