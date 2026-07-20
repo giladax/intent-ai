@@ -4,7 +4,7 @@ Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`.
 
-last-reviewed: 9738240
+last-reviewed: 1531e1a
 
 ## 2026-07-17 — bootstrap (reviewed SHA: 8fb61ca)
 
@@ -502,3 +502,20 @@ Backlog delta:
 
 196 → 201 tests green (5 added, none changed). workspaces/ and other
 docs untouched per brief. No commits — the parent lands it.
+
+## 2026-07-20 — tick over 9738240..1531e1a (docs + reconciliation; no agent)
+
+Two commits since last review, neither adding product logic: 664fc08
+is docs-only (the five layered specs — skip per docs precedent);
+1531e1a is the spec/code reconciliation pass, itself a review — it
+only SUBTRACTED (deleted the orphaned static/mirror.html, removed a
+dead DEFAULT name binding in analysis/config.py) and fixed a spec
+legend + a trailing docstring. No new logic surface to review;
+reviewing a reconciliation commit is reviewing the reviewer. No agent
+dispatched; last-reviewed → 1531e1a. (An in-flight session-ingestion
+build died to an upstream rate limit mid-work; its uncommitted
+session.py/model.py remnants are NOT part of this range and will be
+rewritten clean before landing — the next tick reviews the committed
+result.) Backlog unchanged: story._load_cache cross-module private
+import; enrich_workspace redundant regroup; _resolve_port swallow;
+plus the standing carried items. 201 tests green (unchanged).
