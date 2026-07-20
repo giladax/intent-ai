@@ -138,8 +138,14 @@ def around(workspace_dir: pathlib.Path, adapter, store, ref: str) -> dict | None
     if ref.isdigit():
         mine = [a for a in analyses if a.pr_number == int(ref)]
         return _around_check(
-            max(mine, key=lambda a: a.created_at), entities, obligations, mind
+            max(mine, key=lambda a: a.created_at), entities, obligations, mind,
+            workspace_dir,
         ) if mine else None
+    if ref.startswith("session-"):
+        from quire_align.session import find_session
+
+        record = find_session(workspace_dir, ref)
+        return _around_session(record, entities) if record else None
     lowered = ref.lower()
     node = next(
         (n for n in mind.get("nodes", []) if n["name"].lower() == lowered), None
@@ -230,6 +236,17 @@ def _around_entity(workspace_dir, adapter, store, entity, diffs, entities,
         mind, refs | {entity["entity_id"]}
         | {h["ref"] for h in entity["holdings"]},
     )
+    from quire_align.session import session_ref, sessions_for_entity
+
+    for sess in sessions_for_entity(workspace_dir, adapter, store, entity):
+        neighbors.append(_neighbor(
+            "observed", "session",
+            sess["title"] or sess["session_id"][:8],
+            ref=session_ref(sess),
+            why=sess.get("reasoning", "")[:400],
+            meta=sess.get("_via", "a coding session")
+            + (f" · {sess['digested_at'][:10]}" if sess.get("digested_at") else ""),
+        ))
     return {
         "node": {
             "kind": "entity", "mood": "signed", "ref": entity["entity_id"],
@@ -357,7 +374,7 @@ def _around_diff(diff, entities, obligations, mind) -> dict:
     }
 
 
-def _around_check(analysis, entities, obligations, mind) -> dict:
+def _around_check(analysis, entities, obligations, mind, workspace_dir=None) -> dict:
     from quire_align.analysis.render import DISPLAY_LABELS
 
     neighbors: list[dict] = []
@@ -381,6 +398,17 @@ def _around_check(analysis, entities, obligations, mind) -> dict:
     neighbors += _mind_neighbors(
         mind, {str(analysis.pr_number), f"check #{analysis.pr_number}"}
     )
+    if workspace_dir is not None:
+        from quire_align.session import session_ref, sessions_for_check
+
+        for sess in sessions_for_check(workspace_dir, analysis.pr_number):
+            neighbors.append(_neighbor(
+                "observed", "session",
+                sess["title"] or sess["session_id"][:8],
+                ref=session_ref(sess),
+                why=sess.get("summary", ""),
+                meta="the session that produced this change",
+            ))
     return {
         "node": {
             "kind": "check", "mood": "observed", "ref": str(analysis.pr_number),
@@ -394,6 +422,55 @@ def _around_check(analysis, entities, obligations, mind) -> dict:
                 if analysis.reviewer else ""
             ),
             "status": analysis.classification.value,
+        },
+        "neighbors": neighbors,
+        "authority": {},
+    }
+
+
+def _around_session(record, entities) -> dict:
+    """A coding session as a node: its distilled reasoning first-class,
+    its key decisions listed, related to the PR it produced and the
+    entities whose code it touched. Observed evidence — it happened; the
+    reasoning is the agent's own words, not our inference."""
+    touched = set(record.get("touched_paths", []))
+    neighbors: list[dict] = []
+    if record.get("pr") is not None:
+        neighbors.append(_neighbor(
+            "observed", "check", f"check #{record['pr']}",
+            ref=str(record["pr"]),
+            meta="the change this session produced",
+        ))
+    for entity in entities.values():
+        code = {h["ref"] for h in entity["holdings"] if h["kind"] == "code"}
+        hit = sorted(
+            tp for tp in touched
+            for cr in code if tp == cr or tp.endswith("/" + cr) or cr.endswith("/" + tp)
+        )
+        if hit:
+            neighbors.append(_neighbor(
+                "signed", "entity", entity["name"], ref=entity["entity_id"],
+                why="the session edited " + ", ".join(hit[:3]),
+            ))
+    decisions = record.get("decisions") or []
+    body = record.get("summary", "")
+    if decisions:
+        body += "\n\nKey decisions:\n" + "\n".join(
+            f"• {d['choice']}" + (f" — {d['why']}" if d.get("why") else "")
+            + (f" (not: {d['rejected']})" if d.get("rejected") else "")
+            for d in decisions
+        )
+    return {
+        "node": {
+            "kind": "session", "mood": "observed",
+            "ref": record.get("_ref") or ("session-" + record["session_id"][:8]),
+            "title": record.get("title") or record["session_id"][:12],
+            "body": body,
+            "reasoning": record.get("reasoning", ""),
+            "meta": (f"{record.get('turns', 0)} turns · "
+                     f"{record.get('digested_at', '')[:10]} · "
+                     f"reasoning captured, not re-derived"),
+            "status": "observed",
         },
         "neighbors": neighbors,
         "authority": {},

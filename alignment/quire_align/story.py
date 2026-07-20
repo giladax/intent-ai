@@ -38,11 +38,11 @@ STORY_MODEL = "claude-sonnet-4-6"
 _CAUSAL = re.compile(r"\bbecause\b|\bso that\b|\bin order to\b", re.IGNORECASE)
 # kinds that carry a recorded human reason (a decision's reason/question,
 # a teaching) — the only license for causal language
-_REASON_BEARING = {"diff", "teach"}
+_REASON_BEARING = {"diff", "teach", "session"}
 
 
 class Citation(BaseModel):
-    kind: Literal["check", "diff", "promise", "teach"]
+    kind: Literal["check", "diff", "promise", "teach", "session"]
     ref: str  # check number, GD-N, promise id, or the taught word
 
 
@@ -127,11 +127,15 @@ def _universe(workspace_dir: pathlib.Path, adapter, store) -> dict:
         str(a.pr_number)
         for a in store.list_analyses(repository=adapter.repository())
     }
+    from quire_align.session import load_sessions, session_ref
+
+    sessions = {session_ref(s) for s in load_sessions(workspace_dir)}
     return {
         "check": checks,
         "diff": {d.diff_id for d in diffs},
         "promise": {o.obligation_id for o in adapter.obligations()},
         "teach": taught,
+        "session": sessions,
     }
 
 
@@ -148,11 +152,12 @@ def _normalize_cite(cite: Citation, universe: dict) -> Citation | None:
         ("diff", raw.upper()),
         ("promise", raw.upper()),
         ("check", digits),
+        ("session", raw.lower()),
         ("teach", raw.lower()),
     ]
     trials.sort(key=lambda t: t[0] != cite.kind)
     for kind, ref in trials:
-        if ref and ref in universe[kind]:
+        if ref and ref in universe.get(kind, set()):
             return Citation(kind=kind, ref=ref)
     return None
 
@@ -183,6 +188,8 @@ def validate_story(story: Story, universe: dict) -> tuple[list[Sentence], int]:
 def _atom_ref(cite: dict) -> str:
     if cite["kind"] == "check":
         return f"[check #{cite['ref']}]"
+    if cite["kind"] == "session":
+        return f"[{cite['ref']}]"
     if cite["kind"] == "teach":
         return f'[taught: "{cite["ref"]}"]'
     return f"[{cite['ref']}]"
@@ -242,6 +249,31 @@ def _health_facts(adapter, store, member_refs: set[str] | None = None) -> list[s
     return facts
 
 
+def _session_lines(workspace_dir, refs: set | None = None) -> list[str]:
+    """Sessions as facts the story may cite — leading with the DECISIONS,
+    which is what propagates. refs=None → all; else only sessions
+    touching those code/entity refs."""
+    from quire_align.session import load_sessions, session_ref
+
+    lines = []
+    for sess in load_sessions(workspace_dir):
+        if refs is not None and not (set(sess.get("touched_paths", [])) & refs):
+            continue
+        ref = session_ref(sess)
+        when = (sess.get("digested_at") or "")[:10]
+        decisions = "; ".join(
+            d["choice"] + (f" because {d['why']}" if d.get("why") else "")
+            for d in (sess.get("decisions") or [])[:3]
+        )
+        lines.append(
+            f"- A coding session{' on ' + when if when else ''} reasoned "
+            f"through this work: {sess.get('summary', '')}"
+            + (f" Key decisions: {decisions}." if decisions else "")
+            + f" [{ref}]"
+        )
+    return lines
+
+
 def _org_facts(workspace_dir, adapter, store) -> str:
     from quire_align.atoms import atoms_for
 
@@ -259,6 +291,7 @@ def _org_facts(workspace_dir, adapter, store) -> str:
     ]
     lines += _atom_lines(atoms_for(workspace_dir, adapter, store))
     lines += _health_facts(adapter, store)
+    lines += _session_lines(workspace_dir)
     return "\n".join(lines)
 
 

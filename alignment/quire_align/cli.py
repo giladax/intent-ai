@@ -657,5 +657,49 @@ def _resolve_port(host: str, port: int) -> tuple[int, bool]:
     )
 
 
+@app.command()
+def digest_session(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+    transcript: str = typer.Argument(help="path to a Claude Code .jsonl session"),
+    pr: int = typer.Option(-1, help="couple the session to this PR/check number"),
+    offline: bool = typer.Option(False, help="skip the LLM (metadata only, for tests)"),
+):
+    """Ingest a coding session as observed evidence — its reasoning kept,
+    not re-derived; related to the PR it produced and the entities it
+    touched. The reasoning was already paid for once; we keep it."""
+    import pathlib
+
+    from quire_align.session import (
+        FakeSessionDigester,
+        SessionDigest,
+        SessionDigesterLLM,
+        digest_session as run_digest,
+        read_transcript,
+    )
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    path = pathlib.Path(transcript).expanduser()
+    if not path.exists():
+        raise typer.BadParameter(f"no such transcript: {path}")
+    if offline:
+        raw = read_transcript(path)
+        digester = FakeSessionDigester(SessionDigest(
+            title=f"session {raw.session_id[:8]}",
+            summary=f"{raw.turns} turns touching {len(raw.touched_paths)} files",
+            reasoning=raw.reasoning_text[:1500],
+        ))
+    else:
+        digester = SessionDigesterLLM()
+    record = run_digest(
+        ws_dir, path, digester, _graph_now(),
+        pr=pr if pr >= 0 else None,
+    )
+    typer.secho(f"ingested: {record['title']}", fg=typer.colors.GREEN)
+    typer.echo(f"  {record['turns']} turns · {len(record['touched_paths'])} files touched"
+               + (f" · coupled to check #{record['pr']}" if record.get('pr') else ""))
+    for d in record["decisions"][:5]:
+        typer.echo(f"  ◆ {d['choice']}")
+
+
 if __name__ == "__main__":
     app()

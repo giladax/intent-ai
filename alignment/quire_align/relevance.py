@@ -95,6 +95,7 @@ def node_documents(
             or a.get("promise") in refs
         ]
         parts += _mind_parts(workspace_dir, entity, refs)
+        parts += _session_parts(workspace_dir, entity)
         docs[entity["entity_id"]] = {
             "name": entity["name"],
             "terms": _terms(" ".join(p for p in parts if p)),
@@ -115,6 +116,24 @@ def _mind_parts(workspace_dir, entity, refs) -> list[str]:
         for n in cached.get("nodes", [])
         if any(c.get("ref") in touchable for c in n.get("connects", []))
     ]
+
+
+def _session_parts(workspace_dir, entity) -> list[str]:
+    """A session's reasoning about an entity is part of what the entity
+    MEANS — same propagation as diff reasoning. Cache-only read."""
+    from quire_align.session import load_sessions
+
+    code = {h["ref"] for h in entity["holdings"] if h["kind"] == "code"}
+    if not code:
+        return []
+    out = []
+    for sess in load_sessions(workspace_dir):
+        touched = set(sess.get("touched_paths", []))
+        if any(tp == cr or tp.endswith("/" + cr) or cr.endswith("/" + tp)
+               for tp in touched for cr in code):
+            out.append(" ".join(p for p in (
+                sess.get("title"), sess.get("summary"), sess.get("reasoning")) if p))
+    return out
 
 
 def resolve_semantic(

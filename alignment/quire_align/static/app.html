@@ -898,6 +898,12 @@ function citeLink(cite){
     a.title = "the decision";
     return a;
   }
+  if (cite.kind === "session"){
+    const a = el("a", "cchip", cite.ref);
+    a.title = "the coding session that reasoned this";
+    a.addEventListener("click", ev => { ev.preventDefault(); location.hash = exploreHash([cite.ref]); });
+    return a;
+  }
   return el("span", "cchip", "taught: “" + cite.ref + "”");
 }
 async function tellStory(scope, slot, entityId){
