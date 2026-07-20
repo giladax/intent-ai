@@ -1,0 +1,29 @@
+- session_id: sess-refund-batch-01
+  actor: sam
+  digested_at: '2026-06-21T16:00:00+00:00'
+  title: Speed up refund batch export
+  summary: Made the batch export path auto-approve to cut latency.
+  decisions:
+  - choice: auto-approve refunds in the batch path
+    why: the export was timing out
+    rejected: keeping the human approval on batch
+  reasoning: The batch path was slow because every refund waited on approval; I made
+    it auto-approve in export/batch.py.
+  touched_paths:
+  - repo/refunds/guard.py
+  - repo/export/batch.py
+  turns: 40
+- session_id: sess-notif-retry-02
+  actor: rui
+  digested_at: '2026-06-23T15:00:00+00:00'
+  title: Notification retry backoff
+  summary: Added exponential backoff to the notification sender.
+  decisions:
+  - choice: retry failed notifications with backoff
+    why: transient provider errors
+    rejected: ''
+  reasoning: Wrapped the send in a retry with backoff so a flaky provider does not
+    drop order messages.
+  touched_paths:
+  - repo/notify/sender.py
+  turns: 22
