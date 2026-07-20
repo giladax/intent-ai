@@ -151,13 +151,15 @@ def collisions(events: list[ActivityEvent]) -> list[dict]:
     for eid, s in by_entity.items():
         a, d = s["attention"], s["dev"]
         if s["broken"] and a:
-            signal = "drift-in-context"  # broken, and the org was discussing it
+            signal = "drift-in-context"   # broke, and the org was discussing it
+        elif s["broken"]:
+            signal = "silent-drift"       # broke, and NOBODY was watching — worst
         elif a >= 3 and d == 0:
-            signal = "all-talk-gap"
+            signal = "all-talk-gap"       # discussed at length, nothing built
         elif d >= 2 and a == 0:
-            signal = "silent-build-risk"
+            signal = "silent-build-risk"  # built with no discussion
         elif a and d:
-            signal = "aligned"
+            signal = "aligned"            # building what it's discussing
         else:
             signal = "quiet"
         out.append({
