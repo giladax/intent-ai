@@ -18,6 +18,7 @@ The journal's brain moves into the Python world, one green slice at a time, with
 - `alignment/workspaces/quire-brain` (→ `backend/workspaces/quire-brain`) is a rehearsed demo — never edit/regenerate.
 - ~~`journal/src/mcp/feature.ts` standing uncommitted modification~~ — resolved: committed as `94ee702` (2026-07-21); the dirty-file rule is retired and Slice 7 ports committed behavior only.
 - One commit per slice, trailers per repo convention; archive-over-delete (git history is the net).
+- **Living docs move with the slice that changes what they describe** — root README.md, CLAUDE.md, docs/architecture.md, backend/README.md must be accurate after every slice (subagents read them; a stale doc misleads every future dispatch). Historical docs (decisions/, handoffs/, dated specs) stay untouched.
 - LLM discipline is the alignment discipline: deterministic core, LLM at the edges, structured Pydantic outputs, canned-LLM offline tests, EDD (eval criteria before code) for every prompt.
 - No datastore writes from two stacks to the same table in the same phase (each table has exactly one writer at any time; the plan says who, when).
 

@@ -11,16 +11,24 @@ graph-viz UI.
 **Product source of truth: [`docs/prd.md`](docs/prd.md)** (PRD v0.3.1).
 System map: [`docs/architecture.md`](docs/architecture.md).
 
-## Repo layout — two self-contained apps, zero shared code
+## Repo layout — mid-migration to ONE Python backend
 
 ```
-journal/     TypeScript — session digestion → Postgres → MCP server + dashboard
-backend/     Python     — PR-vs-intent analysis → quote-backed alarms (see backend/README.md)
+backend/     Python — THE backend (target: everything). Today: PR-vs-intent
+             analysis + alarms, Postgres read layer (db/), session-ingestion
+             port in progress (ingest/). See backend/README.md.
+journal/     TypeScript — BEING RETIRED slice by slice. Still runs production
+             session digestion → Postgres → MCP + dashboard until its Python
+             replacements land. Do NOT add new backend logic here.
 docs/        durable trunk: prd, architecture, decisions/, specs/, handoffs/
 ```
 
-Both apps read credentials from the repo-root `.env` (see `.env.example`).
-**Run each app from its own directory** — data paths and Docker resolve
+**Migration status lives in `docs/plans/2026-07-21-python-backend-migration.md`**
+— read it before deciding where anything new belongs. End-state: `backend/`
+(Python, all logic) + `app/` (React SPA) + `docs/`.
+
+Both sides read credentials from the repo-root `.env` (see `.env.example`).
+**Run each side from its own directory** — data paths and Docker resolve
 against the working directory.
 
 ## Standing rules (do not relitigate)

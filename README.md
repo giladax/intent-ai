@@ -5,12 +5,15 @@ An organizational understanding engine (product name: **Quire**). It correlates
 **implementation** — what we have, as code and AI coding sessions — and serves
 the current understanding to humans and agents.
 
-One repository, two self-contained applications that share no code:
+The repo is mid-migration to **one Python backend** that owns all reasoning
+— session digestion, PR-vs-intent analysis, storage (Postgres), MCP, web API
+— with TypeScript keeping only the dashboard UI. Status and slice plan:
+[`docs/plans/2026-07-21-python-backend-migration.md`](docs/plans/2026-07-21-python-backend-migration.md).
 
-| App | Language | What it does |
-|-----|----------|--------------|
-| [`journal/`](journal/) | TypeScript | Watches AI coding sessions, digests them into a searchable journal of activity events, and serves feature context to agents (MCP server) and humans (web dashboard). Postgres. |
-| [`backend/`](backend/) | Python | Reads a PR/diff against approved product obligations, decides keep/break, and fires quote-backed alarms when shipped behavior drifts from approved intent. FastAPI + CLI. SQLite. |
+| Dir | Language | Today | Destination |
+|-----|----------|-------|-------------|
+| [`backend/`](backend/) | Python | PR-vs-intent analysis + quote-backed alarms; Postgres read layer; session-ingestion port in progress | THE backend — everything |
+| [`journal/`](journal/) | TypeScript | Still runs production session digestion → Postgres → MCP + dashboard | Retired slice by slice; only the React SPA survives (as `app/`) |
 
 ## Run the journal app
 

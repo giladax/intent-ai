@@ -1,14 +1,24 @@
-# Quire Align — product-to-code alignment (Python MVP)
+# backend/ — the Quire Python backend
 
-Given a pull request, determine: which approved product obligations it may
-affect, what behavioral change the implementation introduces, whether that
-change aligns with approved product intent, and which tests/evals/guards are
-missing. Not a code reviewer — a behavioral-alignment checker for shipped
-product behavior (the demo fixture happens to be an LLM refund agent, but
-any repo with approved intent docs works).
+This is THE backend of the repo (founder-ruled 2026-07-21): all reasoning,
+storage, and serving converge here, migrating from the TypeScript `journal/`
+slice by slice — status in `../docs/plans/2026-07-21-python-backend-migration.md`.
+What lives here today:
 
-This is the Python prototype of the repo's Phase-2 "alignment" thesis
-(see `docs/prd.md`), self-contained under `backend/`.
+- **Alignment** (`quire/analysis/`, the bulk of this README): given a pull
+  request, determine which approved product obligations it may affect, what
+  behavioral change the implementation introduces, whether that aligns with
+  approved product intent, and which tests/evals/guards are missing. Not a
+  code reviewer — a behavioral-alignment checker (the demo fixture happens
+  to be an LLM refund agent, but any repo with approved intent docs works).
+- **Journal Postgres read layer** (`quire/db/` + `quire/db/CENSUS.md`) —
+  SQLAlchemy models for the live journal tables; `python3 -m quire.cli
+  journal events`.
+- **Session ingestion port** (`quire/ingest/`, in progress) — the Python
+  replacement for the TS digestion pipeline, parity- then fidelity-gated.
+
+The alignment subsystem persists to SQLite today; the ruled end-state is
+Postgres for everything (see the migration plan, Decision B).
 
 ## Setup
 
@@ -180,8 +190,10 @@ draft, obligations, bindings, base tree, PRs 101–110).
 
 ## Key decisions
 
-- **SQLite, not the repo Postgres** — the existing schema is Drizzle/TS-owned;
-  spec allows SQLite when no Python ORM exists.
+- **SQLite, not the repo Postgres** (2026-07-16) — the schema was
+  Drizzle/TS-owned and no Python ORM existed. **Superseded 2026-07-21:**
+  a Python ORM now exists (`quire/db/`, SQLAlchemy) and the founder ruled
+  Postgres-for-everything; this store migrates per the migration plan.
 - **Rule-based classification over structured LLM output** — keeps evals
   deterministic and the label auditable; the model contributes evidence, not
   verdicts.
