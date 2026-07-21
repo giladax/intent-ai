@@ -13,3 +13,4 @@ PyYAML==6.0.3
 requests==2.31.0
 python-dotenv==1.2.1
 pytest==9.0.2
+psycopg[binary]==3.3.3

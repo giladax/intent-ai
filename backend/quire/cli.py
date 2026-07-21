@@ -6,6 +6,7 @@
     python3 -m quire.cli show <analysis_id>
     python3 -m quire.cli review <analysis_id> approved --reviewer you
     python3 -m quire.cli serve --port 8321
+    python3 -m quire.cli journal events            # read activity_events from Postgres
 """
 
 from __future__ import annotations
@@ -22,6 +23,13 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 # ANTHROPIC_API_KEY / LANGSMITH_* / GITHUB_TOKEN live in the repo-root .env.
 workspace_mod.load_env()
+
+# ── Journal sub-group ──────────────────────────────────────────────────
+# Future slices will hang more commands here (features, sessions, etc.).
+
+journal_app = typer.Typer(no_args_is_help=True, add_completion=False,
+                          help="Read from the journal Postgres (activity_events, sessions, …).")
+app.add_typer(journal_app, name="journal")
 
 
 def _adapter(workspace: str):
@@ -746,6 +754,43 @@ def watch(
     typer.secho(f"⚡ {len(alarms)} alarm(s), {loud} urgent — page order:\n",
                 fg=typer.colors.YELLOW)
     deliver(alarms, ConsoleNotifier())
+
+
+@journal_app.command("events")
+def journal_events(
+    limit: int = typer.Option(20, help="number of rows to show (most recent first)"),
+    category: str = typer.Option("", help="filter by category prefix"),
+    repo: str = typer.Option("", help="filter by repo"),
+):
+    """List the most recent activity_events from the journal Postgres.
+
+    Reads the shared journal database (DATABASE_URL from .env).
+    Rows are returned newest-first; use --limit to control how many.
+    Prints: timestamp, category, actor, summary — one line per event.
+    """
+    from sqlalchemy import select, desc
+
+    from quire.db.engine import get_engine
+    from quire.db.models import ActivityEvent, Base
+
+    engine = get_engine()
+    from sqlalchemy.orm import Session as SASession
+
+    with SASession(engine) as session:
+        stmt = select(ActivityEvent).order_by(desc(ActivityEvent.timestamp)).limit(limit)
+        if category:
+            stmt = stmt.where(ActivityEvent.category.like(f"{category}%"))
+        if repo:
+            stmt = stmt.where(ActivityEvent.repo == repo)
+        rows = session.execute(stmt).scalars().all()
+
+    if not rows:
+        typer.echo("no events found")
+        return
+
+    for ev in rows:
+        ts = ev.timestamp.strftime("%Y-%m-%d %H:%M") if ev.timestamp else "?"
+        typer.echo(f"{ts}  {ev.category:<32}  {ev.actor:<12}  {ev.summary[:80]}")
 
 
 if __name__ == "__main__":
