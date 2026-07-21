@@ -82,11 +82,11 @@ Runs AFTER migration Slices 5b + 6 (Python digestion is the production writer; d
 
 ---
 
-## Founder decisions surfaced (⚑ answer before U1/U2)
+## Founder decisions — ALL RULED 2026-07-21
 
-- **⚑ A — Inferred couplings:** recommendation: proposals forever (explicit trailer/attach is the only binding act; no auto-promotion by repetition). Confirm or set a promotion rule.
-- **⚑ B — Session visibility:** attaching sessions to PRs exposes agent reasoning to whoever reads the PR. Recommendation: per-workspace opt-in, ON for this repo. Confirm.
-- **⚑ C — The dev-facing word:** "Reasoned in session…" as the surface language (not "linked/attached artifacts"). Confirm or rename.
+- **⚑ A — Inferred couplings: RULED — proposals forever.** Explicit trailer/attach is the only binding act; correlation never auto-promotes. "Similarity never grants authority" stays airtight.
+- **⚑ B — Session visibility: RULED — per-workspace opt-in, ON for this repo.**
+- **⚑ C — Surface language: RULED — "Reasoned in session…"** (meaning before mechanics; ids as footnotes).
 
 ## Honest unknowns
 
