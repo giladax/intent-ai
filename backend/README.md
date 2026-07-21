@@ -55,7 +55,7 @@ Golden tests: `tests/test_mcp_golden.py` (recorded against TS server, compare Py
 
 **Dashboard / Journal API**:
 
-33 REST routes serving the SPA (previously Express on port 3456, now FastAPI):
+35 REST routes serving the SPA (previously Express on port 3456, now FastAPI):
 
 ```bash
 python3 -m quire.cli serve --port 3456   # start dashboard + journal API
@@ -66,7 +66,7 @@ python3 -m quire.cli serve --port 3456   # start dashboard + journal API
 The built SPA lives in `quire/static/dashboard/` (output of `cd ../app && npm run build`).
 Dev mode: `cd ../app && npm run dev` — proxies `/api` to localhost:3456.
 
-Route census: 33 routes. POST /api/brain/digest is a deprecated SSE stub
+Route census: 35 routes. POST /api/brain/digest is a deprecated SSE stub
 (SPA degrades gracefully). GET /api/feed runs full feed composition (LLM-backed
 with 1-hour cache, `quire/journal/feed.py`).
 
@@ -103,7 +103,7 @@ inference), `LANGSMITH_API_KEY` / `LANGSMITH_TRACING` (tracing + evals),
 ```bash
 cd backend
 docker compose up -d                   # start Postgres (Docker, port 5433)
-python3 -m pytest                      # 548 tests, all offline (no API calls)
+python3 -m pytest                      # 551 tests, all offline (no API calls)
 python3 -m evals.event_stream && python3 -m evals.alarms  # both must say "all clear"
 python3 -m evals.fidelity             # fidelity eval (≥ TS baseline)
 ```
@@ -156,8 +156,9 @@ python3 -m quire.cli review <analysis_id> approved --reviewer you --note "guard 
 ## Dogfood: this repository (live)
 
 `workspaces/intent-ai/` onboards this repo itself: obligations extracted
-from `docs/prd.md` (the Brain serving loop), control points in
-`src/mcp/feature.ts` / `server.ts` / `emit-events.ts`, and a **git adapter**
+from `docs/prd.md` (the Brain serving loop), control points historically in
+`src/mcp/feature.ts` / `server.ts` / `emit-events.ts` (TypeScript backend
+deleted in Slice 9; see git history at tag `ts-backend-final`), and a **git adapter**
 that treats any local base..head commit range as a PR (`prs.yaml`).
 
 ```bash

@@ -32,14 +32,14 @@ Python backend (`backend/`) now owns everything. The repo root reads:
 
 All of the following were green before the deletion commit:
 
-- **parity suite** (`python3 -m pytest backend/tests/test_parity*.py`) — byte-identical
+- **parity suite** (`python3 -m pytest backend/tests/test_ingest_parity.py`) — byte-identical
   deterministic output across all corpus fixtures.
 - **fidelity re-pin** (`python3 -m evals.fidelity`) — Python scores ≥ TS baseline
   in `evals/baselines/2026-07-21-ts-fidelity.md`.
 - **MCP golden tests** (`python3 -m pytest backend/tests/test_mcp_golden.py`) — byte-identical
   tool responses recorded against the TS server.
 - **feed mandate** — `GET /api/feed` runs full LLM composition with cache (not a stub).
-- **backend pytest** — 548 passed, 4 controlled skips.
+- **backend pytest** — 551 passed, 1 skipped (final count at merge review).
 - **app vitest** — 28 passed (standalone, no backend required).
 - **evals.event_stream** + **evals.alarms** — both "all clear".
 
@@ -55,6 +55,11 @@ All of the following were green before the deletion commit:
   migrations at tag `ts-backend-final`. No Drizzle is present in the repo.
   Any future schema change starts by adopting Alembic. See
   `backend/quire/db/CENSUS.md` "Drizzle/schema ownership" section.
+
+- **Dogfood workspace** (`backend/workspaces/quire-brain`) — a rehearsed live demo
+  workspace: never edit or regenerate it. The workspace's pinned old commits reference
+  binding targets in the deleted TypeScript backend; git history holds them (tag
+  `ts-backend-final`).
 
 ## Residual follow-ups (named, not yet implemented)
 

@@ -38,7 +38,7 @@ Time is the axis; search is the front door.
 **Serving**:
 - `quire/mcp/` — Python MCP server (`intent-brain`, 12 `brain_*` tools, stdio
   transport). Entry in root `.mcp.json`.
-- `quire/journal/router.py` — FastAPI router: 33 REST routes serving the SPA
+- `quire/journal/router.py` — FastAPI router: 35 REST routes serving the SPA
   (journal river, Feature lenses, Correspondence chat, feed).
 - `quire/journal/watcher.py` — session watcher daemon (`watch-sessions` command).
 
