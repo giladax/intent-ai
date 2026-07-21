@@ -6,7 +6,7 @@ understand it, and hold it against what was promised.
 
 ```
  AI coding sessions ──▶ journal/ (TS)  ──▶ activity journal ──▶ agents (MCP) + dashboard
- PRs / diffs        ──▶ alignment/ (Py) ─▶ keep/break verdicts ─▶ alarms + intent ledger
+ PRs / diffs        ──▶ backend/ (Py)  ─▶ keep/break verdicts ─▶ alarms + intent ledger
                           ▲
                           └── approved product intent (PRDs, obligations)
 ```
@@ -42,13 +42,13 @@ document for that measurement.
 The app always runs from `journal/` — data dirs (`.intent/`, `eval-runs/`)
 and Docker Compose resolve against its working directory.
 
-## alignment/ — product-to-code alignment (Python)
+## backend/ — product-to-code alignment (Python)
 
 Given a PR (or any base..head commit range), decides whether the behavioral
 change aligns with **approved** product intent. Not a code reviewer — a
 behavioral-alignment checker.
 
-**Analysis graph** (`quire_align/analysis/`): load PR → resolve product
+**Analysis graph** (`quire/analysis/`): load PR → resolve product
 context (a fixed authority ladder of intent sources) → parse declared intent
 (Haiku) → infer behavioral delta (Sonnet, structured) → compare with
 obligations → validate every citation verbatim → **deterministic rules pick
@@ -57,7 +57,7 @@ publish. UNKNOWN beats unsupported certainty.
 
 **Around the core**: adapters (fixture, live GitHub, local git),
 entity graph + relevance propagation, session ingestion
-(`quire_align/session.py` distills a Claude Code transcript's reasoning into
+(`quire/session.py` distills a Claude Code transcript's reasoning into
 workspace evidence), proactive alarms (`cli watch`) that tap the stakeholder
 only on a quote-backed break, FastAPI server with onboarding wizard and the
 intent ledger timeline.
@@ -72,7 +72,7 @@ evaluators; offline by default).
 - **Two datastores** (Postgres vs SQLite) — intentional debt; unification is
   a later pass, after the Python question below settles.
 - **Session digestion exists twice at different depths**: the full journal
-  pipeline (TS) and a lean reasoning distiller (`alignment/quire_align/
+  pipeline (TS) and a lean reasoning distiller (`backend/quire/
   session.py`). The recorded direction is to migrate digestion to Python —
   see `docs/decisions/2026-07-21-monorepo-reorg.md`.
 - **The dashboard SPA** (`journal/src/web/ui`) is separable (own

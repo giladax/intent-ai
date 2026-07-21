@@ -15,7 +15,7 @@ System map: [`docs/architecture.md`](docs/architecture.md).
 
 ```
 journal/     TypeScript — session digestion → Postgres → MCP server + dashboard
-alignment/   Python     — PR-vs-intent analysis → quote-backed alarms (see alignment/README.md)
+backend/     Python     — PR-vs-intent analysis → quote-backed alarms (see backend/README.md)
 docs/        durable trunk: prd, architecture, decisions/, specs/, handoffs/
 ```
 
@@ -25,7 +25,7 @@ against the working directory.
 
 ## Standing rules (do not relitigate)
 
-- **Never edit/regenerate `alignment/workspaces/quire-brain`** — a rehearsed
+- **Never edit/regenerate `backend/workspaces/quire-brain`** — a rehearsed
   live demo.
 - **The full backend migrates to Python** — planned and founder-ruled; the
   executable plan is `docs/plans/2026-07-21-python-backend-migration.md`.
@@ -95,16 +95,16 @@ code. Fixtures in `tests/eval/fixtures/`, criteria in
 `tests/eval/fidelity-criteria.ts`, harness in `src/eval/fidelity.ts`.
 This applies to any LLM prompt change, not just code.
 
-# alignment/ — the Python app
+# backend/ — the Python app
 
-Read `alignment/README.md` first — it carries the full picture. From
-`alignment/`:
+Read `backend/README.md` first — it carries the full picture. From
+`backend/`:
 
 ```bash
 LANGCHAIN_TRACING_V2=false LANGSMITH_TRACING=false python3 -m pytest   # 229 tests, offline
 python3 -m evals.event_stream && python3 -m evals.alarms               # both must say "all clear"
-python3 -m quire_align.cli demo      # offline demo
-python3 -m quire_align.cli serve --port 8321   # server + onboarding wizard
+python3 -m quire.cli demo            # offline demo
+python3 -m quire.cli serve --port 8321   # server + onboarding wizard
 ```
 
 Key invariants: the LLM never decides the final label (deterministic rules in

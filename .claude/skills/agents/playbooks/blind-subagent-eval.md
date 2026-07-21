@@ -6,9 +6,9 @@ under eval never sees the questions; the ground truth lives only in the
 judges; controls catch judges that reward mentioning anything.
 
 Proven on: the alignment MVP's EDD loops (69→99/99 without prompt-
-gaming), the repo-cognition suite (`alignment/evals/repo_cognition.py` —
+gaming), the repo-cognition suite (`backend/evals/repo_cognition.py` —
 the canonical implementation of this playbook), and the seed-quality
-suite (`alignment/evals/seed_quality.py`).
+suite (`backend/evals/seed_quality.py`).
 
 ## The invariant
 
@@ -66,7 +66,7 @@ to keep the two sides blind to each other.
    repo-cognition baseline (5/8) exposed a silent truncation bug worth
    more than the passing cases. A case that cannot fail is decoration:
    delete it (the standing eval bar in
-   `alignment/docs/evals-sweep-2026-07-19.md` governs — every eval must
+   `backend/docs/evals-sweep-2026-07-19.md` governs — every eval must
    demonstrably be able to fail, trace to an observed defect or lived
    truth, and name its removal condition at birth).
 

@@ -1,5 +1,5 @@
 // Load .env for the journal app. Credentials live in the repo-root .env
-// (shared with alignment/); a journal-local .env wins if present.
+// (shared with backend/); a journal-local .env wins if present.
 import { config } from "dotenv";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
