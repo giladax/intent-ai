@@ -10,13 +10,13 @@
 
 ## Founder summary (read this, skip the rest)
 
-The journal's brain moves into the Python world, one green slice at a time, with the digest-quality eval as the tripwire — a slice that makes digests worse cannot land. At the end: `backend/` (Python, everything), `app/` (the dashboard UI, TypeScript), `docs/`. You react between slices; three decisions are yours (marked ⚑ below): what to do about the secret local change in `feature.ts`, when to retire the measurement-v2 harness, and confirming Postgres as the one database.
+The journal's brain moves into the Python world, one green slice at a time, with the digest-quality eval as the tripwire — a slice that makes digests worse cannot land. At the end: `backend/` (Python, everything), `app/` (the dashboard UI, TypeScript), `docs/`. You react between slices. **All three founder decisions were ruled 2026-07-21** (details at each ⚑): the `feature.ts` local change is now committed (`94ee702`), measurement-v2 freezes rather than ports, and Postgres is confirmed as the one database.
 
 ## Global constraints
 
 - Green at every slice: `backend` pytest suite (229 today, grows) + `python3 -m evals.event_stream` + `python3 -m evals.alarms` all clear; journal `npx vitest run` (815) stays green until the slice that explicitly retires the covered code.
 - `alignment/workspaces/quire-brain` (→ `backend/workspaces/quire-brain`) is a rehearsed demo — never edit/regenerate.
-- `journal/src/mcp/feature.ts` carries a standing uncommitted modification — never commit it; see ⚑ Decision 1 before porting the MCP feature tool.
+- ~~`journal/src/mcp/feature.ts` standing uncommitted modification~~ — resolved: committed as `94ee702` (2026-07-21); the dirty-file rule is retired and Slice 7 ports committed behavior only.
 - One commit per slice, trailers per repo convention; archive-over-delete (git history is the net).
 - LLM discipline is the alignment discipline: deterministic core, LLM at the edges, structured Pydantic outputs, canned-LLM offline tests, EDD (eval criteria before code) for every prompt.
 - No datastore writes from two stacks to the same table in the same phase (each table has exactly one writer at any time; the plan says who, when).
@@ -47,7 +47,7 @@ The journal's brain moves into the Python world, one green slice at a time, with
 
 **Own the thin parser; adopt `claude-code-log` only when a second provider becomes real.** Evidence: (1) the whole TS consumption is 4 event kinds (`conversation_turn`, `tool_result`, `ai_response`, `tool_call`) + raw passthrough — 87 lines over claude-code-kit; (2) `backend/quire_align/session.py::read_transcript` already parses CC JSONL natively in ~90 lines, in production; (3) `claude-code-log` 1.5.0 (active, July 2026) has `parser.py`/`models.py`/`providers/` but its importable API is CLI-internal and undocumented — pinning to a CLI's internals trades our churn for theirs; (4) `claude-code-analytics` is 0.1.1, pre-mature. **Shape:** one interface `parse_transcript(path) -> list[RawDevEvent]` in `ingest/`, hand parser as the default implementation, provider packages as future implementations behind the same interface. The official docs' warning (format changes between CC versions) is answered by the parity corpus in Slice 2 — schema drift breaks a test, not production.
 
-### Decision B — datastore: converge on Postgres (recommended; ⚑ founder confirms)
+### Decision B — datastore: converge on Postgres (⚑ **CONFIRMED by founder 2026-07-21**)
 
 Postgres via SQLAlchemy for the unified backend; SQLite retires with the alignment store port. Why this direction and not the reverse: `activity_events` is the product substrate (search is the front door — needs real indexing, concurrent readers: daemon + web + MCP at once); the journal's 33 tables and all product data are already there; SQLite was justified in the alignment MVP explicitly as "no Python ORM exists" — SQLAlchemy removes the premise; `store.py` is 173 lines, the cheapest port in the whole plan. Workspace truth (obligations, bindings, `prs.yaml`) **stays in YAML files** — they are signed contract artifacts, not rows. Tests keep using SQLite-in-memory or a test Postgres schema — executor's call.
 
@@ -55,11 +55,11 @@ Postgres via SQLAlchemy for the unified backend; SQLite retires with the alignme
 
 FastAPI serves the built SPA (`StaticFiles`) in production; `app/` keeps a Vite dev server proxying `/api` in development. TS keeps zero server code.
 
-### ⚑ Decision 1 (founder, before Slice 6): `journal/src/mcp/feature.ts` local change
+### ⚑ Decision 1 (**RESOLVED 2026-07-21**): `journal/src/mcp/feature.ts` local change
 
-The file carries a standing uncommitted modification that must never be committed. A Python port replicates the *committed* behavior and silently loses the local delta. Founder states what the modification is (or shows `git diff journal/src/mcp/feature.ts`) and rules: re-express it in the Python server (as config/env, not a dirty file), or drop it.
+The delta turned out to be a real fix (ambiguous feature resolution now serves the top candidate's constraints inline — post-mortem 2026-07-07). Founder ruled: commit it. Landed as `94ee702`; Slice 7 simply ports committed behavior. No dirty-file handling remains in this plan.
 
-### ⚑ Decision 2 (founder, at Slice 9): measurement-v2 harness fate
+### ⚑ Decision 2 (**RESOLVED 2026-07-21 — freeze, don't port**): measurement-v2 harness fate
 
 It spawns real `claude` sessions to A/B brain context (ETC/CVR). Porting it is real work with no product payoff; keeping it TS keeps a vitest dependency alive. Recommendation: freeze it (and `eval-baseline/brain.md`) as-is until the next measurement campaign is actually scheduled, then decide port-vs-rerun-design. It is the only thing that keeps `journal/` TS tests alive after Slice 8 — retiring it lets the TS backend delete completely.
 
@@ -101,7 +101,7 @@ Port classify/extract/weave/verify/transitions/narrative as LangChain-structured
 
 Python `digest` becomes the production writer (moments/narrative/activity_events tables switch writer in this slice); Python `watchdog` watcher replaces the TS daemon (small, own module, `quire.cli watch-sessions`). TS pipeline/daemon code stays in-tree but disconnected (deleted in Slice 9). **Done when:** the daemon digests a fresh real session unattended; founder sees it on the dashboard. Gates: [PY], [TS], [FIDELITY] spot-run.
 
-### Slice 7 — MCP server in Python (⚑ Decision 1 resolved first)
+### Slice 7 — MCP server in Python (Decision 1 already resolved — port committed behavior)
 
 FastMCP server exposing the same 12 `brain_*` tools with identical names/argument contracts; golden tests: for each tool, recorded request → response shape assertions (build goldens against the TS server before switching). Root `.mcp.json` flips to the Python server; TS MCP stays runnable one slice as fallback. Instrumentation (`mcp` reads → activity_events) ports with it. **Done when:** a live agent session uses the Python brain end-to-end. Gates: [PY], [TS], golden suite.
 

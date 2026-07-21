@@ -25,14 +25,15 @@ against the working directory.
 
 ## Standing rules (do not relitigate)
 
-- **Never commit `journal/src/mcp/feature.ts`** — it carries a standing local
-  modification; it stays dirty in the working tree.
 - **Never edit/regenerate `alignment/workspaces/quire-brain`** — a rehearsed
   live demo.
-- **Do not unify the datastores** (Postgres/TS vs SQLite/Python) —
-  intentional debt for a later pass.
-- Session-digestion migration to Python is a recorded future pass — see
-  `docs/decisions/2026-07-21-monorepo-reorg.md`.
+- **The full backend migrates to Python** — planned and founder-ruled; the
+  executable plan is `docs/plans/2026-07-21-python-backend-migration.md`.
+  End-state: `backend/` (Python, everything) + `app/` (React SPA) + `docs/`.
+  Datastores converge on Postgres per that plan (single-writer-per-table
+  during the migration; don't unify ahead of the plan's slices).
+- (Retired 2026-07-21: the never-commit `feature.ts` rule — the standing
+  delta landed as `94ee702`.)
 
 # journal/ — the TypeScript app
 
