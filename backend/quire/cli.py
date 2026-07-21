@@ -950,6 +950,21 @@ def journal_digest(
                 fg=typer.colors.YELLOW,
             )
 
+    # ── Archive raw session (failure-safe — never fails the digest) ────────────
+    # Mirrors TS orchestrator.ts::archiveRawSession: skip if dest exists and is
+    # same size or larger (re-copy when source has grown, e.g. resumed session).
+    from quire.journal.archive import archive_raw_session
+
+    dest = archive_raw_session(
+        path,
+        warn=lambda msg: typer.secho(
+            f"  Warning: archive failed (digest unaffected): {msg}",
+            fg=typer.colors.YELLOW,
+        ),
+    )
+    if dest is not None:
+        typer.secho(f"  Archived: {dest}", fg=typer.colors.GREEN)
+
 
 def _format_time(dt: "datetime") -> str:
     """Format datetime like TS's formatTime: 'May 21, 21:50'."""

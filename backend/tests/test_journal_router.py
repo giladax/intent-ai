@@ -46,8 +46,26 @@ def test_chat_empty_question_returns_400(client):
     assert resp.status_code == 400
 
 
-def test_feed_returns_skeleton(client):
-    """GET /api/feed → 200, skeleton shape."""
+@pytest.fixture
+def offline_feed(monkeypatch):
+    """Keep GET /api/feed offline during pytest.
+
+    If Postgres is up and the feed cache is stale, the endpoint would launch
+    a real 3-Sonnet-call composition AND overwrite the cached feed. Patch the
+    LLM boundary to raise (compose falls back to deterministic copy) and the
+    cache writer to a no-op (pytest never clobbers the real feed_cache row).
+    """
+    import quire.journal.feed as feed_mod
+
+    def _no_llm(*_a, **_kw):
+        raise RuntimeError("offline test — no LLM calls")
+
+    monkeypatch.setattr(feed_mod, "_call_sonnet", _no_llm)
+    monkeypatch.setattr(feed_mod, "set_cached_feed", lambda *_a, **_kw: None)
+
+
+def test_feed_returns_valid_shape(client, offline_feed):
+    """GET /api/feed → 200, composed-feed shape (works with or without DB)."""
     resp = client.get("/api/feed")
     assert resp.status_code == 200
     data = resp.json()
@@ -55,6 +73,17 @@ def test_feed_returns_skeleton(client):
     assert "composedAt" in data
     assert "lede" in data
     assert "trending" in data
+    assert isinstance(data["trending"], list)
+
+
+def test_feed_has_required_fields(client, offline_feed):
+    """GET /api/feed → 200, editionNumber is int, lede has text, trending is list."""
+    resp = client.get("/api/feed")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data["editionNumber"], int)
+    assert isinstance(data["lede"], dict)
+    assert "text" in data["lede"]
     assert isinstance(data["trending"], list)
 
 

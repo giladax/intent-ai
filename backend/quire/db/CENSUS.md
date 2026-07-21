@@ -78,3 +78,26 @@ the active MCP server — root `.mcp.json` now points to `python3 -m quire.cli m
 4. `journal/run-digest-agent.ts` (and its entry `journal/src/agents/digest/run.ts::digestWithAgent`) — prints deprecation notice pointing to `python3 -m quire.cli journal digest` and exits 1; `--force-legacy` escape hatch bypasses the gate for emergencies
 
 Note: `raw_events` was previously never written to the DB by TS (the insert path was in-memory only). Python writes them in Slice 4 — this is an intentional improvement that makes the dashboard drill-view LEFT JOIN real.
+
+## Slice 8b — Feed composition completed (2026-07-22)
+
+**32 routes fully ported** as of Slice 8. The `GET /api/feed` route was the remaining gap:
+it was a skeleton returning hardcoded empty JSON. Slice 8b completes it.
+
+**1 (feed) completed in Slice 8b:**
+- `backend/quire/journal/feed.py` — full port of `journal/src/web/feed-composer.ts` (633 lines)
+  - Deterministic core: `compute_heat_score`, `rank_trending`, `deduplicate_trending`,
+    `build_fallback_story_headline`, `build_fallback_lede_headline`, `build_fallback_lede_fallback_text`,
+    `build_fallback_deep`, `filter_citations`, `contains_banned_words`, `is_cache_stale`
+  - DB layer: `query_trending_inputs`, `query_feature_evidence` (SQL parity with TS)
+  - LLM composition: `compose_feed_editorial` (up to 3 Sonnet calls — 1 lede + top 2 stories)
+    with voice-rule guard (banned-word fallback) and citation validation (`filter_citations`)
+  - Cache: `get_feed_or_compose`, `get_cached_feed`, `set_cached_feed` with 1-hour TTL,
+    5-min minimum, degraded-compose fast-expiry; `threading.Lock` in-flight dedup
+- `backend/quire/cli.py`: archive raw `.jsonl` to `backend/.intent/raw-sessions/` after
+  successful digest (failure-safe, skip-if-same-size, mirrors TS `archiveRawSession`)
+- `backend/tests/test_feed.py`: 63 unit tests (deterministic core + canned-LLM offline)
+- `backend/tests/test_archive_gap.py`: 6 unit tests (archive semantics)
+
+**feed_cache table**: now Python-owned (read + write via `get_cached_feed`/`set_cached_feed`).
+Update to the table census above: `feed_cache` writer is now `backend/quire/journal/feed.py`.

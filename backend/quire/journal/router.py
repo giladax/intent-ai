@@ -22,7 +22,7 @@ Route census (33 routes, 0 dropped):
   Stats        : GET /api/stats/overview
   Lens         : GET /api/lens/arrival, GET /api/lens/opening/:featureId
   Notifications: GET /api/notifications
-  Feed         : GET /api/feed  (skeleton — LLM composition not ported yet)
+  Feed         : GET /api/feed  (full port — Slice 8b; Sonnet lede + top 2 stories)
   Chat         : POST /api/chat  (SSE, real Anthropic SDK)
   Attention    : PUT /api/attention, GET /api/attention
   Schedule     : GET /api/digest/schedule, PUT /api/digest/schedule
@@ -1473,21 +1473,24 @@ def create_journal_router() -> APIRouter:
         except Exception:
             return {"notifications": [], "unreadCount": 0}
 
-    # ── Feed (skeleton) ───────────────────────────────────────────────────
+    # ── Feed ─────────────────────────────────────────────────────────────
 
     @router.get("/api/feed")
     def get_feed(refresh: str | None = Query(None)):
-        """Skeleton feed — LLM feed composition not yet ported from TS.
+        """Composed feed — full port of feed-composer.ts (Slice 8b).
 
-        The SPA degrades gracefully on empty trending. Returns the
-        buildSkeletonFeed() shape so the UI doesn't break.
+        Returns a real composed feed when sessions exist (editionNumber > 0,
+        lede from Sonnet, trending stories with heat scores). Falls back to
+        the skeleton only when the DB has no sessions at all.
         """
-        return {
-            "editionNumber": 0,
-            "composedAt": datetime.now(timezone.utc).isoformat(),
-            "lede": {"text": "", "citedSessionIds": []},
-            "trending": [],
-        }
+        from quire.journal.feed import build_skeleton_feed, get_feed_or_compose
+
+        force_refresh = refresh == "1"  # TS parity: req.query["refresh"] === "1"
+        try:
+            with _db() as sess:
+                return get_feed_or_compose(sess, force_refresh=force_refresh)
+        except Exception:
+            return build_skeleton_feed()
 
     # ── Meta ─────────────────────────────────────────────────────────────
 

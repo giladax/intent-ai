@@ -179,12 +179,25 @@ def _digest_one(log_path: pathlib.Path, force: bool = False) -> bool:
         understand,
     )
     from quire.db.writer import LlmPurgeRefused, store_session_digest
+    from quire.journal.archive import archive_raw_session
     from quire.journal.emit_events import build_session_events, emit_activity_events
     from quire.journal.git_context import get_git_context
     from quire.db.engine import get_session as db_get_session
 
     path = _pathlib.Path(log_path)
     source_hash = path.stem
+
+    # Archive the raw log unconditionally — including on the re-digest path,
+    # so a resumed session's grown log keeps refreshing the archive (mirrors
+    # orchestrator.ts::runPipeline step 0). Failure-safe: never fails the digest.
+    archived = archive_raw_session(
+        path,
+        warn=lambda msg: log.warning(
+            "[watcher] raw-session archive failed (digest unaffected): %s", msg
+        ),
+    )
+    if archived is not None:
+        log.info("[watcher] Archived raw session → %s", archived)
 
     if force:
         log.info(
