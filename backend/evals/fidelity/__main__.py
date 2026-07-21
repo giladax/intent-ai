@@ -13,7 +13,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import pathlib
 import sys
@@ -46,10 +45,6 @@ from evals.fidelity.loader import (
     raw_last_event_at,
     resolve_raw_log,
 )
-
-
-def _format_calibration(cal) -> str:
-    return json.dumps(cal.distribution, separators=(", ", ":")).replace('"', '"')
 
 
 def run(session_prefix: str | None = None) -> int:

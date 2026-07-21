@@ -96,8 +96,9 @@ issue #2 below, not a regression).
 
 1. **Tail coverage:** Sessions 20f5efec and 5b31a1bb both show 2 min tail loss. Noted in fidelity
    criteria as an expected limitation before an F1 fix.
-2. **Agency inversion:** Sessions 5b31a1bb and d73d5190 show agency attribution errors (ai vs
-   developer). Known weakness documented in fidelity criteria.
+2. **Agency inversion:** Session 5b31a1bb shows agency attribution error (ai vs developer). Known
+   weakness documented in fidelity criteria. (Session d73d5190's re-digest at 28b91d77 resolved its
+   agency error to 2/2.)
 3. **Recall misses:** Sessions b9ab1a0c, 5b31a1bb, and d73d5190 each miss 1–2 expected moments.
    The "index-layer architecture decision" and "emit-events chronology bug" moments require deeper
    narrative extraction.
