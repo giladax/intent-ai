@@ -5,6 +5,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-config(); // cwd (normally journal/)
-config({ path: join(here, "..", ".env") }); // journal/.env
-config({ path: join(here, "..", "..", ".env") }); // repo root .env
+// quiet: dotenv v17 logs to stdout by default, which corrupts the MCP
+// stdio transport when this loads under `cli mcp`.
+config({ quiet: true }); // cwd (normally journal/)
+config({ path: join(here, "..", ".env"), quiet: true }); // journal/.env
+config({ path: join(here, "..", "..", ".env"), quiet: true }); // repo root .env
