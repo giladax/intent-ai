@@ -8,3 +8,4 @@ eval-runs/
 alignment/quire_align.db
 __pycache__/
 *.pyc
+.DS_Store

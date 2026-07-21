@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./src/env.js";
 import * as fs from "fs";
 import * as path from "path";
 import { execFileSync } from "child_process";
@@ -96,7 +96,11 @@ async function collectLive(args: string[]): Promise<SessionInput[]> {
 
   const runs = Number(argValue(args, "--runs") ?? 1);
   const arms = (argValue(args, "--arms") ?? "baseline,treatment").split(",") as Arm[];
-  const repoRoot = process.cwd();
+  // The git repo root (this app lives in journal/ inside it) — the clone
+  // source for isolated checkouts, wherever this script is launched from.
+  const repoRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    encoding: "utf-8",
+  }).trim();
   const baseCommit = execFileSync(
     "git",
     ["rev-parse", argValue(args, "--base") ?? "HEAD"],

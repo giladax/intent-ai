@@ -12,17 +12,19 @@ import { mvpTasks, tasksInStratum } from "../../src/eval/mvp-task-criteria.js";
  * was structurally unreachable.
  *
  * This test greps everything the BASELINE arm receives (CLAUDE.md and the
- * frozen .repo/brain.md) for each task's pre-registered contamination terms.
+ * frozen eval-baseline/brain.md) for each task's pre-registered contamination
+ * terms.
  * If a doc edit ever states a discriminating rule, this suite fails and the
  * task must be redrawn BEFORE the next measurement run.
  */
 
-const repoRoot = join(__dirname, "..", "..");
+const appRoot = join(__dirname, "..", ".."); // journal/
+const repoRoot = join(appRoot, "..");
 
-const BASELINE_DOCS = ["CLAUDE.md", ".repo/brain.md"].map((p) => ({
-  name: p,
-  path: join(repoRoot, p),
-}));
+const BASELINE_DOCS = [
+  { name: "CLAUDE.md", path: join(repoRoot, "CLAUDE.md") },
+  { name: "eval-baseline/brain.md", path: join(appRoot, "eval-baseline", "brain.md") },
+];
 
 describe("baseline docs exist (the contamination surface is real)", () => {
   for (const doc of BASELINE_DOCS) {
@@ -81,7 +83,7 @@ describe("task-set shape (pre-registered)", () => {
     for (const t of mvpTasks) {
       const anchor = t.correctFiles[0];
       expect(
-        anchor.includes("*") || existsSync(join(repoRoot, anchor)),
+        anchor.includes("*") || existsSync(join(appRoot, anchor)),
         `${t.id} anchor ${anchor} missing from tree`,
       ).toBe(true);
     }

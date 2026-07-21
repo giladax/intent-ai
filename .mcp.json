@@ -8,11 +8,10 @@
       ]
     },
     "intent-brain": {
-      "command": "npx",
+      "command": "sh",
       "args": [
-        "tsx",
-        "src/cli/index.ts",
-        "mcp"
+        "-c",
+        "cd journal && npx tsx src/cli/index.ts mcp"
       ]
     }
   }

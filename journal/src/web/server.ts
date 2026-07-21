@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../env.js";
 import crypto from "node:crypto";
 import express from "express";
 import { fileURLToPath } from "node:url";

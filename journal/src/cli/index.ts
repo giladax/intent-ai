@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import "dotenv/config";
+import "../env.js";
 import { Command } from "commander";
 import { up, down } from "./infra.js";
 import { registerDigestCommand } from "./digest.js";

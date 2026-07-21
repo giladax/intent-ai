@@ -50,6 +50,20 @@ export const SESSION_TIMEOUT_MS = 25 * 60 * 1000;
  * removed recursively; missing paths are ignored.
  */
 export const DECONTAMINATION_PATHS: string[] = [
+  // journal/ layout (2026-07-21 reorg) — and the pre-reorg root layout below,
+  // so a run pinned to an older base commit still gets decontaminated.
+  // Missing paths are ignored, so both sets are always safe to list.
+  "journal/src/eval/mvp-task-criteria.ts",
+  "journal/src/eval/mvp-eval.ts",
+  "journal/src/eval/mvp-judge.ts",
+  "journal/src/eval/cvr-checks.ts",
+  "journal/src/eval/live-runner.ts",
+  "journal/run-mvp-eval.ts",
+  "journal/tests/eval/mvp-eval.test.ts",
+  "journal/tests/eval/mvp-judge.test.ts",
+  "journal/tests/eval/mvp-decontamination.test.ts",
+  "journal/tests/eval/cvr-checks.test.ts",
+  "journal/tests/eval/live-runner.test.ts",
   "src/eval/mvp-task-criteria.ts",
   "src/eval/mvp-eval.ts",
   "src/eval/mvp-judge.ts",
@@ -66,6 +80,15 @@ export const DECONTAMINATION_PATHS: string[] = [
   "docs/handoffs",
   ".superpowers",
 ];
+
+/**
+ * The TS app dir inside a checkout: `journal/` post-reorg, the checkout root
+ * for base commits that predate the 2026-07-21 move.
+ */
+export function appDirIn(checkout: string): string {
+  const journal = path.join(checkout, "journal");
+  return fs.existsSync(path.join(journal, "package.json")) ? journal : checkout;
+}
 
 // ── Pure helpers (unit-tested without spawning anything) ─────────────
 
@@ -190,8 +213,8 @@ export async function prepareCheckout(
 
   // Share deps + env: node_modules symlink; .env copied for the MCP server
   // child (DATABASE_URL) — identical in both arms for parity.
-  const nm = path.join(ctx.repoRoot, "node_modules");
-  if (fs.existsSync(nm)) fs.symlinkSync(nm, path.join(dir, "node_modules"));
+  const nm = path.join(appDirIn(ctx.repoRoot), "node_modules");
+  if (fs.existsSync(nm)) fs.symlinkSync(nm, path.join(appDirIn(dir), "node_modules"));
   const env = path.join(ctx.repoRoot, ".env");
   if (fs.existsSync(env)) fs.copyFileSync(env, path.join(dir, ".env"));
 
@@ -272,14 +295,17 @@ export async function runLiveSession(
 ): Promise<LiveRunResult> {
   const label = `${task.id}-${arm}-${run}`;
   const worktree = await prepareCheckout(ctx, label);
-  const realWorktree = fs.realpathSync(worktree);
+  // Sessions run inside the TS app dir so task paths (src/..., npx vitest)
+  // resolve the same way in pre- and post-reorg checkouts.
+  const appDir = appDirIn(worktree);
+  const realAppDir = fs.realpathSync(appDir);
 
   fs.mkdirSync(ctx.runDir, { recursive: true });
   fs.writeFileSync(path.join(ctx.runDir, `prompt-${label}.txt`), buildTaskPrompt(task, arm));
 
   // tsc gate is baseline-relative: capture the pre-session error count in
   // the decontaminated checkout (pre-existing debt is not the agent's).
-  const tscErrorsBefore = await tscErrorCount(worktree);
+  const tscErrorsBefore = await tscErrorCount(appDir);
 
   const startedAt = Date.now();
   let claudeExitOk = true;
@@ -287,7 +313,7 @@ export async function runLiveSession(
   let stderr = "";
   try {
     const res = await execFileAsync("claude", claudeArgs(task, arm), {
-      cwd: worktree,
+      cwd: appDir,
       timeout: SESSION_TIMEOUT_MS,
       maxBuffer: 64 * 1024 * 1024,
       env: { ...process.env },
@@ -306,7 +332,7 @@ export async function runLiveSession(
 
   // Transcript: newest JSONL in the worktree's munged project dir, copied
   // into the run dir so scoring survives worktree cleanup.
-  const src = newestJsonl(transcriptDirFor(realWorktree));
+  const src = newestJsonl(transcriptDirFor(realAppDir));
   const transcriptPath = path.join(ctx.runDir, `transcript-${label}.jsonl`);
   if (src) fs.copyFileSync(src, transcriptPath);
   else fs.writeFileSync(transcriptPath, "");
@@ -314,9 +340,9 @@ export async function runLiveSession(
   const diff = await captureDiff(worktree);
   fs.writeFileSync(path.join(ctx.runDir, `diff-${label}.patch`), diff);
 
-  const tscErrorsAfter = await tscErrorCount(worktree);
+  const tscErrorsAfter = await tscErrorCount(appDir);
   const tscPassed = tscErrorsAfter <= tscErrorsBefore;
-  const testPassed = await runCheck(worktree, task.testCommand, 600_000);
+  const testPassed = await runCheck(appDir, task.testCommand, 600_000);
 
   await removeCheckout(ctx, worktree);
   await emitEvalRunEvent(task, arm, run, {

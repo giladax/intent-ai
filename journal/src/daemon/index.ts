@@ -4,7 +4,7 @@
  * Flow: HookServer + TailWatcher → Normalizer → Correlator → EventQueue + Sink → LiveDigest → SessionState → PromptSuggester
  */
 
-import 'dotenv/config';
+import '../env.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { HookServer } from './hook-server.js';
 import { TailWatcher } from './tail-watcher.js';

@@ -1,3 +1,7 @@
+# Explicit project name: compose derives the default from the directory name,
+# and this file moved (root -> journal/) after the db volume already existed.
+name: intent-ai
+
 services:
   db:
     image: postgres:16-alpine
