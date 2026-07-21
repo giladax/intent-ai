@@ -58,6 +58,8 @@ npx tsx src/cli/index.ts mcp         # MCP server (stdio; wired via root .mcp.js
 npx tsx src/cli/index.ts web --port 3456     # dashboard
 npx tsx src/cli/index.ts events      # query the activity event stream
 npx tsx src/cli/index.ts observe-events      # observation layer over recent events
+# NOTE: `observe` (TS daemon) is DEPRECATED — use the Python watcher instead:
+#   python3 -m quire.cli journal watch-sessions
 
 npx vitest run                       # tests (some need Postgres up)
 npx tsc --noEmit                     # type check
@@ -83,8 +85,8 @@ port **5433**, schema in `src/storage/schema.ts`, migrations in `drizzle/`.
 Source: `src/pipeline/` (steps as functions, orchestrator.ts runs them),
 `src/llm/` (SDK wrapper + prompt builders), `src/storage/`, `src/mcp/`
 (Feature-keyed brain tools), `src/web/` (Express + React SPA in
-`src/web/ui`), `src/daemon/`, `src/eval/`, `src/cli/`.
-`eval-baseline/brain.md` is the frozen measurement-v2 baseline document.
+`src/web/ui`), `src/daemon/` (DEMOTED Slice 6 — Python watcher owns this role),
+`src/eval/`, `src/cli/`. `eval-baseline/brain.md` is the frozen measurement-v2 baseline document.
 
 ## Conventions
 

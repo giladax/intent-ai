@@ -918,6 +918,38 @@ def journal_digest(
             fg=typer.colors.GREEN,
         )
 
+    # ── Emit activity events (failure-safe — must never fail the digest) ──────
+    if result.stored:
+        try:
+            from quire.journal.emit_events import build_session_events, emit_activity_events
+            from quire.journal.git_context import get_git_context
+            from quire.db.engine import get_session
+
+            git_ctx = get_git_context(str(path))
+            act_events = build_session_events(
+                session_id=result.session_id,
+                moments=result_u.moments,
+                transitions=result_u.transitions,
+                outcomes=result_u.outcomes,
+                narrative=result_u.narrative,
+                repo=git_ctx.get("repo"),
+                branch=git_ctx.get("branch"),
+                worktree=git_ctx.get("worktree"),
+                session_ended_at=ended_dt,
+            )
+            with get_session() as ae_session:
+                emit_activity_events(act_events, db_session=ae_session)
+                ae_session.commit()
+            typer.secho(
+                f"  Emitted {len(act_events)} activity events.",
+                fg=typer.colors.GREEN,
+            )
+        except Exception as ae_err:
+            typer.secho(
+                f"  Warning: activity event emission failed (digest still saved): {ae_err}",
+                fg=typer.colors.YELLOW,
+            )
+
 
 def _format_time(dt: "datetime") -> str:
     """Format datetime like TS's formatTime: 'May 21, 21:50'."""
@@ -959,6 +991,27 @@ def journal_events(
     for ev in rows:
         ts = ev.timestamp.strftime("%Y-%m-%d %H:%M") if ev.timestamp else "?"
         typer.echo(f"{ts}  {ev.category:<32}  {ev.actor:<12}  {ev.summary[:80]}")
+
+
+@journal_app.command("watch-sessions")
+def journal_watch_sessions(
+    quiet_seconds: float = typer.Option(120, "--quiet-seconds", help="seconds of file inactivity before digesting"),
+    projects_dir: str = typer.Option("", "--projects-dir", help="override ~/.claude/projects path"),
+):
+    """Watch ~/.claude/projects for new CC sessions and digest them unattended.
+
+    Polls every 30 s; digests any session file whose mtime has been quiet
+    for more than --quiet-seconds (default 120). Already-digested sessions
+    are skipped (idempotent: keyed on source_hash = log file stem).
+
+    Replaces the TS `journal observe` command (demoted Slice 6).
+    """
+    import pathlib
+
+    from quire.journal.watcher import watch_sessions
+
+    pd = pathlib.Path(projects_dir).expanduser() if projects_dir else None
+    watch_sessions(quiet_seconds=quiet_seconds, projects_dir=pd)
 
 
 if __name__ == "__main__":

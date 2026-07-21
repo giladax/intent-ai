@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end test: starts daemon, sends simulated hook events, checks results.
+# End-to-end test: starts TS daemon (DEMOTED — production uses Python watcher: python3 -m quire.cli journal watch-sessions)
 # Usage: ./test-daemon.sh
 
 set -e
@@ -20,7 +20,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "=== Starting daemon on port $PORT ==="
-npx tsx src/cli/index.ts observe --port "$PORT" &
+npx tsx src/cli/index.ts observe --force-legacy --port "$PORT" &
 DAEMON_PID=$!
 sleep 2
 

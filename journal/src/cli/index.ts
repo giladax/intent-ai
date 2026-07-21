@@ -56,9 +56,18 @@ program
 
 program
   .command("observe")
-  .description("Start the observe daemon for live Claude Code session tracking")
+  .description("[DEPRECATED] Python watcher has replaced the TS daemon. Use: python3 -m quire.cli journal watch-sessions")
   .option("-p, --port <port>", "Port for hook server", "4317")
-  .action(async (opts: { port: string }) => {
+  .option("--force-legacy", "Emergency escape hatch: run the old TS daemon despite the deprecation")
+  .action(async (opts: { port: string; forceLegacy?: boolean }) => {
+    if (!opts.forceLegacy) {
+      process.stderr.write(
+        "DEPRECATED: The TS observe daemon has been replaced by the Python watcher (Slice 6).\n" +
+        "Use: python3 -m quire.cli journal watch-sessions\n" +
+        "Emergency bypass (not recommended): npx tsx src/cli/index.ts observe --force-legacy\n",
+      );
+      process.exit(1);
+    }
     const { startDaemon } = await import("../daemon/index.js");
     await startDaemon(parseInt(opts.port));
   });

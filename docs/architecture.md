@@ -15,13 +15,14 @@ brain: what was built (sessions) held against what was promised
                                                          └──▶ app/ (React dashboard)
 ```
 
-**Today (mid-migration):** digestion still physically runs in `journal/`
-(TS) until its Python port lands slice by slice — see
-`docs/plans/2026-07-21-python-backend-migration.md` for the slice status.
-The sections below describe what runs WHERE right now.
+**Today (Slice 6 landed 2026-07-22):** digestion runs entirely in `backend/` (Python).
+The Python watcher replaces the TS daemon. TS keeps only the dashboard SPA + MCP server.
+See `docs/plans/2026-07-21-python-backend-migration.md` for slice status.
 
 ```
- AI coding sessions ──▶ journal/ (TS)  ──▶ activity journal ──▶ agents (MCP) + dashboard
+ AI coding sessions ──▶ backend/ (Py) ──▶ activity journal ──▶ agents (MCP, TS) + dashboard (TS)
+                              │
+                    python3 -m quire.cli journal watch-sessions
  PRs / diffs        ──▶ backend/ (Py)  ─▶ keep/break verdicts ─▶ alarms + intent ledger
                           ▲
                           └── approved product intent (PRDs, obligations)
@@ -48,7 +49,7 @@ searchable event. Time is the axis; search is the front door.
   `brain_search`, `brain_feature_context`, etc. mid-session.
 - `src/web/` — Express API + React/Vite dashboard (`src/web/ui`, its own
   package.json): the journal river, Feature lenses, Correspondence chat.
-- `src/daemon/` — background watcher that digests sessions continuously.
+- `src/daemon/` — demoted Slice 6; Python watcher (`python3 -m quire.cli journal watch-sessions`) replaced it. TS internals preserved for vitest; entry point (`observe` command) exits with deprecation notice.
 
 **Evals** (`src/eval/`, `run-fidelity.ts`, `run-mvp-eval.ts`): digest-fidelity
 harness plus the measurement-v2 A/B harness (does brain context measurably
@@ -91,11 +92,9 @@ All three seams below are scheduled for removal by
 - **Two datastores** — RULED: converge on Postgres (SQLite retires with the
   backend store port). Until that slice lands, single-writer-per-table
   discipline holds.
-- **Session digestion exists twice** — the full TS pipeline (`journal/`) and
-  the lean distiller (`backend/quire/session.py`). The TS pipeline is now
-  ported: deterministic steps in `backend/quire/ingest/` (parity-gated) and the
-  LLM understanding steps in `backend/quire/understand/` (fidelity-gated ≥ the
-  pinned TS baseline). Python owns the digest tables; TS digestion retires at
-  the Slice-6 cutover.
+- **Session digestion exists twice** — CLOSED (Slice 6). Python owns all digestion:
+  `backend/quire/ingest/` (deterministic, parity-gated), `backend/quire/understand/`
+  (LLM, fidelity-gated ≥ TS baseline), and `backend/quire/journal/` (activity events,
+  Python watcher). TS digest entry points are demoted with deprecation notices.
 - **The dashboard** — the React SPA moves to `app/` and is served by
   FastAPI; the Express layer retires with the TS backend.

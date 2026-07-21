@@ -12,8 +12,8 @@ The repo is mid-migration to **one Python backend** that owns all reasoning
 
 | Dir | Language | Today | Destination |
 |-----|----------|-------|-------------|
-| [`backend/`](backend/) | Python | PR-vs-intent analysis + quote-backed alarms; Postgres read layer; session-ingestion port in progress | THE backend — everything |
-| [`journal/`](journal/) | TypeScript | Still runs production session digestion → Postgres → MCP + dashboard | Retired slice by slice; only the React SPA survives (as `app/`) |
+| [`backend/`](backend/) | Python | Session digestion + watcher daemon (Slice 6); PR-vs-intent analysis + quote-backed alarms; Postgres read/write layer | THE backend — everything |
+| [`journal/`](journal/) | TypeScript | MCP server + dashboard (Slice 6: Python owns session digestion and daemon; TS daemon demoted) | Retired slice by slice; only the React SPA survives (as `app/`) |
 
 ## Run the journal app
 

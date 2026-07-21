@@ -37,6 +37,20 @@ Digesting: `journal digest <log>` runs the full pipeline (deterministic +
 LLM) and persists everything; `--dry-run` runs only the deterministic path
 (no LLM, no writes) for parity; `--offline` uses canned LLM outputs (tests/CI).
 
+**Watcher Daemon** (replaces TS `observe`, Slice 6):
+
+```bash
+python3 -m quire.cli journal watch-sessions              # watch ~/.claude/projects for new sessions (quiet >120 s)
+python3 -m quire.cli journal watch-sessions --quiet-seconds 30  # faster threshold (testing/demo)
+python3 -m quire.cli journal watch-sessions --projects-dir /path/to/dir  # override scan dir
+```
+
+The watcher polls every 30 s; digests any session file whose mtime has been
+quiet for more than `--quiet-seconds`. Already-digested sessions skip silently
+(idempotent via source_hash = log file stem). Emits activity events after each
+successful digest. Failure-safe: a digest error for one file is logged and
+skipped; the watcher continues.
+
 The alignment subsystem persists to SQLite today; the ruled end-state is
 Postgres for everything (see the migration plan, Decision B).
 

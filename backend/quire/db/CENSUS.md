@@ -53,6 +53,26 @@ only the production surface is demoted.
 
 All 10 DEAD tables are from the Topic-era subsystem excised 2026-07-04 (PRD v0.3.1). Confirmed by 0 DB rows and no callers in journal/src beyond schema.ts.
 
+## Windowed Single-Writer Exception (Slice 6 → Slice 7)
+
+`activity_events` has TWO active inserters during Slice 6:
+
+1. **Python digest path** (`quire/journal/emit_events.py` → `emit_activity_events`): writes
+   moment/transition/outcome/narrative events from session digestion. Python-owned as of Slice 6.
+
+2. **TS MCP server** (`journal/src/mcp/server.ts`): writes instrumentation events
+   (`brain_enter`, `brain_search`, etc.) as agents call MCP tools mid-session.
+
+Both inserters are **append-only** (INSERT only; no UPDATE or DELETE). There is no shared
+primary-key space or ordering dependency — inserts from both paths are conflict-free.
+This is a documented, time-bounded exception to the single-writer rule.
+
+**Slice-7 closes this exception**: the MCP server ports to Python, at which point
+`quire/mcp/server.py` becomes the sole inserter for ALL `activity_events` rows.
+
+Until Slice 7 lands, do NOT add any UPDATE or DELETE path touching `activity_events`
+from Python — keep the table append-only on both sides.
+
 ## Slice 4 demoted entry points (TS digest paths)
 
 1. `journal/src/cli/digest.ts::registerDigestCommand` — non-dry-run path prints deprecation and exits (dry-run still works; `--force-legacy` escape hatch bypasses deprecation)
