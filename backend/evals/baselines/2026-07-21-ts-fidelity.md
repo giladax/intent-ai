@@ -107,6 +107,21 @@ issue #2 below, not a regression).
 5. **Directives dry-run bug:** `analyzeInteractions` is `async` but called without `await` in the
    CLI dry-run path, causing a crash after categories print. This affects only the dry-run CLI
    output; the full pipeline is unaffected (it awaits the call correctly). Captured in parity corpus.
+6. **5b31a1bb anchored comparator re-pinned (2026-07-22).** The pinned anchored 88.1% for
+   5b31a1bb is a favorable draw not reproducible by the TS pipeline itself: two independent
+   in-memory TS `understand()` runs on the same raw log (2026-07-22, implementer and reviewer,
+   no DB writes) measured 85.4% (35/41) and 84.8% (39/46) moment-level anchored. Root cause of
+   the unanchorable evidence in both stacks: the model strips markdown emphasis/smart quotes
+   when quoting, breaking verbatim substring matching against markdown-formatted events.
+   **The anchored comparator for this session is the TS-today band (84.8–85.4%), not 88.1%**;
+   Python's accepted Slice-5b score is 84.1%. All other sessions and dimensions remain gated on
+   the original pins. A markdown-insensitive matcher is a candidate improvement for BOTH stacks;
+   changing it requires re-measuring both sides in the same run.
+7. **Structured-output modality (Python port, declared deviation):** TS used raw-JSON-text +
+   `validateJson` for every LLM step. The Python port matches that for extract (where verbatim
+   quoting is load-bearing); the non-extract steps (classify, weave, verify, transitions,
+   narrative) use tool-use structured output instead — low-risk (labels/ids, not verbatim text)
+   and covered by this gate. Documented so the deviation stays on record.
 
 ## Gate status at time of pinning
 
