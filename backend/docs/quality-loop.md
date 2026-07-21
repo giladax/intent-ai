@@ -2,9 +2,60 @@
 
 Recurring agent review (engineering quality + product-surface language).
 Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
-ticks with no new commits past `last-reviewed`.
+ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
+moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: 0aab0cf
+last-reviewed: 2fb295a
+
+## 2026-07-22 — tick over 0aab0cf..2fb295a (Python backend migration, slices 1–5b)
+
+The `alignment/ → backend/` + `quire_align → quire` rename (defe5af) plus
+the migration slices landed a large body of NEW Python: the Postgres
+foundation (quire/db/{engine,models,writer}), the Python ingest pipeline
+(quire/ingest/), the LangChain digest port (quire/understand/), and the
+fidelity eval harness (evals/fidelity/) — ~7.6k lines of genuinely-new code.
+Review was scoped to that surface only (rename-moved, already-reviewed files
+excluded). One general-purpose agent, both lenses.
+
+Overall read: **high quality, faithful port.** No semantic drift — the
+parity harness (test_ingest_parity.py) pins raw/normalized event counts to
+±0 and category counts to ±2% against 7 frozen TS snapshots and passes;
+load-bearing details (truncate, STATE_MODIFYING_TOOLS set, msg.uuid event-id
+derivation, chunk/sitting constants, prompt strings) spot-verified against
+the TS source. Exception handling is disciplined (deliberate fail-open
+enrichment paths with noqa+stderr; _with_backoff re-raises non-transient).
+Tests are behavioral and dense.
+
+**Tier-1 applied (this commit):**
+- Removed dead imports: `event` (db/engine.py), `os` (evals/fidelity/loader.py
+  and evals/fidelity/__main__.py), `Base` (cli.py journal_events).
+- db/engine.py `make_test_engine`: documented caller-owns-lifetime / .dispose()
+  contract (no live leak; test-only, was undocumented).
+- db/writer.py: narrowed the typing-only `except Exception` → `except ImportError`
+  so a real syntax/circular-import error in understand.models isn't masked.
+- cli.py digest progress line: glossed the raw pipeline node names
+  ("classify → extract → weave → verify → transitions → narrative") with a
+  plain sentence for a non-engineer watching `journal digest` run.
+
+**Tier-2 deferred (logged, not applied):**
+- Duplicate `_build_exchanges` byte-identical in ingest/analyze.py and
+  understand/steps.py (a port-dragged duplicate) — consolidate into one
+  shared helper; needs a judgment call on where it lives.
+- cli.py `--force` ties `force` and `allow_llm_purge` to one flag, so the
+  writer's LlmPurgeRefused guard is unreachable from the CLI — `--force`
+  always silently purges LLM-derived rows (with a stderr warning). If a
+  second confirmation was intended on LLM-row loss, add a separate
+  `--allow-llm-purge` flag. Design question for the founder.
+- normalize.py threading: the `u-`/`a-` turn-prefix checks are dead for real
+  CC UUIDs (only match synthetic fixture ids). Faithful to the TS (carried
+  over intact, parity-gated) — wants a one-line clarifying comment, but left
+  untouched to avoid perturbing the parity-critical file.
+- Minor product-language: `shape=` and camelCase directive flags in the
+  `--dry-run` stats block are raw taxonomy; acceptable as a developer
+  diagnostic, reword only if that output becomes non-engineer-facing.
+
+Gate: `cd backend && python3 -m pytest` → 408 passed, 1 skipped. Edited
+modules import-smoke-checked.
 
 ## 2026-07-21 — SHA advance over 7680a08..0aab0cf (no fresh agent)
 

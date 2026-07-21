@@ -10,7 +10,6 @@ Read-only. Drizzle (journal/src) owns all writes.
 from __future__ import annotations
 
 import json
-import os
 import pathlib
 from datetime import datetime
 from typing import Optional

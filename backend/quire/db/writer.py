@@ -48,7 +48,7 @@ from quire.ingest.models import (
 # outcomes/narrative). Imported for typing only; the writer never constructs it.
 try:  # pragma: no cover - typing convenience
     from quire.understand.models import UnderstandResult as Understanding
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover - narrow: don't mask real breakage in that module
     Understanding = object  # type: ignore
 
 

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 # Loaded lazily so tests that don't need Postgres can import without a URL.
@@ -70,5 +70,7 @@ def make_test_engine(url: str = "sqlite:///:memory:"):
 
     Defaults to SQLite in-memory so tests run without Postgres.
     Call Base.metadata.create_all(engine) after this to build schema.
+    The caller owns the engine's lifetime; for a file/URL engine call
+    .dispose() when done (in-memory engines are reclaimed by GC at test end).
     """
     return create_engine(url, connect_args={"check_same_thread": False} if "sqlite" in url else {})

@@ -863,7 +863,9 @@ def journal_digest(
     source_hash = path.stem
     session_id = source_hash  # domain id used for chunk ids; DB uuid assigned in writer
 
-    typer.echo("\nRunning understanding stage (classify → extract → weave → verify → transitions → narrative)…")
+    typer.echo("\nUnderstanding the session — finding the key moments, checking each "
+               "claim against what the tools actually did, and writing the narrative"
+               "\n  (classify → extract → weave → verify → transitions → narrative)…")
     session_shape = classify_session(llm, normalized_events)
     topic_shift_ids = detect_topic_shifts(llm, normalized_events)
     live_directives = analyze_interactions_live(llm, normalized_events)
@@ -937,7 +939,7 @@ def journal_events(
     from sqlalchemy import select, desc
 
     from quire.db.engine import get_engine
-    from quire.db.models import ActivityEvent, Base
+    from quire.db.models import ActivityEvent
 
     engine = get_engine()
     from sqlalchemy.orm import Session as SASession
