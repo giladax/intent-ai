@@ -118,8 +118,8 @@ export async function runPipeline(
       // Recovery path: the raw log is archived unconditionally above (archiveRawSession),
       // and LLM failures throw loudly, so the next `digest` run will detect no stored
       // session and re-digest from scratch. Permanently lost data is not possible since
-      // the source log is preserved. The preferred fix (compute-then-replace in one tx)
-      // is deferred; tracked as I3 in .superpowers/sdd/final-branch-review.md.
+      // the source log is preserved. The preferred fix (compute-then-replace in
+      // one tx) is deferred.
       await deleteSessionDigest(existingId);
       // fall through to full pipeline
     }
