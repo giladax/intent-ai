@@ -63,16 +63,25 @@ agency: 0/1 wrong: "developer prompted the UI redesign": got ai, want developer
 
 ### 4. short (15 min) — intent dropped, agency inverted — `d73d5190`
 
+**Incident note (2026-07-21):** The original artifact (session `c6ff9b53`, 5 moments) was destroyed
+by Slice-4 testing — the Python deterministic-only path re-digested this session via `--force`,
+cascade-purging all LLM-derived rows. Re-pinned from a fresh TS digest (session `28b91d77`) run
+same day via `npx tsx src/cli/index.ts digest --force-legacy --force`. This is PRE-5b, so the
+fresh digest remains a valid TS-pipeline baseline. Scores differ slightly from the original due to
+LLM nondeterminism (transitions+outcomes distribution changed; agency improved to 2/2).
+
 ```
 provenance: evidenceReal 100% | anchored 80% | chunks 2 (ok) | occurredSpan 2min
-calibration: moments {"high":2,"medium":2,"low":1}  | transitions+outcomes {"high":1,"medium":1}
+calibration: moments {"high":2,"medium":2,"low":1}  | transitions+outcomes {"medium":2,"low":1}
 tail: covered
 recall: 2/3 missed: "open A/B/C architectural fork at session end"
 precision violations: none
-agency: 1/2 wrong: "founding requirement: activity event table + derived memory": got ai, want developer
+agency: 2/2
 ```
 
-**Status:** PARTIAL — 1 recall miss, 1 agency error.
+**Status:** PARTIAL — 1 recall miss. Agency improved to full agreement in the re-digest (LLM
+nondeterminism; the agency error observed in the original digest is a known weakness per known
+issue #2 below, not a regression).
 
 ## Summary table
 
@@ -81,7 +90,7 @@ agency: 1/2 wrong: "founding requirement: activity event table + derived memory"
 | large + self-digested mid-life            | 20f5efec          | 9/9 ✓      | 0 viol ✓  | 0/0 (n/a) | LOST 2min  |
 | resumed, 3 sittings over 4 days           | b9ab1a0c          | 3/5 (miss) | 1 viol    | 0/0 (n/a) | covered ✓  |
 | 17/17-high-confidence symptom case        | 5b31a1bb          | 2/3 (miss) | 0 viol ✓  | 0/1 wrong | LOST 2min  |
-| short (15 min) — intent dropped           | d73d5190          | 2/3 (miss) | 0 viol ✓  | 1/2 wrong | covered ✓  |
+| short (15 min) — intent dropped           | d73d5190          | 2/3 (miss) | 0 viol ✓  | 2/2 ✓     | covered ✓  |
 
 ## Known issues (pre-existing, not introduced by this slice)
 

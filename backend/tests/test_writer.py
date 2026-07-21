@@ -441,3 +441,68 @@ def test_rollback_atomicity_on_mid_write_failure(patched_get_session, monkeypatc
     assert len(norm_rows) == 0, f"Expected 0 normalized_event rows, got {len(norm_rows)}"
     assert len(chunk_rows) == 0, f"Expected 0 chunk rows, got {len(chunk_rows)}"
     assert len(sitting_rows) == 0, f"Expected 0 sitting rows, got {len(sitting_rows)}"
+
+
+def test_force_purge_with_moments_emits_warning(patched_get_session, capsys):
+    """force=True on a session that has LLM-derived moments emits a loud
+    stderr warning naming the moment count, then still completes the purge."""
+    from sqlalchemy import text as sa_text
+
+    # Step 1: store a session deterministically (no moments yet)
+    result1 = store_session_digest(
+        source_path="/tmp/guard-test.jsonl",
+        source_hash="guard-hash",
+        raw_events=[],
+        normalized_events=[],
+        chunks=[],
+        sittings=[],
+        started_at=None,
+        ended_at=None,
+    )
+    assert result1.stored is True
+    session_id = result1.session_id
+
+    # Step 2: simulate TS-pipeline moments by inserting rows directly
+    # (mirroring what TS storeSessionDigest does for the LLM-derived stage)
+    with SASession(patched_get_session) as s:
+        for i in range(3):
+            s.execute(
+                sa_text(
+                    "INSERT INTO moments (id, session_id, type, statement) "
+                    "VALUES (:id, :sid, 'decision', :stmt)"
+                ),
+                {"id": f"moment-guard-{i}", "sid": session_id, "stmt": f"stmt {i}"},
+            )
+        s.commit()
+
+    # Step 3: re-digest with --force — warning must appear on stderr
+    result2 = store_session_digest(
+        source_path="/tmp/guard-test.jsonl",
+        source_hash="guard-hash",
+        raw_events=[],
+        normalized_events=[],
+        chunks=[],
+        sittings=[],
+        started_at=None,
+        ended_at=None,
+        force=True,
+    )
+
+    captured = capsys.readouterr()
+    assert "WARNING" in captured.err, "Expected WARNING on stderr"
+    assert "3" in captured.err, "Expected moment count (3) in warning"
+    assert "TS pipeline" in captured.err, "Expected TS pipeline reference in warning"
+
+    # Step 4: purge still completed — new session stored, old moments gone
+    assert result2.stored is True
+    assert result2.session_id != session_id
+
+    with SASession(patched_get_session) as s:
+        sessions = s.execute(select(JournalSession)).scalars().all()
+        moment_count = s.execute(
+            sa_text("SELECT COUNT(*) FROM moments")
+        ).scalar()
+
+    assert len(sessions) == 1
+    assert sessions[0].id == result2.session_id
+    assert moment_count == 0, f"Expected 0 moments after purge, got {moment_count}"

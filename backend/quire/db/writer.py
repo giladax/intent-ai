@@ -27,6 +27,7 @@ Design notes:
 from __future__ import annotations
 
 import json
+import sys
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -89,6 +90,14 @@ def store_session_digest(
             return StoreResult(stored=False, session_id=existing_id)
 
         if existing_id and force:
+            moment_count = _count_moments(sa_session, existing_id)
+            if moment_count > 0:
+                print(
+                    f"\nWARNING: force will destroy {moment_count} moment(s) for session "
+                    f"{existing_id[:8]}… that this pipeline cannot regenerate until the LLM "
+                    f"port lands — they were built by the TS pipeline.\n",
+                    file=sys.stderr,
+                )
             _delete_session(sa_session, existing_id)
 
         session_id = str(uuid.uuid4())
@@ -118,6 +127,15 @@ def _find_by_source_hash(sa_session: SASession, source_hash: str) -> Optional[st
         {"h": source_hash},
     ).first()
     return str(row[0]) if row else None
+
+
+def _count_moments(sa_session: SASession, session_id: str) -> int:
+    """Return the number of LLM-derived moments for a session."""
+    row = sa_session.execute(
+        text("SELECT COUNT(*) FROM moments WHERE session_id = :sid"),
+        {"sid": session_id},
+    ).first()
+    return int(row[0]) if row else 0
 
 
 def _delete_session(sa_session: SASession, session_id: str) -> None:

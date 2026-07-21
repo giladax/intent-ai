@@ -69,31 +69,30 @@ diff <(cd journal && npx tsx run-fidelity.ts 2>&1) <(cd backend && python3 -m ev
 | agency | 0/1 wrong | 0/1 wrong | EXACT |
 | agency detail | got ai, want developer | got ai, want developer | EXACT |
 
-### Session 4: short (15 min) — `d73d5190` — DATA-STATE CHANGE
+### Session 4: short (15 min) — `d73d5190` — RESTORED 2026-07-21
 
-**This session's scores differ from the pinned baseline.** The baseline was scored against
-an earlier digest (created 2026-07-04) which had 5 moments. A re-digest on 2026-07-21
-15:18:04 UTC created a new session record (`c6ff9b53`) with 0 moments (the new digest
-produced an empty result, likely because the digestion failed silently or the session
-was re-classified). The TS harness also sees 0 moments today — the TS and Python
-harnesses agree on the current DB state. The discrepancy is **not a port bug**.
+**Incident:** The original artifact (session `c6ff9b53`, 5 moments) was destroyed by Slice-4
+testing — the Python `--force` path cascade-purged all LLM-derived rows. The session was
+restored via `npx tsx src/cli/index.ts digest --force-legacy --force` on 2026-07-21, producing
+a new session record (`28b91d77`) with 5 moments and a full narrative. Both harnesses now agree
+on the restored state. Scores differ from the destroyed baseline in `transitions+outcomes`
+distribution and agency (LLM nondeterminism — not a port bug).
 
-| Dimension | Pinned baseline | Current TS | Current Python | Match TS? |
-|-----------|-----------------|------------|----------------|-----------|
-| evidenceReal | 100% | 0% | 0% | EXACT |
-| anchored | 80% | 0% | 0% | EXACT |
-| chunks | 2 (ok) | 0 (ok) | 0 (ok) | EXACT |
-| occurredSpan | 2min | none | none | EXACT |
-| moments cal | {"high":2,"medium":2,"low":1} | {} UNINFORMATIVE | {} UNINFORMATIVE | EXACT |
-| transitions+outcomes cal | {"high":1,"medium":1} | {} UNINFORMATIVE | {} UNINFORMATIVE | EXACT |
+| Dimension | ts-fidelity baseline (re-pinned) | Current TS | Current Python | Match TS? |
+|-----------|----------------------------------|------------|----------------|-----------|
+| evidenceReal | 100% | 100% | 100% | EXACT |
+| anchored | 80% | 80% | 80% | EXACT |
+| chunks | 2 (ok) | 2 (ok) | 2 (ok) | EXACT |
+| occurredSpan | 2min | 2min | 2min | EXACT |
+| moments cal | {"high":2,"medium":2,"low":1} | {"high":2,"medium":2,"low":1} | {"high":2,"medium":2,"low":1} | EXACT |
+| transitions+outcomes cal | {"medium":2,"low":1} | {"medium":2,"low":1} | {"medium":2,"low":1} | EXACT |
 | tail | covered | covered | covered | EXACT |
-| recall | 2/3 | 0/3 | 0/3 | EXACT |
+| recall | 2/3 | 2/3 | 2/3 | EXACT |
+| recall misses | open A/B/C architectural fork | open A/B/C architectural fork | open A/B/C architectural fork | EXACT |
 | precision violations | none | none | none | EXACT |
-| agency | 1/2 wrong | 0/0 | 0/0 | EXACT |
+| agency | 2/2 | 2/2 | 2/2 | EXACT |
 
-Python matches TS for all 4 sessions. The baseline-vs-current difference in session 4 is
-a data-state issue (the 2026-07-21 re-digest wiped the old moments) — same change visible
-in both harnesses.
+Python matches TS for all 4 sessions on the restored DB state. **DETERMINISTIC DIMENSIONS: EXACT MATCH.**
 
 ## Deterministic dimensions — calibration verdict
 
@@ -136,26 +135,22 @@ outcome: LLM spend is 0.
 | precision violations | exact set | Deterministic — keyword matching |
 | agency correct/checked | exact | Deterministic — keyword matching |
 
-## Data-state caveat
+## Data-state note (resolved)
 
-The d73d5190 session was re-digested on 2026-07-21, producing 0 moments (the new session
-record replaced the old one). The pinned baseline scored the OLD digest (5 moments). The
-Python harness cannot reproduce the pinned baseline for this session because the underlying
-data is gone — this is a DB-state issue, not a port defect. Both harnesses agree on the
-current DB state. Future re-digests of this session would update both harnesses equally.
-
-**Recommendation:** If session 4's original scores matter (for regression gating), the
-old session data should be restored or the session re-digested with a working pipeline.
-This is out of scope for Slice 5a.
+The d73d5190 session was accidentally purged on 2026-07-21 15:18 UTC by Slice-4 testing
+(Python `--force` digest cascade-deleted all LLM-derived rows). The session was restored
+same day via `--force-legacy` TS digest (session `28b91d77`, 5 moments). Both harnesses
+now agree on the restored state and match the re-pinned baseline in `ts-fidelity.md`.
+The data-state divergence is resolved; no port defect exists.
 
 ## Gate status at calibration
 
 | Gate | Result |
 |------|--------|
-| `python3 -m pytest` (backend) | 374 passed, 1 skipped |
+| `python3 -m pytest` (backend) | 375 passed, 1 skipped (incident repair adds 1 test) |
 | `python3 -m evals.event_stream` | all clear |
 | `python3 -m evals.alarms` | all clear |
 | `npx vitest run` (journal) | 815 passed |
 | Python harness matches TS (sessions 1–3) | EXACT MATCH |
-| Python harness matches TS (session 4, current DB) | EXACT MATCH |
+| Python harness matches TS (session 4, restored) | EXACT MATCH |
 | Python harness matches pinned baseline (session 4) | DATA-STATE DIVERGENCE (not a port bug) |
