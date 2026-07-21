@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "../public",
+    outDir: "../backend/quire/static/dashboard",
     emptyOutDir: true,
   },
 });

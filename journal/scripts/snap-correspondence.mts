@@ -10,6 +10,11 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
 await page.goto("http://localhost:3456/", { waitUntil: "networkidle" });
 await page.waitForTimeout(1200);
 
+// the app now lands on the lens-chat feed; the Correspondence lives on the
+// classic ledger surface — switch to it first
+await page.locator(".lc-ledger-toggle").click();
+await page.waitForTimeout(1200);
+
 // hover the first journal entry so the "talk" affordance appears
 const first = page.locator("[data-talk]").first();
 await first.hover();

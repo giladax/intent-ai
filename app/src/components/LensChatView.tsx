@@ -9,7 +9,7 @@ import type { PressedStory } from "./FeedStream";
 import { NotifButton, NotifCard, useLastSeen } from "./NotifButton";
 import { setLastSeenInStorage, getLastSeenFromStorage } from "./notif-utils";
 import type { Feature, LensArrivalData, PendingObservation } from "../types";
-import { filterPendingObsForLens } from "../../../../web/lens-obs-filter.js";
+import { filterPendingObsForLens } from "../lens-obs-filter";
 
 interface LensChatViewProps {
   features: Feature[];

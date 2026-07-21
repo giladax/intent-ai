@@ -55,15 +55,15 @@ npx tsx src/cli/index.ts up          # start Postgres (Docker, port 5433)
 npx tsx src/cli/index.ts digest      # digest latest CC session
 npx tsx src/cli/index.ts digest --dry-run    # deterministic pipeline only, no LLM
 npx tsx src/cli/index.ts mcp         # MCP server (stdio; wired via root .mcp.json)
-npx tsx src/cli/index.ts web --port 3456     # dashboard
 npx tsx src/cli/index.ts events      # query the activity event stream
 npx tsx src/cli/index.ts observe-events      # observation layer over recent events
-# NOTE: `observe` (TS daemon) is DEPRECATED — use the Python watcher instead:
-#   python3 -m quire.cli journal watch-sessions
+# DEPRECATED commands (now in Python backend):
+# `observe` (TS daemon) → python3 -m quire.cli journal watch-sessions
+# `web` (Express dashboard) → python3 -m quire.cli serve --port 3456
 
 npx vitest run                       # tests (some need Postgres up)
 npx tsc --noEmit                     # type check
-npm run typecheck:ui                 # type check the React SPA
+npm run typecheck:ui                 # type check the React SPA (runs from app/)
 npx tsx run-fidelity.ts              # fidelity eval (measurement-v2 baseline)
 ```
 
@@ -115,8 +115,11 @@ Read `backend/README.md` first — it carries the full picture. From
 ```bash
 LANGCHAIN_TRACING_V2=false LANGSMITH_TRACING=false python3 -m pytest   # 229 tests, offline
 python3 -m evals.event_stream && python3 -m evals.alarms               # both must say "all clear"
-python3 -m quire.cli demo            # offline demo
-python3 -m quire.cli serve --port 8321   # server + onboarding wizard
+python3 -m quire.cli demo                    # offline demo
+python3 -m quire.cli serve --port 8321      # alignment API (default port)
+python3 -m quire.cli serve --port 3456      # dashboard + journal API (use this for the SPA)
+# SPA (production): http://localhost:3456/
+# SPA (dev): cd ../app && npm run dev  (proxies /api → 3456)
 ```
 
 Key invariants: the LLM never decides the final label (deterministic rules in

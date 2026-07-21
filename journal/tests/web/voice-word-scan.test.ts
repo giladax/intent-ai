@@ -1,6 +1,6 @@
 // I4 — voice banned-word scan for user-facing string literals in UI components.
 //
-// Scans all files in src/web/ui/src/components/ for banned voice words
+// Scans all files in app/src/components/ for banned voice words
 // appearing in JSX text content and user-facing JSX props (title, placeholder,
 // aria-label, alt).
 //
@@ -19,7 +19,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 
-const COMPONENTS_DIR = "src/web/ui/src/components";
+const COMPONENTS_DIR = "../app/src/components";
 
 // The banned voice words (whole-word, case-insensitive).
 const BANNED_WORDS = ["river", "sittings", "sitting", "ink", "correspondence", "edition", "unfolded"];

@@ -39,9 +39,18 @@ program
 
 program
   .command("web")
-  .description("Start the web dashboard")
+  .description("[DEPRECATED] Dashboard has moved to the Python backend (Slice 8). Use: python3 -m quire.cli serve --port 3456")
   .option("-p, --port <port>", "Port", "3456")
-  .action(async (opts: { port: string }) => {
+  .option("--force-legacy", "Emergency escape hatch: run the old Express server despite the deprecation")
+  .action(async (opts: { port: string; forceLegacy?: boolean }) => {
+    if (!opts.forceLegacy) {
+      process.stderr.write(
+        "DEPRECATED: The Express dashboard has been replaced by the Python backend (Slice 8).\n" +
+        "Use: python3 -m quire.cli serve --port 3456\n" +
+        "Emergency bypass (not recommended): npx tsx src/cli/index.ts web --force-legacy\n",
+      );
+      process.exit(1);
+    }
     const { startWebServer } = await import("../web/server.js");
     await startWebServer(parseInt(opts.port));
   });

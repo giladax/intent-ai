@@ -104,6 +104,11 @@ def create_app(store: Store | None = None) -> FastAPI:
     app = FastAPI(title="Quire Align", version="0.1.0")
     app.state.store = store or Store()
 
+    # ── Journal API (dashboard routes) ──────────────────────────────────
+    from quire.journal.router import create_journal_router
+
+    app.include_router(create_journal_router())
+
     def _adapter(workspace: str):
         try:
             return workspace_mod.build_adapter(workspace)
@@ -1035,5 +1040,17 @@ def create_app(store: Store | None = None) -> FastAPI:
         _workspace_dir(workspace)  # junk 404s instead of reflecting
         html = (STATIC / "intent.html").read_text()
         return HTMLResponse(html.replace("__WORKSPACE__", workspace))
+
+    # ── Journal dashboard SPA (built from app/ → static/dashboard/) ───────
+    # Mounted at "/" LAST, after every explicit route: Starlette matches in
+    # registration order, so /api/*, /app/*, /inbox/*, /intent/* all win and
+    # only unmatched paths fall through to the SPA. This preserves the
+    # Express contract (dashboard at the root of the port — muscle memory,
+    # and the playwright snap scripts target localhost:3456/).
+    spa_dir = pathlib.Path(__file__).parent / "static" / "dashboard"
+    if spa_dir.exists():
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=str(spa_dir), html=True), name="spa")
 
     return app

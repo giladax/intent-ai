@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { computeHeatScore, rankTrending, heatLabel } from "../../src/web/feed-composer.js";
-import { heatTicks } from "../../src/web/ui/src/components/feed-stream-utils.js";
+import { heatTicks } from "../../../app/src/components/feed-stream-utils.js";
 
 describe("computeHeatScore", () => {
   it("returns 0 for empty event list", () => {

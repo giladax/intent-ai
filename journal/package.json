@@ -7,7 +7,7 @@
     "intent": "tsx src/cli/index.ts",
     "brain-mcp": "tsx src/mcp/server.ts",
     "test": "vitest",
-    "typecheck:ui": "tsc --noEmit -p src/web/ui"
+    "typecheck:ui": "tsc --noEmit -p ../app"
   },
   "type": "module",
   "dependencies": {

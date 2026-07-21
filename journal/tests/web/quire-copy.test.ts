@@ -3,15 +3,15 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 const UI_COMPONENTS = [
-  "src/web/ui/src/App.tsx",
-  "src/web/ui/src/components/LensChatMain.tsx",
-  "src/web/ui/src/components/LensRail.tsx",
-  "src/web/ui/src/components/ReviewQueue.tsx",
-  "src/web/ui/src/components/JournalPage.tsx",
-  "src/web/ui/src/components/ChatDock.tsx",
-  "src/web/ui/src/components/FeaturesPage.tsx",
-  "src/web/ui/src/components/FeedStream.tsx",
-  "src/web/ui/src/components/ProvenancePanel.tsx",
+  "../app/src/App.tsx",
+  "../app/src/components/LensChatMain.tsx",
+  "../app/src/components/LensRail.tsx",
+  "../app/src/components/ReviewQueue.tsx",
+  "../app/src/components/JournalPage.tsx",
+  "../app/src/components/ChatDock.tsx",
+  "../app/src/components/FeaturesPage.tsx",
+  "../app/src/components/FeedStream.tsx",
+  "../app/src/components/ProvenancePanel.tsx",
 ];
 
 // User-facing "brain"/"Brain" patterns that must have been replaced.

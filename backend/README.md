@@ -58,6 +58,26 @@ Tools: `brain_search`, `brain_file_context`, `brain_enter`, `brain_feature_conte
 All tool calls emit `mcp:{tool}` activity events (Python-owned single writer).
 Golden tests: `tests/test_mcp_golden.py` (recorded against TS server, compare Python output).
 
+**Dashboard / Journal API** (replaces Express `journal/src/web/server.ts`, Slice 8):
+
+33 REST routes serving the SPA (previously Express on port 3456, now FastAPI):
+
+```bash
+python3 -m quire.cli serve --port 3456   # start dashboard + journal API
+# SPA: http://localhost:3456/
+# API: http://localhost:3456/api/meta, /api/journal, /api/sessions, etc.
+```
+
+The built SPA lives in `quire/static/dashboard/` (output of `cd ../app && npm run build`).
+Dev mode: `cd ../app && npm run dev` — proxies `/api` to localhost:3456.
+
+Route census: 33 routes ported (0 dropped). POST /api/brain/digest is a deprecated
+SSE stub (carried from Slice 4 so the SPA degrades gracefully). GET /api/feed returns
+a skeleton shape (LLM feed composition not yet ported; SPA handles empty gracefully).
+
+Data: `backend/.intent/raw-sessions/` holds raw CC logs (moved from `journal/.intent/`
+as part of Slice 8; untracked).
+
 **Watcher Daemon** (replaces TS `observe`, Slice 6):
 
 ```bash

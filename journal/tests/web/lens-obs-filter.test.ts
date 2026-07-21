@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from "vitest";
 import { filterPendingObsForLens } from "../../src/web/lens-obs-filter.js";
-import type { PendingObservation } from "../../src/web/ui/src/types.js";
+import type { PendingObservation } from "../../../app/src/types.js";
 
 function obs(id: string, featureId: string | null): PendingObservation {
   return {

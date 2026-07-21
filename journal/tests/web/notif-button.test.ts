@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatLastSeen, getLastSeenFromStorage, setLastSeenInStorage } from "../../src/web/ui/src/components/notif-utils.js";
+import { formatLastSeen, getLastSeenFromStorage, setLastSeenInStorage } from "../../../app/src/components/notif-utils.js";
 
 describe("formatLastSeen", () => {
   it("formats hours ago correctly for < 24h", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatRelativeDate, buildEditionLabel, splitLede } from "../../src/web/ui/src/components/feed-stream-utils.js";
+import { formatRelativeDate, buildEditionLabel, splitLede } from "../../../app/src/components/feed-stream-utils.js";
 
 describe("formatRelativeDate", () => {
   it("returns 'today' for today's date", () => {

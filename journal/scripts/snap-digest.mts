@@ -3,6 +3,10 @@ const browser = await chromium.launch({ executablePath: "/Applications/Google Ch
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
 await page.goto("http://localhost:3456/", { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
+// the app now lands on the lens-chat feed; the intake lives on the classic
+// ledger surface — switch to it first
+await page.locator(".lc-ledger-toggle").click();
+await page.waitForTimeout(1200);
 await page.screenshot({ path: "/tmp/new-1-journal.png" });
 await page.locator(".ink-intake").click();
 await page.waitForTimeout(1200);
