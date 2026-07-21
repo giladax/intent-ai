@@ -37,6 +37,27 @@ Digesting: `journal digest <log>` runs the full pipeline (deterministic +
 LLM) and persists everything; `--dry-run` runs only the deterministic path
 (no LLM, no writes) for parity; `--offline` uses canned LLM outputs (tests/CI).
 
+**MCP Brain Server** (replaces TS `journal/src/mcp/server.ts`, Slice 7):
+
+Exposes 12 `brain_*` tools over stdio. Active entry in root `.mcp.json`:
+
+```bash
+python3 -m quire.cli mcp          # start MCP server (stdio) — for agents via .mcp.json
+```
+
+The TS server (`cd journal && npx tsx src/cli/index.ts mcp`) is still runnable
+as an emergency fallback but is no longer the active server. Do not restore it
+to `.mcp.json` without closing the dual-writer exception (see
+`quire/db/CENSUS.md` — it is closed as of Slice 7).
+
+Tools: `brain_search`, `brain_file_context`, `brain_enter`, `brain_feature_context`,
+`brain_moments`, `brain_evidence`, `brain_narrative`, `brain_report_observation`,
+`brain_report_unknown`, `brain_rate_context`, `brain_propose_knowledge_delta`,
+`brain_attention`.
+
+All tool calls emit `mcp:{tool}` activity events (Python-owned single writer).
+Golden tests: `tests/test_mcp_golden.py` (recorded against TS server, compare Python output).
+
 **Watcher Daemon** (replaces TS `observe`, Slice 6):
 
 ```bash

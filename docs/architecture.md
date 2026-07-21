@@ -15,12 +15,11 @@ brain: what was built (sessions) held against what was promised
                                                          └──▶ app/ (React dashboard)
 ```
 
-**Today (Slice 6 landed 2026-07-22):** digestion runs entirely in `backend/` (Python).
-The Python watcher replaces the TS daemon. TS keeps only the dashboard SPA + MCP server.
-See `docs/plans/2026-07-21-python-backend-migration.md` for slice status.
+**Today (Slice 7 landed 2026-07-22):** digestion and MCP serving both run in `backend/` (Python).
+TS keeps only the dashboard SPA. See `docs/plans/2026-07-21-python-backend-migration.md` for slice status.
 
 ```
- AI coding sessions ──▶ backend/ (Py) ──▶ activity journal ──▶ agents (MCP, TS) + dashboard (TS)
+ AI coding sessions ──▶ backend/ (Py) ──▶ activity journal ──▶ agents (MCP, Py) + dashboard (TS)
                               │
                     python3 -m quire.cli journal watch-sessions
  PRs / diffs        ──▶ backend/ (Py)  ─▶ keep/break verdicts ─▶ alarms + intent ledger
@@ -45,8 +44,9 @@ moments, brain mutations, observations) as a time-ordered, self-contained,
 searchable event. Time is the axis; search is the front door.
 
 **Serving**:
-- `src/mcp/` — MCP server (`intent-brain`); any agent can call `brain_enter`,
-  `brain_search`, `brain_feature_context`, etc. mid-session.
+- `src/mcp/` — TS MCP server (`intent-brain`): **demoted Slice 7**. Root `.mcp.json`
+  now points to `python3 -m quire.cli mcp` (Python). TS server preserved as fallback;
+  see `backend/quire/mcp/` for the active implementation.
 - `src/web/` — Express API + React/Vite dashboard (`src/web/ui`, its own
   package.json): the journal river, Feature lenses, Correspondence chat.
 - `src/daemon/` — demoted Slice 6; Python watcher (`python3 -m quire.cli journal watch-sessions`) replaced it. TS internals preserved for vitest; entry point (`observe` command) exits with deprecation notice.
@@ -96,5 +96,8 @@ All three seams below are scheduled for removal by
   `backend/quire/ingest/` (deterministic, parity-gated), `backend/quire/understand/`
   (LLM, fidelity-gated ≥ TS baseline), and `backend/quire/journal/` (activity events,
   Python watcher). TS digest entry points are demoted with deprecation notices.
+- **MCP server exists twice** — CLOSED (Slice 7). Python owns `brain_*` MCP serving:
+  `backend/quire/mcp/` (12 tools, camelCase contract parity, instrumentation events).
+  TS `journal/src/mcp/` preserved as runnable fallback. Root `.mcp.json` points to Python.
 - **The dashboard** — the React SPA moves to `app/` and is served by
   FastAPI; the Express layer retires with the TS backend.

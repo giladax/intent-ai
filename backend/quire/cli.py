@@ -1014,5 +1014,13 @@ def journal_watch_sessions(
     watch_sessions(quiet_seconds=quiet_seconds, projects_dir=pd)
 
 
+@app.command()
+def mcp():
+    """Start MCP server (stdio) — exposes 12 brain_* tools for AI agents."""
+    from quire.mcp.server import start_mcp_server
+
+    start_mcp_server()
+
+
 if __name__ == "__main__":
     app()

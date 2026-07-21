@@ -1,0 +1,368 @@
+{
+  "result": {
+    "tools": [
+      {
+        "name": "brain_search",
+        "description": "Search the Brain's Features \u2014 matches name, understanding, and file globs. Returns candidates with ids for brain_feature_context.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query \u2014 feature names, concepts, file paths"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_file_context",
+        "description": "Get Brain context for a source file \u2014 resolves the file's Feature and returns a terse orientation (understanding verdict, constraints, drill handles). Use before editing unfamiliar code. Pass depth:\"full\" for the complete assembled block.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "File path (relative or absolute)"
+            },
+            "depth": {
+              "description": "\"orientation\" (default) returns a terse 15-line summary with drill handles; \"full\" returns the complete assembled context block",
+              "type": "string",
+              "enum": [
+                "orientation",
+                "full"
+              ]
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "file"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_enter",
+        "description": "Enter the Brain for a file or task. Returns a terse orientation: verdict-grade understanding (2-3 sentences), all constraints inline, and drill handles (moment/session counts + ids). Use brain_moments, brain_evidence, brain_narrative to pull depth on demand. Pass depth:\"full\" for the full assembled block. On 0 or >1 matches, returns the candidate list.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "file": {
+              "description": "File path you are about to work on",
+              "type": "string"
+            },
+            "task": {
+              "description": "Task or goal description",
+              "type": "string"
+            },
+            "depth": {
+              "description": "\"orientation\" (default) returns a terse 15-line orientation with drill handles; \"full\" returns the complete assembled context block (understanding+moments+sessions+files)",
+              "type": "string",
+              "enum": [
+                "orientation",
+                "full"
+              ]
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          }
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_feature_context",
+        "description": "Get the Brain's context for a Feature by id. Default: terse orientation (verdict, constraints, drill handles). Pass depth:\"full\" for the complete assembled block (understanding + key moments with evidence + sessions + files + agent instructions).",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "featureId": {
+              "type": "string",
+              "description": "Feature id (from a candidate list or brain_search)"
+            },
+            "depth": {
+              "description": "\"orientation\" (default) returns a terse 15-line orientation with drill handles; \"full\" returns the complete assembled context block",
+              "type": "string",
+              "enum": [
+                "orientation",
+                "full"
+              ]
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "featureId"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_moments",
+        "description": "List the key moments for a Feature \u2014 terse statements with confidence, verification status, and moment ids. Call brain_evidence(momentId) to pull anchored quotes for any moment.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "featureId": {
+              "type": "string",
+              "description": "Feature id"
+            },
+            "limit": {
+              "description": "Max moments to return (default 12)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "featureId"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_evidence",
+        "description": "Get the anchored evidence quotes for a moment \u2014 verbatim transcript excerpts that ground the claim. Call after brain_moments to pull provenance for a specific moment id.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "momentId": {
+              "type": "string",
+              "description": "Moment id (from brain_moments output)"
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "momentId"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_narrative",
+        "description": "Get the narrative summary and progression for a session \u2014 what happened, key discoveries, how intent evolved. Call after brain_enter or brain_moments to understand a specific session's arc.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Session id (from orientation drill handles or brain_moments)"
+            },
+            "callerSessionId": {
+              "description": "Your own session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionId"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_report_observation",
+        "description": "Report an observation about a Feature (something you noticed while working). Stored pending human review.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "featureId": {
+              "description": "Feature this observation is about",
+              "type": "string"
+            },
+            "summary": {
+              "type": "string",
+              "description": "The observation, in one or two sentences"
+            },
+            "kind": {
+              "description": "Observation kind tag, e.g. tech-debt, decision, behavior",
+              "type": "string"
+            },
+            "tags": {
+              "description": "Freeform tags",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "files": {
+              "description": "Related file paths",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "summary"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_report_unknown",
+        "description": "Report an open question / unknown about a Feature \u2014 something Brain does not yet know. Stored pending human review.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "featureId": {
+              "description": "Feature this unknown relates to",
+              "type": "string"
+            },
+            "summary": {
+              "type": "string",
+              "description": "The open question or unknown"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "summary"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_rate_context",
+        "description": "Rate how useful the Feature context was for your task (self-report). Stored as a pending observation.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "featureId": {
+              "type": "string"
+            },
+            "rating": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Usefulness rating, 1 (useless) to 5 (decisive)"
+            },
+            "comment": {
+              "description": "Optional note about what was missing or helpful",
+              "type": "string"
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "rating"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_propose_knowledge_delta",
+        "description": "Propose a change to a Feature's understanding (a reviewable delta). Stored pending human review \u2014 Brain never edits understanding silently.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "featureId": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Proposed change to the understanding"
+            },
+            "before": {
+              "description": "Current understanding being changed",
+              "type": "string"
+            },
+            "after": {
+              "description": "Proposed new understanding",
+              "type": "string"
+            },
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "summary"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "brain_attention",
+        "description": "Get the user's current attention state \u2014 what they are looking at in the Brain dashboard right now. Returns the lens focus, open session, and a terse assembled context. No attention reported \u2192 honest 'no attention (dashboard not open)'.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "description": "Your session id, for provenance",
+              "type": "string"
+            }
+          }
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 1
+}

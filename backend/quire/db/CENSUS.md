@@ -53,25 +53,22 @@ only the production surface is demoted.
 
 All 10 DEAD tables are from the Topic-era subsystem excised 2026-07-04 (PRD v0.3.1). Confirmed by 0 DB rows and no callers in journal/src beyond schema.ts.
 
-## Windowed Single-Writer Exception (Slice 6 → Slice 7)
+## Single-Writer: activity_events (closed as of Slice 7)
 
-`activity_events` has TWO active inserters during Slice 6:
+`activity_events` is now **Python-only**. The dual-writer window that existed during Slice 6
+(TS MCP server + Python digest path both inserting) is closed.
 
-1. **Python digest path** (`quire/journal/emit_events.py` → `emit_activity_events`): writes
-   moment/transition/outcome/narrative events from session digestion. Python-owned as of Slice 6.
+Python owns both insert paths:
 
-2. **TS MCP server** (`journal/src/mcp/server.ts`): writes instrumentation events
-   (`brain_enter`, `brain_search`, etc.) as agents call MCP tools mid-session.
+1. **Session digest path** (`quire/journal/emit_events.py` → `emit_activity_events`): writes
+   moment/transition/outcome/narrative events from session digestion.
 
-Both inserters are **append-only** (INSERT only; no UPDATE or DELETE). There is no shared
-primary-key space or ordering dependency — inserts from both paths are conflict-free.
-This is a documented, time-bounded exception to the single-writer rule.
+2. **MCP instrumentation path** (`quire/mcp/server.py` → `emit_mcp_read_event`): writes
+   `mcp:{tool}` events for every agent brain_* call.
 
-**Slice-7 closes this exception**: the MCP server ports to Python, at which point
-`quire/mcp/server.py` becomes the sole inserter for ALL `activity_events` rows.
-
-Until Slice 7 lands, do NOT add any UPDATE or DELETE path touching `activity_events`
-from Python — keep the table append-only on both sides.
+Both are append-only (INSERT only; no UPDATE or DELETE). The TS MCP server
+(`journal/src/mcp/server.ts`) is preserved as a runnable fallback but is no longer
+the active MCP server — root `.mcp.json` now points to `python3 -m quire.cli mcp`.
 
 ## Slice 4 demoted entry points (TS digest paths)
 

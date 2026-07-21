@@ -1,0 +1,12 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Observation recorded (id: a63692aa-451f-46e1-a2a6-ef903ab27f9d, status: pending review)."
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 20
+}
