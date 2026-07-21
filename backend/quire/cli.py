@@ -761,36 +761,46 @@ def watch(
 def journal_digest(
     log_path: str = typer.Argument(..., help="path to a Claude Code .jsonl log file"),
     dry_run: bool = typer.Option(False, "--dry-run", help="run deterministic pipeline only (no LLM), print stats"),
+    force: bool = typer.Option(False, "--force", help="re-digest even if already stored (replaces existing rows)"),
 ):
-    """Ingest a Claude Code session log.
+    """Ingest a Claude Code session log into the journal Postgres.
 
-    With --dry-run: runs parse → normalize → chunk deterministically (no LLM),
-    and prints the same stats block as `npx tsx src/cli/index.ts digest --dry-run`.
+    Without --dry-run: runs the deterministic pipeline (parse → normalize →
+    chunk → sittings) and persists rows to sessions, raw_events,
+    normalized_events, chunks, and sittings. LLM-derived fields (moments,
+    narrative, etc.) are left null and will be filled by Slice 5b/6.
+
+    With --dry-run: runs the pipeline without writing to the DB and prints
+    the same stats block as `npx tsx src/cli/index.ts digest --dry-run`.
     This is the parity-check entry point for Slice 3.
     """
     import pathlib
     from datetime import datetime, timezone
 
-    from quire.ingest import parse_transcript, normalize, chunk_session, analyze_interactions
+    from quire.ingest import parse_transcript, normalize, chunk_session, detect_sittings, analyze_interactions
 
-    if not dry_run:
-        typer.echo("Only --dry-run is implemented in Slice 3. Full digestion (LLM) is future work.", err=True)
-        raise typer.Exit(1)
-
-    path = pathlib.Path(log_path)
+    path = pathlib.Path(log_path).expanduser()
     if not path.exists():
         typer.echo(f"File not found: {log_path}", err=True)
         raise typer.Exit(1)
 
     typer.echo(f"Log: {log_path}")
 
+    # ── Parse + deterministic pipeline ───────────────────────────────────
     raw_events = parse_transcript(path)
-    session_id = "dry-run"
-    normalized_events = normalize(raw_events, session_id)
-    chunks = chunk_session(normalized_events, session_id)
+    session_id_placeholder = "dry-run" if dry_run else str(path.stem)
+    normalized_events = normalize(raw_events, session_id_placeholder)
+    chunks = chunk_session(normalized_events, session_id_placeholder)
+    sittings = detect_sittings(normalized_events)
 
     # Timestamps
     timestamps = [e.timestamp for e in raw_events if e.timestamp]
+    started_dt: datetime | None = None
+    ended_dt: datetime | None = None
+    duration_min = 0
+    started_fmt: str | None = None
+    ended_fmt: str | None = None
+
     if timestamps:
         from quire.ingest.sittings import _parse_ts
         ms_vals = [_parse_ts(t, None) for t in timestamps]
@@ -803,16 +813,11 @@ def journal_digest(
             duration_min = round((ended_ms - started_ms) / 60000)
             started_fmt = _format_time(started_dt)
             ended_fmt = _format_time(ended_dt)
-        else:
-            started_fmt = ended_fmt = None
-            duration_min = 0
-    else:
-        started_fmt = ended_fmt = None
-        duration_min = 0
 
     typer.echo(f"  Raw events:        {len(raw_events)}")
     typer.echo(f"  Normalized events: {len(normalized_events)}")
     typer.echo(f"  Chunks:            {len(chunks)}")
+    typer.echo(f"  Sittings:          {len(sittings)}")
     if started_fmt and ended_fmt:
         typer.echo(f"  Time span:         {started_fmt} → {ended_fmt} ({duration_min} min)")
 
@@ -832,6 +837,44 @@ def journal_digest(
     typer.echo(f"    isLearningExchange:      {str(directives.prompt_sections.is_learning_exchange).lower()}")
     s = directives.exchange_summary
     typer.echo(f"    Exchanges: {s.total_exchanges} total, {s.short_response_count} short, {s.question_count} with questions")
+
+    if dry_run:
+        return  # Stats printed; nothing written
+
+    # ── Persist to Postgres ───────────────────────────────────────────────
+    from quire.db.writer import store_session_digest
+
+    # source_hash = CC session UUID (the log file's stem), matching TS semantics.
+    source_hash = path.stem
+
+    typer.echo(f"\nPersisting to Postgres (source_hash={source_hash[:8]}…)…")
+    result = store_session_digest(
+        source_path=str(path),
+        source_hash=source_hash,
+        raw_events=raw_events,
+        normalized_events=normalized_events,
+        chunks=chunks,
+        sittings=sittings,
+        started_at=started_dt,
+        ended_at=ended_dt,
+        force=force,
+    )
+
+    if not result.stored:
+        typer.secho(
+            f"  Already digested (session {result.session_id[:8]}). "
+            "Use --force to re-digest.",
+            fg=typer.colors.YELLOW,
+        )
+    else:
+        typer.secho(
+            f"  Stored: session {result.session_id}",
+            fg=typer.colors.GREEN,
+        )
+        typer.echo(
+            "  Note: LLM-derived fields (moments, narrative) are null at this "
+            "stage — they will be filled when Slice 5b/6 lands."
+        )
 
 
 def _format_time(dt: "datetime") -> str:

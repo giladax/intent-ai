@@ -213,6 +213,21 @@ let scheduleRunning = false;
 let lastScheduledRun: { at: number; digested: number; skippedLive: number } | null = null;
 
 async function runScheduledDigest(): Promise<void> {
+  // ── DEPRECATED (Slice 4) ────────────────────────────────────────────────
+  // Scheduled TS digestion has moved to the Python backend (single-writer rule).
+  // Use: python3 -m quire.cli journal digest <log-path>
+  // The schedule UI and settings are preserved so the toggle still renders,
+  // but the actual digest loop no longer runs from TS.
+  process.stderr.write(
+    "[digest-schedule] DEPRECATED: TS-side scheduled digestion is disabled (Slice 4 single-writer rule).\n" +
+    "  Use: python3 -m quire.cli journal digest <log-path>\n",
+  );
+  scheduleRunning = false;
+  lastScheduledRun = { at: Date.now(), digested: 0, skippedLive: 0 };
+  return;
+}
+
+async function _runScheduledDigest_LEGACY(): Promise<void> {
   if (scheduleRunning) return; // never overlap runs
   scheduleRunning = true;
   const runId = crypto.randomUUID();
@@ -1766,62 +1781,28 @@ ${sessionContexts}
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   }
 
-  // Step 0: Digest — run digest pipeline on undigested CC logs (SSE streaming)
+  // Step 0: Digest — DEPRECATED (Slice 4 single-writer rule)
+  // Session digestion has moved to the Python backend.
+  // Use: python3 -m quire.cli journal digest <log-path>
+  // This endpoint now returns a deprecation notice via SSE so the UI can
+  // surface the migration message without a silent failure.
   app.post("/api/brain/digest", async (req, res) => {
     try {
       const { repoId } = req.body;
       if (!repoId) { res.status(400).json({ error: "repoId required" }); return; }
 
-      const sql = getClient();
-      const [project] = await sql`SELECT name, path FROM projects WHERE id = ${repoId}`;
-      if (!project) { res.status(404).json({ error: "Project not found" }); return; }
-
-      const projectPathSlug = project.path.replace(/\//g, "-");
-
-      // Set up SSE
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
       });
 
-      // Find undigested logs
-      const { discoverLogs } = await import("../utils/log-discovery.js");
-      const { basename } = await import("node:path");
-      const logPaths = await discoverLogs(20, projectPathSlug);
-      const allSourceHashes = await sql`SELECT source_hash FROM sessions WHERE source_hash IS NOT NULL`;
-      const digestedHashes = new Set(allSourceHashes.map((r: any) => r.source_hash));
-      const undigestedPaths = logPaths.filter(p => !digestedHashes.has(basename(p, ".jsonl")));
-
-      // Track job state so page refresh can recover
-      upsertJob(repoId, { phase: "digesting", digestedCount: 0, digestTotal: undigestedPaths.length, startedAt: Date.now() });
-
-      sendSSE(res, { phase: "digesting", message: `Digesting ${undigestedPaths.length} session(s)...`, total: undigestedPaths.length });
-
-      let digestedCount = 0;
-      let errorCount = 0;
-      for (const logPath of undigestedPaths) {
-        const logName = basename(logPath, ".jsonl").slice(0, 8);
-        sendSSE(res, { phase: "digesting", message: `Digesting session ${logName}... (${digestedCount + 1}/${undigestedPaths.length})`, progress: digestedCount, total: undigestedPaths.length });
-        try {
-          const { runPipeline } = await import("../pipeline/orchestrator.js");
-          await runPipeline(logPath);
-          digestedCount++;
-          upsertJob(repoId, { phase: "digesting", digestedCount });
-          sendSSE(res, { phase: "digesting", message: `Digested ${logName} ✓ (${digestedCount}/${undigestedPaths.length})`, progress: digestedCount, total: undigestedPaths.length });
-        } catch (err: any) {
-          if (!err.message?.includes("already digested")) {
-            errorCount++;
-            sendSSE(res, { phase: "digesting", message: `Error on ${logName}: ${err.message?.slice(0, 80)}` });
-          } else {
-            digestedCount++;
-            upsertJob(repoId, { phase: "digesting", digestedCount });
-          }
-        }
-      }
-
-      upsertJob(repoId, { phase: "done", digestedCount });
-      sendSSE(res, { phase: "done", digestedCount, errorCount });
+      sendSSE(res, {
+        phase: "error",
+        message:
+          "DEPRECATED (Slice 4): TS session digestion has moved to the Python backend. " +
+          "Use: python3 -m quire.cli journal digest <log-path>",
+      });
       res.end();
     } catch (err) {
       if (!res.headersSent) {

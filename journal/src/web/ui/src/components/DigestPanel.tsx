@@ -15,6 +15,7 @@ export function DigestPanel({ repoId, undigestedCount, onDone }: Props) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [digested, setDigested] = useState<number | null>(null);
+  const [errorTerminal, setErrorTerminal] = useState(false);
   const [schedule, setSchedule] = useState<DigestSchedule | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -25,6 +26,7 @@ export function DigestPanel({ repoId, undigestedCount, onDone }: Props) {
   const digestNow = async () => {
     setRunning(true);
     setDigested(null);
+    setErrorTerminal(false);
     setProgress("Opening the mailbag…");
     try {
       const res = await fetch("/api/brain/digest", {
@@ -48,6 +50,11 @@ export function DigestPanel({ repoId, undigestedCount, onDone }: Props) {
             const ev = JSON.parse(line.slice(6));
             if (ev.message) setProgress(ev.message);
             if (ev.phase === "done") setDigested(ev.digestedCount ?? 0);
+            if (ev.phase === "error") {
+              setErrorTerminal(true);
+              setRunning(false);
+              return;
+            }
           } catch { /* skip malformed */ }
         }
       }
@@ -95,7 +102,7 @@ export function DigestPanel({ repoId, undigestedCount, onDone }: Props) {
         <div className="mt-4 flex items-center gap-3">
           <button
             className="ink-stamp ink-stamp--approve"
-            disabled={running || (undigestedCount === 0 && digested === null)}
+            disabled={running || errorTerminal || (undigestedCount === 0 && digested === null)}
             onClick={digestNow}
           >
             {running ? "Reading…" : `Digest ${undigestedCount > 0 ? undigestedCount + " " : ""}now`}

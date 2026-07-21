@@ -11,9 +11,11 @@ What lives here today:
   approved product intent, and which tests/evals/guards are missing. Not a
   code reviewer — a behavioral-alignment checker (the demo fixture happens
   to be an LLM refund agent, but any repo with approved intent docs works).
-- **Journal Postgres read layer** (`quire/db/` + `quire/db/CENSUS.md`) —
-  SQLAlchemy models for the live journal tables; `python3 -m quire.cli
-  journal events`.
+- **Journal Postgres read/write layer** (`quire/db/` + `quire/db/CENSUS.md`) —
+  SQLAlchemy models for the live journal tables; `quire/db/writer.py` is the
+  single writer for the five ingestion tables (`sessions`, `raw_events`,
+  `normalized_events`, `chunks`, `sittings`) as of Slice 4 (single-writer rule);
+  `python3 -m quire.cli journal events` and `python3 -m quire.cli journal digest`.
 - **Session ingestion port** (`quire/ingest/`, in progress) — the Python
   replacement for the TS digestion pipeline, parity- then fidelity-gated.
 

@@ -16,15 +16,30 @@ import type {
 export function registerDigestCommand(program: Command): void {
   program
     .command("digest [path]")
-    .description("Ingest conversation logs and produce session digests")
+    .description("[DEPRECATED] Session digestion has moved to the Python backend")
     .option("--last <n>", "Process N most recent sessions", parseInt)
     .option("--dry-run", "Run deterministic pipeline only (no LLM calls), print stats")
     .option("--force", "Re-digest even if already stored (deletes stored digest first)")
-    .action(async (path: string | undefined, opts: { last?: number; dryRun?: boolean; force?: boolean }) => {
+    .option("--force-legacy", "Emergency escape hatch: run the old TS digest despite the deprecation")
+    .action(async (path: string | undefined, opts: { last?: number; dryRun?: boolean; force?: boolean; forceLegacy?: boolean }) => {
       try {
         if (opts.dryRun) {
           await runDryRun(path, opts.last);
           return;
+        }
+
+        // ── Deprecation gate (Slice 4) ──────────────────────────────────
+        // Session digestion has moved to the Python backend (single-writer rule).
+        // Use: python3 -m quire.cli journal digest <log-path>
+        // --force-legacy bypasses this for emergencies only.
+        if (!opts.forceLegacy) {
+          process.stderr.write(
+            "DEPRECATED: TS session digestion has moved to the Python backend.\n" +
+            "Use: python3 -m quire.cli journal digest <log-path>\n" +
+            "     python3 -m quire.cli journal digest --force <log-path>  (re-digest)\n" +
+            "Emergency bypass (not recommended): npx tsx src/cli/index.ts digest --force-legacy\n",
+          );
+          process.exit(1);
         }
 
         const paths = await resolvePaths(path, opts.last);
