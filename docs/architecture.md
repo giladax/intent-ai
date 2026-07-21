@@ -1,8 +1,24 @@
 # Architecture
 
-Two self-contained applications in one repository, sharing no code, connected
-only by the product thesis: capture what happens while software is built,
-understand it, and hold it against what was promised.
+**Target (founder-ruled 2026-07-21, migration executing):** ONE Python
+backend owns all reasoning and serving — session digestion, PR-vs-intent
+analysis, storage (Postgres), MCP, web API. TypeScript keeps only the
+dashboard SPA. Sessions and PRs are two evidence streams into the same
+brain: what was built (sessions) held against what was promised
+(obligations).
+
+```
+ AI coding sessions ──┐
+                      ├──▶ backend/ (Python) ──▶ journal + verdicts + alarms
+ PRs / diffs        ──┘         │                        │
+ approved intent ───────────────┘                        ├──▶ agents (MCP)
+                                                         └──▶ app/ (React dashboard)
+```
+
+**Today (mid-migration):** digestion still physically runs in `journal/`
+(TS) until its Python port lands slice by slice — see
+`docs/plans/2026-07-21-python-backend-migration.md` for the slice status.
+The sections below describe what runs WHERE right now.
 
 ```
  AI coding sessions ──▶ journal/ (TS)  ──▶ activity journal ──▶ agents (MCP) + dashboard
@@ -67,13 +83,17 @@ bindings, PR registry. `workspaces/quire-brain` is a rehearsed live demo —
 never regenerate it. Evals live in `evals/` (LangSmith, deterministic
 evaluators; offline by default).
 
-## Deliberate seams
+## Seams being closed by the migration
 
-- **Two datastores** (Postgres vs SQLite) — intentional debt; unification is
-  a later pass, after the Python question below settles.
-- **Session digestion exists twice at different depths**: the full journal
-  pipeline (TS) and a lean reasoning distiller (`backend/quire/
-  session.py`). The recorded direction is to migrate digestion to Python —
-  see `docs/decisions/2026-07-21-monorepo-reorg.md`.
-- **The dashboard SPA** (`journal/src/web/ui`) is separable (own
-  package.json); the Express side is coupled to journal internals.
+All three seams below are scheduled for removal by
+`docs/plans/2026-07-21-python-backend-migration.md`:
+
+- **Two datastores** — RULED: converge on Postgres (SQLite retires with the
+  backend store port). Until that slice lands, single-writer-per-table
+  discipline holds.
+- **Session digestion exists twice** — the full TS pipeline (`journal/`) and
+  the lean distiller (`backend/quire/session.py`). The TS pipeline is being
+  ported into `backend/quire/ingest/` (deterministic steps first,
+  parity-gated; LLM steps fidelity-gated); TS digestion retires at cutover.
+- **The dashboard** — the React SPA moves to `app/` and is served by
+  FastAPI; the Express layer retires with the TS backend.
