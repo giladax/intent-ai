@@ -21,7 +21,7 @@ inference), `LANGSMITH_API_KEY` / `LANGSMITH_TRACING` (tracing + evals),
 `GITHUB_TOKEN` (live GitHub adapter, optional).
 
 ```bash
-cd alignment
+cd backend
 python3 -m pytest                      # 85 tests, all offline (no API calls)
 ```
 

@@ -26,7 +26,7 @@ and I counter-signed" — must be TRUE. Decisions in the log are final
 (that is the product), so you counter-sign by adding your OWN signed
 acts on top:
 
-1. `cd ~/dev/intent-ai/alignment && python3 -m quire.cli up telegram`
+1. `cd ~/dev/intent-ai/backend && python3 -m quire.cli up telegram`
 2. Walk each of the 7 records (rail → What we build). For each entity:
    - **If the name and grouping are right:** teach it one word of your
      own dialect — "+ teach it a word" on the record. One word, signed,
@@ -65,7 +65,7 @@ Run the flow below once, alone, timed, saying the lines out loud:
 
 ```
 lsof -ti tcp:8321 | xargs kill          # stale servers 404 new routes
-cd ~/dev/intent-ai/alignment
+cd ~/dev/intent-ai/backend
 python3 -m quire.cli up --no-open
 ```
 1. Open two tabs and hit each once (warms story caches):
