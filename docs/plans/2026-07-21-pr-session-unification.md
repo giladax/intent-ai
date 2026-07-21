@@ -8,6 +8,8 @@
 
 **Tech Stack:** Python backend (`backend/quire/`), Postgres (per migration Decision B), LangChain structured outputs, existing eval harnesses.
 
+**Reasoning architecture:** how the analysis actually reasons over coupled evidence — refinement (digest-slices, never transcripts), the deterministic relation substrate + coverage map, the `coupled-v1` topology variant with context budgets, and the eval battery — is specified in `docs/specs/2026-07-21-session-code-reasoning-topology.md`. U2/U3 implement that spec; its eval cases C1–C6 extend the eval section here.
+
 **Grounding (PRD):** *"Intent-evidence — what we want. Implementation-evidence — what we have (PR, coding session, code)"; "Alignment … falls out of holding both kinds of evidence under one node"* (docs/prd.md §Feature model). This feature is that sentence, made mechanical.
 
 ## Global Constraints
