@@ -5,7 +5,66 @@ Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
 moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: 2fb295a
+last-reviewed: ba5fe55
+
+## 2026-07-22 — tick over 2fb295a..ba5fe55 (migration slices 6–9: journal + MCP + API, TS decommissioned)
+
+Slices 6–9 landed the rest of the migration: Python activity events + a
+polling session watcher, the Python MCP brain server (port of the deleted TS
+src/mcp/feature.ts), the FastAPI journal API + feed, the feed-composer port,
+and slice-9 removed the TS backend (root is now app/ + backend/ + docs/).
+Review scoped to the genuinely-new/changed Python (~10k lines across
+quire/journal/ and quire/mcp/ + modified api/understand/writer/cli). One
+general-purpose agent, both lenses. 20 findings; 1 genuine bug.
+
+Overall read: **strong, faithful port.** MCP tool names/descriptions verified
+against the golden (12 tools), scoring/formatting/glob→regex/evidence
+resolution all reproduced with drift risks documented in-code. No resource or
+concurrency leaks — every DB session is a `with` context manager and commits;
+the "watcher" is a stateless poll loop (no threads/observers to reap). Tests
+assert real behavior.
+
+**Tier-1 applied (this commit):**
+- **git_context.py — real bug.** `common_dir.rstrip("/.git")` is a
+  character-set strip, not a suffix strip: it mangles any path ending in
+  {/,.,g,i,t} (e.g. `.../digit/.git` → `.../d`), corrupting the worktree
+  comparison. Replaced with an `endswith("/.git")` slice. Proven before/after.
+- watcher.py — docstring "Python watchdog watcher" was a misnomer (it's a
+  `time.sleep` poll loop, no watchdog lib); reworded so no one hunts for a
+  non-existent observer thread to clean up.
+- mcp/feature.py — removed a dead `partial` flag in `fuzzy_score` (assigned,
+  never read; behavior matches TS).
+- router.py — dropped a duplicate `import subprocess` (already module-top).
+- feed.py — guarded `response.content[0].text` with `getattr(..., "text", "")`
+  so a non-text content block degrades to deterministic copy instead of
+  raising into a broad catch.
+- Product-surface strings: feed episode titles "N beats"/"N consults" →
+  "N events"/"N brain lookups" (raw internal vocab in card titles);
+  dropped "from the sidebar" and "you can stamp them below" (UI affordances
+  that may not exist post nav-migration / when surfaced via MCP).
+
+**Checked and NOT changed (review was wrong on one):**
+- The `is_pg=False` branch in emit_events.py is NOT dead code — it's covered
+  by `test_emit_events.py::test_emit_activity_events_is_pg_false_no_casts`.
+  Kept.
+
+**Tier-2 logged (deferred, need judgment):**
+- **MCP actor attribution drift:** the Python server hardcodes
+  `actor="agent:mcp-client"`, dropping the TS per-client name
+  (`agent:<client>`). Every event loses client attribution. Needs a FastMCP
+  client-info design call.
+- feed.py holds a module-wide compose lock across multi-second LLM calls with
+  an untimed blocking `acquire()` — serializes all /api/feed traffic; use a
+  bounded `acquire(timeout=…)`.
+- router.py `brain_discover` machine-wide `glob("**/*.jsonl")` before `[:20]`
+  — unbounded FS walk on a request thread; islice it.
+- ~12 `except Exception: return <empty>` read endpoints turn real DB/schema
+  errors into silent "no data" — add `log.warning` before the empty return.
+- `depth` MCP param lost its enum validation (free str; invalid → silent
+  orientation fallback); split product identity strings in chat prompts.
+
+Gate: `cd backend && python3 -m pytest` → 551 passed, 1 skipped. Edited
+modules import-smoke-checked; git_context fix proven before/after.
 
 ## 2026-07-22 — tick over 0aab0cf..2fb295a (Python backend migration, slices 1–5b)
 

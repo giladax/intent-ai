@@ -28,8 +28,12 @@ def get_git_context(source_path: str) -> dict[str, str | None]:
                 ["rev-parse", "--path-format=absolute", "--git-common-dir"], cwd
             )
             if common_dir:
-                # strip trailing /.git if present
-                common_dir = common_dir.rstrip("/.git").rstrip("/")
+                # strip a trailing "/.git" suffix if present (endswith, NOT
+                # rstrip — rstrip removes any trailing run of {/,.,g,i,t} and
+                # would mangle a path like ".../digit")
+                if common_dir.endswith("/.git"):
+                    common_dir = common_dir[: -len("/.git")]
+                common_dir = common_dir.rstrip("/")
                 if common_dir != toplevel:
                     worktree = toplevel
         except Exception:

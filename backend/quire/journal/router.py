@@ -1502,7 +1502,6 @@ def create_journal_router() -> APIRouter:
         if _meta_cache:
             return _meta_cache
         try:
-            import subprocess
             from pathlib import Path
             cwd = str(Path(__file__).parent.parent.parent.parent)
             branch = subprocess.check_output(
@@ -1819,7 +1818,7 @@ async def _build_chat_system_prompt(req: ChatRequest) -> str:
     return (
         "You are an execution memory assistant for AI-assisted development sessions. "
         "The user hasn't selected a specific feature or session yet. "
-        "Help them navigate — suggest they select a feature or session from the sidebar to start exploring."
+        "Help them navigate — suggest they select a feature or session to start exploring."
     )
 
 

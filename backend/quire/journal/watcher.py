@@ -1,4 +1,5 @@
-"""Python watchdog watcher — monitors ~/.claude/projects for new CC sessions.
+"""Python polling watcher — periodically scans ~/.claude/projects for new CC
+sessions (a plain poll loop; no watchdog/Observer library, so nothing to reap).
 
 Replaces journal/src/daemon/index.ts (TS daemon demoted in Slice 6).
 

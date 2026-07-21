@@ -288,7 +288,7 @@ def _call_sonnet(system: str, user: str, schema: type) -> Any:
         system=system,
         messages=[{"role": "user", "content": user}],
     )
-    raw = response.content[0].text if response.content else ""
+    raw = getattr(response.content[0], "text", "") if response.content else ""
     cleaned = re.sub(r"^```(?:json)?\s*\n?", "", raw, flags=re.IGNORECASE)
     cleaned = re.sub(r"\n?```\s*$", "", cleaned, flags=re.IGNORECASE).strip()
     try:

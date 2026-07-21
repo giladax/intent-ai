@@ -148,7 +148,7 @@ def _build_session_episode(session_id: str, rows: list[dict], session: dict | No
     started_at = (session or {}).get("startedAt") or first_ts or datetime(1970, 1, 1, tzinfo=timezone.utc).isoformat()
     ended_at = (session or {}).get("endedAt") or last_ts
     narrative = ((session or {}).get("narrativeSummary") or "").strip()
-    title = narrative if narrative else f"Session {_short_id(session_id)} — {counts['moments']} moments, {counts['consults']} consults"
+    title = narrative if narrative else f"Session {_short_id(session_id)} — {counts['moments']} moments, {counts['consults']} brain lookups"
     return {
         "id": f"session:{session_id}",
         "kind": "session",
@@ -171,7 +171,7 @@ def _build_run_episode(run_id: str, rows: list[dict]) -> dict:
     return {
         "id": f"run:{run_id}",
         "kind": "run",
-        "title": f"Run {_short_id(run_id)} — {counts['beats']} beats",
+        "title": f"Run {_short_id(run_id)} — {counts['beats']} events",
         "actor": _pick_actor(ordered),
         "startedAt": started_at,
         "endedAt": ended_at,
@@ -715,7 +715,7 @@ def build_lens_opening_turn(feature_name: str, understanding: str | None,
     if recent_insights:
         parts.append("Recent: " + " · ".join(recent_insights[:3]))
     if pending_count > 0:
-        parts.append(f"{pending_count} thing{'s' if pending_count != 1 else ''} waiting for your approval — you can stamp them below.")
+        parts.append(f"{pending_count} thing{'s' if pending_count != 1 else ''} waiting for your approval.")
     return "\n\n".join(parts)
 
 

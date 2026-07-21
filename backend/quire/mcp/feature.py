@@ -109,11 +109,9 @@ def fuzzy_score(query: str, text: str) -> float:
         if q in t_tokens:
             hits += 1
             continue
-        partial = False
         for t in t_tokens:
             if t in q or q in t:
                 hits += 0.5
-                partial = True
                 break
     return hits / len(q_tokens)
 
