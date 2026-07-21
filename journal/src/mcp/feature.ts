@@ -272,6 +272,16 @@ export function formatCandidates(features: FeatureRecord[], reason: string): str
     const summary = (f.description || f.currentUnderstanding || "").slice(0, 140);
     lines.push(`- ${f.name}  [id: ${f.id}]${summary ? ` — ${summary}` : ""}`);
   }
+  // Resolution ambiguity must not cost the agent its rules (post-mortem
+  // 2026-07-07): serve the top candidate's constraints inline. Candidates
+  // from task resolution arrive score-ordered, so features[0] is the best
+  // match; the label tells the agent to confirm the Feature before relying
+  // on them.
+  const top = features[0];
+  if (top.constraints.length > 0) {
+    lines.push(`\nTop candidate "${top.name}" constraints (verify the Feature match before relying on these):`);
+    for (const c of top.constraints) lines.push(`  · ${c}`);
+  }
   return lines.join("\n");
 }
 
