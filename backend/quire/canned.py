@@ -379,6 +379,113 @@ def _pr110_abstain() -> FakeAlignmentLLM:
     return FakeAlignmentLLM()
 
 
+# ── Understanding stage canned LLM (Slice 5b) ─────────────────────────────────
+#
+# A deterministic FakeUnderstandLLM for offline digests and tests: it derives
+# its outputs from the actual prompt text so the surrounding deterministic
+# machinery (anchor validation, dedup, weave application, verdicts, confidence,
+# writer) is exercised, without a network call. It is NOT a fidelity substitute
+# — live runs use the real model.
+
+
+def fake_understand_llm():
+    """Canned FakeUnderstandLLM whose outputs are derived from the prompts.
+
+    - classify → "narrative"
+    - topic shifts → none
+    - exchanges → all passive/acceptance/ambiguous (empty; padded by caller)
+    - extract → one moment per chunk, quoting the first rendered [N] event line
+    - weave → keep every moment in a single "general" arc
+    - verify → all unverified
+    - transitions → none; outcomes → none
+    - narrative → a one-line summary
+    """
+    import re
+
+    from quire.understand.schemas import (
+        BatchClassificationOutput,
+        ExtractEvidence,
+        ExtractMoment,
+        ExtractOutput,
+        NarrativeArcOutput,
+        SessionNarrativeOutput,
+        SessionShapeOutput,
+        TopicShiftOutput,
+        TransitionsOutput,
+        VerifyOutput,
+        WeaveDecision,
+        WeaveOutput,
+    )
+    from quire.understand.llm import FakeUnderstandLLM
+
+    def _classify(system, user):
+        return SessionShapeOutput(shape="narrative")
+
+    _line_re = re.compile(r"\[(\d+)\]\s*[A-Z/]+[^:]*:\s*(.*)")
+
+    def _extract(system, user):
+        # Quote the first event line in the rendered chunk so the anchor
+        # validator can resolve it against a real event.
+        for line in user.splitlines():
+            m = _line_re.match(line.strip())
+            if m:
+                idx = int(m.group(1))
+                quote = (m.group(2) or "event").strip()[:60] or "event"
+                return ExtractOutput(
+                    moments=[
+                        ExtractMoment(
+                            type="discovery",
+                            statement=f"canned moment quoting event {idx}",
+                            significance="offline fixture",
+                            agency="developer",
+                            evidence=[
+                                ExtractEvidence(
+                                    quote=quote, eventIndex=idx, sourceType="user"
+                                )
+                            ],
+                        )
+                    ]
+                )
+        return ExtractOutput(moments=[])
+
+    def _weave(system, user):
+        # Keep every listed id in one general arc.
+        ids = re.findall(r"^id: (\S+)$", user, flags=re.MULTILINE)
+        return WeaveOutput(
+            decisions=[
+                WeaveDecision(action="keep", momentIds=[i], arcId="general")
+                for i in ids
+            ]
+        )
+
+    def _narrative(system, user):
+        return SessionNarrativeOutput(
+            session_shape="narrative",
+            summary="Canned offline narrative summary.",
+            arcs=[
+                NarrativeArcOutput(
+                    arcId="general",
+                    title="General",
+                    summary="offline",
+                    resolution="ongoing",
+                    momentIds=[],
+                )
+            ],
+            progression=["The session was digested offline."],
+        )
+
+    return FakeUnderstandLLM(
+        classify_session=_classify,
+        detect_topic_shifts=lambda s, u: TopicShiftOutput(shifts=[]),
+        classify_exchanges=lambda s, u: BatchClassificationOutput(classifications=[]),
+        extract=_extract,
+        weave=_weave,
+        verify=lambda s, u: VerifyOutput(verdicts=[]),
+        transitions=lambda s, u: TransitionsOutput(transitions=[], outcomes=[]),
+        narrative=_narrative,
+    )
+
+
 _BUILDERS = {
     101: _pr101_partial,
     102: _pr102_aligned,

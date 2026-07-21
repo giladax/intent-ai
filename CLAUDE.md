@@ -15,8 +15,10 @@ System map: [`docs/architecture.md`](docs/architecture.md).
 
 ```
 backend/     Python — THE backend (target: everything). Today: PR-vs-intent
-             analysis + alarms, Postgres read layer (db/), session-ingestion
-             port in progress (ingest/). See backend/README.md.
+             analysis + alarms, Postgres read/write layer (db/), the full
+             session digest — deterministic ingest (ingest/) + LLM
+             understanding (understand/), fidelity-gated ≥ the TS baseline.
+             See backend/README.md.
 journal/     TypeScript — BEING RETIRED slice by slice. Still runs production
              session digestion → Postgres → MCP + dashboard until its Python
              replacements land. Do NOT add new backend logic here.

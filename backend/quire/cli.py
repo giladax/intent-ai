@@ -761,18 +761,19 @@ def watch(
 def journal_digest(
     log_path: str = typer.Argument(..., help="path to a Claude Code .jsonl log file"),
     dry_run: bool = typer.Option(False, "--dry-run", help="run deterministic pipeline only (no LLM), print stats"),
-    force: bool = typer.Option(False, "--force", help="re-digest even if already stored (replaces existing rows)"),
+    force: bool = typer.Option(False, "--force", help="re-digest even if already stored (replaces existing rows; consents to purging LLM rows)"),
+    offline: bool = typer.Option(False, "--offline", help="use canned LLM outputs (no network) — for tests/CI only"),
 ):
     """Ingest a Claude Code session log into the journal Postgres.
 
-    Without --dry-run: runs the deterministic pipeline (parse → normalize →
-    chunk → sittings) and persists rows to sessions, raw_events,
-    normalized_events, chunks, and sittings. LLM-derived fields (moments,
-    narrative, etc.) are left null and will be filled by Slice 5b/6.
+    Without --dry-run: runs the FULL pipeline (parse → normalize → chunk →
+    sittings → classify → extract → weave → verify → transitions → narrative)
+    and persists rows to sessions, raw_events, normalized_events, chunks,
+    sittings, moments, moment_evidence, moment_relations, transitions,
+    outcomes, narratives, and narrative_arcs (Slice 5b — Python is the writer).
 
-    With --dry-run: runs the pipeline without writing to the DB and prints
-    the same stats block as `npx tsx src/cli/index.ts digest --dry-run`.
-    This is the parity-check entry point for Slice 3.
+    With --dry-run: runs only the deterministic pipeline without writing to the
+    DB and prints the stats block (parity-check entry point). No LLM calls.
     """
     import pathlib
     from datetime import datetime, timezone
@@ -841,24 +842,66 @@ def journal_digest(
     if dry_run:
         return  # Stats printed; nothing written
 
-    # ── Persist to Postgres ───────────────────────────────────────────────
-    from quire.db.writer import store_session_digest
+    # ── LLM understanding stage (Slice 5b) ────────────────────────────────
+    from quire.understand import (
+        AnthropicUnderstandLLM,
+        FakeUnderstandLLM,
+        analyze_interactions_live,
+        classify_session,
+        detect_topic_shifts,
+        understand,
+    )
+
+    if offline:
+        from quire.canned import fake_understand_llm
+
+        llm = fake_understand_llm()
+    else:
+        llm = AnthropicUnderstandLLM()
 
     # source_hash = CC session UUID (the log file's stem), matching TS semantics.
     source_hash = path.stem
+    session_id = source_hash  # domain id used for chunk ids; DB uuid assigned in writer
 
-    typer.echo(f"\nPersisting to Postgres (source_hash={source_hash[:8]}…)…")
-    result = store_session_digest(
-        source_path=str(path),
-        source_hash=source_hash,
-        raw_events=raw_events,
-        normalized_events=normalized_events,
-        chunks=chunks,
-        sittings=sittings,
-        started_at=started_dt,
-        ended_at=ended_dt,
-        force=force,
+    typer.echo("\nRunning understanding stage (classify → extract → weave → verify → transitions → narrative)…")
+    session_shape = classify_session(llm, normalized_events)
+    topic_shift_ids = detect_topic_shifts(llm, normalized_events)
+    live_directives = analyze_interactions_live(llm, normalized_events)
+    result_u = understand(
+        llm,
+        normalized_events,
+        session_id,
+        session_shape,
+        live_directives,
+        topic_shift_ids,
     )
+    typer.echo(
+        f"  shape={session_shape} · {len(result_u.moments)} moments · "
+        f"{len(result_u.transitions)} transitions · {len(result_u.outcomes)} outcomes"
+    )
+
+    # ── Persist to Postgres ───────────────────────────────────────────────
+    from quire.db.writer import LlmPurgeRefused, store_session_digest
+
+    typer.echo(f"Persisting to Postgres (source_hash={source_hash[:8]}…)…")
+    try:
+        result = store_session_digest(
+            source_path=str(path),
+            source_hash=source_hash,
+            raw_events=raw_events,
+            normalized_events=normalized_events,
+            chunks=result_u.chunks,
+            sittings=sittings,
+            started_at=started_dt,
+            ended_at=ended_dt,
+            force=force,
+            understanding=result_u,
+            session_shape=session_shape,
+            allow_llm_purge=force,
+        )
+    except LlmPurgeRefused as err:
+        typer.secho(f"  Refused: {err}", fg=typer.colors.RED)
+        raise typer.Exit(1)
 
     if not result.stored:
         typer.secho(
@@ -868,12 +911,9 @@ def journal_digest(
         )
     else:
         typer.secho(
-            f"  Stored: session {result.session_id}",
+            f"  Stored: session {result.session_id} "
+            f"({len(result_u.moments)} moments, narrative + arcs).",
             fg=typer.colors.GREEN,
-        )
-        typer.echo(
-            "  Note: LLM-derived fields (moments, narrative) are null at this "
-            "stage — they will be filled when Slice 5b/6 lands."
         )
 
 

@@ -443,13 +443,11 @@ def test_rollback_atomicity_on_mid_write_failure(patched_get_session, monkeypatc
     assert len(sitting_rows) == 0, f"Expected 0 sitting rows, got {len(sitting_rows)}"
 
 
-def test_force_purge_with_moments_emits_warning(patched_get_session, capsys):
-    """force=True on a session that has LLM-derived moments emits a loud
-    stderr warning naming the moment count, then still completes the purge."""
+def _seed_session_with_moments(patched_get_session, n=3):
+    """Store a deterministic session, then inject n LLM-derived moment rows."""
     from sqlalchemy import text as sa_text
 
-    # Step 1: store a session deterministically (no moments yet)
-    result1 = store_session_digest(
+    result = store_session_digest(
         source_path="/tmp/guard-test.jsonl",
         source_hash="guard-hash",
         raw_events=[],
@@ -459,13 +457,10 @@ def test_force_purge_with_moments_emits_warning(patched_get_session, capsys):
         started_at=None,
         ended_at=None,
     )
-    assert result1.stored is True
-    session_id = result1.session_id
-
-    # Step 2: simulate TS-pipeline moments by inserting rows directly
-    # (mirroring what TS storeSessionDigest does for the LLM-derived stage)
+    assert result.stored is True
+    session_id = result.session_id
     with SASession(patched_get_session) as s:
-        for i in range(3):
+        for i in range(n):
             s.execute(
                 sa_text(
                     "INSERT INTO moments (id, session_id, type, statement) "
@@ -474,8 +469,47 @@ def test_force_purge_with_moments_emits_warning(patched_get_session, capsys):
                 {"id": f"moment-guard-{i}", "sid": session_id, "stmt": f"stmt {i}"},
             )
         s.commit()
+    return session_id
 
-    # Step 3: re-digest with --force — warning must appear on stderr
+
+def test_force_purge_with_moments_refuses_without_consent(patched_get_session):
+    """Guard escalation (Slice 5b): force on a session with LLM-derived moments
+    now REFUSES with LlmPurgeRefused unless allow_llm_purge=True."""
+    from quire.db.writer import LlmPurgeRefused
+
+    session_id = _seed_session_with_moments(patched_get_session)
+
+    with pytest.raises(LlmPurgeRefused) as excinfo:
+        store_session_digest(
+            source_path="/tmp/guard-test.jsonl",
+            source_hash="guard-hash",
+            raw_events=[],
+            normalized_events=[],
+            chunks=[],
+            sittings=[],
+            started_at=None,
+            ended_at=None,
+            force=True,
+        )
+    assert "3" in str(excinfo.value)
+
+    # Session and moments untouched — the refusal rolled nothing back.
+    from sqlalchemy import text as sa_text
+
+    with SASession(patched_get_session) as s:
+        sessions = s.execute(select(JournalSession)).scalars().all()
+        moment_count = s.execute(sa_text("SELECT COUNT(*) FROM moments")).scalar()
+    assert len(sessions) == 1
+    assert sessions[0].id == session_id
+    assert moment_count == 3
+
+
+def test_force_purge_with_consent_warns_and_proceeds(patched_get_session, capsys):
+    """With allow_llm_purge=True, force warns on stderr and completes the purge."""
+    from sqlalchemy import text as sa_text
+
+    session_id = _seed_session_with_moments(patched_get_session)
+
     result2 = store_session_digest(
         source_path="/tmp/guard-test.jsonl",
         source_hash="guard-hash",
@@ -486,23 +520,19 @@ def test_force_purge_with_moments_emits_warning(patched_get_session, capsys):
         started_at=None,
         ended_at=None,
         force=True,
+        allow_llm_purge=True,
     )
 
     captured = capsys.readouterr()
-    assert "WARNING" in captured.err, "Expected WARNING on stderr"
-    assert "3" in captured.err, "Expected moment count (3) in warning"
-    assert "TS pipeline" in captured.err, "Expected TS pipeline reference in warning"
+    assert "WARNING" in captured.err
+    assert "3" in captured.err
 
-    # Step 4: purge still completed — new session stored, old moments gone
     assert result2.stored is True
     assert result2.session_id != session_id
 
     with SASession(patched_get_session) as s:
         sessions = s.execute(select(JournalSession)).scalars().all()
-        moment_count = s.execute(
-            sa_text("SELECT COUNT(*) FROM moments")
-        ).scalar()
-
+        moment_count = s.execute(sa_text("SELECT COUNT(*) FROM moments")).scalar()
     assert len(sessions) == 1
     assert sessions[0].id == result2.session_id
-    assert moment_count == 0, f"Expected 0 moments after purge, got {moment_count}"
+    assert moment_count == 0

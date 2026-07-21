@@ -44,6 +44,13 @@ from quire.ingest.models import (
     Sitting as IngestSitting,
 )
 
+# The understanding artifact is a duck-typed bundle (moments/transitions/
+# outcomes/narrative). Imported for typing only; the writer never constructs it.
+try:  # pragma: no cover - typing convenience
+    from quire.understand.models import UnderstandResult as Understanding
+except Exception:  # pragma: no cover
+    Understanding = object  # type: ignore
+
 
 # ── Result type ───────────────────────────────────────────────────────────────
 
@@ -52,6 +59,13 @@ from quire.ingest.models import (
 class StoreResult:
     stored: bool
     session_id: str
+
+
+class LlmPurgeRefused(RuntimeError):
+    """Raised when force would purge LLM-derived rows without explicit consent.
+
+    Escalated from a warn-and-proceed in Slice 4 to a refuse-without-force here,
+    now that the Python port can regenerate those rows (ledger requirement)."""
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -68,6 +82,9 @@ def store_session_digest(
     started_at: Optional[datetime],
     ended_at: Optional[datetime],
     force: bool = False,
+    understanding: "Optional[Understanding]" = None,
+    session_shape: Optional[str] = None,
+    allow_llm_purge: bool = False,
 ) -> StoreResult:
     """Write a deterministic-only session digest to the journal Postgres.
 
@@ -91,17 +108,25 @@ def store_session_digest(
 
         if existing_id and force:
             moment_count = _count_moments(sa_session, existing_id)
+            if moment_count > 0 and not allow_llm_purge:
+                # Guard escalation (Slice 5b): the Python port can now regenerate
+                # LLM-derived rows, so a silent purge is a real data-loss risk.
+                # Refuse without explicit consent instead of warn-and-proceed.
+                raise LlmPurgeRefused(
+                    f"force would destroy {moment_count} LLM-derived moment(s) for "
+                    f"session {existing_id[:8]}…. Pass allow_llm_purge=True "
+                    f"(CLI: --force) to confirm you intend to regenerate them."
+                )
             if moment_count > 0:
                 print(
                     f"\nWARNING: force will destroy {moment_count} moment(s) for session "
-                    f"{existing_id[:8]}… that this pipeline cannot regenerate until the LLM "
-                    f"port lands — they were built by the TS pipeline.\n",
+                    f"{existing_id[:8]}… — regenerating them from the Python LLM pipeline.\n",
                     file=sys.stderr,
                 )
             _delete_session(sa_session, existing_id)
 
         session_id = str(uuid.uuid4())
-        _write_all(
+        maps = _write_all(
             sa_session,
             session_id=session_id,
             source_path=source_path,
@@ -112,7 +137,10 @@ def store_session_digest(
             sittings=sittings,
             started_at=started_at,
             ended_at=ended_at,
+            session_shape=session_shape,
         )
+        if understanding is not None:
+            _write_understanding(sa_session, session_id, understanding, maps)
         sa_session.commit()
         return StoreResult(stored=True, session_id=session_id)
 
@@ -212,6 +240,10 @@ def _now_utc() -> datetime:
     return datetime.now(tz=timezone.utc)
 
 
+def _is_pg(sa_session: SASession) -> bool:
+    return sa_session.get_bind().dialect.name == "postgresql"
+
+
 def _write_all(
     sa_session: SASession,
     *,
@@ -224,6 +256,7 @@ def _write_all(
     sittings: list[IngestSitting],
     started_at: Optional[datetime],
     ended_at: Optional[datetime],
+    session_shape: Optional[str] = None,
 ) -> None:
     """Insert all ingestion rows for a single session.
 
@@ -337,7 +370,7 @@ def _write_all(
             "source_type": "claude-code",
             "source_path": source_path,
             "source_hash": source_hash,
-            "session_shape": None,
+            "session_shape": session_shape,
             "started_at": started_at,
             "ended_at": ended_at,
             "created_at": now,
@@ -370,13 +403,18 @@ def _write_all(
     sa_session.flush()
 
     # ── 3. normalized_events ──────────────────────────────────────────────────
+    # Track causalOrder → normalized-event id so moment_evidence can resolve
+    # source_event_id from an EvidenceAnchor's event_index (Slice 5b).
 
+    norm_id_by_causal_order: dict[int, object] = {}
     for nev in normalized_events:
         raw_uuid = raw_id_by_event_id.get(nev.raw_event_id)
+        norm_uuid = new_uid()
+        norm_id_by_causal_order[nev.causal_order] = norm_uuid
         sa_session.execute(
             norm_event_sql,
             {
-                "id": new_uid(),
+                "id": norm_uuid,
                 "session_id": uid(session_id),
                 "raw_event_id": raw_uuid,
                 "causal_order": nev.causal_order,
@@ -389,12 +427,16 @@ def _write_all(
         )
 
     # ── 4. chunks ─────────────────────────────────────────────────────────────
+    # Track chunkIndex → chunk id so moments can set chunk_id (Slice 5b).
 
+    chunk_id_by_index: dict[int, object] = {}
     for chunk in chunks:
+        chunk_uuid = new_uid()
+        chunk_id_by_index[chunk.chunk_index] = chunk_uuid
         sa_session.execute(
             chunk_sql,
             {
-                "id": new_uid(),
+                "id": chunk_uuid,
                 "session_id": uid(session_id),
                 "chunk_index": chunk.chunk_index,
                 "topic_hint": chunk.topic_hint,
@@ -421,6 +463,319 @@ def _write_all(
                 "event_range_end": sitting.event_range[1],
             },
         )
+
+    # Expose id maps for the LLM-derived writer (moments/evidence link back here).
+    return {
+        "norm_id_by_causal_order": norm_id_by_causal_order,
+        "chunk_id_by_index": chunk_id_by_index,
+        "uid": uid,
+        "new_uid": new_uid,
+        "arr": arr,
+    }
+
+
+def _write_understanding(
+    sa_session: SASession,
+    session_id: str,
+    understanding,
+    maps: dict,
+) -> None:
+    """Persist LLM-derived rows for a session (Slice 5b).
+
+    Mirrors journal/src/storage/queries.ts::storeSessionDigest row semantics for:
+        moments → moment_evidence → moment_relations
+        transitions → transition_moments
+        outcomes → outcome_moments → outcome_files
+        narratives → narrative_arcs
+
+    Domain moment ids (e.g. "moment-3") are mapped to fresh UUIDs; transitions,
+    outcomes and narrative arcs reference them by those domain ids, resolved here.
+    """
+    is_pg = _is_pg(sa_session)
+    uid = maps["uid"]
+    new_uid = maps["new_uid"]
+    arr = maps["arr"]
+    norm_by_order = maps["norm_id_by_causal_order"]
+    chunk_by_index = maps["chunk_id_by_index"]
+
+    # SQL templates (PG casts vs SQLite plain).
+    if is_pg:
+        moment_sql = text(
+            "INSERT INTO moments (id, session_id, chunk_id, type, statement, "
+            " significance, agency, confidence, topic_fingerprint, arc_id, arc_role, "
+            " occurred_at, verification) VALUES (:id, :session_id, :chunk_id, :type, "
+            " :statement, :significance, :agency, :confidence, :topic_fingerprint, "
+            " :arc_id, :arc_role, :occurred_at, :verification)"
+        )
+        evidence_sql = text(
+            "INSERT INTO moment_evidence (id, moment_id, quote, source_event_id, "
+            " source_type, quote_type) VALUES (:id, :moment_id, :quote, "
+            " :source_event_id, :source_type, :quote_type)"
+        )
+        relation_sql = text(
+            "INSERT INTO moment_relations (moment_id, related_moment_id, relation_type) "
+            "VALUES (:moment_id, :related_moment_id, :relation_type) "
+            "ON CONFLICT DO NOTHING"
+        )
+        transition_sql = text(
+            "INSERT INTO transitions (id, session_id, from_statement, to_statement, "
+            " reason, arc_id, confidence) VALUES (:id, :session_id, :from_statement, "
+            " :to_statement, :reason, :arc_id, :confidence)"
+        )
+        transition_moment_sql = text(
+            "INSERT INTO transition_moments (transition_id, moment_id) "
+            "VALUES (:transition_id, :moment_id) ON CONFLICT DO NOTHING"
+        )
+        outcome_sql = text(
+            "INSERT INTO outcomes (id, session_id, statement, confidence) "
+            "VALUES (:id, :session_id, :statement, :confidence)"
+        )
+        outcome_moment_sql = text(
+            "INSERT INTO outcome_moments (outcome_id, moment_id) "
+            "VALUES (:outcome_id, :moment_id) ON CONFLICT DO NOTHING"
+        )
+        outcome_file_sql = text(
+            "INSERT INTO outcome_files (outcome_id, file_path) "
+            "VALUES (:outcome_id, :file_path) ON CONFLICT DO NOTHING"
+        )
+        narrative_sql = text(
+            "INSERT INTO narratives (id, session_id, session_shape, summary, "
+            " progression, discoveries, stabilized_directions, abandoned_directions) "
+            "VALUES (:id, :session_id, :session_shape, :summary, "
+            " CAST(:progression AS text[]), CAST(:discoveries AS text[]), "
+            " CAST(:stabilized_directions AS text[]), CAST(:abandoned_directions AS text[]))"
+        )
+        narrative_arc_sql = text(
+            "INSERT INTO narrative_arcs (id, narrative_id, arc_id, title, summary, "
+            " resolution, moment_ids) VALUES (:id, :narrative_id, :arc_id, :title, "
+            " :summary, :resolution, CAST(:moment_ids AS text[]))"
+        )
+    else:
+        moment_sql = text(
+            "INSERT INTO moments (id, session_id, chunk_id, type, statement, "
+            " significance, agency, confidence, topic_fingerprint, arc_id, arc_role, "
+            " occurred_at, verification) VALUES (:id, :session_id, :chunk_id, :type, "
+            " :statement, :significance, :agency, :confidence, :topic_fingerprint, "
+            " :arc_id, :arc_role, :occurred_at, :verification)"
+        )
+        evidence_sql = text(
+            "INSERT INTO moment_evidence (id, moment_id, quote, source_event_id, "
+            " source_type, quote_type) VALUES (:id, :moment_id, :quote, "
+            " :source_event_id, :source_type, :quote_type)"
+        )
+        relation_sql = text(
+            "INSERT OR IGNORE INTO moment_relations "
+            "(moment_id, related_moment_id, relation_type) "
+            "VALUES (:moment_id, :related_moment_id, :relation_type)"
+        )
+        transition_sql = text(
+            "INSERT INTO transitions (id, session_id, from_statement, to_statement, "
+            " reason, arc_id, confidence) VALUES (:id, :session_id, :from_statement, "
+            " :to_statement, :reason, :arc_id, :confidence)"
+        )
+        transition_moment_sql = text(
+            "INSERT OR IGNORE INTO transition_moments (transition_id, moment_id) "
+            "VALUES (:transition_id, :moment_id)"
+        )
+        outcome_sql = text(
+            "INSERT INTO outcomes (id, session_id, statement, confidence) "
+            "VALUES (:id, :session_id, :statement, :confidence)"
+        )
+        outcome_moment_sql = text(
+            "INSERT OR IGNORE INTO outcome_moments (outcome_id, moment_id) "
+            "VALUES (:outcome_id, :moment_id)"
+        )
+        outcome_file_sql = text(
+            "INSERT OR IGNORE INTO outcome_files (outcome_id, file_path) "
+            "VALUES (:outcome_id, :file_path)"
+        )
+        narrative_sql = text(
+            "INSERT INTO narratives (id, session_id, session_shape, summary, "
+            " progression, discoveries, stabilized_directions, abandoned_directions) "
+            "VALUES (:id, :session_id, :session_shape, :summary, :progression, "
+            " :discoveries, :stabilized_directions, :abandoned_directions)"
+        )
+        narrative_arc_sql = text(
+            "INSERT INTO narrative_arcs (id, narrative_id, arc_id, title, summary, "
+            " resolution, moment_ids) VALUES (:id, :narrative_id, :arc_id, :title, "
+            " :summary, :resolution, :moment_ids)"
+        )
+
+    sid = uid(session_id)
+
+    # ── moments + evidence ──────────────────────────────────────────────────
+    moment_id_map: dict[str, object] = {}  # domain "moment-N" → uuid
+    for m in understanding.moments:
+        moment_uuid = new_uid()
+        moment_id_map[m.id] = moment_uuid
+        # m.chunk_id is a Python chunk id string ("<sid>-chunk-<i>"); resolve to
+        # the DB chunk uuid by index parsed from the id, falling back to None.
+        chunk_uuid = _resolve_chunk_uuid(m.chunk_id, chunk_by_index)
+        sa_session.execute(
+            moment_sql,
+            {
+                "id": moment_uuid,
+                "session_id": sid,
+                "chunk_id": chunk_uuid,
+                "type": m.type,
+                "statement": m.statement,
+                "significance": m.significance,
+                "agency": m.agency,
+                "confidence": m.confidence,
+                "topic_fingerprint": m.topic_fingerprint,
+                "arc_id": m.arc_id,
+                "arc_role": m.arc_role,
+                "occurred_at": _parse_iso(m.occurred_at),
+                "verification": m.verification,
+            },
+        )
+        for e in m.evidence:
+            # Mirror TS resolveEvidenceSourceIds (queries.ts): resolve ONLY when
+            # the validator anchored the quote AND the index maps to a stored
+            # event; unanchored evidence keeps a NULL source_event_id so the
+            # anchored% fidelity dimension reads the validator's decision,
+            # never a fabricated join.
+            source_event_id = None
+            if e.anchored and e.event_index is not None:
+                source_event_id = norm_by_order.get(e.event_index)
+            sa_session.execute(
+                evidence_sql,
+                {
+                    "id": new_uid(),
+                    "moment_id": moment_uuid,
+                    "quote": e.quote,
+                    "source_event_id": source_event_id,
+                    "source_type": e.source_type,
+                    # TS passes quoteType through; EvidenceAnchor carries none,
+                    # so NULL (the reader defaults to "verbatim" on read).
+                    "quote_type": getattr(e, "quote_type", None),
+                },
+            )
+    sa_session.flush()
+
+    # ── moment_relations (relation_type hardcoded 'evolved_into', per TS) ────
+    for m in understanding.moments:
+        moment_uuid = moment_id_map[m.id]
+        for related_id in m.related_moment_ids:
+            related_uuid = moment_id_map.get(related_id)
+            if related_uuid is None:
+                continue
+            sa_session.execute(
+                relation_sql,
+                {
+                    "moment_id": moment_uuid,
+                    "related_moment_id": related_uuid,
+                    "relation_type": "evolved_into",
+                },
+            )
+
+    # ── transitions + transition_moments ────────────────────────────────────
+    for t in understanding.transitions:
+        transition_uuid = new_uid()
+        sa_session.execute(
+            transition_sql,
+            {
+                "id": transition_uuid,
+                "session_id": sid,
+                "from_statement": t.from_statement,
+                "to_statement": t.to_statement,
+                "reason": t.reason,
+                "arc_id": t.arc_id,
+                "confidence": t.confidence,
+            },
+        )
+        for mid in t.origin_moment_ids:
+            moment_uuid = moment_id_map.get(mid)
+            if moment_uuid is None:
+                continue
+            sa_session.execute(
+                transition_moment_sql,
+                {"transition_id": transition_uuid, "moment_id": moment_uuid},
+            )
+
+    # ── outcomes + outcome_moments + outcome_files ──────────────────────────
+    for o in understanding.outcomes:
+        outcome_uuid = new_uid()
+        sa_session.execute(
+            outcome_sql,
+            {
+                "id": outcome_uuid,
+                "session_id": sid,
+                "statement": o.statement,
+                "confidence": o.confidence,
+            },
+        )
+        for mid in o.supporting_moment_ids:
+            moment_uuid = moment_id_map.get(mid)
+            if moment_uuid is None:
+                continue
+            sa_session.execute(
+                outcome_moment_sql,
+                {"outcome_id": outcome_uuid, "moment_id": moment_uuid},
+            )
+        seen_files: set[str] = set()
+        for fp in o.supporting_files:
+            if fp in seen_files:
+                continue
+            seen_files.add(fp)
+            sa_session.execute(
+                outcome_file_sql, {"outcome_id": outcome_uuid, "file_path": fp}
+            )
+
+    # ── narrative + narrative_arcs ──────────────────────────────────────────
+    narr = understanding.narrative
+    narrative_uuid = new_uid()
+    sa_session.execute(
+        narrative_sql,
+        {
+            "id": narrative_uuid,
+            "session_id": sid,
+            "session_shape": narr.session_shape,
+            "summary": narr.summary,
+            "progression": arr(narr.progression),
+            "discoveries": arr(narr.discoveries),
+            "stabilized_directions": arr(narr.stabilized_directions),
+            "abandoned_directions": arr(narr.abandoned_directions),
+        },
+    )
+    for arc in narr.arcs:
+        sa_session.execute(
+            narrative_arc_sql,
+            {
+                "id": new_uid(),
+                "narrative_id": narrative_uuid,
+                "arc_id": arc.arc_id,
+                "title": arc.title,
+                "summary": arc.summary,
+                "resolution": arc.resolution,
+                # narrative_arcs.moment_ids stores domain ids ("moment-N") as
+                # text[], matching TS storeSessionDigest.
+                "moment_ids": arr(list(arc.moment_ids)),
+            },
+        )
+
+
+def _resolve_chunk_uuid(chunk_id: Optional[str], chunk_by_index: dict):
+    """Resolve a Python chunk id (\"<sid>-chunk-<i>\") to the DB chunk uuid."""
+    if not chunk_id:
+        return None
+    idx = _chunk_index_of(chunk_id, chunk_by_index)
+    if idx is None:
+        return None
+    return chunk_by_index.get(idx)
+
+
+def _chunk_index_of(chunk_id: Optional[str], chunk_by_index: dict) -> Optional[int]:
+    if not chunk_id:
+        return None
+    marker = "-chunk-"
+    pos = chunk_id.rfind(marker)
+    if pos == -1:
+        return None
+    try:
+        return int(chunk_id[pos + len(marker):])
+    except ValueError:
+        return None
 
 
 def _parse_iso(ts: Optional[str]) -> Optional[datetime]:

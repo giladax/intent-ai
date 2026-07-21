@@ -92,8 +92,10 @@ All three seams below are scheduled for removal by
   backend store port). Until that slice lands, single-writer-per-table
   discipline holds.
 - **Session digestion exists twice** — the full TS pipeline (`journal/`) and
-  the lean distiller (`backend/quire/session.py`). The TS pipeline is being
-  ported into `backend/quire/ingest/` (deterministic steps first,
-  parity-gated; LLM steps fidelity-gated); TS digestion retires at cutover.
+  the lean distiller (`backend/quire/session.py`). The TS pipeline is now
+  ported: deterministic steps in `backend/quire/ingest/` (parity-gated) and the
+  LLM understanding steps in `backend/quire/understand/` (fidelity-gated ≥ the
+  pinned TS baseline). Python owns the digest tables; TS digestion retires at
+  the Slice-6 cutover.
 - **The dashboard** — the React SPA moves to `app/` and is served by
   FastAPI; the Express layer retires with the TS backend.

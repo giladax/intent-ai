@@ -13,11 +13,29 @@ What lives here today:
   to be an LLM refund agent, but any repo with approved intent docs works).
 - **Journal Postgres read/write layer** (`quire/db/` + `quire/db/CENSUS.md`) —
   SQLAlchemy models for the live journal tables; `quire/db/writer.py` is the
-  single writer for the five ingestion tables (`sessions`, `raw_events`,
-  `normalized_events`, `chunks`, `sittings`) as of Slice 4 (single-writer rule);
-  `python3 -m quire.cli journal events` and `python3 -m quire.cli journal digest`.
-- **Session ingestion port** (`quire/ingest/`, in progress) — the Python
-  replacement for the TS digestion pipeline, parity- then fidelity-gated.
+  single writer for the ingestion tables (`sessions`, `raw_events`,
+  `normalized_events`, `chunks`, `sittings`) as of Slice 4, and — as of Slice 5b —
+  for the LLM-derived tables (`moments`, `moment_evidence`, `moment_relations`,
+  `transitions`, `transition_moments`, `outcomes`, `outcome_moments`,
+  `outcome_files`, `narratives`, `narrative_arcs`). Its `--force` purge-guard
+  refuses to destroy LLM-derived rows without `allow_llm_purge=True` (CLI
+  `--force` consents). `python3 -m quire.cli journal events` / `journal digest`.
+- **Session ingestion port** (`quire/ingest/`) — deterministic parse → normalize
+  → chunk → sittings, parity-proven against the TS pipeline.
+- **Understanding stage** (`quire/understand/`, Slice 5b) — the LLM half of the
+  digest: classify → topic-shifts → extract → weave → verify → derive-confidence
+  → transitions → narrative. Every model step is a real structured-output
+  LangChain call (Sonnet for extract/weave/verify/transitions/narrative, Haiku
+  for classify/topic-shifts/exchange-classification); deterministic
+  post-processing (anchor validation, dedup, weave-decision application, verdict
+  application, confidence derivation) lives alongside. `FakeUnderstandLLM` +
+  `quire/canned.py::fake_understand_llm()` drive offline tests. Fidelity-gated:
+  `python3 -m evals.fidelity` scores stored digests ≥ the pinned TS baseline
+  (`evals/baselines/2026-07-21-ts-fidelity.md`).
+
+Digesting: `journal digest <log>` runs the full pipeline (deterministic +
+LLM) and persists everything; `--dry-run` runs only the deterministic path
+(no LLM, no writes) for parity; `--offline` uses canned LLM outputs (tests/CI).
 
 The alignment subsystem persists to SQLite today; the ruled end-state is
 Postgres for everything (see the migration plan, Decision B).
