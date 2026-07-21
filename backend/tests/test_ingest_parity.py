@@ -9,8 +9,9 @@ within the thresholds defined in the corpus README:
   - chunks:            ±1
   - category counts:   ±2% per category
 
-Tests skip cleanly when the input file is missing (all inputs exist in CI today;
-skip is for future-proofing if corpus files are removed).
+The 4 fixture JSONL files live in backend/tests/fixtures/ (in-tree, tracked).
+The 3 real-session files are untracked (from backend/.intent/raw-sessions/ or
+the historical journal/ location); those tests skip cleanly when absent.
 
 ## Categories key (from corpus README)
   i=intent, r=reflection, res=result, p=proposal, a=action
@@ -27,7 +28,10 @@ from quire.ingest import parse_transcript, normalize, chunk_session
 
 # ── Corpus baseline (from backend/evals/parity-corpus/README.md) ─────────────
 
-JOURNAL_ROOT = pathlib.Path(__file__).parent.parent.parent / "journal"
+FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
+# Real session files are untracked and may live in either the new or old location.
+# We check both; skip if absent.
+INTENT_DIR = pathlib.Path(__file__).parent.parent / ".intent" / "raw-sessions"
 
 
 class Expectation(NamedTuple):
@@ -44,31 +48,31 @@ class Expectation(NamedTuple):
 
 CORPUS: dict[str, tuple[pathlib.Path, Expectation]] = {
     "fixture-scope-design": (
-        JOURNAL_ROOT / "tests/eval/fixtures/scope-design.jsonl",
+        FIXTURES_DIR / "scope-design.jsonl",
         Expectation(118, 118, 5, 29, 32, 29, 23, 5),
     ),
     "fixture-scope-full": (
-        JOURNAL_ROOT / "tests/eval/fixtures/scope-full.jsonl",
+        FIXTURES_DIR / "scope-full.jsonl",
         Expectation(967, 967, 22, 71, 323, 345, 56, 172),
     ),
     "fixture-scope-implementation": (
-        JOURNAL_ROOT / "tests/eval/fixtures/scope-implementation.jsonl",
+        FIXTURES_DIR / "scope-implementation.jsonl",
         Expectation(587, 587, 11, 17, 198, 222, 15, 135),
     ),
     "fixture-scope-pivot": (
-        JOURNAL_ROOT / "tests/eval/fixtures/scope-pivot.jsonl",
+        FIXTURES_DIR / "scope-pivot.jsonl",
         Expectation(277, 277, 8, 27, 98, 99, 19, 34),
     ),
     "real-20f5efec": (
-        JOURNAL_ROOT / ".intent/raw-sessions/20f5efec-83cc-4a16-ac34-86728b07ccbf.jsonl",
+        INTENT_DIR / "20f5efec-83cc-4a16-ac34-86728b07ccbf.jsonl",
         Expectation(1025, 1025, 30, 18, 175, 445, 13, 374),
     ),
     "real-45522a11": (
-        JOURNAL_ROOT / ".intent/raw-sessions/45522a11-4686-47bb-93ea-fd29b8ae5e4e.jsonl",
+        INTENT_DIR / "45522a11-4686-47bb-93ea-fd29b8ae5e4e.jsonl",
         Expectation(270, 270, 11, 34, 97, 69, 40, 30),
     ),
     "real-5b31a1bb": (
-        JOURNAL_ROOT / ".intent/raw-sessions/5b31a1bb-3f6b-4d03-b418-a6c0f0ab704c.jsonl",
+        INTENT_DIR / "5b31a1bb-3f6b-4d03-b418-a6c0f0ab704c.jsonl",
         Expectation(398, 398, 15, 17, 93, 156, 12, 120),
     ),
 }
@@ -90,7 +94,7 @@ def test_parity(session_name: str) -> None:
     path, exp = CORPUS[session_name]
 
     if not path.exists():
-        pytest.skip(f"Input file not found: {path} — run from the repo root with journal/ present")
+        pytest.skip(f"Input file not found: {path} — real-session files are untracked; fixture files should be in backend/tests/fixtures/")
 
     raw = parse_transcript(path)
     norm = normalize(raw, "dry-run")

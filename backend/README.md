@@ -1,9 +1,9 @@
 # backend/ — the Quire Python backend
 
-This is THE backend of the repo (founder-ruled 2026-07-21): all reasoning,
-storage, and serving converge here, migrating from the TypeScript `journal/`
-slice by slice — status in `../docs/plans/2026-07-21-python-backend-migration.md`.
-What lives here today:
+This is THE backend of the repo: all reasoning, storage, and serving converge
+here. Migration from the TypeScript `journal/` is complete as of 2026-07-22
+(see `../docs/decisions/2026-07-22-python-backend-migration-complete.md`).
+What lives here:
 
 - **Alignment** (`quire/analysis/`, the bulk of this README): given a pull
   request, determine which approved product obligations it may affect, what
@@ -20,9 +20,9 @@ What lives here today:
   `outcome_files`, `narratives`, `narrative_arcs`). Its `--force` purge-guard
   refuses to destroy LLM-derived rows without `allow_llm_purge=True` (CLI
   `--force` consents). `python3 -m quire.cli journal events` / `journal digest`.
-- **Session ingestion port** (`quire/ingest/`) — deterministic parse → normalize
+- **Session ingestion** (`quire/ingest/`) — deterministic parse → normalize
   → chunk → sittings, parity-proven against the TS pipeline.
-- **Understanding stage** (`quire/understand/`, Slice 5b) — the LLM half of the
+- **Understanding stage** (`quire/understand/`) — the LLM half of the
   digest: classify → topic-shifts → extract → weave → verify → derive-confidence
   → transitions → narrative. Every model step is a real structured-output
   LangChain call (Sonnet for extract/weave/verify/transitions/narrative, Haiku
@@ -37,18 +37,13 @@ Digesting: `journal digest <log>` runs the full pipeline (deterministic +
 LLM) and persists everything; `--dry-run` runs only the deterministic path
 (no LLM, no writes) for parity; `--offline` uses canned LLM outputs (tests/CI).
 
-**MCP Brain Server** (replaces TS `journal/src/mcp/server.ts`, Slice 7):
+**MCP Brain Server**:
 
 Exposes 12 `brain_*` tools over stdio. Active entry in root `.mcp.json`:
 
 ```bash
 python3 -m quire.cli mcp          # start MCP server (stdio) — for agents via .mcp.json
 ```
-
-The TS server (`cd journal && npx tsx src/cli/index.ts mcp`) is still runnable
-as an emergency fallback but is no longer the active server. Do not restore it
-to `.mcp.json` without closing the dual-writer exception (see
-`quire/db/CENSUS.md` — it is closed as of Slice 7).
 
 Tools: `brain_search`, `brain_file_context`, `brain_enter`, `brain_feature_context`,
 `brain_moments`, `brain_evidence`, `brain_narrative`, `brain_report_observation`,
@@ -58,7 +53,7 @@ Tools: `brain_search`, `brain_file_context`, `brain_enter`, `brain_feature_conte
 All tool calls emit `mcp:{tool}` activity events (Python-owned single writer).
 Golden tests: `tests/test_mcp_golden.py` (recorded against TS server, compare Python output).
 
-**Dashboard / Journal API** (replaces Express `journal/src/web/server.ts`, Slice 8):
+**Dashboard / Journal API**:
 
 33 REST routes serving the SPA (previously Express on port 3456, now FastAPI):
 
@@ -71,14 +66,14 @@ python3 -m quire.cli serve --port 3456   # start dashboard + journal API
 The built SPA lives in `quire/static/dashboard/` (output of `cd ../app && npm run build`).
 Dev mode: `cd ../app && npm run dev` — proxies `/api` to localhost:3456.
 
-Route census: 33 routes ported (0 dropped). POST /api/brain/digest is a deprecated
-SSE stub (carried from Slice 4 so the SPA degrades gracefully). GET /api/feed returns
-a skeleton shape (LLM feed composition not yet ported; SPA handles empty gracefully).
+Route census: 33 routes. POST /api/brain/digest is a deprecated SSE stub
+(SPA degrades gracefully). GET /api/feed runs full feed composition (LLM-backed
+with 1-hour cache, `quire/journal/feed.py`).
 
 Data: `backend/.intent/raw-sessions/` holds raw CC logs (moved from `journal/.intent/`
 as part of Slice 8; untracked).
 
-**Watcher Daemon** (replaces TS `observe`, Slice 6):
+**Watcher Daemon**:
 
 ```bash
 python3 -m quire.cli journal watch-sessions              # watch ~/.claude/projects for new sessions (quiet >120 s)
@@ -92,8 +87,8 @@ quiet for more than `--quiet-seconds`. Already-digested sessions skip silently
 successful digest. Failure-safe: a digest error for one file is logged and
 skipped; the watcher continues.
 
-The alignment subsystem persists to SQLite today; the ruled end-state is
-Postgres for everything (see the migration plan, Decision B).
+The alignment subsystem persists to SQLite; migrating it to Postgres is a
+follow-up (see decision record for details).
 
 ## Setup
 
@@ -107,8 +102,34 @@ inference), `LANGSMITH_API_KEY` / `LANGSMITH_TRACING` (tracing + evals),
 
 ```bash
 cd backend
-python3 -m pytest                      # 85 tests, all offline (no API calls)
+docker compose up -d                   # start Postgres (Docker, port 5433)
+python3 -m pytest                      # 548 tests, all offline (no API calls)
+python3 -m evals.event_stream && python3 -m evals.alarms  # both must say "all clear"
+python3 -m evals.fidelity             # fidelity eval (≥ TS baseline)
 ```
+
+## Schema changes
+
+The Postgres schema is frozen as inherited from the Drizzle migrations in the
+TS backend (history at git tag `ts-backend-final`). No Drizzle is present in
+the repo. Any future schema change starts by adopting Alembic: add it to
+`requirements.txt`, run `alembic init`, and write a migration for the change.
+
+## Follow-ups (named, not yet implemented)
+
+- **Compose parallelization**: the three Sonnet calls in `quire/journal/feed.py`
+  (`compose_lede`, `compose_story` × 2) run sequentially — ~10 s cold. Switch
+  to `ThreadPoolExecutor(max_workers=3)` for ~3× speedup. Recorded at tag
+  `ts-backend-final`.
+- **Markdown-insensitive anchor matcher**: the fidelity anchor matcher is a
+  single-stack concern now; the "both-stacks" note in the calibration doc is
+  superseded. A proper markdown-insensitive matcher (strip formatting, normalize
+  whitespace) reduces false-negative fidelity misses.
+- **Mid-digest resume / parse-time stamping**: the watcher currently re-digests
+  from scratch on resumption; parse-time stamping would allow incremental digests.
+- **Latency**: end-to-end digest latency not yet benchmarked against TS baseline.
+- **Alignment store → Postgres**: the alignment subsystem still writes SQLite;
+  migration to the shared Postgres (single datastore) is the ruled next step.
 
 ## Demo
 

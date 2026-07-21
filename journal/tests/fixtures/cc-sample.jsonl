@@ -1,8 +1,0 @@
-{"type":"system","timestamp":"2026-05-20T10:00:00.000Z","uuid":"sys-001","sessionId":"sess-1"}
-{"type":"user","timestamp":"2026-05-20T10:00:01.000Z","uuid":"user-001","sessionId":"sess-1","message":{"role":"user","content":"Add a hello world function to utils.ts"}}
-{"type":"assistant","timestamp":"2026-05-20T10:00:05.000Z","uuid":"asst-001","sessionId":"sess-1","parentUuid":"user-001","message":{"role":"assistant","content":[{"type":"thinking","thinking":"I need to create a hello world function."},{"type":"text","text":"I'll add a hello world function to utils.ts."},{"type":"tool_use","name":"Edit","input":{"file_path":"src/utils.ts","old_string":"","new_string":"export function hello() { return 'hello world'; }"}}],"model":"claude-sonnet-4-20250514"}}
-{"type":"progress","timestamp":"2026-05-20T10:00:06.000Z","uuid":"prog-001","sessionId":"sess-1","data":{"type":"hook_progress","message":"Running pre-edit hook"}}
-{"type":"progress","timestamp":"2026-05-20T10:00:07.000Z","uuid":"prog-002","sessionId":"sess-1","data":{"type":"tool_result","content":"File edited successfully","tool_use_id":"tu-123"}}
-{"type":"queue-operation","timestamp":"2026-05-20T10:00:08.000Z","uuid":"queue-001","sessionId":"sess-1"}
-{"type":"assistant","timestamp":"2026-05-20T10:00:09.000Z","uuid":"asst-002","sessionId":"sess-1","message":{"role":"assistant","content":[{"type":"text","text":"Done! I've added the hello world function."}],"model":"claude-sonnet-4-20250514"}}
-{"type":"file-history-snapshot","timestamp":"2026-05-20T10:00:10.000Z","uuid":"fhs-001","sessionId":"sess-1"}

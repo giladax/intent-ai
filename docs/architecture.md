@@ -1,10 +1,9 @@
 # Architecture
 
-**Target (founder-ruled 2026-07-21, migration executing):** ONE Python
-backend owns all reasoning and serving — session digestion, PR-vs-intent
-analysis, storage (Postgres), MCP, web API. TypeScript keeps only the
-dashboard SPA. Sessions and PRs are two evidence streams into the same
-brain: what was built (sessions) held against what was promised
+ONE Python backend owns all reasoning and serving — session digestion,
+PR-vs-intent analysis, storage (Postgres), MCP, web API. TypeScript keeps
+only the dashboard SPA. Sessions and PRs are two evidence streams into the
+same brain: what was built (sessions) held against what was promised
 (obligations).
 
 ```
@@ -15,89 +14,76 @@ brain: what was built (sessions) held against what was promised
                                                          └──▶ app/ (React dashboard)
 ```
 
-**Today (Slice 7 landed 2026-07-22):** digestion and MCP serving both run in `backend/` (Python).
-TS keeps only the dashboard SPA. See `docs/plans/2026-07-21-python-backend-migration.md` for slice status.
+Migration complete as of Slice 9 (2026-07-22). Decision record:
+`docs/decisions/2026-07-22-python-backend-migration-complete.md`.
 
-```
- AI coding sessions ──▶ backend/ (Py) ──▶ activity journal ──▶ agents (MCP, Py) + dashboard (TS)
-                              │
-                    python3 -m quire.cli journal watch-sessions
- PRs / diffs        ──▶ backend/ (Py)  ─▶ keep/break verdicts ─▶ alarms + intent ledger
-                          ▲
-                          └── approved product intent (PRDs, obligations)
-```
+## backend/ — the single backend (Python)
 
-## journal/ — the session journal (TypeScript)
+All reasoning and serving converges here. Two main domains:
 
-Ingests Claude Code session logs and turns them into durable, searchable
-understanding.
+### Session journal (`quire/ingest/`, `quire/understand/`, `quire/journal/`, `quire/mcp/`)
 
-**Pipeline** (`src/pipeline/`): parse → normalize → classify → chunk →
-extract "moments" → weave → verify → narrative → emit activity events. Each
-step is an independent exported function that enriches a shared context;
-deterministic steps and LLM steps (Sonnet for reasoning, Haiku for
-classification) alternate. All domain types live in `src/adapters/types.ts`.
+Ingests Claude Code session logs and turns them into durable, searchable understanding.
 
-**Storage** (`src/storage/`): Postgres 16 (Docker, port **5433**) via Drizzle.
-The spine is the `activity_events` table — every significant thing (session
-moments, brain mutations, observations) as a time-ordered, self-contained,
-searchable event. Time is the axis; search is the front door.
+**Pipeline**: parse → normalize → classify → chunk → extract "moments" → weave →
+verify → narrative → emit activity events. Deterministic steps (ingest) and LLM
+steps (Sonnet for reasoning, Haiku for classification) alternate. All domain types
+live in `quire/ingest/types.py`.
+
+**Storage**: Postgres 16 (Docker, port **5433**) via SQLAlchemy. The spine is
+the `activity_events` table — every significant thing (session moments, brain
+mutations, observations) as a time-ordered, self-contained, searchable event.
+Time is the axis; search is the front door.
 
 **Serving**:
-- `src/mcp/` — TS MCP server (`intent-brain`): **demoted Slice 7**. Root `.mcp.json`
-  now points to `python3 -m quire.cli mcp` (Python). TS server preserved as fallback;
-  see `backend/quire/mcp/` for the active implementation.
-- `src/web/` — Express API + React/Vite dashboard (`src/web/ui`, its own
-  package.json): the journal river, Feature lenses, Correspondence chat.
-- `src/daemon/` — demoted Slice 6; Python watcher (`python3 -m quire.cli journal watch-sessions`) replaced it. TS internals preserved for vitest; entry point (`observe` command) exits with deprecation notice.
+- `quire/mcp/` — Python MCP server (`intent-brain`, 12 `brain_*` tools, stdio
+  transport). Entry in root `.mcp.json`.
+- `quire/journal/router.py` — FastAPI router: 33 REST routes serving the SPA
+  (journal river, Feature lenses, Correspondence chat, feed).
+- `quire/journal/watcher.py` — session watcher daemon (`watch-sessions` command).
 
-**Evals** (`src/eval/`, `run-fidelity.ts`, `run-mvp-eval.ts`): digest-fidelity
-harness plus the measurement-v2 A/B harness (does brain context measurably
-help a coding agent?). `eval-baseline/brain.md` is the frozen baseline
-document for that measurement.
+**Evals** (`evals/`): fidelity harness scores live digests ≥ the pinned
+TS baseline (`evals/baselines/2026-07-21-ts-fidelity.md`). The measurement-v2
+frozen baseline document lives at `evals/baselines/measurement-v2-brain-baseline.md`
+(TS harness retrievable at git tag `ts-backend-final`).
 
-The app always runs from `journal/` — data dirs (`.intent/`, `eval-runs/`)
-and Docker Compose resolve against its working directory.
+**Commands**:
+```bash
+python3 -m quire.cli journal digest <log>   # full digest (parse + LLM + persist)
+python3 -m quire.cli journal digest <log> --dry-run  # deterministic only, no LLM
+python3 -m quire.cli journal watch-sessions # watch for new CC session logs
+python3 -m quire.cli mcp                    # start MCP brain server (stdio)
+python3 -m quire.cli serve --port 3456      # dashboard + journal API
+python3 -m evals.fidelity                   # run fidelity eval
+python3 -m evals.event_stream               # event-stream eval
+python3 -m evals.alarms                     # alarms eval
+```
 
-## backend/ — product-to-code alignment (Python)
+**Postgres** (Docker Compose, port 5433): `docker compose up -d` from `backend/`.
+Schema frozen as inherited from Drizzle migrations (tag `ts-backend-final`); any
+future schema change starts by adopting Alembic.
+
+### PR-vs-intent analysis (`quire/analysis/`, `quire/adapters/`)
 
 Given a PR (or any base..head commit range), decides whether the behavioral
 change aligns with **approved** product intent. Not a code reviewer — a
 behavioral-alignment checker.
 
-**Analysis graph** (`quire/analysis/`): load PR → resolve product
-context (a fixed authority ladder of intent sources) → parse declared intent
-(Haiku) → infer behavioral delta (Sonnet, structured) → compare with
-obligations → validate every citation verbatim → **deterministic rules pick
-the final label** (the LLM never decides verdicts) → persist (SQLite) →
-publish. UNKNOWN beats unsupported certainty.
-
-**Around the core**: adapters (fixture, live GitHub, local git),
-entity graph + relevance propagation, session ingestion
-(`quire/session.py` distills a Claude Code transcript's reasoning into
-workspace evidence), proactive alarms (`cli watch`) that tap the stakeholder
-only on a quote-backed break, FastAPI server with onboarding wizard and the
-intent ledger timeline.
+**Analysis graph**: load PR → resolve product context (a fixed authority ladder
+of intent sources) → parse declared intent (Haiku) → infer behavioral delta
+(Sonnet, structured) → compare with obligations → validate every citation
+verbatim → **deterministic rules pick the final label** (the LLM never decides
+verdicts) → persist → publish. UNKNOWN beats unsupported certainty.
 
 **Workspaces** (`workspaces/`): each governed repo has manifest, obligations,
 bindings, PR registry. `workspaces/quire-brain` is a rehearsed live demo —
 never regenerate it. Evals live in `evals/` (LangSmith, deterministic
 evaluators; offline by default).
 
-## Seams being closed by the migration
+## app/ — dashboard SPA (TypeScript/React)
 
-All three seams below are scheduled for removal by
-`docs/plans/2026-07-21-python-backend-migration.md`:
+React + Vite + Tailwind. In dev mode (`npm run dev`) the Vite server proxies
+`/api` to the backend on port 3456. In production, `npm run build` emits the
+SPA into `backend/quire/static/dashboard/`, which FastAPI serves.
 
-- **Two datastores** — RULED: converge on Postgres (SQLite retires with the
-  backend store port). Until that slice lands, single-writer-per-table
-  discipline holds.
-- **Session digestion exists twice** — CLOSED (Slice 6). Python owns all digestion:
-  `backend/quire/ingest/` (deterministic, parity-gated), `backend/quire/understand/`
-  (LLM, fidelity-gated ≥ TS baseline), and `backend/quire/journal/` (activity events,
-  Python watcher). TS digest entry points are demoted with deprecation notices.
-- **MCP server exists twice** — CLOSED (Slice 7). Python owns `brain_*` MCP serving:
-  `backend/quire/mcp/` (12 tools, camelCase contract parity, instrumentation events).
-  TS `journal/src/mcp/` preserved as runnable fallback. Root `.mcp.json` points to Python.
-- **The dashboard** — the React SPA moves to `app/` and is served by
-  FastAPI; the Express layer retires with the TS backend.
+No business logic lives here — it is a pure UI over the backend's REST API.

@@ -152,3 +152,37 @@ def test_watcher_digest_path_archives(tmp_path, monkeypatch):
         _digest_one(src)
 
     assert (archive_dir / "watched-session.jsonl").exists()
+
+
+def test_cli_digest_path_archives_before_parse(tmp_path, monkeypatch):
+    """The CLI's journal_digest archives the log at step 0, before parse.
+
+    We stop the pipeline right after parse_transcript raises — the archive
+    must already exist (same invariant as the watcher: evidence survives a
+    failed digest).
+    """
+    import quire.journal.archive as archive_mod
+    import quire.ingest as ingest_mod
+    from typer.testing import CliRunner
+    from quire.cli import app
+
+    src = tmp_path / "cli-session.jsonl"
+    src.write_text('{"type": "user"}\n')
+    archive_dir = tmp_path / "raw-sessions"
+    monkeypatch.setattr(archive_mod, "get_archive_dir", lambda: archive_dir)
+
+    # Make parse_transcript raise so the digest fails before any LLM/DB work.
+    original_parse = ingest_mod.parse_transcript
+
+    def _boom(path):
+        raise RuntimeError("forced failure after archive step")
+
+    monkeypatch.setattr(ingest_mod, "parse_transcript", _boom)
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["journal", "digest", str(src)])
+    # Digest should have failed (non-zero or exception captured), but archive
+    # must already exist.
+    assert (archive_dir / "cli-session.jsonl").exists(), (
+        f"Archive not found; CLI output: {result.output}"
+    )

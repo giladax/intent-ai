@@ -97,7 +97,14 @@ it was a skeleton returning hardcoded empty JSON. Slice 8b completes it.
 - `backend/quire/cli.py`: archive raw `.jsonl` to `backend/.intent/raw-sessions/` after
   successful digest (failure-safe, skip-if-same-size, mirrors TS `archiveRawSession`)
 - `backend/tests/test_feed.py`: 63 unit tests (deterministic core + canned-LLM offline)
-- `backend/tests/test_archive_gap.py`: 6 unit tests (archive semantics)
+- `backend/tests/test_archive_gap.py`: 10 unit tests (archive semantics; includes CLI step-0 ordering test)
 
 **feed_cache table**: now Python-owned (read + write via `get_cached_feed`/`set_cached_feed`).
 Update to the table census above: `feed_cache` writer is now `backend/quire/journal/feed.py`.
+
+## Drizzle/schema ownership (Slice 9 — CLOSED)
+
+The TS backend (`journal/`) is deleted as of Slice 9 (2026-07-22). The Postgres schema is
+frozen as inherited from Drizzle migrations at git tag `ts-backend-final`. No Drizzle is present
+in the repo. Any future schema change starts by adopting Alembic — see `backend/README.md`
+"Schema changes" section.

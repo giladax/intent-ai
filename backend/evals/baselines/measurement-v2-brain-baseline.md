@@ -1,3 +1,9 @@
+> **FROZEN — measurement-v2 baseline document.**
+> This is the treatment-arm target for the measurement-v2 eval harness. The harness that generated
+> it lives in the TS backend, retrievable at git tag `ts-backend-final` (`journal/run-fidelity.ts`,
+> `journal/src/eval/fidelity.ts`). The TS backend was deleted in the Slice 9 commit
+> (see `docs/decisions/2026-07-22-python-backend-migration-complete.md`). Do not modify this file.
+
 # intent-ai — Brain
 
 > This file is the entry point to the project's knowledge graph.

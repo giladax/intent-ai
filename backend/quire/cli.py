@@ -787,6 +787,23 @@ def journal_digest(
 
     typer.echo(f"Log: {log_path}")
 
+    # ── Step 0: Archive raw session BEFORE any parsing or LLM calls ──────
+    # Mirrors TS orchestrator.ts::archiveRawSession semantics: evidence must
+    # survive a failed digest. Skip if dest exists and is same size or larger
+    # (re-copy when source has grown, e.g. resumed session).
+    if not dry_run:
+        from quire.journal.archive import archive_raw_session
+
+        archive_dest = archive_raw_session(
+            path,
+            warn=lambda msg: typer.secho(
+                f"  Warning: archive failed (digest unaffected): {msg}",
+                fg=typer.colors.YELLOW,
+            ),
+        )
+        if archive_dest is not None:
+            typer.secho(f"  Archived: {archive_dest}", fg=typer.colors.GREEN)
+
     # ── Parse + deterministic pipeline ───────────────────────────────────
     raw_events = parse_transcript(path)
     session_id_placeholder = "dry-run" if dry_run else str(path.stem)
@@ -949,22 +966,6 @@ def journal_digest(
                 f"  Warning: activity event emission failed (digest still saved): {ae_err}",
                 fg=typer.colors.YELLOW,
             )
-
-    # ── Archive raw session (failure-safe — never fails the digest) ────────────
-    # Mirrors TS orchestrator.ts::archiveRawSession: skip if dest exists and is
-    # same size or larger (re-copy when source has grown, e.g. resumed session).
-    from quire.journal.archive import archive_raw_session
-
-    dest = archive_raw_session(
-        path,
-        warn=lambda msg: typer.secho(
-            f"  Warning: archive failed (digest unaffected): {msg}",
-            fg=typer.colors.YELLOW,
-        ),
-    )
-    if dest is not None:
-        typer.secho(f"  Archived: {dest}", fg=typer.colors.GREEN)
-
 
 def _format_time(dt: "datetime") -> str:
     """Format datetime like TS's formatTime: 'May 21, 21:50'."""

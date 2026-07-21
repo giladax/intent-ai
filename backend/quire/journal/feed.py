@@ -518,7 +518,6 @@ Return JSON: {{ "headline": "...", "body": "...", "citedSessionIds": [] }}""",
 
         # Deterministic defaults
         headline = build_fallback_story_headline(summaries, item["featureName"])
-        summary_raw = summaries[0].replace(re.sub(r"^\[[^\]]*\]\s*", "", summaries[0]), "").strip() if summaries else ""
         summary_raw = _strip_category_prefix(summaries[0])[:200].rstrip() if summaries else ""
         summary_part = summary_raw if summary_raw.endswith((".", "!", "?")) else (summary_raw + "." if summary_raw else "")
         dek = (

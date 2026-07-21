@@ -11,121 +11,114 @@ graph-viz UI.
 **Product source of truth: [`docs/prd.md`](docs/prd.md)** (PRD v0.3.1).
 System map: [`docs/architecture.md`](docs/architecture.md).
 
-## Repo layout — mid-migration to ONE Python backend
+## Repo layout
 
 ```
-backend/     Python — THE backend (target: everything). Today: PR-vs-intent
-             analysis + alarms, Postgres read/write layer (db/), the full
-             session digest — deterministic ingest (ingest/) + LLM
-             understanding (understand/), fidelity-gated ≥ the TS baseline.
+backend/     Python — THE backend (everything). Session digestion + watcher
+             daemon, MCP brain server, dashboard web API + SPA serving,
+             PR-vs-intent analysis + alarms, Postgres read/write layer.
              See backend/README.md.
-journal/     TypeScript — BEING RETIRED slice by slice. Still runs production
-             session digestion → Postgres → MCP + dashboard until its Python
-             replacements land. Do NOT add new backend logic here.
+app/         TypeScript — the dashboard React SPA (Vite dev mode, or built
+             and served by FastAPI in production).
 docs/        durable trunk: prd, architecture, decisions/, specs/, handoffs/
 ```
 
-**Migration status lives in `docs/plans/2026-07-21-python-backend-migration.md`**
-— read it before deciding where anything new belongs. End-state: `backend/`
-(Python, all logic) + `app/` (React SPA) + `docs/`.
+Migration COMPLETE as of 2026-07-22. See
+`docs/decisions/2026-07-22-python-backend-migration-complete.md`.
 
-Both sides read credentials from the repo-root `.env` (see `.env.example`).
-**Run each side from its own directory** — data paths and Docker resolve
-against the working directory.
+Both apps read credentials from the repo-root `.env` (see `.env.example`):
+`ANTHROPIC_API_KEY`, `DATABASE_URL`, optionally LangSmith/GitHub keys.
 
 ## Standing rules (do not relitigate)
 
 - **Never edit/regenerate `backend/workspaces/quire-brain`** — a rehearsed
   live demo.
-- **The full backend migrates to Python** — planned and founder-ruled; the
-  executable plan is `docs/plans/2026-07-21-python-backend-migration.md`.
-  End-state: `backend/` (Python, everything) + `app/` (React SPA) + `docs/`.
-  Datastores converge on Postgres per that plan (single-writer-per-table
-  during the migration; don't unify ahead of the plan's slices).
+- **Migration COMPLETE** — the TS backend (`journal/`) was deleted in Slice 9.
+  All logic belongs in `backend/` (Python). See decision record above.
 - (Retired 2026-07-21: the never-commit `feature.ts` rule — the standing
   delta landed as `94ee702`.)
 
-# journal/ — the TypeScript app
+# backend/ — the Python backend
 
-## Commands (from `journal/`)
+Read `backend/README.md` first. From `backend/`:
 
 ```bash
-npm install
-npx tsx src/cli/index.ts up          # start Postgres (Docker, port 5433)
-npx tsx src/cli/index.ts digest      # digest latest CC session
-npx tsx src/cli/index.ts digest --dry-run    # deterministic pipeline only, no LLM
-npx tsx src/cli/index.ts mcp         # MCP server (stdio; wired via root .mcp.json)
-npx tsx src/cli/index.ts events      # query the activity event stream
-npx tsx src/cli/index.ts observe-events      # observation layer over recent events
-# DEPRECATED commands (now in Python backend):
-# `observe` (TS daemon) → python3 -m quire.cli journal watch-sessions
-# `web` (Express dashboard) → python3 -m quire.cli serve --port 3456
+docker compose up -d                             # start Postgres (Docker, port 5433)
+python3 -m pytest                                # 548 tests, offline
+python3 -m evals.event_stream && python3 -m evals.alarms  # both must say "all clear"
+python3 -m evals.fidelity                        # fidelity eval (≥ TS baseline)
+python3 -m quire.cli demo                        # offline demo (canned LLM outputs)
+python3 -m quire.cli serve --port 3456           # dashboard + journal API
+python3 -m quire.cli serve --port 8321           # alignment surfaces
+# SPA (production): http://localhost:3456/
+# SPA (dev): cd ../app && npm run dev  (proxies /api → 3456)
 
-npx vitest run                       # tests (some need Postgres up)
-npx tsc --noEmit                     # type check
-npm run typecheck:ui                 # type check the React SPA (runs from app/)
-npx tsx run-fidelity.ts              # fidelity eval (measurement-v2 baseline)
+# Ingestion
+python3 -m quire.cli journal digest <log>        # full digest (parse + LLM + persist)
+python3 -m quire.cli journal digest <log> --dry-run   # deterministic only, no LLM
+python3 -m quire.cli journal digest <log> --offline   # offline (canned LLM, CI/tests)
+python3 -m quire.cli journal events              # query activity event stream
+python3 -m quire.cli journal watch-sessions      # watch for new CC session logs
+
+# MCP brain
+python3 -m quire.cli mcp                         # start MCP brain server (stdio)
 ```
 
 ## Architecture
 
-Pipeline: CC log → parse → normalize → [classify + chunk + analyze] →
-sittings → chunks → extract → weave → verify → transitions → narrative →
-emit events. Deterministic steps and LLM steps (Sonnet for reasoning/moments/
-narrative, Haiku for classification/critics/routing) alternate; each step
-enriches a shared context, never replaces upstream data. **All domain types
-live in `src/adapters/types.ts` — read it before modifying any pipeline
-step.**
+**Pipeline** (`quire/ingest/` + `quire/understand/`): CC log → parse →
+normalize → classify → chunk → extract "moments" → weave → verify →
+transitions → narrative → emit activity events. Deterministic steps and LLM
+steps (Sonnet for reasoning/moments/narrative, Haiku for classification)
+alternate; each step enriches shared context, never replaces upstream data.
 
-The spine is the `activity_events` table: every significant thing (session
-moments, brain mutations, observations) as time-ordered, self-contained,
-searchable events with freeform categories/tags. Postgres 16 via Docker on
-port **5433**, schema in `src/storage/schema.ts`, migrations in `drizzle/`.
+**Spine**: `activity_events` table in Postgres 16 (Docker, port **5433**) —
+every significant thing as time-ordered, self-contained, searchable events with
+freeform categories/tags. Schema in `quire/db/models.py`, managed by SQLAlchemy.
+Postgres schema is frozen as inherited from Drizzle migrations at tag
+`ts-backend-final`; future schema changes start by adopting Alembic.
 
-Source: `src/pipeline/` (steps as functions, orchestrator.ts runs them),
-`src/llm/` (SDK wrapper + prompt builders), `src/storage/`, `src/mcp/`
-(Feature-keyed brain tools), `src/web/` (Express + React SPA in
-`src/web/ui`), `src/daemon/` (DEMOTED Slice 6 — Python watcher owns this role),
-`src/eval/`, `src/cli/`. `eval-baseline/brain.md` is the frozen measurement-v2 baseline document.
+**Key paths**: `quire/ingest/` (deterministic pipeline), `quire/understand/`
+(LLM stage), `quire/journal/` (emit_events, watcher, feed, router),
+`quire/mcp/` (brain MCP server), `quire/analysis/` (PR-vs-intent),
+`quire/db/` (SQLAlchemy models + writer), `quire/cli.py` (all CLI commands).
 
 ## Conventions
 
-- TypeScript ESM; `.js` extensions in imports; no classes — pipeline steps
-  are exported functions; Vitest; Zod for LLM output validation (lenient:
-  `.optional().default()`, `.passthrough()`).
+- Python 3.11+; Pydantic for LLM output schemas; no classes for pipeline steps
+  (functions only); pytest + canned LLM (`quire/canned.py`) for offline tests;
+  EDD (eval criteria before code) for any prompt change.
 - **NO regex for behavioral/semantic classification** — use Haiku with
   structured output. Regex is fine for structural parsing (IDs, paths, JSON).
+- **The LLM never decides the final label** — deterministic rules in
+  `analysis/classify.py` pick verdicts; the model contributes evidence only.
+- **Archive before parsing**: `journal digest` archives the raw log at step 0
+  before any parse or LLM call; evidence must survive a failed digest.
 - Emitting events from a new source: build `ActivityEvent`s (freeform
-  `category`, `tags`, `actor`, `summary`, `metadata`), call `emitEvents()`
-  from `src/storage/queries.ts` in try/catch — never fail the parent
-  operation.
+  `category`, `tags`, `actor`, `summary`, `metadata`), call `emit_activity_events()`
+  in try/catch — never fail the parent operation.
 
 ## Eval workflow (EDD)
 
 Write eval criteria FIRST, run baseline, inspect actual output, THEN change
-code. Fixtures in `tests/eval/fixtures/`, criteria in
-`tests/eval/fidelity-criteria.ts`, harness in `src/eval/fidelity.ts`.
-This applies to any LLM prompt change, not just code.
+code. Fidelity: `python3 -m evals.fidelity` (scores ≥ pinned baseline in
+`evals/baselines/2026-07-21-ts-fidelity.md`). This applies to any LLM prompt
+change, not just code. Re-run the 8× stability sweep after any prompt or
+contract change.
 
-# backend/ — the Python app
-
-Read `backend/README.md` first — it carries the full picture. From
-`backend/`:
+# app/ — the dashboard SPA (TypeScript/React)
 
 ```bash
-LANGCHAIN_TRACING_V2=false LANGSMITH_TRACING=false python3 -m pytest   # 229 tests, offline
-python3 -m evals.event_stream && python3 -m evals.alarms               # both must say "all clear"
-python3 -m quire.cli demo                    # offline demo
-python3 -m quire.cli serve --port 8321      # alignment API (default port)
-python3 -m quire.cli serve --port 3456      # dashboard + journal API (use this for the SPA)
-# SPA (production): http://localhost:3456/
-# SPA (dev): cd ../app && npm run dev  (proxies /api → 3456)
+cd app
+npm install
+npm run dev      # Vite dev server, /api proxied to backend :3456
+npm run build    # build → backend/quire/static/dashboard/ for production
+npm test         # 28 vitest tests
+npm run typecheck  # tsc --noEmit
 ```
 
-Key invariants: the LLM never decides the final label (deterministic rules in
-`analysis/classify.py` do); code never creates intent; every citation is
-validated verbatim; UNKNOWN beats unsupported certainty. Re-run the 8×
-stability sweep after any prompt or contract change.
+No business logic — pure UI over the backend REST API. Tests run standalone
+(no backend required).
 
 # Agent skills (`.claude/skills/agents/`)
 
