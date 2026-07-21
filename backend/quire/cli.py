@@ -7,6 +7,7 @@
     python3 -m quire.cli review <analysis_id> approved --reviewer you
     python3 -m quire.cli serve --port 8321
     python3 -m quire.cli journal events            # read activity_events from Postgres
+    python3 -m quire.cli journal digest --dry-run <log>  # parse+normalize+chunk, print stats
 """
 
 from __future__ import annotations
@@ -754,6 +755,88 @@ def watch(
     typer.secho(f"⚡ {len(alarms)} alarm(s), {loud} urgent — page order:\n",
                 fg=typer.colors.YELLOW)
     deliver(alarms, ConsoleNotifier())
+
+
+@journal_app.command("digest")
+def journal_digest(
+    log_path: str = typer.Argument(..., help="path to a Claude Code .jsonl log file"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="run deterministic pipeline only (no LLM), print stats"),
+):
+    """Ingest a Claude Code session log.
+
+    With --dry-run: runs parse → normalize → chunk deterministically (no LLM),
+    and prints the same stats block as `npx tsx src/cli/index.ts digest --dry-run`.
+    This is the parity-check entry point for Slice 3.
+    """
+    import pathlib
+    from datetime import datetime, timezone
+
+    from quire.ingest import parse_transcript, normalize, chunk_session, analyze_interactions
+
+    if not dry_run:
+        typer.echo("Only --dry-run is implemented in Slice 3. Full digestion (LLM) is future work.", err=True)
+        raise typer.Exit(1)
+
+    path = pathlib.Path(log_path)
+    if not path.exists():
+        typer.echo(f"File not found: {log_path}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo(f"Log: {log_path}")
+
+    raw_events = parse_transcript(path)
+    session_id = "dry-run"
+    normalized_events = normalize(raw_events, session_id)
+    chunks = chunk_session(normalized_events, session_id)
+
+    # Timestamps
+    timestamps = [e.timestamp for e in raw_events if e.timestamp]
+    if timestamps:
+        from quire.ingest.sittings import _parse_ts
+        ms_vals = [_parse_ts(t, None) for t in timestamps]
+        ms_vals = [m for m in ms_vals if m is not None]
+        if ms_vals:
+            started_ms = min(ms_vals)
+            ended_ms = max(ms_vals)
+            started_dt = datetime.fromtimestamp(started_ms / 1000, tz=timezone.utc)
+            ended_dt = datetime.fromtimestamp(ended_ms / 1000, tz=timezone.utc)
+            duration_min = round((ended_ms - started_ms) / 60000)
+            started_fmt = _format_time(started_dt)
+            ended_fmt = _format_time(ended_dt)
+        else:
+            started_fmt = ended_fmt = None
+            duration_min = 0
+    else:
+        started_fmt = ended_fmt = None
+        duration_min = 0
+
+    typer.echo(f"  Raw events:        {len(raw_events)}")
+    typer.echo(f"  Normalized events: {len(normalized_events)}")
+    typer.echo(f"  Chunks:            {len(chunks)}")
+    if started_fmt and ended_fmt:
+        typer.echo(f"  Time span:         {started_fmt} → {ended_fmt} ({duration_min} min)")
+
+    # Category breakdown
+    categories: dict[str, int] = {}
+    for e in normalized_events:
+        categories[e.category] = categories.get(e.category, 0) + 1
+    cat_str = ", ".join(f"{k}:{v}" for k, v in categories.items())
+    typer.echo(f"  Categories:        {cat_str}")
+
+    # Directives (structural, synchronous — no LLM)
+    directives = analyze_interactions(normalized_events)
+    typer.echo("  Directives:")
+    typer.echo(f"    detectPassiveAcceptance: {str(directives.prompt_sections.detect_passive_acceptance).lower()}")
+    typer.echo(f"    trackDelegation:         {str(directives.prompt_sections.track_delegation).lower()}")
+    typer.echo(f"    detectIgnoredProposals:  {str(directives.prompt_sections.detect_ignored_proposals).lower()}")
+    typer.echo(f"    isLearningExchange:      {str(directives.prompt_sections.is_learning_exchange).lower()}")
+    s = directives.exchange_summary
+    typer.echo(f"    Exchanges: {s.total_exchanges} total, {s.short_response_count} short, {s.question_count} with questions")
+
+
+def _format_time(dt: "datetime") -> str:
+    """Format datetime like TS's formatTime: 'May 21, 21:50'."""
+    return dt.strftime("%-b %-d, %H:%M")
 
 
 @journal_app.command("events")
