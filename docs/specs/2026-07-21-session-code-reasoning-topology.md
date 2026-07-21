@@ -152,12 +152,12 @@ Coupled-beats-uncoupled is measured on C1/C3: intent-completeness and
 context-file-ranking criteria met with coupling, unmet without — the value
 of the feature, demonstrated deterministically.
 
-## ⚑ Founder decisions surfaced
+## ⚑ Founder decisions — RULED 2026-07-21
 
-- **D — default variant:** once the eval battery is green, does
-  `coupled-v1` become the default analyzer (recommended — zero-coupling
-  invariance makes it behaviorally identical when no sessions exist), or
-  stay opt-in per workspace?
-- **E — check-scoped distillation spend:** the `check_distillation` escape
-  hatch costs one Sonnet call per session×check when ON. Recommended OFF
-  until the U2 eval proves the altitude gap. Confirm the default.
+- **D — default variant: RULED — `coupled-v1` becomes the default analyzer
+  once the eval battery is green.** The zero-coupling invariance eval
+  (byte-identical on uncoupled cases) is what makes defaulting safe;
+  coupled context then arrives automatically wherever trailers exist.
+- **E — check-scoped distillation spend: RULED — `check_distillation`
+  ships OFF** until the U2 eval proves the digest's altitude too coarse.
+  Trust the precomputed digest first; spend follows evidence.
