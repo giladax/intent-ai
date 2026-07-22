@@ -61,3 +61,32 @@ def skip_if_postgres_unavailable(request):
             pytest.skip(
                 "Postgres unreachable — set DATABASE_URL to a live Postgres instance"
             )
+
+
+# ── production LinkStore guard ───────────────────────────────────────────
+# The requires_postgres probe above calls load_env(), which sets DATABASE_URL
+# process-wide for the entire test run. Any code path that constructs
+# LinkStore() with no explicit engine would therefore write to PRODUCTION
+# Postgres (this happened: tests calling digest_session(pr=N) leaked rows
+# into the live session_checks table). Guard the whole class of leaks: during
+# tests, an engine-less LinkStore raises. Tests that want a real store must
+# pass an explicit test engine — LinkStore(engine=make_test_engine()).
+
+
+@pytest.fixture(autouse=True)
+def _no_implicit_production_link_store(monkeypatch):
+    from quire import links as links_mod
+
+    real_link_store = links_mod.LinkStore
+
+    class GuardedLinkStore(real_link_store):
+        def __init__(self, engine=None):
+            if engine is None:
+                raise RuntimeError(
+                    "test constructed LinkStore() with no engine — this would "
+                    "write to production Postgres. Pass an explicit test "
+                    "engine: LinkStore(engine=make_test_engine())."
+                )
+            super().__init__(engine=engine)
+
+    monkeypatch.setattr(links_mod, "LinkStore", GuardedLinkStore)

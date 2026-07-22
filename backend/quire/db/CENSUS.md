@@ -102,6 +102,35 @@ it was a skeleton returning hardcoded empty JSON. Slice 8b completes it.
 **feed_cache table**: now Python-owned (read + write via `get_cached_feed`/`set_cached_feed`).
 Update to the table census above: `feed_cache` writer is now `backend/quire/journal/feed.py`.
 
+## U0 — session_checks (2026-07-22)
+
+**NEW TABLE** — first schema addition post-Drizzle freeze (`ts-backend-final`).
+
+| Table | Readers | Writers | Verdict | Evidence |
+|-------|---------|---------|---------|----------|
+| `session_checks` | `quire.links.LinkStore.links_for_check`, `links_for_session` | `quire.links.LinkStore.upsert` / `upsert_many` | **LIVE** | backend/quire/links.py |
+
+**Schema bootstrap:** `quire.links.ensure_table_exists(engine)` runs
+`CREATE TABLE IF NOT EXISTS session_checks` idempotently. This is the
+pre-Alembic bootstrap path; Alembic adoption (see `backend/README.md`
+"Schema changes") should formalize it as `migrations/001_session_checks.py`.
+
+**Single-writer:** `quire.links` is the sole writer. No TS path exists.
+
+**Columns:**
+- `id` TEXT PK (UUID)
+- `session_id` TEXT NOT NULL (index)
+- `workspace` TEXT NOT NULL (index)
+- `pr_number` INTEGER NULL (index)
+- `base_sha` TEXT NOT NULL
+- `head_sha` TEXT NOT NULL
+- `kind` TEXT NOT NULL — "trailer" | "attached" | "inferred"
+- `confidence` REAL NOT NULL
+- `evidence` TEXT NOT NULL — commit SHA (trailer) or session_id (yaml)
+
+**Unique constraint:** `(session_id, workspace, evidence)` — re-ingesting the
+same commit range is idempotent.
+
 ## Drizzle/schema ownership (Slice 9 — CLOSED)
 
 The TS backend (`journal/`) is deleted as of Slice 9 (2026-07-22). The Postgres schema is

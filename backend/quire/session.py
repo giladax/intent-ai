@@ -196,8 +196,22 @@ def digest_session(
     digester,
     now: str,
     pr: int | None = None,
+    link_store=None,
 ) -> dict:
-    """Read → distill → store a session record. Idempotent on session id."""
+    """Read → distill → store a session record. Idempotent on session id.
+
+    When `pr` is truthy, the session is coupled to that PR/check number in
+    the session_checks link table (kind="attached", evidence="sessions.yaml:<id>").
+    The gate is truthiness, matching upsert_from_yaml_record's `if not pr` —
+    real PR numbers are >= 1, so pr=0 and pr=None both mean "no check to
+    couple to" and must not even construct a store.
+
+    `link_store` is injectable: tests pass a LinkStore on a test engine;
+    when None, upsert_from_yaml_record constructs the production LinkStore.
+    The link write is failure-safe: a Postgres outage warns and continues,
+    consistent with the emit-events pattern — the yaml-based digest must
+    never fail because the link store is unreachable.
+    """
     raw = read_transcript(transcript_path)
     digest = digester.digest(raw)
     record = {
@@ -225,6 +239,23 @@ def digest_session(
         "# the external source of record.\n"
         + yaml.safe_dump(sessions, sort_keys=False, allow_unicode=True),
     )
+
+    # Wire the PR coupling into the link table (failure-safe).
+    # Truthiness gate — see docstring; must match upsert_from_yaml_record.
+    if pr:
+        try:
+            from quire.links import upsert_from_yaml_record
+            # upsert_from_yaml_record constructs the production LinkStore
+            # only when link_store is None (injectable for tests).
+            upsert_from_yaml_record(record, link_store)
+        except Exception as _link_err:  # noqa: BLE001
+            import warnings
+            warnings.warn(
+                f"digest_session: link store write failed (digest unaffected): {_link_err}",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
     return record
 
 

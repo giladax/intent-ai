@@ -13,6 +13,7 @@ import pytest
 from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 
+import quire.links  # noqa: F401 — registers SessionCheck in Base.metadata before create_all
 from quire.db.engine import make_test_engine
 from quire.db.models import (
     ActivityEvent,
@@ -104,16 +105,19 @@ def _journal_session(session: Session) -> JournalSession:
 # ── schema census ──────────────────────────────────────────────────────
 
 def test_all_live_tables_exist_in_schema(engine):
-    """All 22 LIVE tables from the census are created by Base.metadata."""
+    """All LIVE tables from the census are created by Base.metadata."""
     inspector = inspect(engine)
     existing = set(inspector.get_table_names())
     expected = {
+        # Inherited schema (22 tables from Drizzle, frozen at ts-backend-final)
         "activity_events", "attention_state", "chunks", "feature_files",
         "feature_sessions", "features", "feed_cache", "moment_evidence",
         "moment_relations", "moments", "narrative_arcs", "narratives",
         "normalized_events", "outcome_files", "outcome_moments", "outcomes",
         "projects", "raw_events", "sessions", "sittings",
         "transition_moments", "transitions",
+        # Post-freeze additions (U0+)
+        "session_checks",
     }
     missing = expected - existing
     assert not missing, f"missing tables: {missing}"
