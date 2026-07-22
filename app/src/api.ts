@@ -14,7 +14,16 @@ import type {
   StatsOverview,
   Provenance,
   LensArrivalData,
+  RegisterResult,
+  ScanResult,
+  DraftResult,
+  ApproveResult,
+  FirstResultsResult,
+  OrgFeatureDetail,
 } from "./types";
+
+// Alias for use in fetchOrgFeatureDetail to avoid shadowing the local FeatureDetail import.
+type FeatureDetailShape = FeatureDetail;
 
 export type { LensArrivalData };
 
@@ -283,6 +292,103 @@ export async function fetchLiveState(): Promise<LiveState | null> {
   } catch {
     return null; // daemon not running
   }
+}
+
+// ── O1 add-repo flow ─────────────────────────────────────────────────
+
+export const registerRepo = (url: string) =>
+  json<RegisterResult>("/api/org/repos/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+
+export const scanRepo = (workspace: string) =>
+  json<ScanResult>(`/api/org/repos/${workspace}/scan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+
+export const draftRepo = (workspace: string, sources: ScanResult["sources"]) =>
+  json<DraftResult>(`/api/org/repos/${workspace}/draft`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sources }),
+  });
+
+export const approveRepo = (
+  workspace: string,
+  payload: {
+    sources: ScanResult["sources"];
+    obligations: DraftResult["obligations"];
+    bindings: DraftResult["bindings"];
+    sweep_commits: ScanResult["commits"];
+  },
+) =>
+  json<ApproveResult>(`/api/org/repos/${workspace}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+export const firstResults = (workspace: string, n_prs = 3) =>
+  json<FirstResultsResult>(`/api/org/repos/${workspace}/first-results`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ n_prs }),
+  });
+
+/** Fetch the Feature definition page data.
+ *  Uses the existing /api/features/{id} endpoint (FeatureDetail shape);
+ *  maps into the OrgFeatureDetail shape for the feature page renderer.
+ *  Promises come from /api/features/{id} observations for now (A2 will
+ *  replace with a real obligations endpoint). */
+export async function fetchOrgFeatureDetail(featureId: string): Promise<OrgFeatureDetail> {
+  const detail = await json<FeatureDetailShape>(`/api/features/${featureId}`);
+  const f = detail.feature;
+  return {
+    id: f.id,
+    name: f.name,
+    repo: f.project_id,
+    repoWorkspace: f.project_id,
+    summary: f.description || f.current_understanding || undefined,
+    statusLabel: "No reviews yet",
+    statusInk: "gray",
+    promiseCount: 0,
+    brokenCount: 0,
+    sessionCount: detail.sessions.length,
+    fileCount: (detail.files ?? []).length,
+    lastChange: detail.sessions[0]?.startedAt ?? undefined,
+    promises: (detail.observations ?? []).slice(0, 5).map((o) => ({
+      id: o.id,
+      statement: o.summary,
+      status: "no_rule",
+      statusLabel: "No rule yet",
+      statusInk: "gray",
+      explanation: undefined,
+      sourceRef: undefined,
+      reviewLink: undefined,
+    })),
+    whyCard: detail.sessions[0]?.narrativeSummary
+      ? {
+          summary: detail.sessions[0].narrativeSummary,
+          sessionLink: `/session/${detail.sessions[0].id}`,
+          sessionSteps: detail.sessions[0].momentCount,
+        }
+      : undefined,
+    timeline: detail.sessions.slice(0, 5).map((s) => ({
+      id: s.id,
+      title: s.narrativeSummary || s.sessionShape || "Coding session",
+      meta: `${s.startedAt ? new Date(s.startedAt).toLocaleDateString() : "unknown date"} · ${s.momentCount} steps · reasoning saved`,
+      ink: "blue",
+    })),
+    relatedFeatures: [],
+    mentionedIn:
+      detail.sessions.length > 0
+        ? { sessions: detail.sessions.length, threads: 0, specs: 0 }
+        : undefined,
+  };
 }
 
 // Chat (streaming). Context can be scoped by feature/session id or by
