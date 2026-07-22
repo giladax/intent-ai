@@ -255,7 +255,9 @@ class LinkStore:
             from quire.db.engine import get_engine
             engine = get_engine()
         self._engine = engine
-        # Ensure the table exists (pre-Alembic bootstrap; idempotent).
+        # Ensure the table exists (pre-Alembic bootstrap; idempotent). This is
+        # a CREATE TABLE IF NOT EXISTS per LinkStore construction — one cheap
+        # metadata round-trip per digest; drop it once Alembic owns the schema.
         ensure_table_exists(self._engine)
 
     def upsert(self, link: SessionCheckLink) -> None:
@@ -299,56 +301,37 @@ class LinkStore:
 
 
 def _upsert_one(s: SASession, link: SessionCheckLink) -> None:
-    """INSERT OR IGNORE (SQLite) / INSERT … ON CONFLICT DO NOTHING (Postgres)."""
-    dialect = s.get_bind().dialect.name
-    if dialect == "postgresql":
-        from sqlalchemy import text
+    """INSERT OR IGNORE (SQLite) / INSERT … ON CONFLICT DO NOTHING (Postgres).
 
-        s.execute(
-            text(
-                "INSERT INTO session_checks "
-                "(id, session_id, workspace, pr_number, base_sha, head_sha, "
-                " kind, confidence, evidence) "
-                "VALUES (:id, :session_id, :workspace, :pr_number, :base_sha, "
-                "        :head_sha, :kind, :confidence, :evidence) "
-                "ON CONFLICT (session_id, workspace, evidence) DO NOTHING"
-            ),
-            {
-                "id": str(uuid.uuid4()),
-                "session_id": link.session_id,
-                "workspace": link.workspace,
-                "pr_number": link.pr_number,
-                "base_sha": link.base_sha,
-                "head_sha": link.head_sha,
-                "kind": link.kind,
-                "confidence": link.confidence,
-                "evidence": link.evidence,
-            },
-        )
+    Same columns/params on both dialects — only the conflict clause differs —
+    so build the statement once to keep the column list from drifting."""
+    from sqlalchemy import text
+
+    cols = ("(id, session_id, workspace, pr_number, base_sha, head_sha, "
+            " kind, confidence, evidence)")
+    vals = ("(:id, :session_id, :workspace, :pr_number, :base_sha, "
+            " :head_sha, :kind, :confidence, :evidence)")
+    if s.get_bind().dialect.name == "postgresql":
+        conflict = " ON CONFLICT (session_id, workspace, evidence) DO NOTHING"
+        verb = "INSERT INTO"
     else:
         # SQLite: INSERT OR IGNORE honours the unique constraint
-        from sqlalchemy import text
-
-        s.execute(
-            text(
-                "INSERT OR IGNORE INTO session_checks "
-                "(id, session_id, workspace, pr_number, base_sha, head_sha, "
-                " kind, confidence, evidence) "
-                "VALUES (:id, :session_id, :workspace, :pr_number, :base_sha, "
-                "        :head_sha, :kind, :confidence, :evidence)"
-            ),
-            {
-                "id": str(uuid.uuid4()),
-                "session_id": link.session_id,
-                "workspace": link.workspace,
-                "pr_number": link.pr_number,
-                "base_sha": link.base_sha,
-                "head_sha": link.head_sha,
-                "kind": link.kind,
-                "confidence": link.confidence,
-                "evidence": link.evidence,
-            },
-        )
+        conflict = ""
+        verb = "INSERT OR IGNORE INTO"
+    s.execute(
+        text(f"{verb} session_checks {cols} VALUES {vals}{conflict}"),
+        {
+            "id": str(uuid.uuid4()),
+            "session_id": link.session_id,
+            "workspace": link.workspace,
+            "pr_number": link.pr_number,
+            "base_sha": link.base_sha,
+            "head_sha": link.head_sha,
+            "kind": link.kind,
+            "confidence": link.confidence,
+            "evidence": link.evidence,
+        },
+    )
 
 
 def _row_to_link(row: SessionCheck) -> SessionCheckLink:

@@ -5,7 +5,52 @@ Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
 moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: ba5fe55
+last-reviewed: 81556f9
+
+## 2026-07-22 — tick over ba5fe55..81556f9 (U0: session_checks link table + trailer parser)
+
+Slice U0 added `quire/links.py` (a git-commit-trailer parser + a
+`session_checks` link table joining coding sessions to PR checks), plus small
+`session.py` / `db/__init__.py` changes. Review scoped to the ~500 lines of
+genuinely-new logic (the prior-tick fixes to feed/router/etc. that also fall
+in the range were excluded). One general-purpose agent, both lenses.
+
+Overall read: **clean, well-tested, defensively designed. No bugs.** The
+trailer parser uses a sentinel-block format (`---QUIRE-COMMIT---%n%H%n%B`) so
+a body line beginning `commit <hex>` (revert/cherry-pick) can't misalign
+block splitting — and that exact failure mode is tested. `git log failed`
+raises rather than silently returning `[]` (a broken repo ≠ "no trailers").
+Link creation is idempotent: unique `(session_id, workspace, evidence)` +
+dialect-appropriate ON CONFLICT DO NOTHING / INSERT OR IGNORE. The one broad
+`except Exception` (session.py) is deliberate failure-safe and directly
+test-gated. Product-surface: no findings (the two user-facing messages are
+clear, non-jargon).
+
+**Tier-1 applied (this commit):**
+- links.py `_upsert_one`: de-duplicated the copy-paste INSERT — the two
+  dialect branches repeated the full column list + params verbatim, differing
+  only in the conflict clause. Now built once (verb + cols/vals + conflict
+  suffix) so the column list can't drift. Idempotency tests still green.
+- links.py `LinkStore.__init__`: expanded the comment to flag the per-
+  construction `CREATE TABLE IF NOT EXISTS` cost (one metadata round-trip per
+  digest) and that it goes away once Alembic owns the schema.
+- test_links.py: fixed a stale class docstring claiming
+  `parse_trailers -> list[str] of session ids` (it returns `(sha, session_id)`
+  tuples).
+
+**Tier-2 logged (deferred):**
+- `upsert_from_yaml_record` does `int(pr)`; a hand-edited `sessions.yaml` with
+  a non-numeric `pr:` raises ValueError. Safe in the digest path (caught by
+  the failure-safe wrapper) but a bare yaml-replay caller would crash — coerce
+  non-int `pr` to "no link" (matching the existing truthiness gate). Judgment
+  call on desired behavior.
+- `base_sha`/`head_sha` on trailer links are the range endpoints, not the
+  commit's own SHA (evidence carries the specific commit). By design and
+  documented — but the field name invites a downstream misread; U1–U5 must not
+  treat `head_sha` as "the commit this session produced."
+
+Gate: `cd backend && python3 -m pytest` → 582 passed, 1 skipped. links import
+smoke-checked; idempotency tests confirm the SQL refactor.
 
 ## 2026-07-22 — tick over 2fb295a..ba5fe55 (migration slices 6–9: journal + MCP + API, TS decommissioned)
 

@@ -79,7 +79,7 @@ def link_store(engine):
 # ---------------------------------------------------------------------------
 
 class TestTrailerParsing:
-    """parse_trailers(git_log_text) -> list[str] of session ids.
+    """parse_trailers(git_log_text) -> list[(sha, session_id)] tuples.
 
     Input format: git log --format=---QUIRE-COMMIT---%n%H%n%B
     Each commit block is: sentinel line, full SHA line, then body.
