@@ -99,10 +99,31 @@ class DecisionRequest(BaseModel):
     operations: list[dict] | None = None  # present → edited approval (human-amended)
 
 
-def create_app(store: Store | None = None) -> FastAPI:
+def create_app(store: Store | None = None, org_store=None) -> FastAPI:
     workspace_mod.load_env()
     app = FastAPI(title="Quire Align", version="0.1.0")
     app.state.store = store or Store()
+
+    # ── Org API (O0) ────────────────────────────────────────────────────
+    # Failure-safe: a missing/unreachable Postgres (or the test-time guard
+    # on implicit production stores) must not take down the rest of the
+    # app — org endpoints degrade to 503, everything else works.
+    from quire.org_router import create_org_router
+
+    if org_store is None:
+        try:
+            from quire.org_store import OrgStore, seed_demo_org
+
+            org_store = OrgStore()
+            seed_demo_org(org_store)
+        except Exception as error:
+            logger.warning(
+                "org layer unavailable (%s: %s) — /api/org endpoints degrade to 503",
+                type(error).__name__,
+                error,
+            )
+            org_store = None
+    app.include_router(create_org_router(org_store, app.state.store))
 
     # ── Journal API (dashboard routes) ──────────────────────────────────
     from quire.journal.router import create_journal_router

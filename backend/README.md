@@ -112,7 +112,7 @@ python3 -m evals.fidelity             # fidelity eval (≥ TS baseline)
 
 The Postgres schema is frozen as inherited from the Drizzle migrations in the
 TS backend (history at git tag `ts-backend-final`). No Drizzle is present in
-the repo. Any future schema change starts by adopting Alembic: add it to
+the repo. Pre-Alembic bootstrap debt now spans 4 tables (session_checks, orgs, org_repos, org_channels) with an ALTER TABLE patch-forward firing on OrgStore init; Alembic adoption should retire all of it in one pass. Any future schema change starts by adopting Alembic: add it to
 `requirements.txt`, run `alembic init`, and write a migration for the change.
 
 ## Follow-ups (named, not yet implemented)

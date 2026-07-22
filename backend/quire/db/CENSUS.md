@@ -131,6 +131,48 @@ pre-Alembic bootstrap path; Alembic adoption (see `backend/README.md`
 **Unique constraint:** `(session_id, workspace, evidence)` — re-ingesting the
 same commit range is idempotent.
 
+## O0 — org tables (2026-07-22)
+
+**THREE NEW TABLES** — org platform layer.
+
+| Table | Readers | Writers | Verdict | Evidence |
+|-------|---------|---------|---------|----------|
+| `orgs` | `quire.org_store.OrgStore.get_org` | `quire.org_store.OrgStore.seed` | **LIVE** | backend/quire/org_store.py |
+| `org_repos` | `quire.org_store.OrgStore.list_repos`, `get_repo_card_data` | `quire.org_store.OrgStore.seed` | **LIVE** | backend/quire/org_store.py |
+| `org_channels` | (reserved for O5 delivery) | (reserved for O5) | **LIVE** | backend/quire/db/org_models.py |
+
+**Schema bootstrap:** `quire.db.org_models.ensure_org_tables(engine)` runs
+`CREATE TABLE IF NOT EXISTS` idempotently for all three. Called from
+`OrgStore.__init__()` and from the FastAPI app startup path.
+
+**Single-writer:** `quire.org_store.OrgStore` is the sole writer. No TS path exists.
+
+**Seeding:** `seed_demo_org(store)` is called at app startup (quire/api.py) to
+idempotently populate the "Quire" org with 6 dogfood repo residents:
+intent-ai, intent-ai-live, refund-agent, pydantic, telegram, quire-brain.
+quire-brain is frozen (read_only=True, status="frozen").
+
+**Columns: orgs**
+- `id` TEXT PK (stable slug, e.g. "quire")
+- `name` TEXT NOT NULL
+
+**Columns: org_repos**
+- `id` TEXT PK (workspace slug)
+- `org_id` TEXT NOT NULL (index)
+- `workspace` TEXT NOT NULL
+- `display_name` TEXT NOT NULL
+- `github_remote` TEXT NULL (nullable for local-only repos)
+- `status` TEXT NOT NULL — "active" | "fixture" | "frozen"
+- `read_only` BOOLEAN NOT NULL
+- `repository` TEXT NULL — alignment store's repository key when it differs from workspace name; NULL means workspace name is the key (e.g. "company/refund-agent" for the refund-agent resident)
+
+**Columns: org_channels**
+- `id` TEXT PK (UUID)
+- `org_id` TEXT NOT NULL (index)
+- `transport` TEXT NOT NULL — "telegram" | "slack"
+- `config` JSONB NOT NULL
+- `purposes` JSONB NOT NULL
+
 ## Drizzle/schema ownership (Slice 9 — CLOSED)
 
 The TS backend (`journal/`) is deleted as of Slice 9 (2026-07-22). The Postgres schema is

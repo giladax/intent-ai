@@ -90,3 +90,22 @@ def _no_implicit_production_link_store(monkeypatch):
             super().__init__(engine=engine)
 
     monkeypatch.setattr(links_mod, "LinkStore", GuardedLinkStore)
+
+
+@pytest.fixture(autouse=True)
+def _no_implicit_production_org_store(monkeypatch):
+    from quire import org_store as org_store_mod
+
+    real_org_store = org_store_mod.OrgStore
+
+    class GuardedOrgStore(real_org_store):
+        def __init__(self, engine=None):
+            if engine is None:
+                raise RuntimeError(
+                    "test constructed OrgStore() with no engine — this would "
+                    "write to production Postgres. Pass an explicit test "
+                    "engine: OrgStore(engine=make_test_engine())."
+                )
+            super().__init__(engine=engine)
+
+    monkeypatch.setattr(org_store_mod, "OrgStore", GuardedOrgStore)
