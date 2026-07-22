@@ -81,6 +81,15 @@ All of the following were green before the deletion commit:
 5. **Alignment store → Postgres** — the alignment subsystem still uses SQLite;
    migration to the shared Postgres is the ruled next step (single datastore).
 
+6. **Raw-transcript archive durability** (surfaced 2026-07-22) — the verbatim
+   `.jsonl` archive (`backend/.intent/raw-sessions/`) and the Postgres volume
+   both live on a single local disk: not in git, not backed up. Derived
+   understanding would survive a disk loss; the ability to re-digest/re-verify
+   from originals would not — and Claude Code purges its own copies after
+   ~30 days. Given "reasoning is paid for once" is the thesis, the raw layer
+   deserves durable storage (transcripts as DB blobs, object storage, or a
+   backup routine). Founder to scope when it matters.
+
 ## What's unblocked next
 
 - **PR-session unification plan** — now that the single Python backend owns both
