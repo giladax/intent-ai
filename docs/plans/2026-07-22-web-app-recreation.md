@@ -8,9 +8,9 @@
 
 ## Founder summary (read this, skip the rest)
 
-The new app opens on your org's **Front Page** — a real masthead, the morning lede the system wrote about your work, and every repo as a standing column. Adding a repo is pasting a URL and signing what it promises. A PR opens as a **marked-up manuscript**: the verdict in a sentence, and in the margin — where red ink has always lived — the promises it touches, the receipts, and "Reasoned in session…" from the agent that wrote it. Approvals happen at one **Inbox** desk, because in this product a human signature is the only source of authority. When a promise breaks, Telegram taps you and the link drops you on the exact annotated review. Two decisions are yours (⚑ E–F).
+The new app opens on your org's **Front Page** — a real masthead, the morning lede the system wrote about your work, and every repo as a standing column. Adding a repo is pasting a URL and signing what it promises. A PR opens as a **marked-up manuscript**: the verdict in a sentence, and in the margin — where red ink has always lived — the promises it touches, the receipts, and "Reasoned in session…" from the agent that wrote it. Approvals happen at one **Inbox** desk, because in this product a human signature is the only source of authority. When a promise breaks, Telegram taps you and the link drops you on the exact annotated review. Both decisions RULED 2026-07-22: ⚑ E — Broadsheet & Marginalia confirmed; ⚑ F — the Front Page is the landing.
 
-## The design language: Broadsheet & Marginalia (⚑ E)
+## The design language: Broadsheet & Marginalia (⚑ E — RULED 2026-07-22: confirmed)
 
 The current app's "Ink & Paper" editorial system (serif mastheads, mono chrome, six semantic inks, ledger rows, stamps) is already distinctive, founder-shaped, and semantically load-bearing. The recreation **pushes it further instead of sideways** — from "newspaper" to **the org's standing record: a broadsheet whose documents you annotate**:
 
@@ -42,7 +42,7 @@ Alternative considered and not recommended: the austere mono "instrument panel" 
 **Kill / keep / transform:**
 - **Keep** (carry forward): ChatDock/Correspondence, JournalPage river + lens mechanics, SessionsPage/SessionDetail/EvidenceWalk/ProvenancePanel, NotifButton, feed content (moves to Front Page).
 - **Transform:** FeaturesPage/FeatureDetail → lenses inside /journal (journal-as-product ruling: Features are lenses, not a nav section); ReviewQueue → Repo desk + manuscript; feed page → Front Page lede/trending.
-- **Kill:** lens-chat as the LANDING (⚑ F — Front Page is the landing; Correspondence one click away); DigestPanel (its endpoint is deprecated); Quality page retires to an ops corner or dies (implementer judgment at A6, report it).
+- **Kill:** lens-chat as the LANDING (⚑ F — RULED 2026-07-22: Front Page is the landing; Correspondence one click away); DigestPanel (its endpoint is deprecated); Quality page retires to an ops corner or dies (implementer judgment at A6, report it).
 - **Alignment server-rendered pages** (wizard HTML, intent ledger, mirror, inbox): the add-repo flow gets a NEW SPA surface at A1 (the wizard's engine serves it via O1's API); the **intent ledger stays server-rendered and linked** from the repo desk for the demo (honest scope), absorbed post-demo (A6+).
 
 ## Tech & structure
