@@ -164,9 +164,11 @@ class OrgStore:
                     {"ws": workspace},
                 )
                 return result.scalar_one() or 0
-        except (OperationalError, ProgrammingError):
+        except (OperationalError, ProgrammingError) as error:
             # session_checks may not exist yet in test/first-boot environments
-            # that only created org tables; return 0 gracefully.
+            # that only created org tables; return 0 gracefully. Logged so a
+            # real DB fault (locked/unreachable) isn't mistaken for "0 coupled".
+            logger.debug("count_coupled_sessions(%s) → 0: %s", workspace, error)
             return 0
 
     def get_repo_card_data(self, alignment_store) -> list[dict[str, Any]]:

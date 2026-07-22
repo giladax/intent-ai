@@ -5,7 +5,51 @@ Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
 moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: 81556f9
+last-reviewed: 0084932
+
+## 2026-07-22 — tick over 81556f9..0084932 (O0: org model, seed, card API)
+
+Slice O0 added the org platform: `db/org_models.py` (orgs/org_repos/
+org_channels), `org_store.py` (store + demo seed), `org_router.py` (the card
+API), wired via api.py. Review scoped to the ~425 lines of new logic (the
+prior-tick links.py fix in the range was excluded). One agent, both lenses.
+
+Overall read: **solid, well-tested, honestly transitional (pre-Alembic, and
+says so). No showstoppers.** Seed is idempotent (read-before-insert +
+patch-forward that only backfills NULLs, never overwrites edits — both
+tested). No session leaks (every session is `with`-scoped and commits). Both
+503 degradation paths (org_store None / unseeded) are covered; startup wiring
+wraps org init in a broad try/except so a DB failure can't take down the app.
+
+**Tier-1 applied (this commit):**
+- org_models.py: added the missing `ForeignKey("orgs.id")` on
+  `OrgRepo.org_id` and `OrgChannel.org_id` — tables are created from the ORM
+  metadata and the seed inserts orgs first, so it's a free correctness
+  guarantee (enforced on Postgres) against orphan/dangling repos. Full suite
+  green after.
+- org_models.py: the patch-forward `ALTER TABLE … ADD COLUMN` swallow was a
+  bare `pass`; now logs at debug so a genuinely broken ALTER (permissions) is
+  discoverable rather than silent.
+- org_store.py `count_coupled_sessions`: the `except (OperationalError,
+  ProgrammingError): return 0` (missing-table → 0) also masked real DB faults
+  (locks/unreachable) as a silently-wrong "0 coupled" on a user-facing card;
+  added a debug log before the graceful 0.
+- org_router.py: 503 detail "Org not seeded — call seed_demo_org() at startup"
+  leaked a Python function name to the HTTP surface; reworded to "Org not
+  initialized — the org data has not been seeded yet".
+
+**Tier-2 logged (deferred):**
+- N+1 in card composition: get_repo_card_data opens ~1+6+6 sessions/queries
+  per render (fine at 6-repo demo scale; count_coupled_sessions could be one
+  GROUP BY). Not urgent.
+- Single-org assumption baked in (`org_id="quire"` default; get_org's
+  scalar_one_or_none raises MultipleResultsFound once a 2nd org exists) — fine
+  for O0's single-seed scope; revisit at multi-org.
+- No ORM relationship/cascade + no delete path: with the FK now declared, a
+  future org delete needs a cascade/orphan decision.
+
+Gate: `cd backend && python3 -m pytest` → 606 passed, 1 skipped. Modules
+import smoke-checked; org/seed/FK tests confirm the DDL change.
 
 ## 2026-07-22 — tick over ba5fe55..81556f9 (U0: session_checks link table + trailer parser)
 

@@ -42,7 +42,7 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         if org is None:
             raise HTTPException(
                 503,
-                "Org not seeded — call seed_demo_org() at startup",
+                "Org not initialized — the org data has not been seeded yet",
             )
         cards = org_store.get_repo_card_data(alignment_store)
         return {

@@ -17,10 +17,14 @@ CENSUS.md entry added: O0 — orgs, org_repos, org_channels.
 """
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Column, String, Text, UniqueConstraint
+import logging
+
+from sqlalchemy import Boolean, Column, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.types import JSON
 
 from quire.db.models import Base
+
+logger = logging.getLogger(__name__)
 
 
 class Org(Base):
@@ -50,7 +54,7 @@ class OrgRepo(Base):
     )
 
     id: str = Column(String, primary_key=True)    # stable slug = workspace name
-    org_id: str = Column(String, nullable=False, index=True)
+    org_id: str = Column(String, ForeignKey("orgs.id"), nullable=False, index=True)
     workspace: str = Column(Text, nullable=False)   # key into workspaces/
     display_name: str = Column(Text, nullable=False)
     github_remote: str | None = Column(Text, nullable=True)
@@ -70,7 +74,7 @@ class OrgChannel(Base):
     __tablename__ = "org_channels"
 
     id: str = Column(String, primary_key=True)
-    org_id: str = Column(String, nullable=False, index=True)
+    org_id: str = Column(String, ForeignKey("orgs.id"), nullable=False, index=True)
     transport: str = Column(Text, nullable=False)    # "telegram" | "slack"
     config: dict = Column(JSON, nullable=False, default=dict)
     purposes: list = Column(JSON, nullable=False, default=list)
@@ -103,6 +107,8 @@ def ensure_org_tables(engine) -> None:
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE org_repos ADD COLUMN repository TEXT"))
             conn.commit()
-    except (OperationalError, ProgrammingError):
-        # Column already exists — that's fine, skip.
-        pass
+    except (OperationalError, ProgrammingError) as error:
+        # Almost always "duplicate column" — the column is already there, skip.
+        # Logged at debug so a genuinely broken ALTER (e.g. permissions) is
+        # still discoverable rather than silently swallowed.
+        logger.debug("org_repos.repository patch-forward skipped: %s", error)
