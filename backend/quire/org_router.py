@@ -62,4 +62,16 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         cards = org_store.get_repo_card_data(alignment_store)
         return cards
 
+    @router.get("/api/org/docket")
+    def get_org_docket():
+        """The Docket — decisions awaiting a human's signature, ranked by
+        stakes, as sentences with links. An empty Docket is a first-class
+        quiet state: nothing needs you right now."""
+        if org_store is None:
+            raise HTTPException(
+                503,
+                "org layer unavailable — Postgres unreachable at startup",
+            )
+        return org_store.get_docket(alignment_store)
+
     return router

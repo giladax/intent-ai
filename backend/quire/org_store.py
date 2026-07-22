@@ -78,6 +78,26 @@ DEMO_REPOS: list[dict[str, Any]] = [
 
 
 # ---------------------------------------------------------------------------
+# The Docket — decisions awaiting a human, ranked on one severity scale so the
+# Front Page, the daily "anything waiting?" tap, and the phone all agree on
+# order. Mirrors the alarm policy's severity rank (alarms._RANK).
+# ---------------------------------------------------------------------------
+
+_DOCKET_RANK = {"critical": 0, "high": 1, "medium": 2, "info": 3}
+
+# A pending review's stakes, read from its verdict — how loudly it wants you.
+_VERDICT_SEVERITY = {
+    "OFF_INTENT": "critical",       # contradicts intent
+    "PARTIAL": "high",
+    "POSSIBLE_DRIFT": "high",
+    "UNKNOWN": "medium",            # needs review
+    "UNGOVERNED": "medium",         # not covered
+    "NO_MATERIAL_IMPACT": "info",
+    "ALIGNED": "info",
+}
+
+
+# ---------------------------------------------------------------------------
 # OrgStore
 # ---------------------------------------------------------------------------
 
@@ -226,6 +246,52 @@ class OrgStore:
                 "intent_ledger_url": f"/intent/{ws}",
             })
         return cards
+
+    def get_docket(self, alignment_store) -> list[dict[str, Any]]:
+        """The Docket: the decisions awaiting a human's signature, ranked by
+        stakes, as sentences with links. Pure composition over existing
+        evidence — no new store; an empty Docket is a first-class quiet state
+        (nothing needs you).
+
+        Today's source is pending PR reviews (the alignment store). Repo
+        drafts, `watched` residents, and intent cards join the same ranked
+        list as later slices add them — the ranking scale is shared so every
+        surface (page, tap, phone) agrees on what matters most.
+        """
+        from quire.analysis.render import DISPLAY_LABELS
+        from quire.models import ReviewState
+
+        try:
+            analyses = alignment_store.list_analyses()
+        except Exception as error:
+            logger.warning(
+                "docket: list_analyses failed (%s: %s) — Docket may be incomplete",
+                type(error).__name__, error,
+            )
+            return []
+
+        rows = []
+        for a in analyses:
+            if a.review_state != ReviewState.PENDING:
+                continue  # only what a human still has to sign
+            label = DISPLAY_LABELS.get(a.classification, a.classification.value)
+            severity = _VERDICT_SEVERITY.get(a.classification.value, "medium")
+            item = {
+                "id": a.analysis_id,
+                "kind": "review",
+                "severity": severity,
+                # meaning first — the verdict, then which PR; the id is a footnote
+                "sentence": f"{label} — PR {a.pr_number} on {a.repository}, "
+                            "awaiting your signature",
+                "link": f"/review/{a.analysis_id}",
+                "repo": a.repository,
+                "ts": a.created_at.isoformat() if a.created_at else "",
+            }
+            # sort key: loudest first, then newest first
+            rows.append((_DOCKET_RANK.get(severity, 9), -a.created_at.timestamp(), item))
+
+        rows.sort(key=lambda r: (r[0], r[1]))
+        return [r[2] for r in rows]
 
 
 # ---------------------------------------------------------------------------

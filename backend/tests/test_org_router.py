@@ -125,3 +125,48 @@ def test_get_repos_returns_503_when_org_store_none(alignment_store):
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.get("/api/org/repos")
     assert resp.status_code == 503
+
+
+# ── The Docket (slice 1) ────────────────────────────────────────────────
+
+def _pending_review(analysis_id: str, repo: str, pr: int, classification):
+    """A minimal PRAnalysis in the PENDING (awaiting-signature) state."""
+    from quire.models import PRAnalysis, ReviewState
+    return PRAnalysis(
+        analysis_id=analysis_id, workflow_id="wf", repository=repo, pr_number=pr,
+        base_sha="b" * 40, head_sha="h" * 40, contract_snapshot_id="cs",
+        analyzer_version="v1", classification=classification,
+        review_state=ReviewState.PENDING, human_review_required=True,
+    )
+
+
+def test_docket_empty_is_a_quiet_state(client):
+    """Nothing pending → an empty list (not an error). Silence is first-class."""
+    assert client.get("/api/org/docket").json() == []
+
+
+def test_docket_ranks_pending_reviews_by_stakes(client, alignment_store):
+    """Pending reviews surface as sentences, loudest verdict first; a settled
+    review never appears."""
+    from quire.models import Classification, ReviewState
+    alignment_store.save_analysis(_pending_review("a-info", "intent-ai", 1, Classification.NO_MATERIAL_IMPACT))
+    alignment_store.save_analysis(_pending_review("a-crit", "intent-ai", 2, Classification.OFF_INTENT))
+    alignment_store.save_analysis(_pending_review("a-high", "intent-ai", 3, Classification.PARTIAL))
+    settled = _pending_review("a-settled", "intent-ai", 4, Classification.OFF_INTENT)
+    settled.review_state = ReviewState.APPROVED
+    alignment_store.save_analysis(settled)
+
+    docket = client.get("/api/org/docket").json()
+    assert [d["id"] for d in docket] == ["a-crit", "a-high", "a-info"]  # ranked; settled excluded
+    assert docket[0]["severity"] == "critical"
+    assert docket[0]["kind"] == "review"
+    assert "awaiting your signature" in docket[0]["sentence"]
+    assert docket[0]["link"] == "/review/a-crit"
+
+
+def test_docket_returns_503_when_org_store_none(alignment_store):
+    from quire.org_router import create_org_router
+    app = FastAPI()
+    app.include_router(create_org_router(None, alignment_store))
+    client = TestClient(app, raise_server_exceptions=False)
+    assert client.get("/api/org/docket").status_code == 503
