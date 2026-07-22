@@ -5,7 +5,39 @@ Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
 moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: 0084932
+last-reviewed: 0fa325f
+
+## 2026-07-22 — tick over 0084932..0fa325f (the Docket endpoint)
+
+Reviewed the one genuinely-new, not-yet-agent-reviewed slice: the Docket
+(`org_store.get_docket` + `GET /api/org/docket`, commit 0fa325f). The other
+files in the range are the Tier-2 sweep (fe6b4c4) — mechanical edits derived
+from the prior review, already test-gated — out of scope. One agent, both
+lenses.
+
+Verdict: ranking is correct (stable full-tuple sort, complete Classification
+coverage, all-aware datetimes), exception handling degrades cleanly, no
+cross-store SQL / N+1. The one finding that mattered was product-language.
+
+**Tier-1 applied:**
+- **Plain-language verdict phrases (the important one).** The Docket built its
+  sentence from `DISPLAY_LABELS` — the SHOUTING CLI/GitHub tokens
+  ("CONTRADICTS INTENT", "NOT COVERED") — exactly the jargon the founder's
+  plain-language rule replaces. Added `_DOCKET_VERDICT_PHRASE` (plain, "Rule"
+  vocabulary: "Breaks a rule", "Partly kept", "No rule yet", …) and build the
+  sentence from it. Test now pins plain wording and forbids the shouty label.
+- Sentence tail "awaiting your signature" → dropped (plainer; the Docket *is*
+  the needs-you list). Sentence is now "Breaks a rule — PR 101 on refund-agent".
+- Fallback rank `9` → `99` to actually match the `alarms._RANK` mirror it
+  claims to copy (harmless today; the map covers all severities).
+- `created_at` guard made consistent: compute `recency` once (guarded), used
+  by both the `ts` field and the sort key (was guarded on one, not the other).
+
+**Tier-2 logged (deferred):** `list_analyses()` loads the full analysis history
+then filters to PENDING in Python — fine at MVP scale, but push a
+`review_state`/limit filter into the query before it grows.
+
+Gate: `cd backend && python3 -m pytest` → 609 passed, 1 skipped.
 
 ## 2026-07-22 — Tier-2 backlog sweep (not a review tick)
 

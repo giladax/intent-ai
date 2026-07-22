@@ -96,6 +96,21 @@ _VERDICT_SEVERITY = {
     "ALIGNED": "info",
 }
 
+# Plain-language verdict phrase for the Docket sentence — NOT the CLI/GitHub
+# DISPLAY_LABELS (which SHOUT in caps: "CONTRADICTS INTENT"). The Front Page
+# reads in plain words a non-native speaker gets: "Breaks a rule", not jargon.
+# Exhaustive over Classification; a new enum value should get a deliberate
+# phrase here rather than silently falling back.
+_DOCKET_VERDICT_PHRASE = {
+    "OFF_INTENT": "Breaks a rule",
+    "PARTIAL": "Partly kept",
+    "POSSIBLE_DRIFT": "May be drifting from a rule",
+    "UNKNOWN": "Needs your review",
+    "UNGOVERNED": "No rule yet",
+    "NO_MATERIAL_IMPACT": "No product impact",
+    "ALIGNED": "Follows the rules",
+}
+
 
 # ---------------------------------------------------------------------------
 # OrgStore
@@ -258,7 +273,6 @@ class OrgStore:
         list as later slices add them — the ranking scale is shared so every
         surface (page, tap, phone) agrees on what matters most.
         """
-        from quire.analysis.render import DISPLAY_LABELS
         from quire.models import ReviewState
 
         try:
@@ -273,22 +287,23 @@ class OrgStore:
         rows = []
         for a in analyses:
             if a.review_state != ReviewState.PENDING:
-                continue  # only what a human still has to sign
-            label = DISPLAY_LABELS.get(a.classification, a.classification.value)
-            severity = _VERDICT_SEVERITY.get(a.classification.value, "medium")
+                continue  # only what a human still has to review
+            verdict = a.classification.value
+            phrase = _DOCKET_VERDICT_PHRASE.get(verdict, "Needs your review")
+            severity = _VERDICT_SEVERITY.get(verdict, "medium")
+            recency = a.created_at.timestamp() if a.created_at else 0.0
             item = {
                 "id": a.analysis_id,
                 "kind": "review",
                 "severity": severity,
-                # meaning first — the verdict, then which PR; the id is a footnote
-                "sentence": f"{label} — PR {a.pr_number} on {a.repository}, "
-                            "awaiting your signature",
+                # plain words, meaning first — the verdict, then which PR
+                "sentence": f"{phrase} — PR {a.pr_number} on {a.repository}",
                 "link": f"/review/{a.analysis_id}",
                 "repo": a.repository,
                 "ts": a.created_at.isoformat() if a.created_at else "",
             }
-            # sort key: loudest first, then newest first
-            rows.append((_DOCKET_RANK.get(severity, 9), -a.created_at.timestamp(), item))
+            # sort key: loudest first (fallback 99 matches alarms._RANK), then newest
+            rows.append((_DOCKET_RANK.get(severity, 99), -recency, item))
 
         rows.sort(key=lambda r: (r[0], r[1]))
         return [r[2] for r in rows]

@@ -160,7 +160,9 @@ def test_docket_ranks_pending_reviews_by_stakes(client, alignment_store):
     assert [d["id"] for d in docket] == ["a-crit", "a-high", "a-info"]  # ranked; settled excluded
     assert docket[0]["severity"] == "critical"
     assert docket[0]["kind"] == "review"
-    assert "awaiting your signature" in docket[0]["sentence"]
+    # plain language, not the shouting CLI label ("CONTRADICTS INTENT")
+    assert docket[0]["sentence"].startswith("Breaks a rule")
+    assert "CONTRADICTS" not in docket[0]["sentence"]
     assert docket[0]["link"] == "/review/a-crit"
 
 
