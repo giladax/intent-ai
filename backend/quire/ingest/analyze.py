@@ -25,6 +25,7 @@ from .models import (
     PipelineDirectives,
     PromptSections,
     ExchangeSummary,
+    build_exchanges,
 )
 
 
@@ -35,37 +36,12 @@ def analyze_interactions(events: list[NormalizedDevEvent]) -> PipelineDirectives
     the structural signals available without LLM classification (question mark
     detection, passive acceptance via short responses, etc.).
     """
-    exchanges = _build_exchanges(events)
+    exchanges = build_exchanges(events)
 
     if not exchanges:
         return _empty_directives()
 
     return _compute_directives_structural(exchanges)
-
-
-def _build_exchanges(events: list[NormalizedDevEvent]) -> list[TurnExchange]:
-    """Pair each intent event with all following events until the next intent."""
-    exchanges: list[TurnExchange] = []
-    intent_indices = [i for i, e in enumerate(events) if e.category == "intent"]
-
-    for k, dev_idx in enumerate(intent_indices):
-        dev_event = events[dev_idx]
-        next_intent_idx = intent_indices[k + 1] if k + 1 < len(intent_indices) else len(events)
-        ai_turn_events = events[dev_idx + 1:next_intent_idx]
-        dev_detail = dev_event.content.detail
-
-        exchanges.append(TurnExchange(
-            dev_event=dev_event,
-            ai_turn_events=ai_turn_events,
-            dev_response_chars=len(dev_detail),
-            dev_asked_question="?" in dev_detail,
-            dev_used_reasoning=False,         # Haiku determines this
-            dev_introduced_new_topic=False,   # Haiku determines this
-            ai_proposed_multiple_options=False,  # Haiku determines this
-            dev_responded_to_all_options=False,
-        ))
-
-    return exchanges
 
 
 def _compute_directives_structural(exchanges: list[TurnExchange]) -> PipelineDirectives:

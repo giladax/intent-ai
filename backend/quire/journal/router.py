@@ -1619,18 +1619,20 @@ def create_journal_router() -> APIRouter:
             ).mappings().all()
             digested_hashes = {r["source_hash"] for r in source_hash_rows}
 
-        # Scan ~/.claude/projects for logs matching the project slug
+        # Scan ~/.claude/projects for logs matching the project slug.
+        # islice both globs so we stop after 20 matches instead of walking
+        # every project on the machine (the recursive fallback could be huge).
+        from itertools import islice
         from pathlib import Path
         cc_projects_dir = Path.home() / ".claude" / "projects"
         log_paths = []
         if cc_projects_dir.exists():
             # Claude Code stores logs under ~/.claude/projects/<project-slug>/*.jsonl
-            for jsonl in cc_projects_dir.glob(f"*{project_path_slug}*/*.jsonl"):
-                log_paths.append(str(jsonl))
+            log_paths = [str(p) for p in islice(
+                cc_projects_dir.glob(f"*{project_path_slug}*/*.jsonl"), 20)]
             if not log_paths:
-                for jsonl in cc_projects_dir.glob("**/*.jsonl"):
-                    log_paths.append(str(jsonl))
-        log_paths = log_paths[:20]
+                log_paths = [str(p) for p in islice(
+                    cc_projects_dir.glob("**/*.jsonl"), 20)]
 
         undigested = [p for p in log_paths if Path(p).stem not in digested_hashes]
 

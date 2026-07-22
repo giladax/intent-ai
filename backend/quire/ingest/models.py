@@ -65,6 +65,35 @@ class TurnExchange(BaseModel):
     dev_responded_to_all_options: bool
 
 
+def build_exchanges(events: list[NormalizedDevEvent]) -> list[TurnExchange]:
+    """Pair each intent event with all following events until the next intent.
+
+    Shared by both the dry-run (ingest.analyze) and live (understand.steps)
+    paths — the structural flags (reasoning/topic/options) default False here
+    and are filled by Haiku classification on the live path only.
+    """
+    exchanges: list[TurnExchange] = []
+    intent_indices = [i for i, e in enumerate(events) if e.category == "intent"]
+    for k, dev_idx in enumerate(intent_indices):
+        dev_event = events[dev_idx]
+        next_intent_idx = (
+            intent_indices[k + 1] if k + 1 < len(intent_indices) else len(events)
+        )
+        ai_turn_events = events[dev_idx + 1:next_intent_idx]
+        dev_detail = dev_event.content.detail
+        exchanges.append(TurnExchange(
+            dev_event=dev_event,
+            ai_turn_events=ai_turn_events,
+            dev_response_chars=len(dev_detail),
+            dev_asked_question="?" in dev_detail,
+            dev_used_reasoning=False,
+            dev_introduced_new_topic=False,
+            ai_proposed_multiple_options=False,
+            dev_responded_to_all_options=False,
+        ))
+    return exchanges
+
+
 # ── 4. Pipeline directives ────────────────────────────────────────────
 
 class PromptSections(BaseModel):

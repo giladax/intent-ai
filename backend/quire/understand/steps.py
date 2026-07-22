@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from quire.ingest.models import NormalizedDevEvent, SessionChunk, TurnExchange
+from quire.ingest.models import NormalizedDevEvent, SessionChunk, TurnExchange, build_exchanges
 from quire.understand import prompts
 from quire.understand.dedup import Pass1Moment, dedup_moments
 from quire.understand.models import (
@@ -106,31 +106,6 @@ def detect_topic_shifts(llm, events: list[NormalizedDevEvent]) -> set[str]:
 # ── analyze (directives) — LIVE path uses real Haiku classify_exchanges ──
 
 
-def _build_exchanges(events: list[NormalizedDevEvent]) -> list[TurnExchange]:
-    exchanges: list[TurnExchange] = []
-    intent_indices = [i for i, e in enumerate(events) if e.category == "intent"]
-    for k, dev_idx in enumerate(intent_indices):
-        dev_event = events[dev_idx]
-        next_intent_idx = (
-            intent_indices[k + 1] if k + 1 < len(intent_indices) else len(events)
-        )
-        ai_turn_events = events[dev_idx + 1 : next_intent_idx]
-        dev_detail = dev_event.content.detail
-        exchanges.append(
-            TurnExchange(
-                dev_event=dev_event,
-                ai_turn_events=ai_turn_events,
-                dev_response_chars=len(dev_detail),
-                dev_asked_question="?" in dev_detail,
-                dev_used_reasoning=False,
-                dev_introduced_new_topic=False,
-                ai_proposed_multiple_options=False,
-                dev_responded_to_all_options=False,
-            )
-        )
-    return exchanges
-
-
 def classify_exchanges(llm, exchanges: list[TurnExchange]) -> list:
     """Real Haiku call; pad/trim to exactly len(exchanges) (TS semantics)."""
     from quire.understand.schemas import ExchangeClassification
@@ -162,7 +137,7 @@ def analyze_interactions_live(llm, events: list[NormalizedDevEvent]):
         PromptSections,
     )
 
-    exchanges = _build_exchanges(events)
+    exchanges = build_exchanges(events)
     if not exchanges:
         return PipelineDirectives(
             prompt_sections=PromptSections(

@@ -7,6 +7,38 @@ moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
 last-reviewed: 0084932
 
+## 2026-07-22 — Tier-2 backlog sweep (not a review tick)
+
+Founder asked to clear the Tier-2 items logged across the migration ticks
+(2fb295a, ba5fe55, 81556f9, 0084932). Cleared:
+- **Duplicate `_build_exchanges`** (ingest/analyze + understand/steps, byte-
+  identical) → one canonical `build_exchanges` in ingest/models.py, imported
+  by both. Test updated to the new location.
+- **`int(pr)` crash** in links.upsert_from_yaml_record on non-numeric yaml
+  `pr:` → coerce-or-skip (treated as "no link", matching the falsy gate).
+- **feed compose-lock** held across LLM calls with an untimed blocking
+  acquire → bounded `acquire(timeout=_COMPOSE_WAIT_SECONDS=30)`, serve
+  skeleton on timeout instead of pinning the worker.
+- **brain_discover unbounded glob** → `islice(…, 20)` on both globs so it
+  stops after 20 matches instead of walking every project on the machine.
+- **MCP actor hardcoding** (5 sites) → one `_MCP_ACTOR` constant with a
+  comment documenting the TS per-client attribution gap (one-line change when
+  FastMCP surfaces client info).
+- Clarifying comments: normalize.py dead `u-`/`a-` threading branches
+  (synthetic-fixture-only, parity-gated); links trailer base_sha/head_sha are
+  range endpoints, not the session's own commit.
+
+Left as-is / still deferred (with reason):
+- `--force` LLM purge (2fb295a tick): now intended + documented behavior
+  ("consents to purging LLM rows"); guard is reachable via the no-force path.
+- Logging the ~12 `except Exception: return <empty>` read endpoints
+  (ba5fe55 tick): high-churn observability change; separate focused pass.
+- Org card N+1 and single-org `scalar_one_or_none` (0084932 tick): acceptable
+  at O0 single-org / 6-repo demo scale; revisit at multi-org.
+- Org delete/cascade path: no delete exists yet; decide when it lands.
+
+Gate: `cd backend && python3 -m pytest` → 606 passed, 1 skipped.
+
 ## 2026-07-22 — tick over 81556f9..0084932 (O0: org model, seed, card API)
 
 Slice O0 added the org platform: `db/org_models.py` (orgs/org_repos/

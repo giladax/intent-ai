@@ -88,6 +88,13 @@ def _get_repo_context(cwd: Optional[str] = None) -> dict:
 
 _REPO_CTX = _get_repo_context()
 
+# Actor stamped on every MCP-read event. NOTE (attribution gap vs the TS
+# server): the TS MCP derived a per-client actor from the initialize
+# clientInfo (e.g. "agent:claude-code"); FastMCP does not surface that here,
+# so all reads collapse to one generic actor. Centralized so per-client
+# attribution is a one-line change once FastMCP exposes client info.
+_MCP_ACTOR = "agent:mcp-client"
+
 # ── FastMCP app ──────────────────────────────────────────────────────────
 
 mcp = FastMCP("intent-brain")
@@ -109,7 +116,7 @@ def _emit_read(
         outcome=outcome,
         summary=summary,
         latency_ms=latency_ms,
-        actor="agent:mcp-client",
+        actor=_MCP_ACTOR,
         repo=_REPO_CTX.get("repo"),
         branch=_REPO_CTX.get("branch"),
         session_id=session_id,
@@ -518,7 +525,7 @@ def brain_report_observation(
             kind=kind or "observation",
             summary=summary,
             feature_id=featureId,
-            actor="agent:mcp-client",
+            actor=_MCP_ACTOR,
             session_id=sessionId,
             repo=_REPO_CTX.get("repo"),
             branch=_REPO_CTX.get("branch"),
@@ -546,7 +553,7 @@ def brain_report_unknown(
             kind="unknown",
             summary=summary,
             feature_id=featureId,
-            actor="agent:mcp-client",
+            actor=_MCP_ACTOR,
             session_id=sessionId,
             repo=_REPO_CTX.get("repo"),
             branch=_REPO_CTX.get("branch"),
@@ -573,7 +580,7 @@ def brain_rate_context(
             kind="context-rating",
             summary=summary,
             feature_id=featureId,
-            actor="agent:mcp-client",
+            actor=_MCP_ACTOR,
             session_id=sessionId,
             repo=_REPO_CTX.get("repo"),
             branch=_REPO_CTX.get("branch"),
@@ -600,7 +607,7 @@ def brain_propose_knowledge_delta(
             kind="knowledge-delta",
             summary=summary,
             feature_id=featureId,
-            actor="agent:mcp-client",
+            actor=_MCP_ACTOR,
             session_id=sessionId,
             repo=_REPO_CTX.get("repo"),
             branch=_REPO_CTX.get("branch"),

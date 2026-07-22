@@ -564,7 +564,8 @@ def test_classify_exchanges_pads_and_trims_to_input_length():
         BatchClassificationOutput,
         ExchangeClassification,
     )
-    from quire.understand.steps import _build_exchanges, classify_exchanges
+    from quire.ingest.models import build_exchanges
+    from quire.understand.steps import classify_exchanges
 
     events = [
         _ev(0, "intent", "user", "first"),
@@ -572,7 +573,7 @@ def test_classify_exchanges_pads_and_trims_to_input_length():
         _ev(2, "intent", "user", "second"),
         _ev(3, "intent", "user", "third"),
     ]
-    exchanges = _build_exchanges(events)
+    exchanges = build_exchanges(events)
     assert len(exchanges) == 3
 
     # Model returns only ONE classification → padded with passive defaults

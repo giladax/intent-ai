@@ -226,6 +226,10 @@ def extract_trailer_links(
     pairs = parse_trailers(log_text)
     links: list[SessionCheckLink] = []
     for full_sha, session_id in pairs:
+        # NOTE: base_sha/head_sha are the RANGE endpoints passed by the caller,
+        # shared by every link in the range — NOT the individual commit that
+        # carried this trailer. `evidence` (full_sha) is that specific commit.
+        # Downstream must not read head_sha as "the commit this session produced."
         links.append(SessionCheckLink(
             session_id=session_id,
             workspace=workspace,
@@ -378,6 +382,13 @@ def upsert_from_yaml_record(
     pr = record.get("pr")
     if not pr:
         return
+    # A hand-edited sessions.yaml may carry a non-numeric `pr:`. Treat that as
+    # "no link" (consistent with the falsy gate above) rather than raising —
+    # replay callers outside the digest's failure-safe wrapper must not crash.
+    try:
+        pr_number = int(pr)
+    except (TypeError, ValueError):
+        return
 
     if link_store is None:
         link_store = LinkStore()
@@ -386,7 +397,7 @@ def upsert_from_yaml_record(
     link_store.upsert(SessionCheckLink(
         session_id=session_id,
         workspace=record.get("workspace", ""),
-        pr_number=int(pr),
+        pr_number=pr_number,
         base_sha=record.get("base_sha") or "",
         head_sha=record.get("head_sha") or "",
         kind="attached",

@@ -355,6 +355,11 @@ def _assign_responding_to(
 
     for event in events:
         turn_id = event.turn_id
+        # NOTE: real CC turn_ids are message UUIDs, which never start with
+        # "u-"/"a-" — so these prefixes only match synthetic fixture ids, and
+        # the branches they gate are dead on production sessions. Kept verbatim
+        # from the TS source (parity-gated); do not assume threading is fully
+        # wired for real logs on the strength of this.
         is_user_turn = turn_id.startswith("u-")
         is_ai_turn = turn_id.startswith("a-")
 

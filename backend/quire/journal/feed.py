@@ -58,6 +58,9 @@ Output ONLY valid JSON matching the schema requested. No markdown, no explanatio
 # ── Module-level in-flight lock ─────────────────────────────────────────────
 
 _compose_lock = threading.Lock()
+# Max seconds a waiter blocks on an in-flight compose before serving the
+# skeleton — a generous ceiling over the 1 lede + up to 2 story LLM calls.
+_COMPOSE_WAIT_SECONDS = 30.0
 
 # ── Pydantic schemas for LLM outputs ────────────────────────────────────────
 
@@ -640,11 +643,15 @@ def get_feed_or_compose(db_session, force_refresh: bool = False) -> dict:
     if feed and not force_refresh:
         return feed
 
-    # Try to become the composer; if lock is taken, wait then re-read cache.
+    # Try to become the composer; if the lock is taken, wait (bounded) for the
+    # in-flight compose, then re-read its cache. The timeout stops one slow LLM
+    # compose from pinning every waiting /api/feed worker indefinitely — on
+    # timeout we serve the skeleton rather than block.
     acquired = _compose_lock.acquire(blocking=False)
     if not acquired:
-        _compose_lock.acquire(blocking=True)
-        _compose_lock.release()
+        got = _compose_lock.acquire(timeout=_COMPOSE_WAIT_SECONDS)
+        if got:
+            _compose_lock.release()
         feed, _ = get_cached_feed(db_session)
         return feed or build_skeleton_feed()
 
