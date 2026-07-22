@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quire — The Front Page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,300;1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@400;500;600&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #1e1b14;
+    --ink-soft: #524c3d;
+    --faint: #8b8474;
+    --hair: #d8d0bd;
+    --hair-soft: #e6dfce;
+    --paper: #f6f1e4;
+    --paper-raise: #fbf7ec;
+    --wash: #ece5d3;
+    --red: #b23a26;
+    --moss: #4a7355;
+    --gold: #b07a1e;
+    --gray: #8b8474;
+    --consult: #3a5a86;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+    --mono: "Spline Sans Mono", ui-monospace, Menlo, monospace;
+    --sans: "Hanken Grotesk", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    /* the faint grain of newsprint — restraint, no kitsch */
+    background-image:
+      radial-gradient(circle at 20% 12%, rgba(120,110,80,0.025) 0, transparent 55%),
+      radial-gradient(circle at 82% 78%, rgba(120,110,80,0.02) 0, transparent 50%);
+    min-height:100vh;
+  }
+  .sheet{ max-width: 1180px; margin: 0 auto; padding: 0 44px 80px; }
+
+  /* ── The masthead folio line ─────────────────────────────── */
+  .folio{
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.18em;
+    text-transform:uppercase; color:var(--faint);
+    padding:18px 0 14px;
+  }
+  .folio .k{ color:var(--ink-soft); font-weight:600; }
+  .folio-nav{ display:flex; gap:26px; }
+  .folio-nav a{ color:var(--faint); text-decoration:none; position:relative; padding-bottom:3px; }
+  .folio-nav a[data-active]{ color:var(--ink); }
+  .folio-nav a[data-active]::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:1px; background:var(--ink);
+  }
+
+  /* nameplate */
+  .nameplate{
+    border-top:1px solid var(--ink);
+    border-bottom:3px double var(--ink);
+    text-align:center;
+    padding:20px 0 16px;
+  }
+  .nameplate h1{
+    font-family:var(--serif); font-weight:500; font-size:88px; letter-spacing:0.01em;
+    line-height:0.92; color:var(--ink);
+  }
+  .nameplate .tag{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.42em; text-transform:uppercase;
+    color:var(--faint); margin-top:10px; padding-left:0.42em;
+  }
+  .subfolio{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--faint); padding:9px 0; border-bottom:1px solid var(--hair);
+  }
+  .subfolio .mid{ font-style:normal; letter-spacing:0.24em; }
+
+  /* ── Body grid: lede column | trending rail ─────────────── */
+  .body-grid{
+    display:grid; grid-template-columns: 1fr 300px; gap:0;
+    margin-top:6px;
+  }
+  .lede-col{ padding:26px 40px 0 0; border-right:1px solid var(--hair); }
+  .rail-col{ padding:26px 0 0 34px; }
+
+  /* the lede */
+  .lede-kicker{
+    font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--red);
+    display:flex; align-items:center; gap:9px; margin-bottom:16px;
+  }
+  .lede-kicker .heat{
+    display:inline-flex; align-items:flex-end; gap:2px; height:11px;
+  }
+  .lede-kicker .heat i{ width:3px; border-radius:1px; background:var(--red); }
+  .lede h2{
+    font-family:var(--serif); font-weight:600; font-size:52px; line-height:1.02;
+    letter-spacing:-0.02em; color:var(--ink); max-width:16ch;
+  }
+  .lede .dek{
+    font-family:var(--serif); font-style:italic; font-weight:300; font-size:20px;
+    line-height:1.5; color:var(--ink-soft); margin-top:18px; max-width:46ch; text-wrap:pretty;
+  }
+  .lede .dek b{ font-style:normal; font-weight:500; color:var(--ink); }
+  .lede-body{
+    margin-top:22px; column-count:2; column-gap:32px; column-rule:1px solid var(--hair);
+    font-family:var(--serif); font-size:15px; line-height:1.62; color:var(--ink);
+    max-width:none;
+  }
+  .lede-body p{ margin-bottom:12px; text-wrap:pretty; }
+  .lede-body p:first-child::first-letter{
+    font-size:52px; line-height:0.72; font-weight:500; float:left;
+    padding:6px 8px 0 0; color:var(--ink);
+  }
+  .lede-body .fn{ font-family:var(--mono); font-size:11px; color:var(--faint); letter-spacing:0.02em; }
+  .byline{
+    margin-top:18px; padding-top:12px; border-top:1px solid var(--hair);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.08em; color:var(--faint);
+    display:flex; align-items:center; gap:10px; text-transform:uppercase;
+  }
+  .byline b{ color:var(--moss); font-weight:600; }
+
+  /* ── Repos as standing columns ──────────────────────────── */
+  .section-rule{
+    display:flex; align-items:center; gap:14px; margin:40px 0 22px;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:600;
+  }
+  .section-rule::before,.section-rule::after{ content:""; height:1px; background:var(--ink); }
+  .section-rule::before{ width:0; }
+  .section-rule::after{ flex:1; }
+  .section-rule .add{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.14em; color:var(--faint);
+    text-transform:uppercase; cursor:pointer; padding:3px 10px; border:1px dashed var(--hair);
+    border-radius:2px; transition:all .18s ease; background:transparent; text-decoration:none;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .section-rule .add:hover{ color:var(--ink); border-color:var(--faint); }
+  .section-rule .add .plus{ font-family:var(--serif); font-size:15px; line-height:0; }
+
+  .columns{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:0;
+    border-top:1px solid var(--ink);
+  }
+  .col{
+    padding:18px 22px 22px; border-right:1px solid var(--hair); border-bottom:1px solid var(--hair);
+    position:relative;
+  }
+  .col:nth-child(3n){ border-right:none; }
+  .col-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .col-name{
+    font-family:var(--serif); font-weight:600; font-size:23px; letter-spacing:-0.01em; color:var(--ink);
+  }
+  .col-verdict{
+    font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase;
+    padding:2px 8px; border:1px solid; border-radius:2px; white-space:nowrap;
+  }
+  .v-aligned{ color:var(--moss); border-color:color-mix(in srgb,var(--moss) 45%,transparent); }
+  .v-partial{ color:var(--gold); border-color:color-mix(in srgb,var(--gold) 55%,transparent); background:color-mix(in srgb,var(--gold) 9%,transparent); }
+  .v-quiet{ color:var(--gray); border-color:var(--hair); }
+  .col-lede{
+    font-family:var(--serif); font-size:15px; line-height:1.5; color:var(--ink); margin-top:12px; text-wrap:pretty;
+  }
+  .col-lede b{ font-weight:600; }
+  .col-note{
+    font-family:var(--serif); font-style:italic; font-size:13.5px; line-height:1.5;
+    color:var(--ink-soft); margin-top:8px; padding-left:11px; border-left:2px solid var(--gold);
+  }
+  .col-note.moss{ border-left-color:var(--moss); }
+  .col-foot{
+    display:flex; align-items:center; gap:14px; margin-top:16px; padding-top:11px;
+    border-top:1px solid var(--hair-soft);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.04em; color:var(--faint);
+  }
+  .col-foot .fig{ color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .col-foot .id{ margin-left:auto; color:var(--faint); font-size:9px; letter-spacing:0.02em; }
+  .lamp{ display:inline-flex; align-items:center; gap:5px; }
+  .lamp .dot{ width:7px; height:7px; border-radius:50%; }
+  .dot-moss{ background:var(--moss); }
+  .dot-gold{ background:var(--gold); }
+  .dot-gray{ background:var(--gray); }
+
+  /* add-repo column — quiet door */
+  .col.door{
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
+    background:transparent;
+  }
+  .col.door .door-kick{
+    font-family:var(--mono); font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--faint);
+  }
+  .col.door .door-line{
+    font-family:var(--serif); font-style:italic; font-size:17px; color:var(--ink-soft); margin-top:8px; line-height:1.45;
+  }
+  .col.door .door-cta{
+    margin-top:14px; font-family:var(--mono); font-size:11px; letter-spacing:0.08em; color:var(--ink);
+    display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+    border-bottom:1px solid var(--ink); padding-bottom:2px;
+  }
+  .col.door .door-cta .plus{ font-family:var(--serif); font-size:18px; line-height:0; }
+
+  /* ── Trending rail ─────────────────────────────────────── */
+  .rail-head{
+    display:flex; align-items:center; gap:9px; margin-bottom:2px;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:600;
+  }
+  .rail-head .ember{ width:7px; height:7px; border-radius:50%; background:var(--red); }
+  .rail-sub{ font-family:var(--serif); font-style:italic; font-size:13px; color:var(--faint); margin:4px 0 16px; }
+  .trend{
+    display:block; text-decoration:none; color:inherit;
+    padding:13px 0; border-top:1px solid var(--hair);
+  }
+  .trend:last-of-type{ border-bottom:1px solid var(--hair); }
+  .trend-top{ display:flex; align-items:baseline; gap:9px; }
+  .trend-rank{ font-family:var(--mono); font-size:12px; font-weight:600; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .trend-title{ font-family:var(--serif); font-weight:500; font-size:16.5px; line-height:1.24; color:var(--ink); letter-spacing:-0.01em; }
+  .trend-meta{
+    display:flex; align-items:center; gap:10px; margin-top:8px; padding-left:22px;
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.04em; color:var(--faint);
+  }
+  .trend-heat{ display:inline-flex; align-items:center; gap:6px; }
+  .trend-heat .fig{ color:var(--red); font-weight:600; font-variant-numeric:tabular-nums; }
+  .trend-heat.hot .lab{ color:var(--red); }
+  .trend-heat .bars{ display:inline-flex; align-items:flex-end; gap:1.5px; height:10px; }
+  .trend-heat .bars i{ width:2.5px; border-radius:1px; background:var(--red); }
+  .trend-heat.cool .bars i{ background:var(--hair); }
+  .rail-foot{
+    margin-top:20px; padding-top:14px; border-top:1px solid var(--hair);
+    font-family:var(--serif); font-style:italic; font-size:13px; line-height:1.55; color:var(--ink-soft);
+  }
+  .rail-foot .go{
+    display:block; margin-top:10px; font-family:var(--mono); font-style:normal; font-size:10px;
+    letter-spacing:0.12em; text-transform:uppercase; color:var(--consult); text-decoration:none;
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- folio line -->
+  <div class="folio">
+    <div><span class="k">The Standing Record of your Organisation</span></div>
+    <nav class="folio-nav">
+      <a href="#" data-active>Front Page</a>
+      <a href="#">Sessions</a>
+      <a href="#">Inbox</a>
+      <a href="#">Journal</a>
+      <a href="#">Correspondence</a>
+      <a href="#">Channels</a>
+    </nav>
+  </div>
+
+  <!-- nameplate -->
+  <div class="nameplate">
+    <h1>Quire</h1>
+    <div class="tag">Intent · Implementation · Alignment</div>
+  </div>
+  <div class="subfolio">
+    <span>Edition 14</span>
+    <span class="mid">Wednesday, 22 July 2026 — Composed by the feed at 07:41</span>
+    <span>Six repositories under governance</span>
+  </div>
+
+  <!-- body grid -->
+  <div class="body-grid">
+
+    <!-- lede column -->
+    <div class="lede-col">
+      <div class="lede">
+        <div class="lede-kicker">
+          <span>The Morning Lede</span>
+          <span class="heat">
+            <i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i><i style="height:11px"></i><i style="height:8px"></i>
+          </span>
+          <span style="color:var(--faint);letter-spacing:0.14em">Heat 101.3 · Hot</span>
+        </div>
+        <h2>MCP Server dominates with 107 events and peak heat</h2>
+        <p class="dek">
+          The context surface the agents actually reach for wrote the loudest chapter this fortnight —
+          <b>107 activity events</b> converged on <b>MCP Server</b>, more than any other lens, and its heat
+          crested where the org's attention truly sat.
+        </p>
+        <div class="lede-body">
+          <p>Across the coupled sessions of the last two weeks, one lens pulled ahead of every other: the MCP server that hands the brain to any agent mid-session. It did not merely accumulate events — it accumulated <em>weight</em>, the kind that shows up when the same surface is entered, questioned, and rated over and over.</p>
+          <p>The feed reads this as a signal of gravity, not noise. Where a lens draws 107 events and holds peak heat, the org is telling itself where the real work lives. Everything downstream — the reviews below, the promises they touch — orbits this centre.</p>
+          <p>Two repositories moved against their contracts this cycle. <b>intent-ai</b> closed its latest review ALIGNED; <b>refund-agent</b> did not. The manuscript for the refund cap sits open, awaiting a signature it will not get automatically.</p>
+          <p class="fn">Composed deterministically by the feed composer — edition 14, no editorial hand. Receipts on demand.</p>
+        </div>
+        <div class="byline">
+          <span>By <b>The Feed</b> · Composer</span>
+          <span>·</span>
+          <span>evt/river · 107 events · 6 repos</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- trending rail -->
+    <div class="rail-col">
+      <div class="rail-head"><span class="ember"></span> Trending</div>
+      <div class="rail-sub">What the org's attention circled this fortnight.</div>
+
+      <a class="trend" href="#">
+        <div class="trend-top"><span class="trend-rank">1</span><span class="trend-title">MCP Server holds peak heat as agents keep reaching in</span></div>
+        <div class="trend-meta">
+          <span class="trend-heat hot"><span class="bars"><i style="height:5px"></i><i style="height:8px"></i><i style="height:10px"></i><i style="height:7px"></i></span> <span class="fig">101.3</span> <span class="lab">hot</span></span>
+          <span>107 events</span>
+        </div>
+      </a>
+
+      <a class="trend" href="#">
+        <div class="trend-top"><span class="trend-rank">2</span><span class="trend-title">Refund cap raised to $100 — a guard still holds at $50</span></div>
+        <div class="trend-meta">
+          <span class="trend-heat hot"><span class="bars"><i style="height:4px"></i><i style="height:7px"></i><i style="height:6px"></i><i style="height:9px"></i></span> <span class="fig">74.6</span> <span class="lab">warm</span></span>
+          <span>review required</span>
+        </div>
+      </a>
+
+      <a class="trend" href="#">
+        <div class="trend-top"><span class="trend-rank">3</span><span class="trend-title">Proactive alarms learn to tap the shoulder, stay silent when healthy</span></div>
+        <div class="trend-meta">
+          <span class="trend-heat"><span class="bars"><i style="height:4px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:5px"></i></span> <span class="fig">58.1</span></span>
+          <span>18 events</span>
+        </div>
+      </a>
+
+      <a class="trend" href="#">
+        <div class="trend-top"><span class="trend-rank">4</span><span class="trend-title">Multi-role org fixtures: devs, PMs, a stakeholder who authors intent</span></div>
+        <div class="trend-meta">
+          <span class="trend-heat cool"><span class="bars"><i style="height:3px"></i><i style="height:4px"></i><i style="height:3px"></i><i style="height:5px"></i></span> <span class="fig">31.9</span></span>
+          <span>cooling</span>
+        </div>
+      </a>
+
+      <div class="rail-foot">
+        Heat is attention with a half-life — events weighted by recency, decayed daily.
+        <a class="go" href="#">Open the Journal →</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- repos as standing columns -->
+  <div class="section-rule">
+    Repositories under Governance
+    <a class="add" href="#"><span class="plus">+</span> Add a repository</a>
+  </div>
+
+  <div class="columns">
+
+    <!-- intent-ai -->
+    <div class="col">
+      <div class="col-head">
+        <span class="col-name">intent-ai</span>
+        <span class="col-verdict v-aligned">Aligned</span>
+      </div>
+      <div class="col-lede">Three reviews open; the <b>latest closed ALIGNED</b>, keeping every promise it touched.</div>
+      <div class="col-note moss">Kept all four obligations on the feed-composer change. No drift noticed.</div>
+      <div class="col-foot">
+        <span class="lamp"><span class="dot dot-moss"></span> 3 open</span>
+        <span class="fig">26 sessions coupled</span>
+        <span class="id">ws/intent-ai</span>
+      </div>
+    </div>
+
+    <!-- refund-agent -->
+    <div class="col">
+      <div class="col-head">
+        <span class="col-name">refund-agent</span>
+        <span class="col-verdict v-partial">Partial</span>
+      </div>
+      <div class="col-lede">Cap raised to <b>$100</b>, but the tool guard still rejects above <b>$50</b> — <b>review required</b>.</div>
+      <div class="col-note">Premium / high-risk interaction test is missing. A human must sign before this ships.</div>
+      <div class="col-foot">
+        <span class="lamp"><span class="dot dot-gold"></span> 1 breaks</span>
+        <span class="fig">9 sessions coupled</span>
+        <span class="id">ws/refund-agent</span>
+      </div>
+    </div>
+
+    <!-- telegram -->
+    <div class="col">
+      <div class="col-head">
+        <span class="col-name">telegram</span>
+        <span class="col-verdict v-quiet">Quiet</span>
+      </div>
+      <div class="col-lede">The channel that taps the shoulder. No open reviews; last alarm delivered clean.</div>
+      <div class="col-note" style="border-left-color:var(--gray);color:var(--faint)">Wired for deep links — an alarm drops you on the exact annotated page.</div>
+      <div class="col-foot">
+        <span class="lamp"><span class="dot dot-gray"></span> 0 open</span>
+        <span class="fig">4 sessions coupled</span>
+        <span class="id">ws/telegram</span>
+      </div>
+    </div>
+
+    <!-- pydantic -->
+    <div class="col">
+      <div class="col-head">
+        <span class="col-name">pydantic</span>
+        <span class="col-verdict v-aligned">Aligned</span>
+      </div>
+      <div class="col-lede">A dependency under watch. Schema contracts held across the last two reviews.</div>
+      <div class="col-note moss">Validation obligations kept — lenient schemas honoured the contract.</div>
+      <div class="col-foot">
+        <span class="lamp"><span class="dot dot-moss"></span> 0 open</span>
+        <span class="fig">6 sessions coupled</span>
+        <span class="id">ws/pydantic</span>
+      </div>
+    </div>
+
+    <!-- quire-brain -->
+    <div class="col">
+      <div class="col-head">
+        <span class="col-name">quire-brain</span>
+        <span class="col-verdict v-quiet">Quiet</span>
+      </div>
+      <div class="col-lede">The engine itself. One review open; no promise moved this cycle.</div>
+      <div class="col-note" style="border-left-color:var(--gray);color:var(--faint)">Understanding is the umbrella; alignment is the spearhead. Watching itself.</div>
+      <div class="col-foot">
+        <span class="lamp"><span class="dot dot-gray"></span> 1 open</span>
+        <span class="fig">31 sessions coupled</span>
+        <span class="id">ws/quire-brain</span>
+      </div>
+    </div>
+
+    <!-- add a repository — the quiet door -->
+    <div class="col door">
+      <div class="door-kick">The Hero Flow</div>
+      <div class="door-line">Bring a repository under governance.</div>
+      <a class="door-cta" href="#"><span class="plus">+</span> Add a repository</a>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

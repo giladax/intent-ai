@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quire — Review Manuscript · refund-agent #47</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,300;1,6..72,400;1,6..72,500;1,6..72,600&family=Spline+Sans+Mono:wght@400;500;600&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #1e1b14;
+    --ink-soft: #524c3d;
+    --faint: #8b8474;
+    --hair: #d8d0bd;
+    --hair-soft: #e6dfce;
+    --paper: #f6f1e4;
+    --paper-raise: #fbf7ec;
+    --wash: #ece5d3;
+    --red: #b23a26;
+    --red-soft: rgba(178,58,38,0.08);
+    --moss: #4a7355;
+    --moss-soft: rgba(74,115,85,0.10);
+    --gold: #b07a1e;
+    --gold-soft: rgba(176,122,30,0.11);
+    --gray: #8b8474;
+    --consult: #3a5a86;
+    --consult-soft: rgba(58,90,134,0.09);
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+    --mono: "Spline Sans Mono", ui-monospace, Menlo, monospace;
+    --sans: "Hanken Grotesk", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--serif);
+    background-image:
+      radial-gradient(circle at 18% 10%, rgba(120,110,80,0.022) 0, transparent 55%),
+      radial-gradient(circle at 85% 82%, rgba(120,110,80,0.018) 0, transparent 50%);
+    min-height:100vh;
+  }
+  .sheet{ max-width: 1180px; margin:0 auto; padding: 0 44px 100px; }
+
+  /* folio */
+  .folio{
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--faint); padding:18px 0 14px; border-bottom:1px solid var(--hair);
+  }
+  .folio .crumb a{ color:var(--faint); text-decoration:none; }
+  .folio .crumb a:hover{ color:var(--ink); }
+  .folio .crumb .sep{ margin:0 8px; color:var(--hair); }
+  .folio .crumb .here{ color:var(--ink); font-weight:600; }
+  .folio .back{ color:var(--consult); text-decoration:none; }
+
+  /* ── Zone 1: verdict head ───────────────────────────────── */
+  .head{ padding:34px 0 26px; border-bottom:3px double var(--ink); }
+  .head-kicker{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--gold); font-weight:600; margin-bottom:14px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .head-kicker .repo{ color:var(--faint); }
+  .head h1{
+    font-family:var(--serif); font-weight:500; font-size:44px; line-height:1.08;
+    letter-spacing:-0.02em; color:var(--ink); max-width:22ch;
+  }
+  .head h1 em{ font-style:italic; color:var(--gold); font-weight:500; }
+  .head-sub{
+    font-family:var(--serif); font-style:italic; font-weight:300; font-size:18px; line-height:1.5;
+    color:var(--ink-soft); margin-top:14px; max-width:52ch; text-wrap:pretty;
+  }
+  .stamps{ display:flex; align-items:center; gap:12px; margin-top:22px; flex-wrap:wrap; }
+  .stamp{
+    font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:0.16em;
+    text-transform:uppercase; padding:5px 13px; border:2px solid; border-radius:3px;
+    transform:rotate(-1.5deg); display:inline-flex; align-items:center; gap:8px;
+  }
+  .stamp.partial{ color:var(--gold); border-color:var(--gold); background:var(--gold-soft); }
+  .stamp.review{ color:var(--red); border-color:var(--red); background:var(--red-soft); transform:rotate(1deg); }
+  .stamp-fig{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.06em; color:var(--faint);
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .stamp-fig b{ color:var(--ink-soft); font-weight:600; }
+  .tally{ display:flex; gap:5px; margin-left:auto; align-items:center; }
+  .tally .pip{ width:9px; height:9px; border-radius:50%; }
+  .pip-moss{ background:var(--moss); }
+  .pip-gold{ background:var(--gold); }
+  .tally .lab{ font-family:var(--mono); font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--faint); margin-left:6px; }
+
+  /* ── Zones 2+3: manuscript body | margin rail ───────────── */
+  .manuscript{ display:grid; grid-template-columns: 1fr 340px; gap:0; margin-top:2px; }
+  .body-col{ padding:28px 42px 0 0; border-right:1px solid var(--hair); }
+  .rail-col{ padding:28px 0 0 32px; }
+
+  .body-section-rule{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--faint); display:flex; align-items:center; gap:12px; margin:0 0 6px;
+  }
+  .body-section-rule::after{ content:""; flex:1; height:1px; background:var(--hair); }
+
+  /* changed-files ledger */
+  .files{ border-top:1px solid var(--ink); margin-top:12px; }
+  .file{ border-bottom:1px solid var(--hair); }
+  .file-row{
+    display:flex; align-items:baseline; gap:14px; padding:13px 4px; cursor:pointer;
+  }
+  .file-path{ font-family:var(--mono); font-size:13px; color:var(--ink); letter-spacing:-0.01em; }
+  .file-note{ font-family:var(--serif); font-style:italic; font-size:14px; color:var(--ink-soft); }
+  .file-delta{ margin-left:auto; font-family:var(--mono); font-size:11px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .file-delta .add{ color:var(--moss); }
+  .file-delta .del{ color:var(--red); }
+  .file-anchor{
+    width:8px; height:8px; border-radius:50%; flex-shrink:0; align-self:center;
+  }
+  .anchor-gold{ background:var(--gold); box-shadow:0 0 0 3px var(--gold-soft); }
+  .anchor-moss{ background:var(--moss); box-shadow:0 0 0 3px var(--moss-soft); }
+  .anchor-gray{ background:var(--hair); }
+  .file.expanded .file-row{ background:var(--wash); }
+
+  /* the expanded diff — obligation-anchored fragment */
+  .diff{
+    background:var(--paper-raise); border:1px solid var(--hair);
+    border-left:3px solid var(--gold); border-radius:2px; margin:2px 4px 16px;
+    overflow:hidden;
+  }
+  .diff-hunk{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.02em; color:var(--faint);
+    padding:8px 16px; border-bottom:1px solid var(--hair-soft); background:var(--wash);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .diff-hunk .obl{ color:var(--gold); font-weight:600; text-transform:uppercase; letter-spacing:0.1em; font-size:9.5px; }
+  .diff-code{ font-family:var(--mono); font-size:12.5px; line-height:1.7; padding:8px 0; }
+  .dl{ display:flex; padding:0 16px; white-space:pre; }
+  .dl .gutter{ width:38px; flex-shrink:0; color:var(--faint); font-size:11px; text-align:right; padding-right:16px; user-select:none; }
+  .dl .mark{ width:16px; flex-shrink:0; user-select:none; }
+  .dl.add{ background:var(--moss-soft); }
+  .dl.add .mark{ color:var(--moss); }
+  .dl.add code{ color:var(--ink); }
+  .dl.del{ background:var(--red-soft); }
+  .dl.del .mark{ color:var(--red); }
+  .dl.del code{ color:var(--ink-soft); }
+  .dl code{ font-family:var(--mono); }
+  /* the inline obligation annotation — where our soul meets the diff */
+  .diff-anno{
+    margin:6px 16px 4px 54px; padding:9px 12px 10px;
+    border-left:2px solid var(--gold); background:var(--gold-soft); border-radius:0 4px 4px 0;
+  }
+  .diff-anno-lab{
+    font-family:var(--mono); font-size:9px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--gold); font-weight:600;
+  }
+  .diff-anno-text{
+    font-family:var(--serif); font-style:italic; font-size:14px; line-height:1.5; color:var(--ink);
+    margin-top:4px; text-wrap:pretty;
+  }
+  .diff-anno-text b{ font-style:normal; font-weight:600; }
+  .diff-anno-fn{ font-family:var(--mono); font-size:10px; color:var(--faint); margin-top:6px; letter-spacing:0.02em; }
+
+  /* the behavioral delta prose */
+  .delta-prose{ margin-top:26px; }
+  .delta-prose h3{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--faint); margin-bottom:12px;
+  }
+  .delta-prose p{
+    font-family:var(--serif); font-size:16px; line-height:1.65; color:var(--ink); max-width:60ch; margin-bottom:12px; text-wrap:pretty;
+  }
+  .delta-prose p b{ font-weight:600; }
+
+  /* ── Zone 3: the margin rail — editorial notes, not cards ── */
+  .rail-title{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:600; padding-bottom:10px; border-bottom:1px solid var(--ink);
+    margin-bottom:4px;
+  }
+  .rail-sub{ font-family:var(--serif); font-style:italic; font-size:13px; color:var(--faint); margin:10px 0 22px; line-height:1.5; }
+
+  /* a marginalia entry: a stamp in the margin + a note in the reviewer's hand */
+  .marg{ margin-bottom:30px; position:relative; padding-left:2px; }
+  .marg-stamp{
+    font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase;
+    padding:3px 10px; border:1.5px solid; border-radius:3px; display:inline-flex; align-items:center; gap:7px;
+    transform:rotate(-2deg);
+  }
+  .marg-stamp.gold{ color:var(--gold); border-color:var(--gold); background:var(--gold-soft); }
+  .marg-stamp.moss{ color:var(--moss); border-color:var(--moss); background:var(--moss-soft); }
+  .marg-stamp.gray{ color:var(--gray); border-color:var(--hair); }
+  .marg-anchor{
+    font-family:var(--mono); font-size:9px; letter-spacing:0.06em; color:var(--faint);
+    margin-top:10px; display:block; text-transform:uppercase;
+  }
+  .marg-note{
+    font-family:var(--serif); font-size:15px; line-height:1.55; color:var(--ink); margin-top:7px; text-wrap:pretty;
+  }
+  .marg-note b{ font-weight:600; }
+  /* the receipt — a quote as a footnote, in the code's own voice */
+  .receipt{
+    margin-top:10px; padding:9px 12px 10px; background:var(--wash); border-radius:2px;
+    border-left:2px solid var(--faint);
+  }
+  .receipt-quote{
+    font-family:var(--mono); font-size:11.5px; line-height:1.55; color:var(--ink-soft); text-wrap:pretty;
+  }
+  .receipt-src{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.02em; color:var(--faint); margin-top:7px;
+    display:block;
+  }
+  .receipt-src a{ color:var(--consult); text-decoration:none; border-bottom:1px dashed var(--hair); }
+
+  /* consult-ink marginalia: the session's own reasoning */
+  .marg.consult .marg-stamp{ color:var(--consult); border-color:color-mix(in srgb,var(--consult) 45%,transparent); background:var(--consult-soft); transform:rotate(1.5deg); }
+  .marg-hand{
+    font-family:var(--serif); font-style:italic; font-size:15px; line-height:1.6; color:var(--ink);
+    margin-top:9px; padding-left:12px; border-left:2px solid var(--consult); text-wrap:pretty;
+  }
+  .marg-hand b{ font-style:normal; font-weight:600; }
+  .marg-fn{ font-family:var(--mono); font-size:9.5px; color:var(--faint); margin-top:8px; letter-spacing:0.02em; }
+  .marg-fn a{ color:var(--consult); text-decoration:none; border-bottom:1px dashed var(--hair); }
+
+  .rail-divider{ height:1px; background:var(--hair); margin:6px 0 26px; }
+
+  /* ── Zone 4: SigningBlock ───────────────────────────────── */
+  .signing{
+    margin-top:44px; border-top:3px double var(--ink); padding-top:30px;
+    display:grid; grid-template-columns: 1fr 340px; gap:0;
+  }
+  .signing-lede{ padding-right:42px; border-right:1px solid var(--hair); }
+  .signing-lede .k{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--red);
+    font-weight:600; margin-bottom:12px;
+  }
+  .signing-lede h2{ font-family:var(--serif); font-weight:500; font-size:28px; line-height:1.15; letter-spacing:-0.01em; color:var(--ink); max-width:20ch; }
+  .signing-lede p{ font-family:var(--serif); font-style:italic; font-weight:300; font-size:16px; line-height:1.55; color:var(--ink-soft); margin-top:12px; max-width:44ch; text-wrap:pretty; }
+  .signing-block{ padding-left:32px; }
+  .sig-frame{
+    border:1.5px solid var(--hair); border-radius:3px; background:var(--paper-raise);
+    padding:22px 22px 18px;
+  }
+  .sig-byline{
+    font-family:var(--mono); font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--faint);
+    margin-bottom:6px;
+  }
+  .sig-name{
+    font-family:var(--serif); font-weight:500; font-size:22px; letter-spacing:-0.01em; color:var(--ink);
+  }
+  .sig-role{ font-family:var(--serif); font-style:italic; font-size:14px; color:var(--faint); margin-top:2px; }
+  .sig-line{
+    margin-top:26px; height:1px; border-bottom:1px solid var(--ink); position:relative;
+  }
+  .sig-line-lab{
+    position:absolute; bottom:5px; left:0; font-family:var(--serif); font-style:italic;
+    font-size:14px; color:var(--faint);
+  }
+  .sig-x{
+    position:absolute; bottom:2px; left:-4px; font-family:var(--serif); font-size:22px; color:var(--hair);
+  }
+  .sig-meta{
+    display:flex; align-items:center; justify-content:space-between; margin-top:12px;
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.06em; color:var(--faint);
+  }
+  .sig-actions{ display:flex; gap:12px; margin-top:22px; }
+  .sig-btn{
+    font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase;
+    padding:10px 20px; border:1.5px solid; border-radius:3px; background:transparent; cursor:pointer;
+    transition:all .16s ease;
+  }
+  .sig-btn.approve{ color:var(--moss); border-color:color-mix(in srgb,var(--moss) 50%,transparent); }
+  .sig-btn.approve:hover{ background:var(--moss); border-color:var(--moss); color:var(--paper); }
+  .sig-btn.reject{ color:var(--faint); border-color:var(--hair); }
+  .sig-btn.reject:hover{ color:var(--red); border-color:var(--red); }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="folio">
+    <div class="crumb">
+      <a href="#">Front Page</a><span class="sep">/</span><a href="#">refund-agent</a><span class="sep">/</span><span class="here">Review #47</span>
+    </div>
+    <a class="back" href="#">← Repo desk</a>
+  </div>
+
+  <!-- ── Zone 1: VERDICT HEAD ── -->
+  <div class="head">
+    <div class="head-kicker">
+      The Verdict <span class="repo">· refund-agent · pull request #47 · raise refund cap to $100</span>
+    </div>
+    <h1>Keeps three promises, <em>may break one</em> — a human must sign.</h1>
+    <div class="head-sub">
+      The change lifts the refund ceiling to $100, but a standing guard still rejects anything over $50.
+      The premium / high-risk interaction is untested. Read against the contract, this is <b>PARTIAL</b>.
+    </div>
+    <div class="stamps">
+      <span class="stamp partial">◈ Partial</span>
+      <span class="stamp review">✋ Review required</span>
+      <span class="stamp-fig"><b>4</b> promises touched · <b>+38</b> / <b>−11</b> across 4 files</span>
+      <span class="tally">
+        <span class="pip pip-moss"></span><span class="pip pip-moss"></span><span class="pip pip-moss"></span><span class="pip pip-gold"></span>
+        <span class="lab">3 kept · 1 at risk</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- ── Zones 2 + 3 ── -->
+  <div class="manuscript">
+
+    <!-- Zone 2: manuscript body -->
+    <div class="body-col">
+      <div class="body-section-rule">The Changed Files</div>
+      <div class="files">
+
+        <!-- expanded file: the collision -->
+        <div class="file expanded">
+          <div class="file-row">
+            <span class="file-anchor anchor-gold"></span>
+            <span class="file-path">src/policy/refund_policy.py</span>
+            <span class="file-note">raises the cap the guard was written to hold</span>
+            <span class="file-delta"><span class="add">+6</span> <span class="del">−2</span></span>
+          </div>
+
+          <div class="diff">
+            <div class="diff-hunk">
+              <span>@@ class RefundPolicy · lines 41–48 @@</span>
+              <span class="obl">↳ obligation: refund cap ≤ $50</span>
+            </div>
+            <div class="diff-code">
+              <div class="dl"><span class="gutter">41</span><span class="mark"> </span><code>class RefundPolicy:</code></div>
+              <div class="dl"><span class="gutter">42</span><span class="mark"> </span><code>    """Ceiling on automated refunds, in dollars."""</code></div>
+              <div class="dl del"><span class="gutter">43</span><span class="mark">−</span><code>    MAX_AUTO_REFUND = 50</code></div>
+              <div class="dl add"><span class="gutter">43</span><span class="mark">+</span><code>    MAX_AUTO_REFUND = 100  # bumped for premium tier</code></div>
+              <div class="dl"><span class="gutter">44</span><span class="mark"> </span><code></code></div>
+              <div class="dl"><span class="gutter">45</span><span class="mark"> </span><code>    def approve(self, amount: int) -> bool:</code></div>
+              <div class="dl"><span class="gutter">46</span><span class="mark"> </span><code>        return amount <= self.MAX_AUTO_REFUND</code></div>
+            </div>
+            <div class="diff-anno">
+              <div class="diff-anno-lab">◈ Possible drift — anchored here</div>
+              <div class="diff-anno-text">
+                This line raises the cap to <b>$100</b>, but <b>RefundToolGuard</b> still refuses anything above <b>$50</b>.
+                The two now disagree, and no test covers a premium refund between them.
+              </div>
+              <div class="diff-anno-fn">margin note · see the gold stamp in the rail →</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- collapsed files -->
+        <div class="file">
+          <div class="file-row">
+            <span class="file-anchor anchor-gold"></span>
+            <span class="file-path">src/guards/refund_tool_guard.py</span>
+            <span class="file-note">unchanged — and that is the problem</span>
+            <span class="file-delta"><span class="add">+0</span> <span class="del">−0</span></span>
+          </div>
+        </div>
+        <div class="file">
+          <div class="file-row">
+            <span class="file-anchor anchor-moss"></span>
+            <span class="file-path">src/policy/tiers.py</span>
+            <span class="file-note">adds the premium tier — keeps the tiering promise</span>
+            <span class="file-delta"><span class="add">+21</span> <span class="del">−4</span></span>
+          </div>
+        </div>
+        <div class="file">
+          <div class="file-row">
+            <span class="file-anchor anchor-gray"></span>
+            <span class="file-path">tests/test_refund_policy.py</span>
+            <span class="file-note">tests the cap in isolation — not the guard interaction</span>
+            <span class="file-delta"><span class="add">+11</span> <span class="del">−5</span></span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="delta-prose">
+        <h3>The Behavioural Delta</h3>
+        <p>Before this change, an automated refund above <b>$50</b> was refused in two places that agreed with each other: the policy ceiling and the tool guard. A premium customer owed <b>$80</b> would be routed to a human, cleanly.</p>
+        <p>After it, the policy says <b>yes</b> up to $100 while the guard still says <b>no</b> above $50. A premium refund of $80 now depends on which check runs first — and the test suite raises the cap in isolation without ever exercising the two together. That untested seam is the drift.</p>
+      </div>
+    </div>
+
+    <!-- Zone 3: margin rail -->
+    <div class="rail-col">
+      <div class="rail-title">In the Margin</div>
+      <div class="rail-sub">The promises this page touches — with receipts, and the hand that wrote the change.</div>
+
+      <!-- the gold DRIFT marginalia with a receipt -->
+      <div class="marg">
+        <span class="marg-stamp gold">◈ Possible drift</span>
+        <span class="marg-anchor">↳ guard line · refund_tool_guard.py:19</span>
+        <div class="marg-note">
+          The cap moved to $100; <b>the guard did not</b>. It still rejects above $50, so premium refunds fall into an untested seam.
+        </div>
+        <div class="receipt">
+          <div class="receipt-quote">if amount &gt; 50:<br>&nbsp;&nbsp;&nbsp;&nbsp;raise RefundRejected("over limit")</div>
+          <span class="receipt-src">— refund_tool_guard.py:19 · <a href="#">receipt fdc9a2</a></span>
+        </div>
+      </div>
+
+      <div class="rail-divider"></div>
+
+      <!-- the consult-ink session marginalia -->
+      <div class="marg consult">
+        <span class="marg-stamp">⌁ Reasoned in session</span>
+        <div class="marg-hand">
+          “Raising the cap for the premium tier — <b>tiers.py handles routing</b>, so the guard shouldn't see these amounts. Leaving it as-is.”
+        </div>
+        <div class="marg-fn">
+          the author's own reasoning, coupled with the code · <a href="#">session 7680a08…</a>
+        </div>
+      </div>
+
+      <div class="rail-divider"></div>
+
+      <!-- a moss ALIGNED marginalia elsewhere -->
+      <div class="marg">
+        <span class="marg-stamp moss">✓ Aligned</span>
+        <span class="marg-anchor">↳ tiers.py · premium tier added</span>
+        <div class="marg-note">
+          The tiering promise holds — the premium tier is declared where the contract expects it, and its test passes.
+        </div>
+        <div class="receipt">
+          <div class="receipt-quote">PREMIUM = Tier(name="premium", ceiling=100)</div>
+          <span class="receipt-src">— tiers.py:12 · <a href="#">receipt 8b41e0</a></span>
+        </div>
+      </div>
+
+      <div class="rail-divider"></div>
+
+      <!-- an UNKNOWN — uncertainty stays honest, muted, never celebratory -->
+      <div class="marg">
+        <span class="marg-stamp gray">? Unknown</span>
+        <span class="marg-anchor">↳ premium × high-risk interaction</span>
+        <div class="marg-note" style="color:var(--ink-soft)">
+          No test exercises a premium refund against the guard. We cannot say this is kept — only that it is <b>unverified</b>.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Zone 4: SIGNING BLOCK ── -->
+  <div class="signing">
+    <div class="signing-lede">
+      <div class="k">The Authority Act</div>
+      <h2>Machines propose. A human approves.</h2>
+      <p>
+        This review may break a promise. Nothing merges here on a machine's word —
+        it waits for a signature. Sign to accept the risk on the record, or send it back.
+      </p>
+    </div>
+    <div class="signing-block">
+      <div class="sig-frame">
+        <div class="sig-byline">Awaiting the signature of</div>
+        <div class="sig-name">Gilad Koch</div>
+        <div class="sig-role">Founder · CEO — reviewer of record</div>
+        <div class="sig-line">
+          <span class="sig-x">✕</span>
+          <span class="sig-line-lab">unsigned</span>
+        </div>
+        <div class="sig-meta">
+          <span>refund-agent · review #47</span>
+          <span>22 JUL 2026 · pending</span>
+        </div>
+        <div class="sig-actions">
+          <button class="sig-btn approve">✓ Sign &amp; accept risk</button>
+          <button class="sig-btn reject">Send back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
