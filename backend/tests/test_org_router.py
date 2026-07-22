@@ -161,7 +161,7 @@ def test_docket_ranks_pending_reviews_by_stakes(client, alignment_store):
     assert docket[0]["severity"] == "critical"
     assert docket[0]["kind"] == "review"
     # plain language, not the shouting CLI label ("CONTRADICTS INTENT")
-    assert docket[0]["sentence"].startswith("Breaks a rule")
+    assert docket[0]["sentence"].startswith("Breaks a promise")
     assert "CONTRADICTS" not in docket[0]["sentence"]
     assert docket[0]["link"] == "/review/a-crit"
 
@@ -172,3 +172,100 @@ def test_docket_returns_503_when_org_store_none(alignment_store):
     app.include_router(create_org_router(None, alignment_store))
     client = TestClient(app, raise_server_exceptions=False)
     assert client.get("/api/org/docket").status_code == 503
+
+
+# ── The verdict vocabulary (A0 — F2: one place) ─────────────────────────
+
+def test_vocab_answers_even_without_a_store(alignment_store):
+    """/api/vocab never touches a store — it answers with org_store=None."""
+    from quire.org_router import create_org_router
+    app = FastAPI()
+    app.include_router(create_org_router(None, alignment_store))
+    client = TestClient(app)
+    resp = client.get("/api/vocab")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "verdicts" in body and "severityRank" in body
+
+
+def test_vocab_maps_enums_to_plain_labels(client):
+    """The ruled plain labels live here and nowhere else — jargon is banished.
+    Pinned: any edit to vocab.py that reintroduces jargon breaks this test."""
+    body = client.get("/api/vocab").json()
+    verdicts = body["verdicts"]
+    # All 7 verdicts present and pinned to their ruled plain-language strings
+    assert verdicts["OFF_INTENT"]["label"] == "Breaks a promise"
+    assert verdicts["OFF_INTENT"]["ink"] == "red"
+    assert verdicts["PARTIAL"]["label"] == "Partly kept"
+    assert verdicts["PARTIAL"]["ink"] == "amber"
+    assert verdicts["POSSIBLE_DRIFT"]["label"] == "May be drifting"
+    assert verdicts["POSSIBLE_DRIFT"]["ink"] == "amber"
+    assert verdicts["UNGOVERNED"]["label"] == "No promise covers it"
+    assert verdicts["UNGOVERNED"]["ink"] == "blue"
+    assert verdicts["UNKNOWN"]["label"] == "Needs your review"
+    assert verdicts["UNKNOWN"]["ink"] == "gray"   # uncertainty stays gray
+    assert verdicts["NO_MATERIAL_IMPACT"]["label"] == "No product impact"
+    assert verdicts["NO_MATERIAL_IMPACT"]["ink"] == "gray"
+    assert verdicts["ALIGNED"]["label"] == "Keeps its promises"
+    assert verdicts["ALIGNED"]["ink"] == "green"
+    # no shouting enum jargon leaks into any human label
+    for row in verdicts.values():
+        assert "CONTRADICTS" not in row["label"]
+        assert row["label"] and "_" not in row["label"]  # non-empty, no raw enum tokens
+
+
+# ── Needs you (A0 — the enriched list + detail contract) ────────────────
+
+def test_needs_you_empty_is_a_quiet_state(client):
+    assert client.get("/api/needs-you").json() == []
+
+
+def test_needs_you_ranks_and_enriches(client, alignment_store):
+    """The list ranks by stakes and carries the detail pane's fields —
+    verdict enum + plain label + ink, title, repo · PR, link."""
+    from quire.models import Classification
+    alignment_store.save_analysis(_pending_review("n-info", "intent-ai", 1, Classification.NO_MATERIAL_IMPACT))
+    alignment_store.save_analysis(_pending_review("n-crit", "refund-agent", 101, Classification.OFF_INTENT))
+
+    items = client.get("/api/needs-you").json()
+    assert [i["id"] for i in items] == ["n-crit", "n-info"]  # loudest first
+    top = items[0]
+    assert top["verdict"] == "OFF_INTENT"       # raw enum for agents
+    assert top["label"] == "Breaks a promise"   # plain label for the app
+    assert top["ink"] == "red"
+    assert top["repo"] == "refund-agent"
+    assert top["pr_number"] == 101
+    assert top["link"] == "/review/n-crit"
+    assert "promise" in top and "why" in top     # detail-pane keys always present
+    # promise carries statement (empty string when obligation unresolvable — never missing)
+    assert top["promise"] is None or "statement" in top["promise"]
+
+
+def test_needs_you_returns_503_when_org_store_none(alignment_store):
+    from quire.org_router import create_org_router
+    app = FastAPI()
+    app.include_router(create_org_router(None, alignment_store))
+    client = TestClient(app, raise_server_exceptions=False)
+    assert client.get("/api/needs-you").status_code == 503
+
+
+def test_needs_you_promise_carries_statement(client, alignment_store):
+    """When a promise is present, statement is always a key (str, possibly empty)."""
+    from quire.models import Classification, ObligationImpact
+    analysis = _pending_review("n-stmt", "refund-agent", 200, Classification.OFF_INTENT)
+    impact = ObligationImpact(
+        obligation_id="OB-101",
+        relation="contradicts",
+        confidence=0.9,
+        reasoning="The guard blocks at $50 but the policy allows $100.",
+    )
+    analysis.obligation_impacts = [impact]
+    alignment_store.save_analysis(analysis)
+
+    items = client.get("/api/needs-you").json()
+    item = next(i for i in items if i["id"] == "n-stmt")
+    assert item["promise"] is not None
+    assert "statement" in item["promise"]
+    assert isinstance(item["promise"]["statement"], str)
+    # refund-agent fixture has OB-101 → a real statement must be resolved
+    assert item["promise"]["statement"] != ""

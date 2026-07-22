@@ -62,6 +62,33 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         cards = org_store.get_repo_card_data(alignment_store)
         return cards
 
+    @router.get("/api/vocab")
+    def get_vocab():
+        """The verdict vocabulary — one public map from Classification enum to
+        plain label, terse verb, ink (verdict colour), and severity. Both the
+        app and any agent read verdict meaning from here, so no surface
+        re-implements the translation (F2: one place). Never touches a store,
+        so it answers even when Postgres is down."""
+        from quire import vocab
+
+        return vocab.as_vocab_payload()
+
+    @router.get("/api/needs-you")
+    def get_needs_you():
+        """The "Needs you" list — the few decisions awaiting a human, ranked
+        by stakes, enriched for the app's list AND detail pane from one
+        contract (the promise touched, the receipt, why the author did it).
+        Each promise carries: obligation_id, relation, reasoning, and
+        statement (the plain-language sentence from the approved artifact;
+        empty string when unresolvable — never raises).
+        An empty list is a first-class quiet state."""
+        if org_store is None:
+            raise HTTPException(
+                503,
+                "org layer unavailable — Postgres unreachable at startup",
+            )
+        return org_store.get_needs_you(alignment_store)
+
     @router.get("/api/org/docket")
     def get_org_docket():
         """The Docket — decisions awaiting a human's signature, ranked by

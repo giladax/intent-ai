@@ -1070,8 +1070,35 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
     # and the playwright snap scripts target localhost:3456/).
     spa_dir = pathlib.Path(__file__).parent / "static" / "dashboard"
     if spa_dir.exists():
+        from fastapi.responses import FileResponse
         from fastapi.staticfiles import StaticFiles
 
-        app.mount("/", StaticFiles(directory=str(spa_dir), html=True), name="spa")
+        # Hashed build assets are real files under /assets — serve them direct.
+        assets_dir = spa_dir / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="spa-assets")
+
+        index_html = spa_dir / "index.html"
+
+        # SPA fallback: any GET that isn't an API/app/inbox/intent route (all
+        # registered above, so they win) and isn't a real asset falls through
+        # to index.html. This makes react-router's clean URLs — /needs-you,
+        # /repo/<ws>, /review/<n> — shareable and deep-linkable (ruling 4),
+        # not just reachable by in-app navigation.
+        @app.get("/{full_path:path}", include_in_schema=False)
+        def spa_fallback(full_path: str):
+            # Unknown API paths stay honest 404s, not a silent HTML shell.
+            if full_path.startswith("api/"):
+                raise HTTPException(404, "not found")
+            candidate = (spa_dir / full_path).resolve()
+            # serve a real static file if the path points at one (within the
+            # SPA dir — never escape it), else hand back the app shell
+            if (
+                full_path
+                and spa_dir.resolve() in candidate.parents
+                and candidate.is_file()
+            ):
+                return FileResponse(str(candidate))
+            return FileResponse(str(index_html))
 
     return app

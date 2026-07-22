@@ -29,6 +29,50 @@ async function json<T>(url: string, opts?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// ── Org (O0) — the familiar shell's tree + repo cards ────────────────
+export interface RepoCard {
+  workspace: string;
+  display_name: string;
+  latest_verdict: string | null;
+  open_review_count: number;
+  coupled_session_count: number;
+  github_remote: string | null;
+  status: string;
+  read_only: boolean;
+  intent_ledger_url: string;
+}
+export interface Org {
+  id: string;
+  name: string;
+  repos: RepoCard[];
+}
+export const fetchOrg = () => json<Org>("/api/org");
+
+// ── Needs you — the few decisions awaiting a human, enriched for the
+// list AND the detail pane from one contract (ruling 4). ──────────────
+export interface NeedsYouPromise {
+  obligation_id: string | null;
+  relation: string | null;
+  reasoning: string | null;
+  statement: string | null;
+}
+export interface NeedsYouItem {
+  id: string;
+  kind: string;
+  verdict: string;          // raw enum (translate via /api/vocab)
+  label: string;            // plain label, already translated server-side
+  ink: string;              // verdict ink token
+  severity: string;
+  title: string;
+  repo: string;
+  pr_number: number;
+  link: string;
+  ts: string;
+  promise: NeedsYouPromise | null;
+  why: { summary: string } | null;
+}
+export const fetchNeedsYou = () => json<NeedsYouItem[]>("/api/needs-you");
+
 // Projects
 export const fetchProjects = () => json<Project[]>("/api/projects");
 export const createProject = (name: string, path: string) =>

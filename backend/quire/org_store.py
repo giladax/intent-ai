@@ -83,33 +83,12 @@ DEMO_REPOS: list[dict[str, Any]] = [
 # order. Mirrors the alarm policy's severity rank (alarms._RANK).
 # ---------------------------------------------------------------------------
 
-_DOCKET_RANK = {"critical": 0, "high": 1, "medium": 2, "info": 3}
+# Verdict vocabulary (plain labels, verbs, ink, severity) lives in ONE place:
+# quire.vocab. The Docket, the cards, and every human surface translate a
+# Classification through it — never a private copy. (F2: one place.)
+from quire import vocab
 
-# A pending review's stakes, read from its verdict — how loudly it wants you.
-_VERDICT_SEVERITY = {
-    "OFF_INTENT": "critical",       # contradicts intent
-    "PARTIAL": "high",
-    "POSSIBLE_DRIFT": "high",
-    "UNKNOWN": "medium",            # needs review
-    "UNGOVERNED": "medium",         # not covered
-    "NO_MATERIAL_IMPACT": "info",
-    "ALIGNED": "info",
-}
-
-# Plain-language verdict phrase for the Docket sentence — NOT the CLI/GitHub
-# DISPLAY_LABELS (which SHOUT in caps: "CONTRADICTS INTENT"). The Front Page
-# reads in plain words a non-native speaker gets: "Breaks a rule", not jargon.
-# Exhaustive over Classification; a new enum value should get a deliberate
-# phrase here rather than silently falling back.
-_DOCKET_VERDICT_PHRASE = {
-    "OFF_INTENT": "Breaks a rule",
-    "PARTIAL": "Partly kept",
-    "POSSIBLE_DRIFT": "May be drifting from a rule",
-    "UNKNOWN": "Needs your review",
-    "UNGOVERNED": "No rule yet",
-    "NO_MATERIAL_IMPACT": "No product impact",
-    "ALIGNED": "Follows the rules",
-}
+_DOCKET_RANK = vocab.SEVERITY_RANK
 
 
 # ---------------------------------------------------------------------------
@@ -288,22 +267,124 @@ class OrgStore:
         for a in analyses:
             if a.review_state != ReviewState.PENDING:
                 continue  # only what a human still has to review
-            verdict = a.classification.value
-            phrase = _DOCKET_VERDICT_PHRASE.get(verdict, "Needs your review")
-            severity = _VERDICT_SEVERITY.get(verdict, "medium")
+            verdict_enum = a.classification.value
+            v = vocab.verdict(verdict_enum)
+            severity = v["severity"]
             recency = a.created_at.timestamp() if a.created_at else 0.0
             item = {
                 "id": a.analysis_id,
                 "kind": "review",
                 "severity": severity,
                 # plain words, meaning first — the verdict, then which PR
-                "sentence": f"{phrase} — PR {a.pr_number} on {a.repository}",
+                "sentence": f"{v['label']} — PR {a.pr_number} on {a.repository}",
                 "link": f"/review/{a.analysis_id}",
                 "repo": a.repository,
                 "ts": a.created_at.isoformat() if a.created_at else "",
             }
             # sort key: loudest first (fallback 99 matches alarms._RANK), then newest
             rows.append((_DOCKET_RANK.get(severity, 99), -recency, item))
+
+        rows.sort(key=lambda r: (r[0], r[1]))
+        return [r[2] for r in rows]
+
+    def get_needs_you(self, alignment_store) -> list[dict[str, Any]]:
+        """The "Needs you" list, enriched for the app's list + detail pane
+        from ONE contract (ruling 4: the same JSON an agent would call).
+
+        Builds on the Docket ranking, then attaches the plain-language detail
+        the mock's right pane shows: the verdict (enum + label + ink), the
+        headline sentence, repo · PR, the promise it touched (title + the
+        model's plain reasoning as the receipt), and "why the author did it"
+        (the session's declared intent, when the PR carried one). Pure
+        composition over the alignment store — no new store, no LLM.
+
+        An empty list is a first-class quiet state: nothing needs you.
+        """
+        from quire.models import ReviewState
+
+        try:
+            analyses = alignment_store.list_analyses()
+        except Exception as error:
+            logger.warning(
+                "needs-you: list_analyses failed (%s: %s) — list may be incomplete",
+                type(error).__name__, error,
+            )
+            return []
+
+        # Build obligation-statement index once per unique repository in the list.
+        # Failure-safe: returns {} for any workspace that can't be resolved.
+        try:
+            org_repos = self.list_repos()
+        except Exception:
+            org_repos = []
+        _ob_cache: dict[str, dict[str, str]] = {}  # repo → {obligation_id → statement}
+
+        def _ob_index(repo: str) -> dict[str, str]:
+            if repo not in _ob_cache:
+                _ob_cache[repo] = _obligation_index_for(repo, org_repos)
+            return _ob_cache[repo]
+
+        rows = []
+        for a in analyses:
+            if a.review_state != ReviewState.PENDING:
+                continue
+            verdict_enum = a.classification.value
+            v = vocab.verdict(verdict_enum)
+            severity = v["severity"]
+            recency = a.created_at.timestamp() if a.created_at else 0.0
+
+            # The promise it touched: the most-impacted obligation, with the
+            # model's plain reasoning as the receipt. Impacts that are merely
+            # "unrelated" are skipped — we want the one that carries the story.
+            promise = None
+            impacts = getattr(a, "obligation_impacts", None) or []
+            ranked = sorted(
+                (i for i in impacts if getattr(i, "relation", "") != "unrelated"),
+                key=lambda i: getattr(i, "confidence", 0.0) or 0.0,
+                reverse=True,
+            )
+            src = ranked[0] if ranked else (impacts[0] if impacts else None)
+            if src is not None:
+                ob_id = getattr(src, "obligation_id", None)
+                ob_statement = ""
+                try:
+                    ob_statement = _ob_index(a.repository).get(ob_id or "", "") or ""
+                except Exception:
+                    ob_statement = ""
+                promise = {
+                    "obligation_id": ob_id,
+                    "relation": getattr(src, "relation", None),
+                    "reasoning": getattr(src, "reasoning", None),
+                    "statement": ob_statement,
+                }
+
+            # Why the author did it: the declared intent the PR shipped with.
+            why = None
+            di = getattr(a, "declared_intent", None)
+            if di is not None:
+                summary = getattr(di, "summary", None)
+                if summary:
+                    why = {"summary": summary}
+
+            rows.append((
+                _DOCKET_RANK.get(severity, 99),
+                -recency,
+                {
+                    "id": a.analysis_id,
+                    "kind": "review",
+                    "verdict": verdict_enum,          # raw enum (agents translate via vocab)
+                    "label": v["label"],              # plain label (app renders directly)
+                    "ink": v["ink"],
+                    "severity": severity,
+                    "title": f"{v['label']} — PR {a.pr_number} on {a.repository}",
+                    "repo": a.repository,
+                    "pr_number": a.pr_number,
+                    "link": f"/review/{a.analysis_id}",
+                    "ts": a.created_at.isoformat() if a.created_at else "",
+                    "promise": promise,
+                    "why": why,
+                },
+            ))
 
         rows.sort(key=lambda r: (r[0], r[1]))
         return [r[2] for r in rows]
@@ -321,6 +402,33 @@ def seed_demo_org(store: OrgStore) -> None:
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
+def _obligation_index_for(analysis_repository: str, org_repos: list[dict]) -> dict[str, str]:
+    """Return a {obligation_id → statement} map for a repository, or {} on any
+    failure (missing fixture, bad YAML, FileNotFoundError). Failure-safe by design."""
+    from quire import workspace as ws_mod
+
+    # Find the workspace name that matches the repository key in the alignment store.
+    # The alignment store key may be "refund-agent" while org row has repository
+    # "company/refund-agent" — so we accept a match on EITHER the repository field
+    # OR the workspace field to handle both spellings.
+    workspace_name = None
+    for repo in org_repos:
+        if (
+            analysis_repository == repo.get("repository")
+            or analysis_repository == repo.get("workspace")
+        ):
+            workspace_name = repo.get("workspace")
+            break
+    if not workspace_name:
+        return {}
+
+    try:
+        adapter = ws_mod.build_adapter(workspace_name)
+        return {o.obligation_id: o.statement for o in adapter.obligations()}
+    except Exception:
+        return {}
+
 
 def _repo_to_dict(r: OrgRepo) -> dict[str, Any]:
     return {
