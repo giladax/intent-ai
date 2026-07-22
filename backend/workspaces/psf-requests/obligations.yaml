@@ -1,0 +1,34 @@
+# Approved product promises (obligations). `revision` pins the exact
+# wording an analysis judged against — bump it whenever a statement
+# changes so history stays replayable.
+obligations:
+- obligation_id: PSFREQ-001
+  kind: hard_rule
+  statement: Issues that do not contain complete tracebacks may be closed without warning.
+  source_quote: Issues that do not contain complete tracebacks may be closed without warning.
+  source_section: Good Bug Reports
+  source_reference: contributing-guide
+  revision: draft-1
+  provenance_quote: Issues that do not contain complete tracebacks may be closed without warning.
+- obligation_id: PSFREQ-002
+  kind: hard_rule
+  statement: If a user never responds to a request for clarification, the system (maintainers)
+    will close the issue without fixing it.
+  source_quote: If we ask you to clarify these and you never respond, we will close your issue
+    without fixing it.
+  source_section: Good Bug Reports
+  source_reference: contributing-guide
+  revision: draft-1
+  provenance_quote: If we ask you to clarify these and you never respond, we will close your
+    issue without fixing it.
+- obligation_id: PSFREQ-003
+  kind: hard_rule
+  statement: A duplicate issue found via a simple title-word search will likely be closed
+    extremely abruptly.
+  source_quote: if searching for a selection of words in your issue title would have found
+    the duplicate then the issue will likely be closed extremely abruptly.
+  source_section: Good Bug Reports
+  source_reference: contributing-guide
+  revision: draft-1
+  provenance_quote: if searching for a selection of words in your issue title would have found
+    the duplicate then the issue will likely be closed extremely abruptly.

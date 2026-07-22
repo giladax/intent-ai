@@ -1,0 +1,1633 @@
+# PRs: sweep-commit range (int keys) + GitHub PRs (int keys = PR number).
+1:
+  base: 69f84847045bef7a849cc994a26fe7ba8a169e95^
+  head: 69f84847045bef7a849cc994a26fe7ba8a169e95
+  title: Bump the actions group with 3 updates (#7591)
+2:
+  base: b17c61b618b1824f1f5d9edcacaf16801343a295^
+  head: b17c61b618b1824f1f5d9edcacaf16801343a295
+  title: Bump https://github.com/astral-sh/ruff-pre-commit (#7590)
+3:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49^
+  head: f361ead047be5cb873174218582f7d8b9fcd9f49
+  title: Bump https://github.com/astral-sh/ruff-pre-commit (#7562)
+7591:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: b4b5aa4d264c78dcf4b4d95ddba880f164842f00
+  title: Bump the actions group with 3 updates
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7591
+  author: dependabot[bot]
+  created_at: '2026-07-20T16:56:49Z'
+7590:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 6a515ba03efe2fc21355ef1201a9db862f454a30
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.20 to 0.15.21
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7590
+  author: dependabot[bot]
+  created_at: '2026-07-20T16:55:13Z'
+7589:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 1e2517e537eb5483771aefc72ca1aeb1f6b99962
+  title: 'perf: optimizations in core components'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7589
+  author: salvatorecorvaglia
+  created_at: '2026-07-20T14:43:15Z'
+7588:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 5973ce88752d0820e47e892182f59a007929b4c7
+  title: Ignore None request cookies
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7588
+  author: wanxiankai
+  created_at: '2026-07-19T14:16:57Z'
+7587:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: a2bc1742e78c85d5d980d5465f88e2f2b7ce25f8
+  title: 'fix: 7 security/quality issues in psf_requests (xuanji-audit)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7587
+  author: hernandez42
+  created_at: '2026-07-19T10:56:41Z'
+7586:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 9820a0c297d4c3e3f7359b617b5082f24c63c79e
+  title: 'fix: honor ports in IPv4 no_proxy entries'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7586
+  author: PEliet
+  created_at: '2026-07-18T18:48:33Z'
+7585:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 30d87aa46352a8919f346598ab1e48652f17a24a
+  title: Response.content retains and re-raises errors from a broken stream
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7585
+  author: agu2347
+  created_at: '2026-07-18T07:48:14Z'
+7584:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 20aae6c1290a8278d0c5583c9475164c84da3c54
+  title: "perf(auth): avoid redundant recompilation/reallocation in digest auth\u2026"
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7584
+  author: Hamidkarimi-h
+  created_at: '2026-07-17T12:11:53Z'
+7583:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 63516a3c736d2a23c05ab7fe91944aaa66115ba3
+  title: 'refactor: use list() instead of list comprehension'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7583
+  author: Hamidkarimi-h
+  created_at: '2026-07-15T16:53:33Z'
+7582:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: ceee9ff8f2933594b20dcdcea7a4fa39d618c2ba
+  title: 'Fix #7564: raise FileNotFoundError for missing TLS material'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7582
+  author: Krshs90
+  created_at: '2026-07-15T04:18:56Z'
+7581:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: b7c31c4846a8b6007bec2542f3dfbe028be59307
+  title: Fix case-insensitive JSON content type encoding
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7581
+  author: Shinzzyak
+  created_at: '2026-07-12T06:03:33Z'
+7579:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 25bed9802f585c8803c43c4094243ecfe7a27f3a
+  title: 'docs: add SSL verification troubleshooting section'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7579
+  author: spydix
+  created_at: '2026-07-11T01:35:52Z'
+7578:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 65b7a87be56088b10c6d586de0f7547c95e06899
+  title: Add snippet-level OSS license compliance audit and SBOMs
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7578
+  author: akkhil7
+  created_at: '2026-07-10T11:37:44Z'
+7577:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: 071d4c31d49a20906912f0aa9873b674accacf4b
+  title: Add query method newly introduced in RFC 10008
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7577
+  author: yashmahamulkar
+  created_at: '2026-07-10T07:53:54Z'
+7576:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: 8051baa8cea20b8d57a94c32f57317eeb4b9af2e
+  title: Fix link to AI Policy in CONTRIBUTING.md
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7576
+  author: yamac-kurtulus
+  created_at: '2026-07-09T14:39:41Z'
+7575:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: 761367de5251183f84049252884849e18906dfd8
+  title: Support for QUERY http method
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7575
+  author: yamac-kurtulus
+  created_at: '2026-07-09T13:39:26Z'
+7573:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: e3e9571f50aa1add714b07a065ab817cdcb68af2
+  title: 'session.prepare_request: carry a custom CookiePolicy across to the merged
+    jar'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7573
+  author: HrachShah
+  created_at: '2026-07-08T15:34:37Z'
+7572:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: eb326c853afdd180b7852e4651e728f8dc1266dc
+  title: 'Add query method http '
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7572
+  author: yashmahamulkar
+  created_at: '2026-07-08T10:46:14Z'
+7571:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: 21c32e3c6f6e7618809b64c27265bac2ac50b5e2
+  title: Decode bytes credentials in HTTPDigestAuth as UTF-8
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7571
+  author: maxtaran2010
+  created_at: '2026-07-08T08:15:49Z'
+7570:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: 44d3d91f270fd83622a8b4d339722f183606d41b
+  title: '"Adding Query Method in Requests"'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7570
+  author: yashmahamulkar
+  created_at: '2026-07-08T07:33:22Z'
+7569:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: b7ffa812c379dee7364ee48cd73ca5584fda21a6
+  title: 'auth: surface the offending password value in the deprecation warning'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7569
+  author: HrachShah
+  created_at: '2026-07-08T03:47:30Z'
+7568:
+  base: 4c800e9aea2059660b8306b0fc8f9e9a4232cb3e
+  head: 856ab4ca6b72d325a2ffd61cbbf3fbda87f87c51
+  title: return list of headers from MockResponse.getheaders
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7568
+  author: HrachShah
+  created_at: '2026-07-07T23:31:18Z'
+7562:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: f052a20b98675c0f9ad4f0620b0b310d10014c14
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.18 to 0.15.20
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7562
+  author: dependabot[bot]
+  created_at: '2026-07-06T16:55:11Z'
+7561:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: ee5173d05622d4aaca0b2a0ab2864748d16db3d1
+  title: Bump actions/setup-python from 6.2.0 to 6.3.0 in the actions group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7561
+  author: dependabot[bot]
+  created_at: '2026-07-06T16:53:20Z'
+7560:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: 6c340ff4c9f84171747643f0dfdd36bd83005eca
+  title: 'utils: surface clear ValueError from address_in_network and dotted_netmask
+    for bad input'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7560
+  author: HrachShah
+  created_at: '2026-07-05T09:47:52Z'
+7557:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: a09bd0519f3fc7bd58f55be03e22a1dd8b2867f8
+  title: 'fix: decode bytes credentials in HTTPDigestAuth to prevent b''...'' repr
+    in hashes'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7557
+  author: webdevdot
+  created_at: '2026-07-04T04:56:54Z'
+7556:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: 79c8804b23a46baf73cced016d6e4d70eede6951
+  title: Add troubleshooting guidance for SSL verification errors
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7556
+  author: LKoech
+  created_at: '2026-07-03T21:43:35Z'
+7555:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: 5bce0b088393108e3a0c54a844446f91fbc54869
+  title: 'HTTPDigestAuth: use urlsplit for the digest URI'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7555
+  author: HrachShah
+  created_at: '2026-07-01T21:58:05Z'
+7554:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: 717e54e78a70afb8ce70133742cad63034a236c3
+  title: 'CaseInsensitiveDict: reject non-string keys with TypeError instead of leaking
+    AttributeError'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7554
+  author: HrachShah
+  created_at: '2026-07-01T03:26:37Z'
+7553:
+  base: 23953c0c875219a715f081cf3de7c149a7629ccf
+  head: 8469f495b7dd608c82e71955a59c20a6a69f72c5
+  title: Validate timeout type before passing to urllib3
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7553
+  author: NullLabTests
+  created_at: '2026-06-29T18:12:35Z'
+7552:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: 4250e6b32b48e94860a3a0dc19c168ecc90086c6
+  title: Fix RFC 6265 DQUOTE handling in RequestsCookieJar.set_cookie
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7552
+  author: NullLabTests
+  created_at: '2026-06-29T17:32:10Z'
+7551:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: e30bd7cd52626740a0ba5546d9abd4ce61beb764
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.17 to 0.15.18
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7551
+  author: dependabot[bot]
+  created_at: '2026-06-29T16:54:51Z'
+7550:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: c3c5901ed93640b2fba097be867b508e9e593287
+  title: 'docs: add tuple timeout example to Quickstart'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7550
+  author: MihikaGupta17
+  created_at: '2026-06-29T13:49:36Z'
+7549:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: 1e884f825cf895889ba1199d750b41bf480da0ed
+  title: Remove method cookies set to None
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7549
+  author: lxingy3
+  created_at: '2026-06-29T13:45:57Z'
+7548:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: 2396b68c7586f776fad24c71d3753493c6e94842
+  title: '[codex] Fix Link header parsing for equals signs'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7548
+  author: kmg0308
+  created_at: '2026-06-29T10:42:17Z'
+7546:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: a8e6a7cec6215eca83586a70180474a0c96a4efe
+  title: '[Fix] response.content losing read errors on second access (#4965)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7546
+  author: C1-BA-B1-F3
+  created_at: '2026-06-27T05:55:06Z'
+7545:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: 1bca59850306ad36b31730746dcd23ed8754f437
+  title: 'fix: HTTPDigestAuth properly handles bytes credentials'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7545
+  author: C1-BA-B1-F3
+  created_at: '2026-06-27T05:32:07Z'
+7544:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: ef46201011457e42e9e477568f9d8c57152f27c0
+  title: Improved Community Files
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7544
+  author: 2501030072-blip
+  created_at: '2026-06-26T19:04:00Z'
+7543:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: 7de6f0ec2a05242b9e87c0a16a24c68661c4dedb
+  title: Add more URLs to project metadata (Changelog, Issues, Sponsor)
+  state: open
+  html_url: https://github.com/psf/requests/pull/7543
+  author: Flimm
+  created_at: '2026-06-26T12:48:58Z'
+7542:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: 717e54e78a70afb8ce70133742cad63034a236c3
+  title: 'CaseInsensitiveDict: reject non-string keys with TypeError instead of leaking
+    AttributeError'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7542
+  author: HrachShah
+  created_at: '2026-06-26T09:39:40Z'
+7541:
+  base: 4ed3d1b3204caa6806a36125a39589044a02e807
+  head: 4a0f7768f7516fe32ce309e251185ab594c0a8df
+  title: Parse standard cookie Expires dates from Morsel
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7541
+  author: lin-hongkuan
+  created_at: '2026-06-25T06:58:27Z'
+7540:
+  base: d44b67eb55f3dea5a36024b8c4ae6a5c37bca617
+  head: a5935d2f63450adae9663c92036a9a45ee1842ac
+  title: Bump actions/checkout from 6.0.2 to 7.0.0 in the actions group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7540
+  author: dependabot[bot]
+  created_at: '2026-06-24T22:41:17Z'
+7539:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: a48896b732fd2d30fd7250c0de0314af2c31c64a
+  title: Inline pre-commit linting
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7539
+  author: nateprewitt
+  created_at: '2026-06-24T21:45:29Z'
+7538:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: c5749bc4a8a2884aaf2209c7fc27551375dd7465
+  title: Preserve username-only URL auth
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7538
+  author: lin-hongkuan
+  created_at: '2026-06-24T14:13:11Z'
+7537:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: cb8f0422fe7b556de98af3d23521bae432563543
+  title: 'docs: update concurrent requests recommendations'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7537
+  author: nightt5879
+  created_at: '2026-06-24T09:28:48Z'
+7536:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 062993574e48e1ca0bb8dfb6123ae66ac5389bbb
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.16 to 0.15.17
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7536
+  author: dependabot[bot]
+  created_at: '2026-06-22T16:54:42Z'
+7535:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 984bf08a77c85e7a29884425f45748886aa88aa5
+  title: 'parse_list_header and parse_dict_header: do not unquote tokens that lack
+    a balanced closing quote'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7535
+  author: HrachShah
+  created_at: '2026-06-22T15:30:26Z'
+7534:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 113929230ffe757069b2f0adf73dec3d0faa9716
+  title: Add TestRadius demo file
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7534
+  author: aman321766
+  created_at: '2026-06-22T13:49:06Z'
+7533:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: ad1cce156ae8c29fde33a3bd96f963971c274c6b
+  title: 'parse_header_links: skip malformed params instead of breaking the loop'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7533
+  author: HrachShah
+  created_at: '2026-06-22T07:41:32Z'
+7532:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 178930dac39ce71b1d7fccfd1114da8441333f74
+  title: 'fix: handle double-digit IPv6 zone IDs in URL parsing'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7532
+  author: xbrxr03
+  created_at: '2026-06-22T06:33:50Z'
+7531:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: fc59cb15ef3a4edabfe4080717cc7f5c7dc34610
+  title: 'fix: Session.verify=False ignored when REQUESTS_CA (#3829)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7531
+  author: BWM0223
+  created_at: '2026-06-21T12:13:46Z'
+7530:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 39c5f1a60e6ebe8ec1c4be449492ff6b47580d95
+  title: 'fix: Accessing response.content twice removes forg (#4965)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7530
+  author: BWM0223
+  created_at: '2026-06-21T12:13:08Z'
+7529:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 3b008ffde4fb9c16b0d81bc57c83bb7c66c83516
+  title: 'fix(auth): decode bytes username/password in HTTPDigestAuth to fix non-latin
+    credentials'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7529
+  author: Tejas5405
+  created_at: '2026-06-21T03:35:41Z'
+7528:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: ad1cce156ae8c29fde33a3bd96f963971c274c6b
+  title: skip malformed link params instead of breaking out of the loop
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7528
+  author: HrachShah
+  created_at: '2026-06-20T19:34:09Z'
+7527:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 721c25cacb1e4bb6ae7bb5bd01eb67f48ae47d7c
+  title: 'fix: retain stream read error on subsequent response.content accesses (#4965)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7527
+  author: armorbreak001
+  created_at: '2026-06-20T08:30:08Z'
+7526:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 149d32febf91a05b859c30d637718792f877dd8f
+  title: 'parse_header_links: preserve parameter values containing ''='' characters'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7526
+  author: HrachShah
+  created_at: '2026-06-20T05:33:27Z'
+7525:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: b0905bf58304aa0194aaff40066252871e73b87f
+  title: 'Modernization: Add technical debt report'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7525
+  author: legacy-mod-agent
+  created_at: '2026-06-18T09:01:09Z'
+7524:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 5f63c02876fce0caf045c2b19abb57cd2447cec7
+  title: 'fix: empty params no longer produce empty body (#6122)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7524
+  author: Neohu-ceo
+  created_at: '2026-06-18T01:46:39Z'
+7523:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: c2fb301bd4cb39cf5842e6200b6adfd286798abf
+  title: 'fix: support non-latin (UTF-8) credentials in HTTPBasicAuth (#6102)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7523
+  author: Neohu-ceo
+  created_at: '2026-06-18T01:16:01Z'
+7522:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: ad5d8bb966c85b380632e72ce77b4e38280e5535
+  title: 'fix: preserve read error on subsequent content access (#4965)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7522
+  author: Neohu-ceo
+  created_at: '2026-06-18T01:15:18Z'
+7521:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 54180e00ed378133d0a595b71d51e7e9e04cbcb4
+  title: 'fix: decode bytes username/password to str in HTTPDigestAuth (#6102)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7521
+  author: 1795771535y-cell
+  created_at: '2026-06-17T13:19:39Z'
+7520:
+  base: f361ead047be5cb873174218582f7d8b9fcd9f49
+  head: b536520629911690cc16d72d05f551e4025ff98f
+  title: Keep Link header parameter values that contain '='
+  state: open
+  html_url: https://github.com/psf/requests/pull/7520
+  author: nyxst4ck
+  created_at: '2026-06-16T21:44:40Z'
+7519:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 9ded89dbe44ef7284c4fc6c6fbd64c2868716dbc
+  title: 'fix: Remove ISO-8859-1 charset fallback'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7519
+  author: manupareekk
+  created_at: '2026-06-16T17:35:28Z'
+7518:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: b885898a73911c632f7ec5472635697ea418e89d
+  title: 'fix: requests.exceptions.ReadTimeout is not raised when response is chunked'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7518
+  author: manupareekk
+  created_at: '2026-06-16T17:13:01Z'
+7517:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: bddb12c1e711d6f626c29824cffe316e7b5a7ce1
+  title: 'fix: Strange behavior when setting cookie value to None in the method-level
+    p'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7517
+  author: manupareekk
+  created_at: '2026-06-16T16:39:41Z'
+7516:
+  base: d64b9ad4bf1c14e21e0df3f0f4320fec81180e91
+  head: 7ce348ba2a1d23b84aa16cc73273e38e6d98329a
+  title: <spam>
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7516
+  author: ugcoderz
+  created_at: '2026-06-15T19:35:03Z'
+7515:
+  base: 6f66281a1d6326b1b9c4ac09ca30de0fc4e6ef43
+  head: cb28bfeeed4862344530ed99d64e5b9588a7fb4d
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.15 to 0.15.16
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7515
+  author: dependabot[bot]
+  created_at: '2026-06-15T16:55:51Z'
+7514:
+  base: 6f66281a1d6326b1b9c4ac09ca30de0fc4e6ef43
+  head: 70a7c79d0cce30b815cd6d37ac4b61bf5aeb98da
+  title: 'fix: Add automatic code formatting to Requests (#6095)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7514
+  author: vijay-msrit
+  created_at: '2026-06-15T14:51:21Z'
+7513:
+  base: 6f66281a1d6326b1b9c4ac09ca30de0fc4e6ef43
+  head: 254195ec43d7045b4061d29649e543ccb3882183
+  title: Make RequestsCookieJar.popitem() work
+  state: open
+  html_url: https://github.com/psf/requests/pull/7513
+  author: vineethsaivs
+  created_at: '2026-06-13T09:53:28Z'
+7508:
+  base: 6f66281a1d6326b1b9c4ac09ca30de0fc4e6ef43
+  head: e6d7e9b7195f52799b50138e4baedc4c7a95c2bf
+  title: "Add OSS-Fuzz harness \u2014 Python HTTP library"
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7508
+  author: canolgun
+  created_at: '2026-06-12T09:21:00Z'
+7507:
+  base: 6f66281a1d6326b1b9c4ac09ca30de0fc4e6ef43
+  head: bf1abe67c486d3202e0cdb4d2051625246d3c8e4
+  title: Use str.(r)partition instead of .(r)split where appropriate
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7507
+  author: scop
+  created_at: '2026-06-11T21:26:55Z'
+7506:
+  base: 6f66281a1d6326b1b9c4ac09ca30de0fc4e6ef43
+  head: 2e61ec184775c72d80a32c447c5d9556e0974d6e
+  title: '`requests.help` static typing improvements'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7506
+  author: jorenham
+  created_at: '2026-06-09T15:57:16Z'
+7505:
+  base: 6f205ff422bccd5e4c4fc0b64c5f3e7df5181db6
+  head: 8561a353cfa7bb44f90d30f5cbb3e596611f7ff1
+  title: Add hasattr checks for remaining protocol isinstance checks
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7505
+  author: nateprewitt
+  created_at: '2026-06-08T22:33:15Z'
+7503:
+  base: 1190afd14fca74292946d62c4c8169880a47ff67
+  head: 5b161d66e955cc7115898b7d84101e2a65377efd
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.14 to 0.15.15
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7503
+  author: dependabot[bot]
+  created_at: '2026-06-08T16:55:11Z'
+7502:
+  base: 661970d171d9c3e12e4c789c4768db647d8c4da0
+  head: be53ff13b12df758cba1220f48fca0be31bcf03c
+  title: Fix `_encode_files` detection for `__getattr__`-based file wrappers
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7502
+  author: LoicPernod
+  created_at: '2026-06-08T09:49:14Z'
+7501:
+  base: 1190afd14fca74292946d62c4c8169880a47ff67
+  head: 4b1299044d80a7ee44e61e81042ce676591517b6
+  title: 'fix: preserve explicit Cookie headers on same-origin redirects'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7501
+  author: louzhedong
+  created_at: '2026-06-07T01:31:51Z'
+7500:
+  base: 1190afd14fca74292946d62c4c8169880a47ff67
+  head: d46b7d398fa1a483c8e7772a2dc14a6677a3b9b1
+  title: Document pickling state for HTTPAdapter subclasses
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7500
+  author: wayyoungboy
+  created_at: '2026-06-06T23:06:19Z'
+7499:
+  base: 1190afd14fca74292946d62c4c8169880a47ff67
+  head: 2e620c71fd5750ca6784c5c37dcb3fd094ef0286
+  title: Document pickling custom transport adapters
+  state: open
+  html_url: https://github.com/psf/requests/pull/7499
+  author: wayyoungboy
+  created_at: '2026-06-06T22:35:22Z'
+7498:
+  base: e50e5945294f79ee9ab4ec69de24d14f9b26a7ae
+  head: 1e0fa672ed7185d5c408e2dc6ce1e15abf1d488f
+  title: Add type annotation for `Request.hooks`
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7498
+  author: jorenham
+  created_at: '2026-06-04T19:50:10Z'
+7497:
+  base: e50e5945294f79ee9ab4ec69de24d14f9b26a7ae
+  head: 38b7702f0eb1659e73ae2ee86401ddf91530d9d3
+  title: Disable commonly ignored Pyright linting rules
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7497
+  author: jorenham
+  created_at: '2026-06-04T19:16:53Z'
+7496:
+  base: 3be097d450ee4ca8a2f9c1a3a58eb61ed19936b0
+  head: 51599157d669a044272a96d547b4065103e1e5f3
+  title: 'Improve static typing of 3rd party imports '
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7496
+  author: jorenham
+  created_at: '2026-06-04T14:37:56Z'
+7495:
+  base: 3be097d450ee4ca8a2f9c1a3a58eb61ed19936b0
+  head: c7b7a6eae9930540a1783e6300a9b5d9ea5fad8a
+  title: 'fix: verify=False precedence over REQUESTS_CA_BUNDLE env var (#3829)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7495
+  author: daviediao-code
+  created_at: '2026-06-04T07:29:31Z'
+7494:
+  base: 3be097d450ee4ca8a2f9c1a3a58eb61ed19936b0
+  head: 497086ce3e6e3dc688fe2e4dcb0681ff59a2fadf
+  title: Fix RequestsCookieJar popitem
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7494
+  author: puneetdixit200
+  created_at: '2026-06-04T02:42:47Z'
+7493:
+  base: c4367f231b5dc54f23f2983828562ce3a7555a8a
+  head: 175e15339c4cd881308d5820387bf02bd3b79dda
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.12 to 0.15.14
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7493
+  author: dependabot[bot]
+  created_at: '2026-06-03T00:38:13Z'
+7492:
+  base: c4367f231b5dc54f23f2983828562ce3a7555a8a
+  head: 2a480a1f56b6e32fd2ef0bcd6048ff468e2768ee
+  title: Bump github/codeql-action from 4.35.1 to 4.36.0 in the actions group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7492
+  author: dependabot[bot]
+  created_at: '2026-06-03T00:27:12Z'
+7491:
+  base: c4367f231b5dc54f23f2983828562ce3a7555a8a
+  head: 4f31071da2cf1c7ed2c6d7b4b73a12cc676406f0
+  title: 'fix: restore urlparse path params in digest auth uri (#6990)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7491
+  author: wowo515151
+  created_at: '2026-06-02T19:13:13Z'
+7490:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 55599216e23d5e8a02499d0019e910e2c18563fd
+  title: Add AI Policy
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7490
+  author: sigmavirus24
+  created_at: '2026-05-31T12:33:53Z'
+7489:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: bce2818866090f55e72fcc8ec78cc3bbc4775c4a
+  title: 'FIX: Add RFC 7230 header validation to reject pseudo-headers (fix #6167)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7489
+  author: JosefVacha
+  created_at: '2026-05-25T10:28:42Z'
+7488:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 10972a5808210a80323670ba7b76d04a7505d64c
+  title: 'FIX: Add header validation to reject invalid headers (fix #6167)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7488
+  author: JosefVacha
+  created_at: '2026-05-25T10:10:59Z'
+7487:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 7d4dba81ce62a59649dc3099f6f7cc3094a119a3
+  title: 'FIX: no_proxy env ignored on 302 redirect (fix #3296)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7487
+  author: JosefVacha
+  created_at: '2026-05-25T09:12:29Z'
+7486:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 48e151d4c62b4f4a9f906f75182e60b1cb8c40e1
+  title: 'fix: check callable before tuple in prepare_auth'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7486
+  author: qizwiz
+  created_at: '2026-05-25T09:06:57Z'
+7485:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: eb5c46dbc03dd0227571c76fa15e6a3c5d24a3ec
+  title: Fix double-decoding of percent-encoded IPv6 zone IDs
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7485
+  author: Warend007
+  created_at: '2026-05-25T02:13:45Z'
+7484:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 4c58bc4d4a37e88d952f6fec41d91f599b210b9b
+  title: Fix escaped quotes being stripped from cookie values
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7484
+  author: Warend007
+  created_at: '2026-05-25T02:13:36Z'
+7483:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 565f6b484d74ed9ebed10c36f41f4f1ab9e3f808
+  title: Fix incorrect Content-Length with io.StringIO body
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7483
+  author: Warend007
+  created_at: '2026-05-25T02:13:29Z'
+7482:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 163049e7599c52ff40b896d054d682d5d8e3fa99
+  title: Fix digest auth uri field dropping semicolons in URL path
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7482
+  author: Warend007
+  created_at: '2026-05-25T02:13:22Z'
+7481:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 2bd03c05b00a73af8791ed5709a8178f803dc479
+  title: Fix mypy false positives for json= parameter
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7481
+  author: Warend007
+  created_at: '2026-05-25T02:13:16Z'
+7480:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 017a0382c90c20ea931e1cd735fe06fde327c02d
+  title: "fix: apply Gray Memory patch for gray-memory/partial-fix-issue-7443-2\u2026"
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7480
+  author: YousafZahid1
+  created_at: '2026-05-25T01:32:24Z'
+7479:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 114b28e4303da207fb316ae44de8e776a188920f
+  title: 'docs: Add reputation comment F70'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7479
+  author: JosefVacha
+  created_at: '2026-05-25T00:14:25Z'
+7478:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: e0aad86f6a2a0e62dd22abda7eae89ebf810f409
+  title: 'docs: Add reputation comment F63'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7478
+  author: JosefVacha
+  created_at: '2026-05-25T00:03:57Z'
+7477:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 125253bf2abd66f0fcc3836ca73b939791926925
+  title: '[F20] Add test for rewind body'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7477
+  author: JosefVacha
+  created_at: '2026-05-24T23:30:48Z'
+7476:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 7338e867a20a4f582876c46b49b6aad273eed589
+  title: '[F19] Add test for header validity check'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7476
+  author: JosefVacha
+  created_at: '2026-05-24T23:30:47Z'
+7475:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 12fe126bb13aaa04dbb7ffbf46e1aaa3cf79c943
+  title: '[F18] Add test for dict from cookiejar'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7475
+  author: JosefVacha
+  created_at: '2026-05-24T23:30:46Z'
+7474:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: a155db8dd775946c6ff852465e610a9aea68bd7e
+  title: '[F17] Add test for default headers'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7474
+  author: JosefVacha
+  created_at: '2026-05-24T23:30:45Z'
+7473:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 187f1b500c0f9f5ab13617788c6fdce9040fa97a
+  title: '[F16] Add test for default user agent'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7473
+  author: JosefVacha
+  created_at: '2026-05-24T23:30:44Z'
+7472:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: ceb420823ad632fdc47f301bd0d8c8b4f00ff89d
+  title: "docs: make Prepared Requests examples self-contained by adding missin\u2026"
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7472
+  author: mkyen
+  created_at: '2026-05-24T20:46:35Z'
+7471:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 1c6974be38c819d39237df3224e0c88ee289541d
+  title: Wrap urllib3 LocationParseError from create_connection in InvalidURL (#5744)
+  state: open
+  html_url: https://github.com/psf/requests/pull/7471
+  author: jbbqqf
+  created_at: '2026-05-23T08:25:17Z'
+7470:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 6b079f8db9393e75f13a53c44080d864e0fd3b86
+  title: 'docs: integrate and update official documentation guidelines in advanced.rst'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7470
+  author: SantiagoAngulo0
+  created_at: '2026-05-21T17:37:23Z'
+7469:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: e1a81ceb40cbea1223ec6ab24293fa06a9f09d35
+  title: 'docs: improve hook documentation comment'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7469
+  author: goingforstudying-ctrl
+  created_at: '2026-05-21T17:15:59Z'
+7468:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 64790bfab706b1d1b25e683b279881a6e40c37b2
+  title: Fix request cookies set to None
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7468
+  author: puneetdixit200
+  created_at: '2026-05-21T08:56:29Z'
+7467:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 1986df35f43327dd26c7bea9b92e3a85f7a4748d
+  title: 'fix: broaden JsonType to accept Sequence[Any] and Mapping[str, Any]'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7467
+  author: pintaste
+  created_at: '2026-05-21T07:56:01Z'
+7466:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: 1986df35f43327dd26c7bea9b92e3a85f7a4748d
+  title: 'fix: broaden JsonType to accept Sequence[Any] and Mapping[str, Any]'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7466
+  author: junliliu1
+  created_at: '2026-05-21T07:53:54Z'
+7464:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: e2303c937c7069a4943a252b98849869c3c064ba
+  title: 'fix(sessions): session.verify=False not overridden by REQUESTS_CA_BUNDLE
+    env var'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7464
+  author: rmotgi1227
+  created_at: '2026-05-19T18:19:33Z'
+7463:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: d468fdbcd1042cdad94baf781c3d550a3e99b917
+  title: Fix HTTPDigestAuth UTF-8 username/password encoding
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7463
+  author: driphtyio
+  created_at: '2026-05-18T21:04:24Z'
+7461:
+  base: cd90742ed94d901759e26766197d0ce7c7bd9c8e
+  head: dbe4dafdfc0be665eebea82449bb15b3ac7f5775
+  title: Document pickling custom adapters
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7461
+  author: Mirochill
+  created_at: '2026-05-18T17:30:13Z'
+7460:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: f79accd4eb8f33494c84ce426a518186147c8a05
+  title: 'docs: indent continuation line in Session.get :param params:'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7460
+  author: aldbr
+  created_at: '2026-05-18T08:53:23Z'
+7458:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: eca1688636c2f9ffae9218cb27ea61903d2c87c2
+  title: Improve TODO comment in hooks.py for clarity
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7458
+  author: wbx-AK
+  created_at: '2026-05-18T08:25:27Z'
+7457:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: a10ab31aba0fab055ebcf77db63ce4b762bf94d9
+  title: Fix model class runtime type hints
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7457
+  author: cyphercodes
+  created_at: '2026-05-17T15:33:18Z'
+7455:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: 0224b0ecf3e62fa22530f7c4e4d88ea9502e8585
+  title: Handle invalid CaseInsensitiveDict comparisons
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7455
+  author: lphuc2250gma
+  created_at: '2026-05-17T08:23:33Z'
+7450:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: d468fdbcd1042cdad94baf781c3d550a3e99b917
+  title: fix/httpdigestauth-non-latin
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7450
+  author: driphtyio
+  created_at: '2026-05-16T21:05:28Z'
+7449:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: d468fdbcd1042cdad94baf781c3d550a3e99b917
+  title: Fix JsonType to accept Mapping[str, Any] instead of recursive Mapping[str,
+    "JsonType"]
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7449
+  author: driphtyio
+  created_at: '2026-05-16T02:16:25Z'
+7448:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: 97c7aca4111193f32139b5a448a8e6e8975f93ee
+  title: 'fix(digest-auth): support non-latin characters in username and password'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7448
+  author: MD-Mushfiqur123
+  created_at: '2026-05-16T00:55:15Z'
+7447:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: 6612541ea7b2aa6ea48649ceb2aad0e50c2a509f
+  title: 'Fix: propagate stream read error on retried Response.content (#4965)'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7447
+  author: trippusultan
+  created_at: '2026-05-15T07:41:42Z'
+7446:
+  base: 6e83187b8feb273ed4c6cdab5efd8d54901dfab3
+  head: 809241b89b24484728ad99acb69e1c16a2f5da3e
+  title: 'docs: Clarify `verify` parameter defaults and behavior'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7446
+  author: amanv0007
+  created_at: '2026-05-15T06:42:12Z'
+7445:
+  base: 84d10f0be83e8f6aeca8a05230c52216431c4d0b
+  head: 0372c26dda61220790ea0fa1199f92726e761834
+  title: v2.34.2
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7445
+  author: nateprewitt
+  created_at: '2026-05-14T16:33:15Z'
+7441:
+  base: b7b549b54571d03950b16afd2d01bc6ff0348224
+  head: 412f581d7e7c27bfee4f042fcac89bae9a804afe
+  title: Move Request.headers back to Mapping
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7441
+  author: nateprewitt
+  created_at: '2026-05-13T21:23:44Z'
+7440:
+  base: 5691f596134c2feb121e595c77a0178921fcce61
+  head: b0d3707b04c81186f83e2c7c14196a29c2397e3f
+  title: v2.34.1
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7440
+  author: nateprewitt
+  created_at: '2026-05-13T15:19:49Z'
+7439:
+  base: 5691f596134c2feb121e595c77a0178921fcce61
+  head: cd4a7a69419e4890dc53f6daa5fcd572f1ba7015
+  title: 'docs: clarify Session.request verify default'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7439
+  author: lphuc2250gma
+  created_at: '2026-05-13T15:12:47Z'
+7438:
+  base: 6404f345e562d962abe6700a1c357ec1e7e18232
+  head: 77eaff5900c9f88885d46701e4162637e76adf59
+  title: 'fix: Inline annotations in 2.34.0 cause mypy error for Request js'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7438
+  author: echo-chamber0
+  created_at: '2026-05-13T00:24:14Z'
+7437:
+  base: 0b401c76b6e80a4eecf3c690085b2553f6e261ca
+  head: dfe9ab8143fb71c72673738f25f0571347226b63
+  title: Constrain Response.reason to str
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7437
+  author: nateprewitt
+  created_at: '2026-05-12T17:19:32Z'
+7436:
+  base: 0b401c76b6e80a4eecf3c690085b2553f6e261ca
+  head: 1be917108874d28ae47cc311297d30790302b648
+  title: Update JsonType containers to read-based collections
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7436
+  author: nateprewitt
+  created_at: '2026-05-12T16:53:40Z'
+7433:
+  base: 0b401c76b6e80a4eecf3c690085b2553f6e261ca
+  head: ea1c36c1b1a8364e234b6ad49ea05e3261636f8a
+  title: Fix `prepare_body` stream detection for `__getattr__`-based file wrappers
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7433
+  author: k223kim
+  created_at: '2026-05-12T13:46:08Z'
+7431:
+  base: 0b401c76b6e80a4eecf3c690085b2553f6e261ca
+  head: 0a074cadfaccfbdd2f841d567a4c1a9132a72cd4
+  title: Fix mutability issues with headers input types
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7431
+  author: nateprewitt
+  created_at: '2026-05-11T20:37:26Z'
+7430:
+  base: 3816cfa1abd42dca21b9e837f26c59b246016aaf
+  head: 6311ff1dcd013d9b1a1bdda4ae9eb3a7df4ae426
+  title: 'docs: clarify tuple-based timeouts in advanced usage'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7430
+  author: Jags-08
+  created_at: '2026-05-11T18:14:18Z'
+7429:
+  base: 3816cfa1abd42dca21b9e837f26c59b246016aaf
+  head: 37a13cdf3245e62cf985ef791e63b2012d0701fe
+  title: Align Session.get parameters with requests.get
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7429
+  author: nateprewitt
+  created_at: '2026-05-11T17:37:12Z'
+7428:
+  base: b684dcb9bbf3aa557d1238e72062c4a29737dd1c
+  head: a83899b05fdfd0ab9538f8541e5315da1b89d3eb
+  title: v2.34.0
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7428
+  author: nateprewitt
+  created_at: '2026-05-11T16:58:05Z'
+7427:
+  base: b684dcb9bbf3aa557d1238e72062c4a29737dd1c
+  head: 52220f66843d08217b89204b7f85183fdf7514d9
+  title: Port bpo-39057 to Requests
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7427
+  author: nateprewitt
+  created_at: '2026-05-11T16:43:07Z'
+7426:
+  base: b684dcb9bbf3aa557d1238e72062c4a29737dd1c
+  head: 93417da60458511850815cc540e9c1f773bd1c9c
+  title: Parameterize SupportsItems to handle Mapping key invariance
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7426
+  author: nateprewitt
+  created_at: '2026-05-11T16:31:48Z'
+7425:
+  base: dc9dbdfb3434c6e58d48fd102f93e5342308817e
+  head: 48884c8fb2afbf8ee3ca14e3982ccf72d284c104
+  title: 'sessions: fix hooks type'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7425
+  author: bastimeyer
+  created_at: '2026-05-11T14:54:28Z'
+7424:
+  base: dc9dbdfb3434c6e58d48fd102f93e5342308817e
+  head: 653ceef90382258ae2ae64c4e944509e8fd5a4db
+  title: Fix HTTPDigestAuth failing on non-ASCII credentials
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7424
+  author: CatfishGG
+  created_at: '2026-05-11T14:14:21Z'
+7423:
+  base: e8d2c015eecda8273612dd4562425e00cd164ba5
+  head: da905d0eb1de1184d323d39dfc2ce2b423df7bee
+  title: Clear *_PROXY env vars during test runs
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7423
+  author: nateprewitt
+  created_at: '2026-05-10T21:24:53Z'
+7422:
+  base: e8d2c015eecda8273612dd4562425e00cd164ba5
+  head: e6b6ee0fe5fd5d21485d1aea48bf6d28cbeb23d4
+  title: Formalize 3.15 support
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7422
+  author: nateprewitt
+  created_at: '2026-05-10T20:01:09Z'
+7421:
+  base: eb173bc819c72580deed2d54190d340cc769e529
+  head: 39931d17d1e62e97597a82d54be714359db76eb3
+  title: 'docs: Fix missing hook output in hook example'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7421
+  author: eggsort
+  created_at: '2026-05-09T09:39:16Z'
+7420:
+  base: eb173bc819c72580deed2d54190d340cc769e529
+  head: 1d3e7039395f244f64fc30b9683a90283d91ebb7
+  title: Refactor HTTPDigestAuth to reduce cognitive complexity
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7420
+  author: Joeavaib
+  created_at: '2026-05-08T21:04:05Z'
+7419:
+  base: d60f4773b1f5932e2715b2c64b333649edbb405b
+  head: 2986edd9e93fcbb87747be2fd175b7821ee73a13
+  title: Add 3.14t support to CI
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7419
+  author: nateprewitt
+  created_at: '2026-05-08T18:57:33Z'
+7418:
+  base: d60f4773b1f5932e2715b2c64b333649edbb405b
+  head: 8ba14b0d8d0bd162f2cb10d6187659214819639c
+  title: 'Refactor: Flatten HTTPDigestAuth logic to reduce cyclomatic complexity'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7418
+  author: Joeavaib
+  created_at: '2026-05-08T11:06:34Z'
+7417:
+  base: d60f4773b1f5932e2715b2c64b333649edbb405b
+  head: e2c2992db5e10267b27afd008c990f2ce40fa807
+  title: 'fix: Allow `Response` to be subclassed as an `attrs` (or equivalent) dataclass'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7417
+  author: edgarrmondragon
+  created_at: '2026-05-08T01:11:19Z'
+7416:
+  base: 04d750509b90da728e53aee8d7516426e5a1a293
+  head: 2a7e7fbb75082df952064f376c95a9d1116e8183
+  title: 'docs: update stale Sphinx link in contributing guide'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7416
+  author: joshua-51
+  created_at: '2026-05-07T21:29:15Z'
+7415:
+  base: 04d750509b90da728e53aee8d7516426e5a1a293
+  head: 58b6f368c33eaae0f25f48ce04e1178ca981a26b
+  title: 'Fix: retain stream read error on subsequent response.content access'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7415
+  author: hellozzm
+  created_at: '2026-05-06T01:07:31Z'
+7414:
+  base: 04d750509b90da728e53aee8d7516426e5a1a293
+  head: 37f41997aebd2fdfe3d5f89b5381974464fa0eda
+  title: Fix HTTPDigestAuth non-latin credentials encoding
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7414
+  author: mitre88
+  created_at: '2026-05-05T22:18:29Z'
+7413:
+  base: 04d750509b90da728e53aee8d7516426e5a1a293
+  head: 418c76b8aa7be2255ecd2d045f761e6411ba0acb
+  title: Fix HTTPDigestAuth uri field truncated by semicolons in URL path
+  state: open
+  html_url: https://github.com/psf/requests/pull/7413
+  author: zons-zhaozhy
+  created_at: '2026-05-05T14:05:23Z'
+7412:
+  base: 04d750509b90da728e53aee8d7516426e5a1a293
+  head: 82e11106a1c658d137720ee207adfacb3dc70947
+  title: 'fix: handle None proxies in merge_environment_settings'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7412
+  author: zons-zhaozhy
+  created_at: '2026-05-05T11:58:34Z'
+7411:
+  base: f7822f7c4185b45527f171095c4edf8777efe51b
+  head: 03627b53f15a56bbb39633e1bcf4dc995c163017
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.11 to 0.15.12
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7411
+  author: dependabot[bot]
+  created_at: '2026-05-04T21:31:45Z'
+7410:
+  base: f7822f7c4185b45527f171095c4edf8777efe51b
+  head: cba158ef6058223daa7b33db8b0d0fd4f80efbac
+  title: 'fix: count StringIO content length in bytes'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7410
+  author: zafar1162014
+  created_at: '2026-05-03T21:02:26Z'
+7409:
+  base: f7822f7c4185b45527f171095c4edf8777efe51b
+  head: 1d9dc495ef9a1b4e9dc207baa2fc3bb69d917e5b
+  title: 'docs: clarify verify semantics in request docs'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7409
+  author: zafar1162014
+  created_at: '2026-05-03T20:52:44Z'
+7408:
+  base: 561e4b6889f53584c39a67f8794c53a414f68481
+  head: da8b77e3acf85b3a767004562cab998c0cd96d11
+  title: v2.34.0.dev1
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7408
+  author: nateprewitt
+  created_at: '2026-05-03T19:46:22Z'
+7407:
+  base: 8f6cda9969f4a98c45ea2922f6bcbefc02256202
+  head: c59514d1265b3d441f3953243c5a9a45f8b46cc4
+  title: 'docs: add try/except example to Errors and Exceptions section'
+  state: open
+  html_url: https://github.com/psf/requests/pull/7407
+  author: Abdul-Wasiq
+  created_at: '2026-05-02T17:53:36Z'
+7406:
+  base: 8f6cda9969f4a98c45ea2922f6bcbefc02256202
+  head: f4db936cee4ce5082a1182b9b008a7abcdb93fd6
+  title: "Forge refactor \u2014 5-tier monadic layout"
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7406
+  author: atomadictech
+  created_at: '2026-05-01T18:28:20Z'
+7404:
+  base: 8f6cda9969f4a98c45ea2922f6bcbefc02256202
+  head: fa5eb89d4ba49f7514eb6e030a819f58d2d00179
+  title: 'docs: clarify Session.request verify defaults to Session''s verify value'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7404
+  author: Jah-yee
+  created_at: '2026-04-30T17:56:25Z'
+7403:
+  base: 8f6cda9969f4a98c45ea2922f6bcbefc02256202
+  head: 7ad17b99d02a24373c07c96ac2a7c96abd45466b
+  title: 'docs: clarify Session.request verify inherits from session'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7403
+  author: Jah-yee
+  created_at: '2026-04-30T17:26:21Z'
+7401:
+  base: 6ec76b4a36fba4a32fb72f5f9ba04e632635e477
+  head: 0d1c887f7a7f48994ee383921dce54ee16dcff0f
+  title: Add tests for hasattr/getattr usage on LookupDict
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7401
+  author: nateprewitt
+  created_at: '2026-04-30T02:51:46Z'
+7400:
+  base: 6ec76b4a36fba4a32fb72f5f9ba04e632635e477
+  head: 2e5e220537fbb05cad2100933cd3c87eda3d88ca
+  title: 'docs: clarify Session.request verify inheritance'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7400
+  author: jaythehardcoder
+  created_at: '2026-04-29T21:12:29Z'
+7398:
+  base: f43f750ee10addbaa13901c1017631b4d70fd6e3
+  head: cf35ec7e6a36f3f165af6d9a94ddf7b86ab838d6
+  title: Handle None-valued method cookies as removals
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7398
+  author: ShipItAndPray
+  created_at: '2026-04-27T02:18:48Z'
+7397:
+  base: f43f750ee10addbaa13901c1017631b4d70fd6e3
+  head: 188fd0a81ca0af0f2f57a637dba3179e26e298d9
+  title: Use `enumerate()` for index variable in `for` loop
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7397
+  author: DimitriPapadopoulos
+  created_at: '2026-04-26T15:16:46Z'
+7396:
+  base: f43f750ee10addbaa13901c1017631b4d70fd6e3
+  head: 52be49a7731cdbb2fc515175410d82b27f5e8902
+  title: Enforce Ruff-specific rules (RUF)
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7396
+  author: DimitriPapadopoulos
+  created_at: '2026-04-26T15:03:17Z'
+7395:
+  base: f43f750ee10addbaa13901c1017631b4d70fd6e3
+  head: 3ed1cdc1bf9cc6365ba9be68bd4c039234051723
+  title: Fix typos
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7395
+  author: DimitriPapadopoulos
+  created_at: '2026-04-26T14:53:55Z'
+7394:
+  base: f43f750ee10addbaa13901c1017631b4d70fd6e3
+  head: 435081969cfc96a7f62e92f7f2ce94a3d932a513
+  title: PEP 639 compliance
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7394
+  author: DimitriPapadopoulos
+  created_at: '2026-04-26T14:46:14Z'
+7393:
+  base: f43f750ee10addbaa13901c1017631b4d70fd6e3
+  head: f19b86d99cf6b7a4210122c3e0b088598f70960a
+  title: Ruff rule UP038 has been removed
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7393
+  author: DimitriPapadopoulos
+  created_at: '2026-04-26T14:42:00Z'
+7392:
+  base: f43f750ee10addbaa13901c1017631b4d70fd6e3
+  head: 3e73bdb569c6e2814aa6864be249e665e234b2ab
+  title: 'feat: Add enhanced gzip streaming support for requests library'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7392
+  author: haroldfabla2-hue
+  created_at: '2026-04-24T21:31:33Z'
+7391:
+  base: 9450dd51fb423c17f01325d5f23e62b0450696c6
+  head: bc96cde51bd92c4bfecd03b38f2ffa114a3b8e32
+  title: 'docs: clarify timeout parameter in requests.get()'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7391
+  author: Jah-yee
+  created_at: '2026-04-24T11:07:21Z'
+7390:
+  base: 9450dd51fb423c17f01325d5f23e62b0450696c6
+  head: 2cc0dab0ec1381dd03aff0cc461bced0d18e34a7
+  title: Bump https://github.com/astral-sh/ruff-pre-commit from v0.15.9 to 0.15.11
+    in the pre-commit group
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7390
+  author: dependabot[bot]
+  created_at: '2026-04-24T10:52:54Z'
+7389:
+  base: 93bf5331a70cd2c77ac3ba43f85c918cae67c69f
+  head: bc96cde51bd92c4bfecd03b38f2ffa114a3b8e32
+  title: 'docs: clarify timeout parameter accepts float or tuple in requests.get'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7389
+  author: Jah-yee
+  created_at: '2026-04-24T10:49:39Z'
+7388:
+  base: 93bf5331a70cd2c77ac3ba43f85c918cae67c69f
+  head: d8025e3d0f7576df227eda665ca58891474aa4e8
+  title: Preserve IPv6 zone identifier in prepared URLs (#6735)
+  state: open
+  html_url: https://github.com/psf/requests/pull/7388
+  author: mdali9821
+  created_at: '2026-04-24T05:58:25Z'
+7387:
+  base: 93bf5331a70cd2c77ac3ba43f85c918cae67c69f
+  head: f41323d8dffe3ff8f158845464601b7f41552209
+  title: Create groups for GHA and pre-commit dependabot PRs
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7387
+  author: nateprewitt
+  created_at: '2026-04-24T03:45:47Z'
+7386:
+  base: 79f4df84cf77a2fee873809821dfbd786de05b97
+  head: fceab9fc38f6ccedce7a71c026eef78db3bc8822
+  title: Update index.rst to match README info
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7386
+  author: nateprewitt
+  created_at: '2026-04-23T20:44:37Z'
+7385:
+  base: 79f4df84cf77a2fee873809821dfbd786de05b97
+  head: dee9782c1ffc66e0ca09994acaef39aa485eb9dd
+  title: 'docs: Clarify timeout parameter behavior in quickstart guide'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7385
+  author: achbj
+  created_at: '2026-04-23T09:13:46Z'
+7384:
+  base: 79f4df84cf77a2fee873809821dfbd786de05b97
+  head: e5aade3aafd3d8d68007df1a6e8a31042a294305
+  title: Don't let REQUESTS_CA_BUNDLE override an explicit session.verify=False
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7384
+  author: tejas-ae
+  created_at: '2026-04-22T20:51:50Z'
+7383:
+  base: 79f4df84cf77a2fee873809821dfbd786de05b97
+  head: 26dbede39b2020b8d87b6e8d0f2e2ba75ea379e3
+  title: 'fix: session.verify=False should take precedence over REQUESTS_CA_BUNDLE'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7383
+  author: armorbreak001
+  created_at: '2026-04-22T14:19:22Z'
+7382:
+  base: 79f4df84cf77a2fee873809821dfbd786de05b97
+  head: 7d337707de1cdd0fab2acdb6f4cdb4bdead9a25d
+  title: 'fix: handle bytes username/password in HTTPDigestAuth'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7382
+  author: armorbreak001
+  created_at: '2026-04-22T05:06:20Z'
+7381:
+  base: 79f4df84cf77a2fee873809821dfbd786de05b97
+  head: ce1a2f0d07a9b56280d8caddd78b66c19c6927db
+  title: 'docs: clarify timeout parameter is per-phase, not total deadline'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7381
+  author: Bojun-Vvibe
+  created_at: '2026-04-22T03:45:12Z'
+7380:
+  base: 79f4df84cf77a2fee873809821dfbd786de05b97
+  head: 112e26b3ccfd3a74d2486147d76d265b6a3e8ad0
+  title: 'feat(security): add SecurityWarning for verify=False with cert'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7380
+  author: loisccg
+  created_at: '2026-04-20T23:12:50Z'
+7379:
+  base: b294b08fe3b08df9f646f64d1250f96193dab066
+  head: 6bb8d338e1f2f1a710e48974d3a83f640907b2d0
+  title: 'docs: clarify timeout parameter is per-phase, not total deadline'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7379
+  author: Bojun-Vvibe
+  created_at: '2026-04-20T19:29:26Z'
+7378:
+  base: b294b08fe3b08df9f646f64d1250f96193dab066
+  head: 2ba35860d42d3acefeb629c9b6aa31dfd7a72c61
+  title: Bump pypa/gh-action-pypi-publish from 1.13.0 to 1.14.0
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7378
+  author: dependabot[bot]
+  created_at: '2026-04-20T19:19:35Z'
+7377:
+  base: 5f3ff9b9e4d3d44960467e7877e06e9efa22f20b
+  head: 296a6c2850fa5f8ec3201979d73b98288b755114
+  title: 'refactor: improve utils.py code health from 4.85 to 7.55'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7377
+  author: adnasal
+  created_at: '2026-04-20T14:23:08Z'
+7376:
+  base: 5f3ff9b9e4d3d44960467e7877e06e9efa22f20b
+  head: cdd97bf3ed256e3111dc9cedd970df481a75c08a
+  title: Consider urllib3 version has 3 numbers at most (#7375)
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7376
+  author: dsanader
+  created_at: '2026-04-20T13:24:54Z'
+7374:
+  base: 5f3ff9b9e4d3d44960467e7877e06e9efa22f20b
+  head: 062ff1180cf957d3f264f4395adc1414c6996b1d
+  title: 'docs(exceptions): clarify ChunkedEncodingError can result from transient
+    network issues'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7374
+  author: CodeLine9
+  created_at: '2026-04-19T23:25:23Z'
+7373:
+  base: 5f3ff9b9e4d3d44960467e7877e06e9efa22f20b
+  head: 10d7fc8bed59ab5ebaf2d84e3c0be108cfb8b9c5
+  title: 'docs(quickstart): clarify timeout applies to connect and read separately'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7373
+  author: CodeLine9
+  created_at: '2026-04-19T23:23:17Z'
+7372:
+  base: 514c1623fefff760bfa15a693aa38e474aba8560
+  head: ec2a442ff52b73e095fc7de3c6558fd53e04ee49
+  title: 'docs(quickstart): add practical timeout example'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7372
+  author: tboyila
+  created_at: '2026-04-19T12:50:35Z'
+7371:
+  base: 514c1623fefff760bfa15a693aa38e474aba8560
+  head: 06cc52fe881e5a0f2c78fdbeea53ea8ed8a144ad
+  title: Fix typo discovered by codespell
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7371
+  author: cclauss
+  created_at: '2026-04-18T19:51:30Z'
+7370:
+  base: 514c1623fefff760bfa15a693aa38e474aba8560
+  head: be2a581f79bf02d364caf04a82cbdbf8953ace5e
+  title: 'fix: reject None values in auth tuple'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7370
+  author: PewterZz
+  created_at: '2026-04-17T13:28:24Z'
+7368:
+  base: 514c1623fefff760bfa15a693aa38e474aba8560
+  head: 1b4ec40f2f7fdbaaaf0777d8119d345a120b6fab
+  title: Add automatic code formatting to Requests
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7368
+  author: vijay-msrit
+  created_at: '2026-04-17T06:37:29Z'
+7367:
+  base: 514c1623fefff760bfa15a693aa38e474aba8560
+  head: 790a39a88a5c869d755ac3f6e408cf8d077e8fcc
+  title: 'fix: handle non-ASCII (Unicode) credentials in HTTPDigestAuth'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7367
+  author: OfekDanny
+  created_at: '2026-04-16T11:55:13Z'
+7366:
+  base: d2f6bdecc835475c3cfbb83565ea879d7b2712ca
+  head: a6c03398279ba6cedab995cf680a5c21cbf32306
+  title: Update README and remove extraneous images
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7366
+  author: nateprewitt
+  created_at: '2026-04-15T18:25:28Z'
+7365:
+  base: 16df2a09173b17a82d607c31a6826b7c5dd0fc57
+  head: a5e64000f489b059a5aca9463afd9f39b1c5b273
+  title: Clarify decode_unicode behaviour in iter_{content,lines} docstrings
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7365
+  author: cjriches
+  created_at: '2026-04-15T09:47:32Z'
+7364:
+  base: fe2063be0cfbc08150ef468ae57a708c2514a321
+  head: 5b42d1230f043bb06a375dec6a4c2699d162a515
+  title: Move pytest pin to support 9.x series
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7364
+  author: nateprewitt
+  created_at: '2026-04-15T02:52:30Z'
+7360:
+  base: 4b0b1a3e9f2fc21b9dcd8b906f2ff02645aa697e
+  head: e5548492971ef4f3dfb8bf335e633a2b704bb56e
+  title: Don't hide navigation on mobile webpage
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7360
+  author: nateprewitt
+  created_at: '2026-04-14T17:26:46Z'
+7356:
+  base: 4b0b1a3e9f2fc21b9dcd8b906f2ff02645aa697e
+  head: 6d0c6a8a08768f36777b61b18ea81a93457a0d57
+  title: 'docs: document exceptions raised by request()'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7356
+  author: DORI2001
+  created_at: '2026-04-12T16:50:34Z'
+7355:
+  base: 185f587a78e2d2df31ae8af8c95d97a012213df7
+  head: 7e9316a147f87915a678e964ea8b8ba331f36156
+  title: Add missing stacklevel to all warnings.warn() calls
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7355
+  author: stef41
+  created_at: '2026-04-11T20:17:27Z'
+7354:
+  base: ef439eb779c1eba7cbdeeeb302b11e1e061b4b7d
+  head: 07dc19ed95cec0cbd929b93382dff80524a32a65
+  title: Cleanup docs and add i18n wrappers
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7354
+  author: nateprewitt
+  created_at: '2026-04-10T21:34:10Z'
+7351:
+  base: ef439eb779c1eba7cbdeeeb302b11e1e061b4b7d
+  head: 71a0d0bef627387eb60307e7dbacdc4d133e3e67
+  title: 'docs: clarify timeout parameter behavior'
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7351
+  author: Yanhu007
+  created_at: '2026-04-10T15:11:20Z'
+7349:
+  base: ef439eb779c1eba7cbdeeeb302b11e1e061b4b7d
+  head: 54997fd83c5d92568c1bd2676e9f10cba2b381b8
+  title: Clarify and improve decode_unicode behaviour in iter_content
+  state: closed
+  html_url: https://github.com/psf/requests/pull/7349
+  author: cjriches
+  created_at: '2026-04-09T14:13:51Z'

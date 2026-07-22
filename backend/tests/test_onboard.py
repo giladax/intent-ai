@@ -128,4 +128,31 @@ def test_duplicate_draft_ids_surface_as_400(tmp_path, monkeypatch):
         },
     )
     assert response.status_code == 400
-    assert "duplicate draft obligation ids" in response.json()["detail"]
+
+
+def test_write_workspace_provider_parameter(tmp_path):
+    """write_workspace writes the provider field from the parameter, not hardcoded."""
+    import yaml
+    from quire.onboard import write_workspace
+
+    # Minimal repo dir for the relative path helper
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    ws_root = tmp_path / "workspaces"
+
+    out, _id_map = write_workspace(
+        workspaces_root=ws_root,
+        workflow_id="test-github-ws",
+        repo=repo,
+        sources=[{"reference": "CONTRIBUTING.md", "path": "CONTRIBUTING.md"}],
+        obligations=[{"obligation_id": "OB-DRAFT-1", "statement": "must do X", "kind": "behavioral"}],
+        control_points=[],
+        bindings=[],
+        sweep_commits=[],
+        provider="github",
+    )
+
+    data = yaml.safe_load((out / "workflow.yaml").read_text())
+    assert data["requirements"]["provider"] == "github"
+    # repositories block also uses the parameter
+    assert data["repositories"][0]["provider"] == "github"

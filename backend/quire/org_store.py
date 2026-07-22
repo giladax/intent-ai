@@ -145,6 +145,68 @@ class OrgStore:
                     existing.repository = repo["repository"]
             s.commit()
 
+    def add_repo(
+        self,
+        org_id: str,
+        repo_id: str,
+        workspace: str,
+        display_name: str,
+        github_remote: str | None = None,
+        status: str = "active",
+        read_only: bool = False,
+        repository: str | None = None,
+    ) -> None:
+        """Add a new repo resident to the org.
+
+        Idempotent: if a row with the same id already exists, it is a no-op
+        (same behaviour as seed()). Raises if org_id does not exist.
+
+        Single-writer: only OrgStore writes org_repos.
+        """
+        with SASession(self._engine) as s:
+            existing = s.get(OrgRepo, repo_id)
+            if existing is None:
+                s.add(OrgRepo(
+                    id=repo_id,
+                    org_id=org_id,
+                    workspace=workspace,
+                    display_name=display_name,
+                    github_remote=github_remote,
+                    status=status,
+                    read_only=read_only,
+                    repository=repository,
+                ))
+                s.commit()
+
+    def update_repo_status(self, workspace: str, status: str) -> None:
+        """Update the status field of a repo row by workspace name.
+
+        Used by the onboarding flow: scanning → active after approval.
+        Raises if no row is found for the workspace.
+        """
+        with SASession(self._engine) as s:
+            row = s.execute(
+                select(OrgRepo).where(OrgRepo.workspace == workspace)
+            ).scalar_one_or_none()
+            if row is None:
+                raise ValueError(f"No org_repos row found for workspace: {workspace!r}")
+            row.status = status
+            s.commit()
+
+    def remove_repo(self, workspace: str) -> None:
+        """Remove an org_repos row by workspace name.
+
+        Used by the cleanup-on-fail path in org_onboard.py. Silent no-op if
+        the row does not exist (idempotent delete).
+        """
+        with SASession(self._engine) as s:
+            row = s.execute(
+                select(OrgRepo).where(OrgRepo.workspace == workspace)
+            ).scalar_one_or_none()
+            if row is not None:
+                s.delete(row)
+                s.commit()
+
     def get_org(self) -> dict[str, Any] | None:
         """Return the single org with its repos, or None if not seeded."""
         with SASession(self._engine) as s:
@@ -167,6 +229,28 @@ class OrgStore:
                 select(OrgRepo).where(OrgRepo.org_id == org_id)
             ).scalars().all()
             return [_repo_to_dict(r) for r in repos]
+
+    def resolve_repository_key(self, workspace: str) -> str:
+        """Return the alignment-store repository key for a workspace.
+
+        The org_repos.repository column holds an override when the alignment
+        store key differs from the workspace name (e.g. the refund-agent
+        workspace stores analyses under "company/refund-agent"). When the
+        column is NULL the workspace name IS the key.
+
+        This is the single authoritative helper — callers must never inline
+        the fallback logic (currently `repo["repository"] or ws`).
+        """
+        with SASession(self._engine) as s:
+            row = s.execute(
+                select(OrgRepo).where(OrgRepo.workspace == workspace)
+            ).scalar_one_or_none()
+        if row is None:
+            # Unknown workspace — return the name itself; callers may find
+            # nothing in the alignment store, which is an expected state for
+            # newly registered repos before any analyses exist.
+            return workspace
+        return row.repository or workspace
 
     def count_coupled_sessions(self, workspace: str) -> int:
         """Count session_checks rows for a workspace — coupled-session count."""
@@ -200,10 +284,9 @@ class OrgStore:
         for repo in repos:
             ws = repo["workspace"]
 
-            # Latest verdict from alignment store.
-            # Use repo["repository"] when the alignment store key differs from
-            # the workspace name (e.g. refund-agent → "company/refund-agent").
-            repo_key = repo.get("repository") or ws
+            # Latest verdict from alignment store. resolve_repository_key is
+            # the single authoritative fallback (workspace → alignment key).
+            repo_key = self.resolve_repository_key(ws)
 
             try:
                 analyses = alignment_store.list_analyses(repository=repo_key)

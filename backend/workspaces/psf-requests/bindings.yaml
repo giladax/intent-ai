@@ -1,0 +1,35 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
+control_points:
+- control_point_id: CP-github-ISSUE-TEMPLATE-Bug-report-md
+  role: enforcement
+  path: .github/ISSUE_TEMPLATE/Bug_report.md
+  description: The bug report template mandates fields for traceback/actual result, making
+    incomplete submissions visible and subject to closure.
+- control_point_id: CP-github-CONTRIBUTING-md
+  role: decision
+  path: .github/CONTRIBUTING.md
+  description: CONTRIBUTING.md states the policy that issues without complete tracebacks may
+    be closed without warning.
+- control_point_id: CP-github-workflows-lock-issues-yml
+  role: enforcement
+  path: .github/workflows/lock-issues.yml
+  description: Automatically locks inactive issues after 90 days, operationalizing the close-without-fix
+    policy for unresponsive reporters.
+bindings:
+- obligation_id: PSFREQ-001
+  control_point_id: CP-github-ISSUE-TEMPLATE-Bug-report-md
+  relation: enforces
+- obligation_id: PSFREQ-001
+  control_point_id: CP-github-CONTRIBUTING-md
+  relation: decides
+- obligation_id: PSFREQ-002
+  control_point_id: CP-github-workflows-lock-issues-yml
+  relation: enforces
+- obligation_id: PSFREQ-002
+  control_point_id: CP-github-CONTRIBUTING-md
+  relation: decides
+- obligation_id: PSFREQ-003
+  control_point_id: CP-github-CONTRIBUTING-md
+  relation: decides

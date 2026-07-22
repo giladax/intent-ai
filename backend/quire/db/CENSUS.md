@@ -138,7 +138,7 @@ same commit range is idempotent.
 | Table | Readers | Writers | Verdict | Evidence |
 |-------|---------|---------|---------|----------|
 | `orgs` | `quire.org_store.OrgStore.get_org` | `quire.org_store.OrgStore.seed` | **LIVE** | backend/quire/org_store.py |
-| `org_repos` | `quire.org_store.OrgStore.list_repos`, `get_repo_card_data` | `quire.org_store.OrgStore.seed` | **LIVE** | backend/quire/org_store.py |
+| `org_repos` | `quire.org_store.OrgStore.list_repos`, `get_repo_card_data` | `quire.org_store.OrgStore.seed` / `add_repo` / `update_repo_status` / `remove_repo` (O1) | **LIVE** | backend/quire/org_store.py |
 | `org_channels` | (reserved for O5 delivery) | (reserved for O5) | **LIVE** | backend/quire/db/org_models.py |
 
 **Schema bootstrap:** `quire.db.org_models.ensure_org_tables(engine)` runs

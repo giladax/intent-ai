@@ -110,6 +110,7 @@ def write_workspace(
     control_points: list[dict],
     bindings: list[dict],
     sweep_commits: list[dict],  # [{sha, subject}]
+    provider: str = "git",
 ) -> pathlib.Path:
     # Refuse before writing anything — a refusal must not leave a
     # half-created workspace directory behind.
@@ -157,9 +158,9 @@ def write_workspace(
         yaml.safe_dump(
             {
                 "workflow_id": workflow_id,
-                "requirements": {"provider": "git", "reference": primary_ref},
+                "requirements": {"provider": provider, "reference": primary_ref},
                 "repositories": [
-                    {"provider": "git", "repository": workflow_id, "path": rel_repo}
+                    {"provider": provider, "repository": workflow_id, "path": rel_repo}
                 ],
                 "eval_sources": [{"type": "repository", "paths": ["tests/**", "evals/**"]}],
             },

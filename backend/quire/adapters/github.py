@@ -91,6 +91,51 @@ class GitHubWorkspace:
                 return items
             page += 1
 
+    def list_prs(
+        self,
+        state: str = "all",
+        per_page: int = 100,
+        max_pages: int = 5,
+    ) -> list[dict]:
+        """List PRs for this repository.
+
+        Returns raw GitHub PR summary dicts (number, title, state, head/base
+        sha, author login, created_at, html_url). Callers that need full
+        PullRequest objects should call get_pr(n) per number.
+
+        Args:
+            state: "open" | "closed" | "all" (GitHub default).
+            per_page: Items per page (GitHub max 100).
+            max_pages: Hard cap on pages fetched to bound token spend.
+                       A shallow listing for the demo only needs the
+                       first few pages; set higher for sync jobs.
+        Returns:
+            List of dicts with keys: number, title, state, head_sha,
+            base_sha, author, created_at, html_url.
+        """
+        items: list[dict] = []
+        page = 1
+        while page <= max_pages:
+            batch = self._get(
+                f"/repos/{self.repo}/pulls",
+                params={"state": state, "per_page": per_page, "page": page, "sort": "created", "direction": "desc"},
+            ).json()
+            for pr in batch:
+                items.append({
+                    "number": pr["number"],
+                    "title": pr.get("title", ""),
+                    "state": pr.get("state", ""),
+                    "head_sha": (pr.get("head") or {}).get("sha", ""),
+                    "base_sha": (pr.get("base") or {}).get("sha", ""),
+                    "author": (pr.get("user") or {}).get("login", ""),
+                    "created_at": pr.get("created_at", ""),
+                    "html_url": pr.get("html_url", ""),
+                })
+            if len(batch) < per_page:
+                break
+            page += 1
+        return items
+
     def get_pr(self, pr_number: int) -> PullRequest:
         data = self._get(f"/repos/{self.repo}/pulls/{pr_number}").json()
         body = data.get("body") or ""
