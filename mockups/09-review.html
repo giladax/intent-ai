@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quire — Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f7f8f9; --sidebar:#f4f5f6; --line:#e6e8eb; --line-soft:#eef0f2;
+    --text:#1a1d21; --muted:#6b7280; --faint:#9aa1ab;
+    --accent:#2563eb; --accent-soft:#eaf0ff;
+    --red:#dc2626; --amber:#d97706; --blue:#2563eb; --green:#16a34a; --gray:#9aa1ab;
+    --red-bg:#fdecec; --amber-bg:#fdf3e7; --blue-bg:#eaf0ff; --green-bg:#e9f6ee; --gray-bg:#f0f1f3;
+    --add-bg:#e9f6ee; --add-line:#d0ecd9;
+    --font:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);color:var(--text);background:var(--bg);font-size:14px;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:248px 1fr 360px;grid-template-rows:48px 1fr;height:100vh;}
+
+  /* top bar (same shell as 04) */
+  .topbar{grid-column:1/4;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--bg);}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;}
+  .brand .mark{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#2563eb,#1e40af);}
+  .org-switch{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:7px;font-weight:500;cursor:pointer;font-size:13px;}
+  .search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--faint);font-size:13px;}
+  .search .k{margin-left:auto;font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--bg);}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);}
+  .avatar{width:26px;height:26px;border-radius:50%;background:#d7b56d;color:#4a3a12;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+
+  /* left sidebar (same shell) */
+  .sidebar{grid-row:2;border-right:1px solid var(--line);background:var(--sidebar);overflow-y:auto;padding:10px 8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;color:var(--muted);font-weight:500;cursor:pointer;font-size:13.5px;}
+  .nav-item:hover{background:var(--line-soft);}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .nav-item .ic{width:16px;text-align:center;font-size:14px;}
+  .nav-item .badge{margin-left:auto;font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;}
+  .nav-item .count{margin-left:auto;font-size:12px;color:var(--faint);font-weight:600;}
+  .sec{margin:16px 8px 6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);}
+  .tree-item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:6px;font-size:13px;cursor:pointer;}
+  .tree-item:hover{background:var(--line-soft);}
+  .tree-item .caret{color:var(--faint);font-size:10px;width:10px;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .d-red{background:var(--red);} .d-amber{background:var(--amber);} .d-blue{background:var(--blue);}
+  .d-green{background:var(--green);} .d-gray{background:var(--gray);}
+  .tree-child{padding:4px 10px 4px 30px;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:6px;}
+  .tree-child.on{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+
+  /* main: the review */
+  .main{grid-row:2;overflow-y:auto;background:var(--bg);}
+  .crumb{display:flex;align-items:center;gap:7px;padding:14px 24px 0;font-size:12.5px;color:var(--muted);}
+  .crumb b{color:var(--text);font-weight:600;} .crumb .sep{color:var(--faint);}
+  .head{padding:8px 24px 0;}
+  .head h1{font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.35;}
+  .head .meta{color:var(--muted);font-size:12.5px;margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .mono{font-family:var(--mono);font-size:11.5px;}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+  .b-red{color:var(--red);background:var(--red-bg);} .b-amber{color:var(--amber);background:var(--amber-bg);}
+  .b-blue{color:var(--blue);background:var(--blue-bg);} .b-green{color:var(--green);background:var(--green-bg);} .b-gray{color:var(--muted);background:var(--gray-bg);}
+  .verdict-line{margin:12px 24px 0;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:9px;background:var(--amber-bg);font-size:13.5px;line-height:1.55;}
+  .verdict-line b{font-weight:700;}
+  .tabs{display:flex;gap:2px;padding:14px 16px 0;border-bottom:1px solid var(--line);}
+  .tab{padding:7px 13px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent);}
+  .tab .n{color:var(--faint);margin-left:5px;}
+
+  /* diff */
+  .file{margin:16px 24px;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .file-head{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--panel);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px;}
+  .file-head .chev{color:var(--faint);font-size:10px;}
+  .file-head .plus{color:var(--green);font-weight:700;} .file-head .minus{color:var(--red);font-weight:700;}
+  .file-head .note-chip{margin-left:auto;font-family:var(--font);font-size:11px;font-weight:700;color:var(--amber);background:var(--amber-bg);border-radius:6px;padding:2px 8px;}
+  .hunk{font-family:var(--mono);font-size:12px;line-height:1.7;}
+  .hunk .hh{background:var(--blue-bg);color:#1e3a8a;padding:2px 14px;font-size:11.5px;}
+  .ln{display:grid;grid-template-columns:44px 1fr;}
+  .ln .no{color:var(--faint);text-align:right;padding-right:12px;user-select:none;font-size:11px;}
+  .ln .code{white-space:pre;overflow-x:hidden;padding-right:14px;}
+  .ln.add{background:var(--add-bg);} .ln.add .no{background:var(--add-line);}
+  .ln.ctx{color:var(--muted);}
+
+  /* the inline note — our margin content, in familiar review-comment chrome */
+  .inline-note{margin:6px 14px 10px 44px;border:1px solid var(--line);border-radius:9px;background:var(--bg);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .inline-note .nh{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line-soft);font-size:12px;color:var(--muted);}
+  .inline-note .nh b{color:var(--text);}
+  .inline-note .nb{padding:10px 12px;font-size:13px;line-height:1.55;}
+  .inline-note .quote{border-left:3px solid var(--blue);background:var(--blue-bg);padding:6px 10px;margin-top:8px;border-radius:0 6px 6px 0;color:#1e3a8a;font-size:12.5px;}
+  .inline-note .src{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:7px;}
+  .collapsed{display:flex;align-items:center;gap:10px;margin:10px 24px;padding:9px 13px;border:1px solid var(--line-soft);border-radius:9px;font-family:var(--mono);font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .collapsed .plus{color:var(--green);font-weight:700;}
+
+  /* right rail: what the review means */
+  .detail{grid-row:2;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;}
+  .detail-body{padding:16px 18px;}
+  .d-sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);margin:16px 0 8px;}
+  .d-sec:first-child{margin-top:0;}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:12px 13px;margin-bottom:10px;font-size:13px;line-height:1.5;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+  .promise .p-t{font-weight:600;display:flex;align-items:center;gap:8px;font-size:13.5px;}
+  .promise .p-q{border-left:3px solid var(--green);padding:6px 10px;margin-top:8px;background:var(--green-bg);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--text);}
+  .promise .src{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:7px;}
+  .gap{border-left:3px solid var(--amber);background:var(--amber-bg);padding:8px 11px;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.5;}
+  .consult{display:flex;gap:9px;background:var(--blue-bg);border-radius:9px;padding:11px 12px;font-size:13px;line-height:1.55;color:#1e3a8a;}
+  .consult a{color:var(--blue);font-weight:600;text-decoration:none;}
+  .consult .src{font-family:var(--mono);font-size:10.5px;color:#5b76c0;margin-top:6px;}
+  .actions{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .btn{text-align:center;padding:9px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--bg);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.danger{color:var(--red);border-color:#f3c6c6;}
+  .foot{color:var(--faint);font-family:var(--mono);font-size:10.5px;margin-top:14px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand"><span class="mark"></span> Quire</div>
+    <div class="org-switch">Quire ▾</div>
+    <div class="search">🔎 Search the org — features, promises, PRs, sessions… <span class="k">⌘K</span></div>
+    <div class="top-right"><span>?</span><div class="avatar">G</div></div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="nav-item"><span class="ic">◧</span> Needs you <span class="badge">3</span></div>
+    <div class="nav-item"><span class="ic">◇</span> Features <span class="count">18</span></div>
+    <div class="nav-item"><span class="ic">▤</span> Repositories <span class="count">6</span></div>
+    <div class="nav-item active"><span class="ic">☰</span> Reviews <span class="count">12</span></div>
+    <div class="nav-item"><span class="ic">◴</span> Sessions <span class="count">76</span></div>
+    <div class="nav-item"><span class="ic">✎</span> Journal</div>
+    <div class="nav-item"><span class="ic">◑</span> Channels <span class="count">1</span></div>
+    <div class="sec">intent-ai · reviews</div>
+    <div class="tree-child on"><span class="dot d-amber"></span> #2 brain_attention tool</div>
+    <div class="tree-child"><span class="dot d-green"></span> #1 constraints ride orientation</div>
+    <div class="tree-child"><span class="dot d-gray"></span> #3 docs-only audit note</div>
+    <div class="tree-child"><span class="dot d-amber"></span> #4 dashboard fixes</div>
+  </aside>
+
+  <main class="main">
+    <div class="crumb"><b>Quire</b> <span class="sep">/</span> intent-ai <span class="sep">/</span> Reviews <span class="sep">/</span> <b>#2</b></div>
+    <div class="head">
+      <h1>feat(attention): brain_attention MCP tool <span class="badge b-amber">New behavior — no promise covers it</span></h1>
+      <div class="meta"><span>intent-ai</span> · <span class="mono">3aa62fc</span> · 3 files · <span class="mono" style="color:var(--green)">+190</span> · by an agent, session attached</div>
+    </div>
+
+    <div class="verdict-line">
+      This change adds a <b>new tool that agents can call</b>. It breaks no promise — but <b>no promise covers it either</b>,
+      and nothing tests it yet. Your call: draw the missing promise and sign, or send it back.
+    </div>
+
+    <div class="tabs">
+      <div class="tab active">Changes <span class="n">3</span></div>
+      <div class="tab">Promises checked <span class="n">6</span></div>
+      <div class="tab">Conversation</div>
+      <div class="tab">Checks</div>
+    </div>
+
+    <div class="file">
+      <div class="file-head"><span class="chev">▾</span> src/mcp/server.ts <span class="plus">+67</span> <span class="note-chip">1 note</span></div>
+      <div class="hunk">
+        <div class="hh">@@ -590,6 +590,73 @@ export function createBrainServer(): McpServer {</div>
+        <div class="ln ctx"><span class="no">590</span><span class="code">    },</span></div>
+        <div class="ln ctx"><span class="no">591</span><span class="code">  );</span></div>
+        <div class="ln add"><span class="no">593</span><span class="code">+  // ── brain_attention ───────────────────────────────────────────</span></div>
+        <div class="ln add"><span class="no">594</span><span class="code">+  // Additive: existing tools untouched. Reads attention_state from DB</span></div>
+        <div class="ln add"><span class="no">595</span><span class="code">+  // so it works cross-process (MCP and web are separate processes).</span></div>
+        <div class="ln add"><span class="no">597</span><span class="code">+  server.tool(</span></div>
+        <div class="ln add"><span class="no">598</span><span class="code">+    "brain_attention",</span></div>
+        <div class="ln add"><span class="no">599</span><span class="code">+    "Get the user's current attention state — what they are looking…",</span></div>
+      </div>
+
+      <!-- the note: our margin content in familiar review-comment chrome -->
+      <div class="inline-note">
+        <div class="nh"><span class="badge b-amber">No promise covers this</span> <b>Quire</b> · on lines 597–599</div>
+        <div class="nb">
+          This adds a tool to the served MCP surface — a surface your promises govern. The closest promise stays held
+          (it bans <i>legacy Topic tools</i>, and this isn’t one) — but <b>nothing you’ve signed says this tool should exist</b>.
+          <div class="quote">“Additive: existing tools untouched. Reads attention_state from DB so it works cross-process.” — the author’s own reasoning, from the attached session</div>
+          <div class="src">session 01CT7KvN… · commit 3aa62fc · quote verified against the transcript</div>
+        </div>
+      </div>
+
+      <div class="hunk">
+        <div class="ln add"><span class="no">604</span><span class="code">+    async ({ sessionId }) =&gt; {</span></div>
+        <div class="ln add"><span class="no">605</span><span class="code">+      const startedAt = Date.now();</span></div>
+        <div class="ln add"><span class="no">607</span><span class="code">+        const { readAttention } = await import("../storage/attention-store.js");</span></div>
+        <div class="ln add"><span class="no">608</span><span class="code">+        const { formatAttentionMcpText } = await import("./attention-formatter.js");</span></div>
+        <div class="ln add"><span class="no">609</span><span class="code">+        const result = await readAttention();</span></div>
+      </div>
+    </div>
+
+    <div class="collapsed"><span class="chev">▸</span> src/mcp/attention-formatter.ts <span class="plus">+28</span></div>
+    <div class="collapsed"><span class="chev">▸</span> tests/mcp/attention.test.ts <span class="plus">+95</span> <span style="font-family:var(--font);font-size:11.5px;color:var(--amber);margin-left:auto;">tests exist — none bound to a promise</span></div>
+  </main>
+
+  <aside class="detail">
+    <div class="detail-body">
+      <div class="d-sec">What this review found</div>
+      <div class="card">
+        <b>Keeps every promise it touches. Adds behavior no promise covers.</b>
+        <div class="chips">
+          <span class="badge b-green">0 broken</span>
+          <span class="badge b-amber">1 not covered</span>
+          <span class="badge b-amber">not verified by tests</span>
+        </div>
+      </div>
+
+      <div class="d-sec">The closest promise — held</div>
+      <div class="card promise">
+        <div class="p-t"><span class="dot d-green"></span> Only Feature tools are served</div>
+        <div class="p-q">“The served MCP surface speaks Feature only: legacy Topic-keyed tools stay retired — an agent must never see two competing vocabularies in one tool list.”</div>
+        <div class="src">OB-BRAIN-206 · hard rule · from the Brain PRD</div>
+      </div>
+
+      <div class="d-sec">The gap</div>
+      <div class="gap"><b>Nothing verifies it.</b> “OB-BRAIN-206 has no test or eval bound to verify it.” The new tool ships 8 tests of its own — none is bound to a promise.</div>
+
+      <div class="d-sec">Why the author did it</div>
+      <div class="consult">
+        <div>
+          The agent built it <b>additive on purpose</b> — existing tools untouched, state read from the DB so it works across processes.
+          <a href="#">Walk the session →</a>
+          <div class="src">Reasoned in session 01CT7KvN… · attached by trailer</div>
+        </div>
+      </div>
+
+      <div class="d-sec">Your call</div>
+      <div class="actions">
+        <div class="btn primary">Draw the missing promise &amp; sign</div>
+        <div class="btn">Wave it through</div>
+        <div class="btn danger">Send back</div>
+      </div>
+
+      <div class="foot">analysis of head 3aa62fc · analyzer v0.7 · every quote above verified verbatim against its source</div>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>

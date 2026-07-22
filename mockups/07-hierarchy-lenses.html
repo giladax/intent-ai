@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quire — Hierarchy & Lenses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff;--panel:#f7f8f9;--sidebar:#f4f5f6;--line:#e6e8eb;--line-soft:#eef0f2;
+    --text:#1a1d21;--muted:#6b7280;--faint:#9aa1ab;
+    --accent:#2563eb;--accent-soft:#eaf0ff;
+    --red:#dc2626;--amber:#d97706;--blue:#2563eb;--green:#16a34a;--gray:#9aa1ab;
+    --red-bg:#fdecec;--amber-bg:#fdf3e7;--blue-bg:#eaf0ff;--green-bg:#e9f6ee;--gray-bg:#f0f1f3;
+    --font:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);color:var(--text);background:var(--bg);font-size:14px;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:272px 1fr 320px;grid-template-rows:48px 1fr;height:100vh;}
+  .topbar{grid-column:1/4;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--line);}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;}
+  .brand .mark{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#2563eb,#1e40af);}
+  .org-switch{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:7px;font-weight:500;cursor:pointer;font-size:13px;}
+  .org-switch .chev{color:var(--faint);font-size:11px;}
+  .search{flex:1;max-width:400px;display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--faint);font-size:13px;}
+  .search .k{margin-left:auto;font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--bg);}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);}
+  .avatar{width:26px;height:26px;border-radius:50%;background:#d7b56d;color:#4a3a12;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+
+  .sidebar{grid-row:2;border-right:1px solid var(--line);background:var(--sidebar);overflow-y:auto;padding:10px 8px;}
+  .side-label{margin:6px 8px 6px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:7px;color:var(--muted);font-weight:500;cursor:pointer;font-size:13.5px;}
+  .nav-item:hover{background:var(--line-soft);}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .nav-item .ic{width:15px;text-align:center;font-size:13px;}
+  .nav-item .badge{margin-left:auto;font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;}
+  .nav-item .count{margin-left:auto;font-size:12px;color:var(--faint);font-weight:600;}
+  .nav-item .soon{margin-left:auto;font-size:10px;color:var(--faint);font-style:italic;}
+
+  /* explorer with group-by pivot */
+  .explore-head{display:flex;align-items:center;justify-content:space-between;margin:16px 8px 8px;}
+  .explore-head .lab{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);}
+  .groupby{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:600;border:1px solid var(--line);border-radius:6px;padding:2px 7px;cursor:pointer;background:var(--bg);}
+  .groupby .chev{color:var(--faint);font-size:9px;}
+
+  .tw{padding:0 2px;}
+  .tr{display:flex;align-items:center;gap:7px;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap;overflow:hidden;}
+  .tr:hover{background:var(--line-soft);}
+  .tr.on{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .tr .caret{color:var(--faint);font-size:9px;width:9px;flex:none;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .d-red{background:var(--red);}.d-amber{background:var(--amber);}.d-blue{background:var(--blue);}.d-green{background:var(--green);}.d-gray{background:var(--gray);}
+  .tr .nm{overflow:hidden;text-overflow:ellipsis;}
+  .tr .tag{margin-left:auto;font-size:10px;font-weight:600;flex:none;}
+  .tag-red{color:var(--red);}.tag-green{color:var(--green);}.tag-gray{color:var(--faint);}.tag-amber{color:var(--amber);}
+  .l1{padding-left:8px;font-weight:600;}
+  .l2{padding-left:26px;}
+  .l3{padding-left:46px;color:var(--muted);font-size:12.5px;}
+
+  .main{grid-row:2;overflow-y:auto;}
+  .main-head{padding:18px 28px 14px;border-bottom:1px solid var(--line);}
+  .lens-pick{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:4px 10px;cursor:pointer;font-weight:600;}
+  .lens-pick .chev{color:var(--faint);font-size:10px;}
+  .lens-pick b{color:var(--text);}
+  .main-head h1{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:12px;}
+  .main-head .sub{color:var(--muted);margin-top:5px;font-size:14px;}
+  .chips{display:flex;gap:9px;margin-top:14px;}
+  .chip{display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--line);border-radius:9px;font-size:12.5px;font-weight:500;}
+  .chip b{font-size:15px;font-weight:700;} .chip.red b{color:var(--red);}.chip.amber b{color:var(--amber);}.chip.gray b{color:var(--muted);}
+
+  .sect-h{padding:20px 28px 4px;font-size:12.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--faint);}
+  .row{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:12px;padding:12px 28px;border-bottom:1px solid var(--line-soft);cursor:pointer;}
+  .row:hover{background:var(--panel);}
+  .row.sel{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent);}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+  .b-red{color:var(--red);background:var(--red-bg);}.b-amber{color:var(--amber);background:var(--amber-bg);}.b-blue{color:var(--blue);background:var(--blue-bg);}
+  .row .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .row .m{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .row .m .mono{font-family:var(--mono);font-size:11.5px;}
+  .row .act{color:var(--accent);font-weight:600;font-size:13px;}
+  .row .age{color:var(--faint);font-size:12px;font-family:var(--mono);}
+
+  .detail{grid-row:2;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;}
+  .detail-head{padding:16px 18px 14px;border-bottom:1px solid var(--line);background:var(--bg);}
+  .detail-head .badge{margin-bottom:10px;display:inline-block;}
+  .detail-head h2{font-size:15.5px;font-weight:700;line-height:1.3;}
+  .detail-head .meta{color:var(--muted);font-size:12.5px;margin-top:8px;}
+  .detail-head .meta .mono{font-family:var(--mono);}
+  .detail-body{padding:16px 18px;}
+  .d-sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);margin:0 0 8px;}
+  .rulecard{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin-bottom:14px;}
+  .rulecard .rt{font-weight:600;font-size:14px;}
+  .rulecard .src{display:inline-block;margin-top:9px;font-size:11px;font-weight:600;color:var(--muted);background:var(--gray-bg);border-radius:5px;padding:3px 8px;}
+  .rulecard .q{border-left:3px solid var(--red);padding:7px 10px;margin-top:10px;background:var(--red-bg);border-radius:0 6px 6px 0;font-size:13px;line-height:1.5;}
+  .consult{display:flex;gap:9px;background:var(--blue-bg);border-radius:10px;padding:11px 12px;margin-bottom:14px;font-size:13px;line-height:1.5;color:#1e3a5f;}
+  .consult .ic{color:var(--blue);}.consult a{color:var(--blue);font-weight:600;text-decoration:none;}
+  .actions{display:flex;gap:9px;}
+  .btn{flex:1;text-align:center;padding:9px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--bg);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.danger{color:var(--red);border-color:#f3c6c6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand"><span class="mark"></span> Quire</div>
+    <div class="org-switch">Quire <span class="chev">▾</span></div>
+    <div class="search">🔎 Search — features, rules, people, PRs… <span class="k">⌘K</span></div>
+    <div class="top-right"><span>?</span><div class="avatar">G</div></div>
+  </div>
+
+  <aside class="sidebar">
+    <!-- LENSES: ways to look at the same org. Daily is just one. -->
+    <div class="side-label">Views</div>
+    <div class="nav-item active"><span class="ic">☀</span> Today</div>
+    <div class="nav-item"><span class="ic">◧</span> Needs you <span class="badge">3</span></div>
+    <div class="nav-item"><span class="ic">◇</span> Features <span class="count">18</span></div>
+    <div class="nav-item"><span class="ic">▤</span> Rules <span class="count">54</span></div>
+    <div class="nav-item"><span class="ic">△</span> Risk <span class="count">3</span></div>
+    <div class="nav-item"><span class="ic">◴</span> Sessions <span class="count">76</span></div>
+    <div class="nav-item"><span class="ic">◑</span> Channels <span class="count">1</span></div>
+    <div class="nav-item"><span class="ic">＋</span> Add a view <span class="soon">people · spend · …</span></div>
+
+    <!-- EXPLORER: the hierarchy, and how it's grouped is itself changeable -->
+    <div class="explore-head">
+      <span class="lab">Explore</span>
+      <span class="groupby">Group by: Repository <span class="chev">▾</span></span>
+    </div>
+    <div class="tw">
+      <div class="tr l1"><span class="caret">▾</span><span class="dot d-red"></span><span class="nm">refund-agent</span><span class="tag tag-red">1 broken</span></div>
+        <div class="tr l2 on"><span class="caret">▾</span><span class="dot d-red"></span><span class="nm">Refund limits</span></div>
+          <div class="tr l3"><span class="dot d-red"></span><span class="nm">safety check must match limit</span><span class="tag tag-red">Broken</span></div>
+          <div class="tr l3"><span class="dot d-green"></span><span class="nm">every refund is logged</span><span class="tag tag-green">Kept</span></div>
+          <div class="tr l3"><span class="dot d-gray"></span><span class="nm">tell the customer</span><span class="tag tag-gray">No rule</span></div>
+        <div class="tr l2"><span class="caret">▸</span><span class="dot d-green"></span><span class="nm">Audit log</span><span class="tag tag-green">2 kept</span></div>
+        <div class="tr l2"><span class="caret">▸</span><span class="dot d-gray"></span><span class="nm">Customer messages</span></div>
+      <div class="tr l1"><span class="caret">▾</span><span class="dot d-green"></span><span class="nm">intent-ai</span></div>
+        <div class="tr l2"><span class="caret">▸</span><span class="dot d-green"></span><span class="nm">Feature context API</span><span class="tag tag-green">4 kept</span></div>
+        <div class="tr l2"><span class="caret">▸</span><span class="dot d-gray"></span><span class="nm">Ingestion pipeline</span></div>
+      <div class="tr l1"><span class="caret">▸</span><span class="dot d-amber"></span><span class="nm">pydantic</span><span class="tag tag-amber">1 partial</span></div>
+      <div class="tr l1"><span class="caret">▸</span><span class="dot d-green"></span><span class="nm">intent-ai-live</span></div>
+      <div class="tr l1"><span class="caret">▸</span><span class="dot d-gray"></span><span class="nm">quire-brain</span></div>
+      <div class="tr l1"><span class="caret">▸</span><span class="dot d-blue"></span><span class="nm">telegram · watching</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-head">
+      <span class="lens-pick">Viewing: <b>Today</b> <span class="chev">▾</span></span>
+      <h1>Good morning, Gilad</h1>
+      <div class="sub">Today is one way to look at your org. Switch the view, or open anything in the tree on the left.</div>
+      <div class="chips">
+        <div class="chip red"><b>3</b> need you</div>
+        <div class="chip amber"><b>2</b> broke a rule</div>
+        <div class="chip gray"><b>5</b> coding sessions ran</div>
+      </div>
+    </div>
+
+    <div class="sect-h">Needs you</div>
+    <div class="row sel">
+      <span class="dot d-red"></span><span class="badge b-red">Breaks a rule</span>
+      <div><div class="t">Refund limit raised to $100, but the safety check still stops at $50</div>
+        <div class="m">refund-agent · <span class="mono">PR 101</span> · broke 1 rule</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="age">2h</span><span class="act">Review →</span></div>
+    </div>
+    <div class="row">
+      <span class="dot d-amber"></span><span class="badge b-amber">Partly kept</span>
+      <div><div class="t">A change on pydantic keeps most of a rule, but not all of it</div>
+        <div class="m">pydantic · <span class="mono">PR 7</span> · 1 of 2 rules kept</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="age">5h</span><span class="act">Review →</span></div>
+    </div>
+    <div class="row">
+      <span class="dot d-blue"></span><span class="badge b-blue">No rule yet</span>
+      <div><div class="t">A change on intent-ai touched something no rule is watching</div>
+        <div class="m">intent-ai · <span class="mono">PR 42</span> · add a rule, or let it through</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="age">1d</span><span class="act">Review →</span></div>
+    </div>
+  </main>
+
+  <aside class="detail">
+    <div class="detail-head">
+      <span class="badge b-red">Breaks a rule</span>
+      <h2>Refund limit raised to $100, but the safety check still stops at $50</h2>
+      <div class="meta">refund-agent · <span class="mono">PR 101</span></div>
+    </div>
+    <div class="detail-body">
+      <div class="d-sec">The rule it broke</div>
+      <div class="rulecard">
+        <div class="rt">The safety check must match the allowed refund amount.</div>
+        <div class="src">From refund-spec.md, line 14 · added by you, 12 Jun</div>
+        <div class="q">The limit is now $100, but the check still stops at $50. They don't match.</div>
+      </div>
+      <div class="d-sec">Why the code did this</div>
+      <div class="consult"><span class="ic">◷</span><div>In a coding session 2 hours ago, the AI raised the limit and <b>kept the $50 check on purpose</b> — it thought they were separate. It never updated the check. <a href="#">Open the session →</a></div></div>
+      <div class="d-sec">Your call</div>
+      <div class="actions"><div class="btn danger">Send back</div><div class="btn primary">Approve</div></div>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>
