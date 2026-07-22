@@ -79,9 +79,9 @@ GitHub App auth (private repos, installation tokens) + webhook endpoint onto the
 - **U1, U5 → absorbed into O3** (same interfaces, same rulings). **U4 → absorbed into O2.**
 - **U2, U3 (sessions inform intent parsing / verdict evidence) stay in the U-plan**, sequenced after the demo cut — they deepen analysis quality; the demo needs the coupling visible (O3), not yet inside the parse. The U-plan doc gets a pointer note when O3 lands.
 
-## ⚑ Founder decisions (recommend on each)
+## ⚑ Founder decisions — ALL RULED 2026-07-22
 
-- **⚑ A — First transport: Telegram** (bot token + chat id, zero OAuth, minutes to live) with Slack as O6. Confirm.
-- **⚑ B — Is O4 (sessions-as-intent) in the demo cut?** Recommend YES — it is the "extends code review into org understanding" beat that no code-review tool has; costs ~one slice.
-- **⚑ C — Demo auth = personal GITHUB_TOKEN, public repos.** GitHub App (private repos, webhooks) is O6. Confirm.
-- **⚑ D — Demo org identity = one seeded org, no login.** Members/auth are platform work (O6+). Confirm.
+- **⚑ A — RULED: Telegram first** (bot token + chat id, zero OAuth); Slack lands in O6 via the same Channel protocol.
+- **⚑ B — RULED: O4 IS in the demo cut.** Sessions-as-intent is the differentiator beat — demo order becomes O0→O1→O2→O3→O4→O5.
+- **⚑ C — RULED: personal GITHUB_TOKEN + public repos** for the demo; GitHub App/private repos in O6.
+- **⚑ D — RULED: one seeded org, no login.** Members/auth are platform work (O6+).
