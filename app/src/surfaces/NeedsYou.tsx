@@ -20,7 +20,7 @@ export function NeedsYou() {
   // Auto-select the loudest item when nothing is chosen (mock shows the top
   // decision open by default).
   useEffect(() => {
-    if (items && items.length > 0 && !selectedId) {
+    if (items && items.length > 0 && !selectedId && items[0].id) {
       setParams((p) => { p.set("item", items[0].id); return p; }, { replace: true });
     }
   }, [items, selectedId, setParams]);

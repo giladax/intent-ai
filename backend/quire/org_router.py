@@ -391,8 +391,11 @@ def create_org_router(org_store, alignment_store, task_store=None) -> APIRouter:
             raise HTTPException(400, "content is required")
 
         ws_path = _WORKSPACES_ROOT / workspace
+        resolved = ws_path.resolve()
+        if not resolved.is_relative_to(_WORKSPACES_ROOT.resolve()):
+            raise HTTPException(404, "No such workspace")
         if not ws_path.exists():
-            raise HTTPException(404, f"No such workspace: {workspace}")
+            raise HTTPException(404, "No such workspace")
 
         import re
         import yaml as _yaml

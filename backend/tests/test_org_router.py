@@ -269,3 +269,20 @@ def test_needs_you_promise_carries_statement(client, alignment_store):
     assert isinstance(item["promise"]["statement"], str)
     # refund-agent fixture has OB-101 → a real statement must be resolved
     assert item["promise"]["statement"] != ""
+
+
+# ── Intent save endpoint (path-traversal guard) ─────────────────────────
+
+def test_intent_save_path_traversal_blocked(client):
+    """POST /api/org/repos/intent/../backend/intent/save rejects path traversal.
+
+    FastAPI normalizes path parameters, so `intent/../backend` becomes
+    `backend` in the workspace param. The handler's resolve() check rejects
+    workspaces outside the workspaces root, preventing directory traversal.
+    """
+    resp = client.post(
+        "/api/org/repos/intent/../backend/intent/save",
+        json={"content": "# Traversal attempt", "title": "Exploit"}
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "No such workspace"
