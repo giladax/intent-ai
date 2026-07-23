@@ -21,11 +21,15 @@ from sqlalchemy import text
 
 _MAX_WINDOW_DAYS = 90
 _VERDICT_INK = {
+    # Every value in Classification must be listed here — the test
+    # test_verdict_ink_covers_all_classifications enforces this invariant.
     "ALIGNED": "green",
     "PARTIAL": "amber",
     "POSSIBLE_DRIFT": "amber",
     "UNGOVERNED": "blue",
     "UNKNOWN": "gray",
+    "OFF_INTENT": "red",          # contradicts intent — loudest signal
+    "NO_MATERIAL_IMPACT": "gray", # no product-relevant change — quiet
 }
 
 
@@ -97,8 +101,12 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
     feature_ids = [str(r["id"]) for r in feature_rows]
 
     # 2. Fetch activity_events in window, grouped by feature_id.
-    # Uses the timestamp index; feature_ids bound the result set further.
-    # feature_ids are str (UUIDs cast to text to match activity_events.feature_id TEXT col).
+    # Two paths mirror feed.py:334-343:
+    #   a) direct: ae.feature_id already set (the fast path)
+    #   b) indirect: ae.feature_id IS NULL but the session was tagged to a
+    #      feature via feature_sessions — a session-level association added by
+    #      the UI (drag-to-feature) or by the pipeline. Without this second
+    #      path the majority of events are invisible to the timeline.
     ae_rows = pg_session.execute(
         text(
             """
@@ -114,7 +122,22 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
             WHERE ae.feature_id = ANY(:fids)
               AND ae.timestamp >= :since
               AND ae.timestamp < :until
-            ORDER BY ae.feature_id, ae.timestamp
+            UNION ALL
+            SELECT
+                fs.feature_id::text AS feature_id,
+                ae.id,
+                ae.timestamp,
+                ae.category,
+                ae.summary,
+                ae.session_id,
+                ae.source_type
+            FROM activity_events ae
+            JOIN feature_sessions fs ON fs.session_id = ae.session_id
+            WHERE ae.feature_id IS NULL
+              AND fs.feature_id::text = ANY(:fids)
+              AND ae.timestamp >= :since
+              AND ae.timestamp < :until
+            ORDER BY feature_id, timestamp
             """
         ),
         {"fids": feature_ids, "since": since, "until": until},
@@ -123,7 +146,9 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
     # 3. Group events by feature.
     events_by_feature: dict[str, list] = defaultdict(list)
     for ae in ae_rows:
-        events_by_feature[ae["feature_id"]].append(ae)
+        fid_key = ae["feature_id"]
+        if fid_key:
+            events_by_feature[fid_key].append(ae)
 
     # 4. Build check marks from alignment store (per workspace/project).
     # Map checks to features via project-name slug matching.
@@ -140,12 +165,18 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
                 ink = _VERDICT_INK.get(a.classification.value, "gray")
                 verdict_label = _verdict_plain(a.classification.value)
                 ts_label = ts.strftime("%-d %b")
+                # Compute repo_slug before the mark dict so the link is clean.
+                # a.repository may be "org/repo"; strip the org prefix so the
+                # route /repo/<ws>/review/<n> doesn't contain a literal slash.
+                repo_slug = (
+                    a.repository.split("/")[-1] if "/" in a.repository else a.repository
+                )
                 mark = {
                     "kind": "check",
                     "ts": _iso(ts),
                     "label": f"Check on PR #{a.pr_number}: {verdict_label} — {ts_label}",
                     "ink": ink,
-                    "link": f"/repo/{a.repository}/review/{a.pr_number}",
+                    "link": f"/repo/{repo_slug}/review/{a.pr_number}",
                     "detail": (
                         a.behavioral_delta.summary[:140]
                         if a.behavioral_delta and a.behavioral_delta.summary
@@ -153,9 +184,6 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
                     ),
                 }
                 # Attach to features in the matching project (by path slug match).
-                repo_slug = (
-                    a.repository.split("/")[-1] if "/" in a.repository else a.repository
-                )
                 matched = [
                     r
                     for r in feature_rows
@@ -169,9 +197,11 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
             pass  # alignment store degraded; check marks skipped
 
     # 5. Build session marks (session_id present on the event).
+    # seen_sessions is scoped per-feature so that a session spanning two features
+    # produces a session mark on each, not just the first one iterated.
     session_marks_by_feature: dict[str, list] = defaultdict(list)
-    seen_sessions: set = set()
     for feature_id, aes in events_by_feature.items():
+        seen_sessions: set = set()
         for ae in aes:
             if ae["session_id"] and ae["session_id"] not in seen_sessions:
                 seen_sessions.add(ae["session_id"])
@@ -224,11 +254,14 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
         first_ts = min(ts_vals, default=None)
         last_ts = max(ts_vals, default=None)
 
+        # Slugify repo_workspace to match the /repo/:ws route convention
+        # (lower-case, spaces → hyphens). "repo" keeps the display name.
+        _ws_slug = feat_row["project_name"].lower().replace(" ", "-")
         rows.append({
             "feature_id": fid,
             "feature_name": feat_row["name"],
             "repo": feat_row["project_name"],
-            "repo_workspace": feat_row["project_name"],
+            "repo_workspace": _ws_slug,
             "first_activity": _iso(first_ts),
             "last_activity": _iso(last_ts),
             "event_count": len(aes),

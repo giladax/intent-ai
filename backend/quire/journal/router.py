@@ -1567,14 +1567,11 @@ def create_journal_router() -> APIRouter:
         alignment_store = None
         try:
             from quire.store import Store
-            from quire.workspace import WORKSPACES
 
-            # Resolve the first workspace's store path — same SQLite used by
-            # the rest of the backend. Falls back to None on any failure.
-            if WORKSPACES:
-                first_ws = next(iter(WORKSPACES.values()), None)
-                if first_ws and hasattr(first_ws, "store_path"):
-                    alignment_store = Store(url=f"sqlite:///{first_ws.store_path}")
+            # Store() reads QUIRE_DB env — same SQLite used by the rest of the
+            # backend (see api.py:105). Falls back to None on any failure so
+            # the timeline degrades gracefully (activity marks still render).
+            alignment_store = Store()
         except Exception:
             pass  # degraded: no check marks, activity marks still work
 

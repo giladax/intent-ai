@@ -687,7 +687,7 @@ export interface TimelineMark {
   label: string;       // plain sentence: "Check on PR #7: Kept all promises — Jul 10"
   ink: string;         // verdict ink token: green | red | amber | blue | gray
   link: string;        // deep link: /repo/ws/review/7 or /feature/id or /session/id
-  detail: string;      // optional longer sentence (hover/tooltip)
+  detail: string;      // longer sentence shown in hover/tooltip (may be empty)
 }
 
 export interface TimelineRow {

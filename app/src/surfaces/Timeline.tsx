@@ -10,12 +10,20 @@ import { fetchTimeline, type TimelineData, type TimelineRow, type TimelineMark }
  *  derived from activity_events, session_checks, and feature_sessions.
  *  Nothing is hand-authored. */
 export function Timeline() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const windowParam = searchParams.get("window") ?? "30d";
   const [data, setData] = useState<TimelineData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<{ rowId: string; mark: TimelineMark } | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Sync URL to the default window on first load so the picker and the URL
+  // always agree. replace: true avoids adding a spurious history entry.
+  useEffect(() => {
+    if (!searchParams.get("window")) {
+      setSearchParams({ window: "30d" }, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setLoading(true);
