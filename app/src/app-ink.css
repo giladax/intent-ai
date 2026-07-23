@@ -1691,3 +1691,217 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
 .hf-work-status--open { color: var(--muted); }
 .hf-work-loading { font-size: 13px; color: var(--muted); }
 .hf-work-new { display: inline-block; font-size: 12.5px; color: var(--accent); margin-top: 8px; font-weight: 600; }
+
+/* ── Timeline (A6 — ruler H) ──────────────────────────────────────── */
+
+.tl-main {
+  min-width: 0;
+}
+
+/* Window picker buttons */
+.tl-window-btn {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  background: var(--bg);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.1s;
+}
+.tl-window-btn:hover { background: var(--panel); }
+.tl-window-btn[data-active="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* The Gantt grid */
+.tl-gantt {
+  padding: 0 0 40px;
+}
+
+/* Axis header */
+.tl-axis {
+  display: flex;
+  align-items: center;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.tl-label-col {
+  width: 200px;
+  flex: none;
+  padding-right: 16px;
+}
+.tl-ruler {
+  flex: 1;
+  position: relative;
+  height: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.tl-ruler-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--faint);
+  top: 0;
+  white-space: nowrap;
+}
+
+/* Feature rows */
+.tl-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--line-soft);
+  min-height: 48px;
+}
+.tl-row:hover { background: var(--panel); }
+
+.tl-label-col {
+  width: 200px;
+  flex: none;
+  padding-right: 16px;
+  overflow: hidden;
+}
+.tl-feature-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-feature-name:hover { color: var(--accent); }
+.tl-repo-name {
+  font-size: 11px;
+  color: var(--faint);
+  font-family: var(--mono);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The Gantt track */
+.tl-track {
+  flex: 1;
+  position: relative;
+  height: 28px;
+  background: var(--panel);
+  border-radius: 4px;
+  overflow: visible;
+}
+
+/* Activity span bar (translucent accent stripe) */
+.tl-span {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 6px;
+  background: var(--accent);
+  opacity: 0.15;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* Mark dots — verdict-ink dots at their timestamps */
+.tl-mark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  cursor: pointer;
+  background: var(--gray);
+  padding: 0;
+  box-shadow: 0 0 0 1px var(--line);
+  transition: transform 0.1s, box-shadow 0.1s;
+  z-index: 1;
+}
+.tl-mark:hover,
+.tl-mark[data-selected="true"] {
+  transform: translate(-50%, -50%) scale(1.4);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  z-index: 2;
+}
+
+/* Ink-coloured dots per verdict */
+.tl-mark[data-ink="green"]  { background: var(--green); }
+.tl-mark[data-ink="red"]    { background: var(--red);   }
+.tl-mark[data-ink="amber"]  { background: var(--amber); }
+.tl-mark[data-ink="blue"]   { background: var(--blue);  }
+.tl-mark[data-ink="gray"]   { background: var(--gray);  }
+
+/* Activity marks — hollow outline dot (derived from session data, not a verdict) */
+.tl-mark[data-kind="activity"] {
+  background: var(--bg);
+  border: 2px solid var(--blue);
+  opacity: 0.7;
+}
+
+/* Detail card (fixed bottom-right, dismissible) */
+.tl-detail-card {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 300px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+.tl-dc-kind {
+  font-size: 10.5px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 6px;
+}
+.tl-dc-kind[data-kind="check"]   { color: var(--accent); }
+.tl-dc-kind[data-kind="session"] { color: var(--green); }
+.tl-dc-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+.tl-dc-detail {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 7px;
+  line-height: 1.5;
+}
+.tl-dc-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.tl-dc-link:hover { text-decoration: underline; }
+
+/* Screen-reader only utility (used by tl-mark for accessibility) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border-width: 0;
+}

@@ -675,3 +675,37 @@ export const testChannel = (id: string) =>
   json<{ ok: boolean; error: string | null }>(`/api/channels/${id}/test`, {
     method: "POST",
   });
+
+// ── A6 Timeline — the org in time ────────────────────────────────────
+// GET /api/timeline?window=30d
+// Every mark is a sentence with a deep link; ink tokens match the verdict
+// palette. Agents call the same JSON endpoint (ruling 4).
+
+export interface TimelineMark {
+  kind: "activity" | "check" | "session";
+  ts: string;          // ISO timestamp
+  label: string;       // plain sentence: "Check on PR #7: Kept all promises — Jul 10"
+  ink: string;         // verdict ink token: green | red | amber | blue | gray
+  link: string;        // deep link: /repo/ws/review/7 or /feature/id or /session/id
+  detail: string;      // optional longer sentence (hover/tooltip)
+}
+
+export interface TimelineRow {
+  feature_id: string;
+  feature_name: string;
+  repo: string;
+  repo_workspace: string;  // for /repo/:ws deep link
+  first_activity: string | null;
+  last_activity: string | null;
+  event_count: number;
+  marks: TimelineMark[];
+}
+
+export interface TimelineData {
+  window: { days: number; since: string; until: string };
+  rows: TimelineRow[];
+  empty: boolean;
+}
+
+export const fetchTimeline = (windowStr = "30d") =>
+  json<TimelineData>(`/api/timeline?window=${encodeURIComponent(windowStr)}`);

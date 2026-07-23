@@ -1512,6 +1512,88 @@ def create_journal_router() -> APIRouter:
         except Exception:
             return build_skeleton_feed()
 
+    # ── Org timeline (A6 timeline slice — ruler H) ───────────────────────
+    # GET /api/timeline?window=30d
+    # The org in time: features as rows, marks derived from activity_events
+    # (activity spans), alignment checks (verdict dots), and sessions.
+    # Same JSON an agent calls; every mark is a sentence with a deep link.
+    # Agents: parse "rows[].marks[].{kind,ts,label,ink,link,detail}".
+    @router.get("/api/timeline")
+    def get_org_timeline(window: str = "30d"):
+        """The org timeline: features as rows, derived marks on a time axis.
+
+        Query params:
+          window: rolling window string, e.g. "30d" (default), "7d", "90d".
+                  Days are parsed from the leading integer; max 90.
+
+        Returns:
+          {
+            "window": {"days": int, "since": ISO, "until": ISO},
+            "rows": [
+              {
+                "feature_id": str,
+                "feature_name": str,
+                "repo": str,
+                "repo_workspace": str,
+                "first_activity": ISO | null,
+                "last_activity": ISO | null,
+                "event_count": int,
+                "marks": [
+                  {"kind": "activity"|"check"|"session", "ts": ISO,
+                   "label": str, "ink": str, "link": str, "detail": str}
+                ]
+              }
+            ],
+            "empty": bool
+          }
+
+        Agents: the same JSON the UI renders. "ink" is a verdict token
+        (green/red/amber/blue/gray). "link" is a deep-link URL.
+        Failure-safe: always returns a valid shape, never 500.
+        """
+        from quire.timeline_org import compose_org_timeline
+
+        # Parse "30d" → 30; default to 30 on any parse failure.
+        try:
+            window_days = int("".join(c for c in window if c.isdigit()) or "30")
+        except (ValueError, TypeError):
+            window_days = 30
+
+        # The timeline composer needs the Postgres journal session +
+        # the alignment store (SQLite). Alignment store is available via
+        # the app.state.store pattern, but the journal router doesn't carry
+        # that reference. We import and build it lazily — same pattern used
+        # by the provenance endpoint.
+        alignment_store = None
+        try:
+            from quire.store import Store
+            from quire.workspace import WORKSPACES
+
+            # Resolve the first workspace's store path — same SQLite used by
+            # the rest of the backend. Falls back to None on any failure.
+            if WORKSPACES:
+                first_ws = next(iter(WORKSPACES.values()), None)
+                if first_ws and hasattr(first_ws, "store_path"):
+                    alignment_store = Store(url=f"sqlite:///{first_ws.store_path}")
+        except Exception:
+            pass  # degraded: no check marks, activity marks still work
+
+        try:
+            with _db() as sess:
+                return compose_org_timeline(sess, alignment_store, window_days)
+        except Exception:
+            from datetime import datetime, timedelta, timezone
+            now = datetime.now(tz=timezone.utc)
+            return {
+                "window": {
+                    "days": window_days,
+                    "since": (now - timedelta(days=window_days)).isoformat(),
+                    "until": now.isoformat(),
+                },
+                "rows": [],
+                "empty": True,
+            }
+
     # ── Meta ─────────────────────────────────────────────────────────────
 
     _meta_cache: dict | None = None

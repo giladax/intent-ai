@@ -12,6 +12,7 @@ import { Repositories, RepoPage } from "./surfaces/Repositories";
 import { ReviewRoom } from "./surfaces/Review";
 import { Channels, Correspondence } from "./surfaces/Misc";
 import { Handoff } from "./surfaces/Handoff";
+import { Timeline } from "./surfaces/Timeline";
 import { IntentReview } from "./surfaces/IntentReview";
 import {
   FeaturesRoute, FeatureRoute, ReviewsRoute, JournalRoute,
@@ -40,6 +41,7 @@ export function App() {
           <Route path="/repositories" element={<ShellFrame><Repositories /></ShellFrame>} />
           <Route path="/repo/:ws" element={<ShellFrame><RepoPage /></ShellFrame>} />
           <Route path="/repo/:ws/review/:n" element={<ShellFrame detail><ReviewRoom /></ShellFrame>} />
+          <Route path="/timeline" element={<ShellFrame><Timeline /></ShellFrame>} />
           <Route path="/handoff" element={<ShellFrame><Handoff /></ShellFrame>} />
           <Route path="/handoff/:ws" element={<ShellFrame><Handoff /></ShellFrame>} />
           <Route path="/intent-review/:id" element={<ShellFrame><IntentReview /></ShellFrame>} />
