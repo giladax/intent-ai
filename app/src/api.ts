@@ -646,3 +646,32 @@ export async function* streamChat(
     }
   }
 }
+
+// ── Channels (O5) ────────────────────────────────────────────────────
+export interface ChannelRow {
+  id: string;
+  transport: string;
+  config_public: Record<string, string>;
+  purposes: string[];
+}
+
+export const fetchChannels = () => json<ChannelRow[]>("/api/channels");
+
+export const addChannel = (
+  transport: string,
+  config: Record<string, string>,
+  purposes: string[]
+) =>
+  json<{ id: string; status: string }>("/api/channels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transport, config, purposes }),
+  });
+
+export const deleteChannel = (id: string) =>
+  json<{ deleted: boolean }>(`/api/channels/${id}`, { method: "DELETE" });
+
+export const testChannel = (id: string) =>
+  json<{ ok: boolean; error: string | null }>(`/api/channels/${id}/test`, {
+    method: "POST",
+  });

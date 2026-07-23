@@ -764,4 +764,22 @@ def sync_org(
             "error": None,
         })
 
+    # -- O5: alarm delivery — run policy over all workspaces, tap channels ──
+    # Runs after all analyses so fresh verdicts are in the alignment store.
+    # Failure-safe: a delivery error never fails the sync pass or loses results.
+    try:
+        from quire.deliver_alarms import deliver_alarms_for_org
+
+        _resolved_root = workspaces_root or pathlib.Path(__file__).parent.parent / "workspaces"
+        delivery = deliver_alarms_for_org(org_store, _resolved_root)
+        if delivery:
+            _sent = [d for d in delivery if d.get("ok")]
+            logger.info(
+                "sync_org: alarm delivery — %d message(s) sent to %d channel(s)",
+                len(_sent),
+                len({d["channel_id"] for d in _sent}),
+            )
+    except Exception as exc:
+        logger.warning("sync_org: alarm delivery failed (sync unaffected): %s", exc)
+
     return all_results

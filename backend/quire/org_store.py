@@ -208,6 +208,117 @@ class OrgStore:
                 s.delete(row)
                 s.commit()
 
+    # ── O5: channel CRUD ─────────────────────────────────────────────────
+
+    def add_channel(
+        self,
+        org_id: str,
+        transport: str,
+        config: dict[str, Any],
+        purposes: list[str],
+    ) -> str:
+        """Add a notification channel to the org. Returns the new channel id.
+
+        Single-writer: only OrgStore writes org_channels.
+        config holds transport-specific secrets (token, chat_id, etc.).
+        purposes: list of strings — channels with "alarms" in purposes receive
+        alarm delivery via deliver_alarms_for_org.
+        """
+        import uuid
+        from quire.db.org_models import OrgChannel
+
+        ch_id = str(uuid.uuid4())
+        with SASession(self._engine) as s:
+            s.add(OrgChannel(
+                id=ch_id,
+                org_id=org_id,
+                transport=transport,
+                config=config,
+                purposes=purposes,
+            ))
+            s.commit()
+        return ch_id
+
+    def list_channels(self, org_id: str = "quire") -> list[dict[str, Any]]:
+        """Return all channels for the org — config is redacted (token hidden)."""
+        from quire.db.org_models import OrgChannel
+
+        with SASession(self._engine) as s:
+            rows = s.execute(
+                select(OrgChannel).where(OrgChannel.org_id == org_id)
+            ).scalars().all()
+            return [_channel_to_dict(r, redact=True) for r in rows]
+
+    def get_alarm_channels(self, org_id: str = "quire") -> list[dict[str, Any]]:
+        """Return channels with 'alarms' in purposes — full config for delivery.
+
+        Internal: only the delivery path calls this. Never expose to the API;
+        use list_channels for public endpoints (token redacted).
+        """
+        from quire.db.org_models import OrgChannel
+
+        with SASession(self._engine) as s:
+            rows = s.execute(
+                select(OrgChannel).where(OrgChannel.org_id == org_id)
+            ).scalars().all()
+            out = []
+            for r in rows:
+                purposes = r.purposes or []
+                if "alarms" in purposes:
+                    d = _channel_to_dict(r, redact=False)
+                    # Merge delivery state from config (stored under _delivered_keys key)
+                    d["delivered_keys"] = (r.config or {}).get("_delivered_keys", [])
+                    out.append(d)
+            return out
+
+    def update_channel_delivery_state(
+        self, channel_id: str, delivered_keys: list[str]
+    ) -> None:
+        """Persist successfully-delivered dedup keys into the channel config.
+
+        Keys are stored under '_delivered_keys' in the config jsonb. This is
+        the single-writer delivery-state store; the alarm loop reads this back
+        via get_alarm_channels to suppress re-taps on the same break.
+        """
+        from quire.db.org_models import OrgChannel
+
+        with SASession(self._engine) as s:
+            row = s.get(OrgChannel, channel_id)
+            if row is None:
+                logger.warning(
+                    "update_channel_delivery_state: channel %s not found", channel_id
+                )
+                return
+            cfg = dict(row.config or {})
+            cfg["_delivered_keys"] = list(delivered_keys)
+            row.config = cfg
+            s.commit()
+
+    def remove_channel(self, channel_id: str) -> bool:
+        """Remove a channel by id. Returns True if deleted, False if not found."""
+        from quire.db.org_models import OrgChannel
+
+        with SASession(self._engine) as s:
+            row = s.get(OrgChannel, channel_id)
+            if row is None:
+                return False
+            s.delete(row)
+            s.commit()
+            return True
+
+    def get_channel(self, channel_id: str) -> dict[str, Any] | None:
+        """Return a single channel row with full config (for internal delivery).
+
+        Returns None if not found.
+        """
+        from quire.db.org_models import OrgChannel
+
+        with SASession(self._engine) as s:
+            row = s.get(OrgChannel, channel_id)
+            if row is None:
+                return None
+            return _channel_to_dict(row, redact=False)
+
     def get_org(self) -> dict[str, Any] | None:
         """Return the single org with its repos, or None if not seeded."""
         with SASession(self._engine) as s:
@@ -524,4 +635,33 @@ def _repo_to_dict(r: OrgRepo) -> dict[str, Any]:
         "status": r.status,
         "read_only": r.read_only,
         "repository": r.repository,
+    }
+
+
+def _channel_to_dict(r, redact: bool = True) -> dict[str, Any]:
+    """Serialize an OrgChannel row to a dict.
+
+    redact=True (API path): token is replaced with "***"; internal keys
+    prefixed with "_" are omitted.
+    redact=False (delivery path): full config including token; internal keys
+    prefixed with "_" are omitted from config_public but included in config.
+    """
+    config = dict(r.config or {})
+    config_public = {
+        k: ("***" if k == "token" else v)
+        for k, v in config.items()
+        if not k.startswith("_")
+    }
+    return {
+        "id": r.id,
+        "org_id": r.org_id,
+        "transport": r.transport,
+        # config: full (delivery path) or redacted (api path)
+        "config": (
+            {k: v for k, v in config.items() if not k.startswith("_")}
+            if not redact
+            else config_public
+        ),
+        "config_public": config_public,
+        "purposes": r.purposes or [],
     }

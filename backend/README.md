@@ -115,6 +115,37 @@ TS backend (history at git tag `ts-backend-final`). No Drizzle is present in
 the repo. Pre-Alembic bootstrap debt now spans 4 tables (session_checks, orgs, org_repos, org_channels) with an ALTER TABLE patch-forward firing on OrgStore init; Alembic adoption should retire all of it in one pass. Any future schema change starts by adopting Alembic: add it to
 `requirements.txt`, run `alembic init`, and write a migration for the change.
 
+## O5 — Telegram Alarm Delivery
+
+When a promise breaks, the org's Telegram channel receives one message: a plain
+sentence, the quote receipt, and a deep link to the exact annotated review. Silent on healthy work.
+
+**2-minute setup:**
+
+1. Message **@BotFather** on Telegram and run `/newbot`. Copy the bot token it gives you.
+2. Add your bot to the chat or channel that should receive alarms.
+3. Find your chat ID: add **@userinfobot** to the chat — it will reply with the numeric ID.
+4. In the Quire dashboard, go to **Channels** → **Add Telegram channel**.
+   Paste the token and chat ID. Click **Send a test message** to confirm delivery.
+
+**Environment override:**
+
+```
+QUIRE_APP_HOST=https://your-quire.example.com  # default: http://localhost:3456
+```
+
+Deep links in alarm messages use this host. On localhost the default works;
+in production set it to your public domain so the link lands on the real review.
+
+**Without a token:** the system uses a StubChannel that records messages
+(visible in logs at `DEBUG` level) and never fails. Add a real channel to
+activate live delivery. The dedup mechanism prevents re-tapping the same break;
+a new break (new PR) always fires even if the entity was already alarmed before.
+
+**Delivery state** is stored in `org_channels.config._delivered_keys` (single-writer:
+`OrgStore.update_channel_delivery_state`). The alarm policy's `seen=` parameter
+suppresses dedup at compose time; delivery state is the persistent form across restarts.
+
 ## Follow-ups (named, not yet implemented)
 
 - **Compose parallelization**: the three Sonnet calls in `quire/journal/feed.py`

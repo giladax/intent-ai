@@ -477,6 +477,74 @@ def create_org_router(
             ),
         }
 
+    # ── O5: channel management endpoints ─────────────────────────────────
+    # GET    /api/channels           → list channels (token redacted)
+    # POST   /api/channels           → add a channel
+    # POST   /api/channels/{id}/test → send a test message
+    # DELETE /api/channels/{id}      → remove a channel
+    #
+    # Single-writer: only OrgStore writes org_channels. Config writes go through
+    # add_channel / remove_channel / update_channel_delivery_state only.
+
+    @router.get("/api/channels")
+    def list_channels():
+        """List org channels (token redacted in output — safe for API responses)."""
+        if org_store is None:
+            raise HTTPException(503, "org layer unavailable")
+        return org_store.list_channels()
+
+    @router.post("/api/channels")
+    def add_channel(body: dict = Body(...)):
+        """Add a notification channel.
+
+        Body: {transport: str, config: {token: str, chat_id: str, ...}, purposes: list[str]}
+        Returns: {id: str, status: "ok"}
+        """
+        if org_store is None:
+            raise HTTPException(503, "org layer unavailable")
+        transport = (body.get("transport") or "").strip()
+        if not transport:
+            raise HTTPException(400, "transport is required")
+        config = body.get("config") or {}
+        purposes = body.get("purposes") or ["alarms"]
+        ch_id = org_store.add_channel("quire", transport, config, purposes)
+        return {"id": ch_id, "status": "ok"}
+
+    @router.post("/api/channels/{channel_id}/test")
+    def test_channel(channel_id: str):
+        """Send a test message to the channel.
+
+        Uses the stored config. Returns {ok: bool, error: str|null}.
+        Works with a real token (live Telegram send); returns ok=True with
+        StubChannel if token/chat_id are empty (honest fallback).
+        """
+        if org_store is None:
+            raise HTTPException(503, "org layer unavailable")
+
+        ch_row = org_store.get_channel(channel_id)
+        if ch_row is None:
+            raise HTTPException(404, f"Channel {channel_id} not found")
+
+        from quire.channels import channel_from_config
+        config = dict(ch_row.get("config") or {})
+        config["transport"] = ch_row.get("transport", "")
+        ch = channel_from_config(config)
+        result = ch.send(
+            "Test message from Quire — your alarm channel is connected.",
+            receipts=[{"kind": "test", "ref": "now", "note": "sent via /channels test button"}],
+        )
+        return result
+
+    @router.delete("/api/channels/{channel_id}")
+    def delete_channel(channel_id: str):
+        """Remove a channel by id."""
+        if org_store is None:
+            raise HTTPException(503, "org layer unavailable")
+        deleted = org_store.remove_channel(channel_id)
+        if not deleted:
+            raise HTTPException(404, f"Channel {channel_id} not found")
+        return {"deleted": True}
+
     return router
 
 
