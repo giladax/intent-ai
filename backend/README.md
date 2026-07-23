@@ -145,6 +145,8 @@ a new break (new PR) always fires even if the entity was already alarmed before.
 **Delivery state** is stored in `org_channels.config._delivered_keys` (single-writer:
 `OrgStore.update_channel_delivery_state`). The alarm policy's `seen=` parameter
 suppresses dedup at compose time; delivery state is the persistent form across restarts.
+The list is capped at 500 entries (insertion order, most-recent kept); the dedup
+semantic holds for any realistic alarm volume within a 14-day window.
 
 ## Follow-ups (named, not yet implemented)
 

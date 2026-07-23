@@ -279,7 +279,14 @@ class OrgStore:
         Keys are stored under '_delivered_keys' in the config jsonb. This is
         the single-writer delivery-state store; the alarm loop reads this back
         via get_alarm_channels to suppress re-taps on the same break.
+
+        The list is capped at the most recent N=500 keys (insertion order).
+        Rationale: dedup only matters for the active window (14 days of breaks).
+        A workspace producing >500 unique breaks in a window is pathological;
+        pruning at 500 keeps the jsonb column from growing without bound and
+        the dedup semantic still holds for any realistic alarm volume.
         """
+        _MAX_KEYS = 500
         from quire.db.org_models import OrgChannel
 
         with SASession(self._engine) as s:
@@ -290,7 +297,14 @@ class OrgStore:
                 )
                 return
             cfg = dict(row.config or {})
-            cfg["_delivered_keys"] = list(delivered_keys)
+            # Deduplicate while preserving insertion order, then prune to N.
+            seen_set: set[str] = set()
+            deduped: list[str] = []
+            for k in delivered_keys:
+                if k not in seen_set:
+                    seen_set.add(k)
+                    deduped.append(k)
+            cfg["_delivered_keys"] = deduped[-_MAX_KEYS:]
             row.config = cfg
             s.commit()
 

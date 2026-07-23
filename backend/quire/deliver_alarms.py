@@ -1,6 +1,7 @@
 """quire.deliver_alarms — wire the alarm policy to org channels (O5).
 
-Called from sync_org after analyses complete. Reads alarm channels from
+Called from sync_org after analyses complete, receiving the alignment_store
+so live analyses (not just checks.yaml fixtures) are visible. Reads alarm channels from
 OrgStore, composes messages from the alarm policy (verbatim from alarms.py),
 delivers to each channel, and persists the dedup key set so re-analyses
 never re-tap the same break.
@@ -100,10 +101,16 @@ def _format_message(
 
 
 def _build_adapter(ws_path: pathlib.Path):
-    """Build a workspace adapter for the alarm policy. Failure-safe."""
+    """Build a workspace adapter via provider dispatch (same as CLI/API).
+
+    Delegates to workspace.build_adapter which reads workflow.yaml and
+    dispatches to GitWorkspace, GitHubWorkspace, or FixtureWorkspace by
+    provider field — so live workspaces use the correct adapter, not just
+    FixtureWorkspace. Failure-safe: returns None on any error.
+    """
     try:
-        from quire.adapters.fixture import FixtureWorkspace
-        return FixtureWorkspace(ws_path)
+        from quire import workspace as ws_mod
+        return ws_mod.build_adapter(ws_path)
     except Exception as exc:
         logger.debug("deliver_alarms: _build_adapter(%s) failed: %s", ws_path, exc)
         return None
@@ -112,6 +119,7 @@ def _build_adapter(ws_path: pathlib.Path):
 def deliver_alarms_for_org(
     org_store,
     workspaces_root: pathlib.Path,
+    store=None,
     app_host: str | None = None,
 ) -> list[dict[str, Any]]:
     """Deliver alarms for all workspaces to org alarm channels.
@@ -154,7 +162,8 @@ def deliver_alarms_for_org(
 
     for ch_cfg in channels_config:
         ch_id = ch_cfg["id"]
-        already_delivered: set[str] = set(ch_cfg.get("delivered_keys", []))
+        ordered_keys: list[str] = list(ch_cfg.get("delivered_keys", []))
+        already_delivered: set[str] = set(ordered_keys)
 
         # Build the channel — unknown transports or missing config → StubChannel
         ch = channel_from_config(
@@ -180,7 +189,7 @@ def deliver_alarms_for_org(
                 alarms = alarms_for(
                     ws_path,
                     adapter,
-                    None,  # store — fixture adapter doesn't need it
+                    store,
                     window_days=14,
                     seen=already_delivered,
                 )
@@ -226,7 +235,7 @@ def deliver_alarms_for_org(
         if newly_delivered:
             try:
                 org_store.update_channel_delivery_state(
-                    ch_id, list(already_delivered)
+                    ch_id, ordered_keys + newly_delivered
                 )
             except Exception as exc:
                 logger.warning(

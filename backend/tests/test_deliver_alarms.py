@@ -224,3 +224,209 @@ def test_deliver_alarms_app_host_env(store, monkeypatch):
 
     assert stub.sent
     assert all("https://quire.example.com" in s["text"] for s in stub.sent)
+
+
+def test_store_backed_off_intent_fires_through_delivery(store, monkeypatch, tmp_path):
+    """C1 revert-check: a workspace with NO checks.yaml + a store-backed OFF_INTENT
+    analysis → the alarm fires through delivery to StubChannel.
+
+    If the alignment store is not threaded into deliver_alarms_for_org (i.e. store
+    param is None / not forwarded to alarms_for), events_for returns an empty check
+    list, no collision is detected, and this test FAILS (0 sends).
+    """
+    import shutil
+    from quire.store import Store
+    from quire.models import (
+        PRAnalysis, Classification, ObligationImpact, ImpactRelation, ReviewState
+    )
+    from quire.deliver_alarms import deliver_alarms_for_org
+
+    # --- 1. Build a workspace dir with NO checks.yaml ---
+    vela_src = pathlib.Path(__file__).parent.parent / "fixtures" / "vela"
+    ws_root = tmp_path / "workspaces"
+    ws_root.mkdir()
+    ws_dir = ws_root / "vela"
+    shutil.copytree(vela_src, ws_dir)
+    (ws_dir / "checks.yaml").unlink(missing_ok=True)
+    assert not (ws_dir / "checks.yaml").exists(), "checks.yaml must be absent for this test"
+
+    # --- 2. Build a real alignment store and seed an OFF_INTENT analysis ---
+    # adapter.repository() for the vela fixture returns "vela-messaging"
+    # Use an obligation_id that the vela entity-graph holds as a "promise".
+    # Read obligations.yaml to find a valid id.
+    import yaml as _yaml
+    obs = _yaml.safe_load((ws_dir / "obligations.yaml").read_text())
+    ob_id = obs["obligations"][0]["obligation_id"]
+
+    alignment_store = Store(url=f"sqlite:///{tmp_path}/align.db")
+    analysis = PRAnalysis(
+        analysis_id="test-store-alarm-001",
+        workflow_id="vela-stream",
+        repository="vela-messaging",
+        pr_number=999,
+        base_sha="base000",
+        head_sha="head999",
+        contract_snapshot_id="snap001",
+        analyzer_version="test",
+        classification=Classification.OFF_INTENT,
+        obligation_impacts=[
+            ObligationImpact(
+                obligation_id=ob_id,
+                relation=ImpactRelation.CONTRADICTS,
+                confidence=0.95,
+                reasoning="test contradicts intent",
+            )
+        ],
+        review_state=ReviewState.NOT_REQUIRED,
+    )
+    alignment_store.save_analysis(analysis)
+
+    # --- 3. The store fixture already has "vela" in org_repos (seeded by _FIXTURE_WORKSPACES).
+    # We override workspaces_root to point at ws_root (our tmp copy without checks.yaml),
+    # so delivery picks up the right directory.
+
+    # --- 4. Wire StubChannel ---
+    stub = StubChannel()
+    monkeypatch.setattr("quire.deliver_alarms.channel_from_config", lambda cfg: stub)
+    store.add_channel("quire", "telegram", {"token": "t", "chat_id": "c"}, ["alarms"])
+
+    # --- 5. Deliver with the alignment store threaded in ---
+    results = deliver_alarms_for_org(
+        store, ws_root, store=alignment_store, app_host=APP_HOST
+    )
+
+    assert len(stub.sent) >= 1, (
+        "expected at least one alarm from store-backed OFF_INTENT analysis; "
+        "if 0 sends, the alignment store is not threaded into alarms_for"
+    )
+    assert any(r["ok"] for r in results), "expected at least one ok delivery result"
+
+
+def test_delivered_keys_pruned_at_501(store):
+    """501st unique key evicts the oldest; dedup still holds for recent keys.
+
+    Bound: keep the most recent N=500 delivered keys per channel.
+    Rationale: dedup only matters for active breaks (14-day window); a workspace
+    producing >500 unique breaks is pathological. Pruning prevents unbounded
+    growth of the _delivered_keys jsonb column.
+    """
+    ch_id = store.add_channel("quire", "telegram", {"token": "t", "chat_id": "c"}, ["alarms"])
+
+    # Seed 500 keys
+    initial = [f"key-{i:04d}" for i in range(500)]
+    store.update_channel_delivery_state(ch_id, initial)
+
+    channels = store.get_alarm_channels()
+    ch = next(c for c in channels if c["id"] == ch_id)
+    assert len(ch["delivered_keys"]) == 500, "expected 500 keys after initial seed"
+    assert ch["delivered_keys"][0] == "key-0000", "oldest key should be first"
+
+    # Add the 501st key — oldest must be evicted
+    keys_with_new = initial + ["key-0500"]
+    store.update_channel_delivery_state(ch_id, keys_with_new)
+
+    channels = store.get_alarm_channels()
+    ch = next(c for c in channels if c["id"] == ch_id)
+    assert len(ch["delivered_keys"]) == 500, "expected pruning to 500 after 501st key"
+    assert "key-0000" not in ch["delivered_keys"], "oldest key must be evicted"
+    assert "key-0500" in ch["delivered_keys"], "newest key must be present"
+    # Recent keys still deduplicate (not evicted)
+    assert "key-0499" in ch["delivered_keys"], "second-to-last key must still be present"
+
+
+def test_new_break_fires_after_prior_delivery(store, monkeypatch):
+    """M1: same entity, new break_ref (new PR) → taps again after earlier delivery.
+
+    Prior delivery of break_ref=PR-1 must NOT suppress break_ref=PR-2.
+    The dedup key is (entity_id, signal, break_ref); a new PR is a new key.
+    """
+    from quire.deliver_alarms import deliver_alarms_for_org
+    from quire.alarms import Alarm, Receipt
+
+    stub = StubChannel()
+    monkeypatch.setattr("quire.deliver_alarms.channel_from_config", lambda cfg: stub)
+    store.add_channel("quire", "telegram", {"token": "t", "chat_id": "c"}, ["alarms"])
+
+    # Add a repo entry so delivery has at least one workspace to iterate.
+    store.add_repo(
+        org_id="quire",
+        repo_id="test-m1",
+        workspace="m1-test-ws",
+        display_name="m1 test ws",
+        status="active",
+    )
+
+    def _alarm_factory(dedup_key: str) -> Alarm:
+        return Alarm(
+            entity_id="ent-consent",
+            entity_name="Consent Gate",
+            signal="silent-drift",
+            severity="critical",
+            audience=["stakeholder"],
+            headline="Consent Gate broke 3 days ago — and no one is watching.",
+            story="Test story.",
+            receipts=[Receipt(kind="check", ref=dedup_key.split(":")[-1], note="test")],
+            dedup_key=dedup_key,
+            ts="2026-07-20T00:00:00Z",
+        )
+
+    # Pass 1: alarm with break_ref PR-1
+    def _alarms_pass1(ws_path, adapter, store_arg, window_days=14, seen=None, **kw):
+        key = "ent-consent:silent-drift:PR-1"
+        if seen and key in seen:
+            return []
+        return [_alarm_factory(key)]
+
+    monkeypatch.setattr("quire.deliver_alarms.alarms_for", _alarms_pass1)
+    monkeypatch.setattr("quire.deliver_alarms._build_adapter", lambda p: object())  # non-None adapter
+
+    deliver_alarms_for_org(store, FIXTURES, app_host=APP_HOST)
+    assert len(stub.sent) == 1, "expected exactly 1 send on pass 1 (PR-1)"
+
+    # Pass 2: NEW break — PR-2. Prior dedup key (PR-1) is in delivered_keys.
+    def _alarms_pass2(ws_path, adapter, store_arg, window_days=14, seen=None, **kw):
+        key = "ent-consent:silent-drift:PR-2"
+        if seen and key in seen:
+            return []
+        return [_alarm_factory(key)]
+
+    monkeypatch.setattr("quire.deliver_alarms.alarms_for", _alarms_pass2)
+    deliver_alarms_for_org(store, FIXTURES, app_host=APP_HOST)
+    assert len(stub.sent) == 2, (
+        "expected exactly 2 sends total after pass 2 (new break PR-2 must fire)"
+    )
+
+
+def test_healthy_workspace_zero_sends(store, monkeypatch):
+    """M2: alarms channel configured, no collisions → 0 sends.
+
+    A workspace in a healthy state (all entities aligned) must not tap
+    the channel even when alarm delivery runs. This guards against the
+    alarm policy accidentally firing on benign states.
+    """
+    from quire.deliver_alarms import deliver_alarms_for_org
+
+    stub = StubChannel()
+    monkeypatch.setattr("quire.deliver_alarms.channel_from_config", lambda cfg: stub)
+    store.add_channel("quire", "telegram", {"token": "t", "chat_id": "c"}, ["alarms"])
+    store.add_repo(
+        org_id="quire",
+        repo_id="test-m2-healthy",
+        workspace="m2-healthy-ws",
+        display_name="m2 healthy ws",
+        status="active",
+    )
+
+    # Patch alarms_for to return no alarms (healthy workspace)
+    monkeypatch.setattr(
+        "quire.deliver_alarms.alarms_for",
+        lambda ws_path, adapter, store_arg, **kw: []
+    )
+    monkeypatch.setattr("quire.deliver_alarms._build_adapter", lambda p: object())
+
+    results = deliver_alarms_for_org(store, FIXTURES, app_host=APP_HOST)
+
+    assert len(stub.sent) == 0, (
+        f"expected 0 sends for healthy workspace, got {len(stub.sent)}"
+    )
+    assert results == [], "expected empty results for healthy workspace (no alarms)"

@@ -771,7 +771,7 @@ def sync_org(
         from quire.deliver_alarms import deliver_alarms_for_org
 
         _resolved_root = workspaces_root or pathlib.Path(__file__).parent.parent / "workspaces"
-        delivery = deliver_alarms_for_org(org_store, _resolved_root)
+        delivery = deliver_alarms_for_org(org_store, _resolved_root, store=alignment_store)
         if delivery:
             _sent = [d for d in delivery if d.get("ok")]
             logger.info(
