@@ -254,3 +254,11 @@ backfill.
   Needs-you and the feature pages. Recommend: adopt the vocabulary and the
   closes-on-evidence rule now; schedule the primitive as its own slice after
   the demo cut (it must not delay O2–O5).
+
+
+## ⚑ Rulings — 2026-07-23, all four in
+
+- **G — RULED: Jira/Linear-class engineering PM is the kill target**, as the tractability thesis itself: R&D is the domain whose schema we own.
+- **H — RULED: timeline/Gantt joins the demo cut if the schedule holds** — the roadmap-that-updates-itself is the kill beat.
+- **I — RULED: the full language kit adopted** (category line, wedge label, "new engine, familiar controls", task/PRD/North-Star vocabulary — never epic/story; tasks born from signed intent, closed on evidence), **with a founder addition that is itself a product principle: the schema is fixed, but AUTHORING within it is first-class.** A PM writing a PRD (or any artifact type the schema allows) is a primary intent path — "we are always there to analyze." Derive-only is wrong; author-then-analyze is equal to derive-then-approve. Authoring surfaces (write a PRD into the schema, have it analyzed into promises) belong in the product alongside the wizard's mining path.
+- **J — RULED: patterns-separable-from-evidence adopted as a standing architectural constraint** from this date. Every learned pattern must be structurally separable from org-private evidence.
