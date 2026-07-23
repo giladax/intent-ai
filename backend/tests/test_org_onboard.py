@@ -1048,3 +1048,41 @@ def test_draft_renumbers_obligation_ids_across_sources(tmp_path, monkeypatch):
     # Bindings follow their own source's remap: a.md's binding stays OB-001,
     # b.md's binding (locally OB-001) becomes OB-003.
     assert [b["obligation_id"] for b in result["bindings"]] == ["OB-001", "OB-003"]
+
+
+def test_approve_accepts_scan_shaped_sources(tmp_path, engine, monkeypatch):
+    """/scan sources carry {path, score, …} but no "reference";
+    approve_repo must default reference to the path so the wizard can pass
+    /scan output straight to /approve (the two contracts compose)."""
+    from quire.org_onboard import approve_repo as _approve
+    import quire.org_onboard as org_onboard_mod
+
+    ensure_org_tables(engine)
+    store = OrgStore(engine)
+    store.seed("Quire", "quire", [])
+    store.add_repo(
+        org_id="quire", repo_id="o/r", workspace="o-r", display_name="o/r",
+        status="scanning",
+    )
+
+    # A minimal git mirror for write_workspace to reference.
+    mirror = tmp_path / "mirrors" / "o__r"
+    mirror.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", str(mirror)], check=True)
+    (mirror / "README.md").write_text("# r\n")
+    monkeypatch.setattr(org_onboard_mod, "mirror_path", lambda owner, name: mirror)
+
+    result = _approve(
+        workspace="o-r", owner="o", name="r",
+        org_store=store, workspaces_root=tmp_path / "workspaces",
+        sources=[{"path": "README.md", "score": 1.0}],  # scan-shaped: no "reference"
+        obligations=[{
+            "obligation_id": "OB-001", "kind": "promise",
+            "statement": "s", "source_quote": "q",
+            "source_reference": "README.md", "revision": "draft-1",
+        }],
+        bindings=[], sweep_commits=[],
+    )
+    assert result["status"] == "active"
+    wf = yaml.safe_load((tmp_path / "workspaces" / "o-r" / "workflow.yaml").read_text())
+    assert wf["requirements"]["reference"] == "README.md"

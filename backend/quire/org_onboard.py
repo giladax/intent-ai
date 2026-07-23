@@ -359,6 +359,14 @@ def approve_repo(
     """
     from quire.onboard import write_workspace
 
+    # The wizard passes /scan-shaped sources ({path, score, …}) straight
+    # through; write_workspace requires a "reference" — default it to the
+    # path so the two endpoint contracts compose.
+    sources = [
+        {**s, "reference": s.get("reference") or s.get("path") or "intent-source"}
+        for s in sources
+    ]
+
     mirror = mirror_path(owner, name)
     ws_path, id_map = write_workspace(
         workspaces_root=workspaces_root,

@@ -7,7 +7,7 @@ import { AddRepo } from "./AddRepo";
  *  register → scan → draft → approve → first-results. No live GitHub. */
 const SCAN_FIXTURE = {
   sources: [{ path: ".github/CONTRIBUTING.md", score: 0.74 }],
-  commits: [{ sha: "abc123", message: "fix: update limits" }],
+  commits: [{ sha: "abc123", subject: "fix: update limits" }],
 };
 
 const DRAFT_FIXTURE = {

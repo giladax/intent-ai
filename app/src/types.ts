@@ -432,7 +432,7 @@ export interface RegisterResult {
 /** Response from POST /api/org/repos/{ws}/scan */
 export interface ScanResult {
   sources: ScanSource[];
-  commits: Array<{ sha: string; message: string; author?: string; date?: string }>;
+  commits: Array<{ sha: string; subject: string }>;
 }
 
 /** One drafted obligation (proposed promise). */
