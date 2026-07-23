@@ -68,6 +68,21 @@ Upload desk (envelope, as_intent toggle), session notes appear on reviews (inlin
 ### A4 — Intent approvals in Needs-you (pairs O4)
 Intent cards from as_intent sessions; signing writes the memo artifact; the feature definition page shows the new signed intent. Done when: a product-direction session becomes signed intent on screen.
 
+### A4.5 — Handoff preview: PRD in, tasks out (pairs O4.5)
+Two doors on one surface: **write a PRD** in-app (plain editor, saved into
+the workspace's intent sources — first-class authoring) or **upload/paste
+an existing one** (migration door; same analyzer path, .md/.txt/.rst).
+Then the show: promise cards → sign (existing flow) → **grounded task
+cards by department** (dev/QA/product/BI grouping), each reading as a
+sentence with receipts on demand ("Serves: 'refunds up to $100' · builds
+on RefundPolicy — policy.py exists · gap: no premium-tier test") → the
+signing act → tasks appear on the feature page ("The work" section) and in
+Needs-you until signed; a closed-on-evidence task shows its closing check
+as the receipt. Department tags in plain words; unknown-class states gray;
+staging per humans-have-fun — the decomposition landing is a moment (the
+team's week materializing), let it land. Done when: founder pastes a PRD
+and watches it become the team's signed, grounded week on screen.
+
 ### A5 — Channels + deep links (pairs O5)
 `/channels` (Telegram token/chat, test send); alarms deep-link to the exact review. Done when: the Telegram tap lands on the review page.
 

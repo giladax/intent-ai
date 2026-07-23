@@ -66,6 +66,71 @@ Gates named once: **[PY]** full backend pytest + both evals · **[APP]** app bui
 - [ ] Exactly the constitutional design above; approval UX reuses the wizard Approve surface; artifacts validate verbatim forever.
 - [ ] Done when: a product-direction session becomes an approved intent source and the next analyze cites it. [PY][DEMO]
 
+### O4.5 — The handoff: a PRD becomes the team's week (⚑ M scope ruling)
+
+**Founder (2026-07-23):** "Show how a PRD becomes a list of tasks relevant to all
+departments. We know all repos and the designs and can deduce requirements
+relevant to the feature. We are like an exoskeleton helping them. We know
+what's available, what's what, the capabilities. We can help the team hand
+off and run quickly." Two doors, equal rank (authoring ruling + day-zero
+flow): **author** a PRD in-app, or **migrate** an existing one (upload/paste
+— the scanner already ingests .md/.txt/.rst, so a Notion markdown export
+rides the existing path; the LICENSE skip-list keeps noise out).
+
+**Files:** `backend/quire/handoff.py` (grounding assembler + task proposer),
+task nodes + evidenced edges in `backend/quire/db/` (edges-carry-coupling
+conformant from birth: `tasks` node table is identity+content only;
+`task_links` edge table carries serves-promise / builds-on-feature /
+lives-in-repo with provenance + receipts), org router endpoints, one EDD
+eval case (a grounded task cites only real features/files; a fabricated
+citation is dropped by deterministic validation — the citation-validation
+pattern reused).
+
+- [ ] **Stage 1 rides existing machinery**: PRD → promise cards
+  (propose_contract) → human signs (existing act). Nothing new.
+- [ ] **Stage 2 (new — the exoskeleton)**: per signed promise, the grounding
+  assembler queries what the org HAS — features (name, understanding,
+  constraints, known_unknowns), `feature_files` (where the code lives),
+  workspace bindings (what's already governed), org repos — via
+  deterministic retrieval (binding paths + name/path overlap; similarity
+  proposes context, never authority). The task proposer (Sonnet,
+  structured) then drafts per-department task cards — **departments are
+  fixed-schema: dev / QA / product / BI** (⚑ L) — each carrying its WHY as
+  receipts: the promise it serves (quote), what it builds on ("extends
+  Feature X — src/… exists") or the honest gap ("nothing covers this —
+  new module"). Deterministic validation drops any citation that doesn't
+  resolve to a real feature/file.
+- [ ] **Stage 3 (constitutional)**: proposals land in Needs-you → per-card
+  accept/reject/edit → the signing act → signed tasks become nodes+edges.
+  **Closure on evidence, honestly tiered**: a dev task closes when a check
+  shows its promise KEPT at the bound control points (analysis id +
+  verdict = the evidence; wired now — the analyzer already produces it);
+  a QA task closes when test-inspection detects covering tests (partial —
+  where the analyzer's existing tests/evals inspection reaches); product/
+  BI tasks close **manually with a note** in the demo, labeled "evidence
+  detection coming" (⚑ N — no dreams: we never fake a closure signal we
+  don't have).
+- [ ] Done when: a PRD (authored or uploaded) becomes signed, grounded,
+  department-tagged tasks visible with receipts — and one dev task closes
+  on a real check. [PY][APP][DEMO]
+
+**⚑ M — scope ruling (recommend b):** (a) full beat incl. complete task
+lifecycle — ~3 slices, too heavy pre-demo; **(b) the handoff preview above
+— 1 backend + 1 app slice, mostly existing machinery, and it IS the
+"huge" moment; in the demo cut**; (c) post-demo — surrenders the
+differentiator beat. **⚑ L:** departments fixed for the demo (known
+R&D domain = the fixed-schema thesis); org-level renames later, never a
+free ontology. **⚑ N:** show manual closure honestly labeled rather than
+hiding product/BI closure.
+
+**Demo narrative (ties the beats):** the purpose-built demo repo's PRD v2
+(the new-feature addition) enters → decomposes into the week's tasks
+across departments → sign → a PR lands implementing one task → its check
+closes the task on evidence → the Telegram tap (O5) fires on the one that
+breaks a promise. Founder line: **"This PRD just became your team's week —
+every task knows why it exists, what it builds on, and what closes it.
+Nobody wrote a ticket."**
+
 ### O5 — The tap on the shoulder reaches Telegram
 **Files:** `backend/quire/channels.py` (`Channel` protocol: `send(text, receipts)`; `TelegramChannel` first — ⚑ A), org_channels wiring, alarm delivery from the sync/watch loop.
 - [ ] Alarms policy unchanged (deterministic, quote-backed, dedup, silent-on-healthy) — this slice is DELIVERY only. Message reads as a sentence with the quote; deep-link to the org view. Note: `comms.py` is the separate *ingestion* direction (export-based, quote-or-drop) — untouched here; live channel ingestion joins O6's subscription work.
