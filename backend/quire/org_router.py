@@ -32,13 +32,15 @@ logger = logging.getLogger(__name__)
 _WORKSPACES_ROOT = pathlib.Path(__file__).parent.parent / "workspaces"
 
 
-def create_org_router(org_store, alignment_store) -> APIRouter:
+def create_org_router(org_store, alignment_store, task_store=None) -> APIRouter:
     """Factory: returns a configured APIRouter.
 
     Args:
         org_store: quire.org_store.OrgStore instance (Postgres), or None if
             the org layer was unavailable at startup (both endpoints → 503).
         alignment_store: quire.store.Store instance (SQLite).
+        task_store: quire.handoff.TaskStore instance (Postgres), or None —
+            handoff endpoints degrade to 503, everything else unaffected.
     """
     router = APIRouter()
 
@@ -99,7 +101,15 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
                 503,
                 "org layer unavailable — Postgres unreachable at startup",
             )
-        return org_store.get_needs_you(alignment_store)
+        items = org_store.get_needs_you(alignment_store)
+        # Handoff items (unsigned handoffs, closure evidence) join the same
+        # list — failure-safe: task-layer trouble never hides the rest.
+        if task_store is not None:
+            try:
+                items = list(items) + task_store.needs_you_items()
+            except Exception as exc:
+                logger.warning("needs-you: task items unavailable: %s", exc)
+        return items
 
     @router.get("/api/org/docket")
     def get_org_docket():
@@ -262,6 +272,94 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
             n_prs=n_prs,
             token=token,
         )
+
+    # ── O4.5 — the handoff: signed promises become the team's week ──────
+    # Contract (the A4.5 surface renders exactly this):
+    #   POST /api/org/repos/{ws}/handoff/draft {source_reference?}
+    #     → 200 {handoff_id, tasks: [task…], notes: [str…]}   (status "proposed")
+    #   GET  /api/org/handoffs/{handoff_id}
+    #     → 200 {handoff_id, tasks: [task…]}
+    #   GET  /api/org/repos/{ws}/tasks?status=open
+    #     → 200 {workspace, tasks: [task…]}
+    #   POST /api/org/handoffs/{handoff_id}/approve
+    #        {approved_by, tasks: [{task_id, accept, statement?}…]}
+    #     → 200 {signed, rejected}      (the signing act — explicit, per-card)
+    #   POST /api/org/tasks/{task_id}/close {note, closed_by}
+    #     → 200 {closed: true}          (manual tier — labeled honest)
+    # task shape: {task_id, workspace, handoff_id, department, statement,
+    #   why, grounding_note, status, closure_tier, closure_note, signed_by,
+    #   links: [{kind, target_ref, target_label, evidence}…]}
+
+    def _need_tasks():
+        if task_store is None:
+            raise HTTPException(
+                503, "handoff layer unavailable — Postgres unreachable at startup"
+            )
+
+    @router.post("/api/org/repos/{workspace}/handoff/draft")
+    def handoff_draft(workspace: str, body: dict = Body(default={})):
+        """Draft grounded per-department task proposals from the workspace's
+        SIGNED promises (optionally scoped to one source artifact — e.g. the
+        newly onboarded PRD). Live LLM; pauses at "proposed" for signing."""
+        _need_tasks()
+        from quire.handoff import draft_handoff
+
+        try:
+            return draft_handoff(
+                workspace,
+                store=task_store,
+                source_reference=body.get("source_reference"),
+            )
+        except FileNotFoundError:
+            raise HTTPException(404, f"No such workspace: {workspace}")
+        except Exception as exc:
+            logger.warning("handoff draft failed for %s: %s", workspace, exc)
+            raise HTTPException(502, f"handoff draft failed: {exc}")
+
+    @router.get("/api/org/handoffs/{handoff_id}")
+    def handoff_get(handoff_id: str):
+        _need_tasks()
+        tasks = task_store.tasks_for_handoff(handoff_id)
+        if not tasks:
+            raise HTTPException(404, f"No such handoff: {handoff_id}")
+        return {"handoff_id": handoff_id, "tasks": tasks}
+
+    @router.get("/api/org/repos/{workspace}/tasks")
+    def workspace_tasks(workspace: str, status: str | None = None):
+        _need_tasks()
+        return {
+            "workspace": workspace,
+            "tasks": task_store.tasks_for_workspace(workspace, status=status),
+        }
+
+    @router.post("/api/org/handoffs/{handoff_id}/approve")
+    def handoff_approve(handoff_id: str, body: dict = Body(...)):
+        """The signing act. Explicit per-card decisions; cards without a
+        decision stay proposed — never silently accepted."""
+        _need_tasks()
+        decisions = body.get("tasks") or []
+        approved_by = (body.get("approved_by") or "").strip()
+        if not approved_by:
+            raise HTTPException(400, "approved_by is required — a signature has a name")
+        if not decisions:
+            raise HTTPException(400, "no per-card decisions given — nothing to sign")
+        result = task_store.approve(handoff_id, decisions, approved_by)
+        if result["signed"] == 0 and result["rejected"] == 0:
+            raise HTTPException(404, f"No proposed tasks in handoff {handoff_id}")
+        return result
+
+    @router.post("/api/org/tasks/{task_id}/close")
+    def task_close(task_id: str, body: dict = Body(...)):
+        """Manual close with a note (product/bi tier — labeled honestly;
+        dev tasks normally close on check evidence instead)."""
+        _need_tasks()
+        note = (body.get("note") or "").strip()
+        closed_by = (body.get("closed_by") or "").strip()
+        if not note or not closed_by:
+            raise HTTPException(400, "note and closed_by are required")
+        if not task_store.close_manual(task_id, note, closed_by):
+            raise HTTPException(404, f"No open task {task_id}")
+        return {"closed": True}
 
     return router
 

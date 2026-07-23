@@ -123,7 +123,19 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
                 error,
             )
             org_store = None
-    app.include_router(create_org_router(org_store, app.state.store))
+    task_store = None
+    if org_store is not None:
+        try:
+            from quire.handoff import TaskStore
+
+            task_store = TaskStore()
+        except Exception as error:
+            logger.warning(
+                "handoff layer unavailable (%s: %s) — handoff endpoints degrade to 503",
+                type(error).__name__,
+                error,
+            )
+    app.include_router(create_org_router(org_store, app.state.store, task_store))
 
     # ── Journal API (dashboard routes) ──────────────────────────────────
     from quire.journal.router import create_journal_router

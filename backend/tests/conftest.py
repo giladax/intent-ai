@@ -109,3 +109,22 @@ def _no_implicit_production_org_store(monkeypatch):
             super().__init__(engine=engine)
 
     monkeypatch.setattr(org_store_mod, "OrgStore", GuardedOrgStore)
+
+
+@pytest.fixture(autouse=True)
+def _no_implicit_production_task_store(monkeypatch):
+    from quire import handoff as handoff_mod
+
+    real_task_store = handoff_mod.TaskStore
+
+    class GuardedTaskStore(real_task_store):
+        def __init__(self, engine=None):
+            if engine is None:
+                raise RuntimeError(
+                    "test constructed TaskStore() with no engine — this would "
+                    "write to production Postgres. Pass an explicit test "
+                    "engine: TaskStore(engine=make_test_engine())."
+                )
+            super().__init__(engine=engine)
+
+    monkeypatch.setattr(handoff_mod, "TaskStore", GuardedTaskStore)

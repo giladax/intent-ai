@@ -357,6 +357,7 @@ def handle_pr_event(
     github_remote: str | None,
     alignment_store,
     link_store=None,
+    task_store=None,
     token: str | None = None,
 ) -> dict[str, Any]:
     """Analyze one PrEvent and record the result.
@@ -465,6 +466,26 @@ def handle_pr_event(
             branch=None,
         )
 
+    # -- Closure candidacy (O4.5): a fresh check's SATISFIES impacts feed
+    # task closure — auto-close only when unambiguous, else Needs-you.
+    # Failure-safe: the task layer must never fail the sync.
+    if not skipped and task_store is not None and result is not None:
+        try:
+            from quire.handoff import record_closure_candidates
+
+            closure = record_closure_candidates(workspace, result, task_store)
+            if closure["closed"] or closure["candidates"]:
+                logger.info(
+                    "handle_pr_event: PR #%d closure — %d closed on evidence, "
+                    "%d candidate(s) to Needs-you",
+                    event.pr_number, closure["closed"], closure["candidates"],
+                )
+        except Exception as exc:
+            logger.warning(
+                "handle_pr_event: closure candidacy skipped for PR #%d: %s",
+                event.pr_number, exc,
+            )
+
     # -- Record the sha as seen ───────────────────────────────────────────
     if not skipped:
         _mark_sha_seen(ws_path, event.head_sha)
@@ -538,6 +559,7 @@ def sync_org(
     workspaces_root: pathlib.Path | None = None,
     max_prs_per_repo: int = 5,
     link_store=None,
+    task_store=None,
     token: str | None = None,
 ) -> list[dict[str, Any]]:
     """One sync pass: analyze new/updated PRs across all active GitHub repos.
@@ -573,6 +595,15 @@ def sync_org(
         except Exception as exc:
             logger.warning("sync_org: could not construct LinkStore: %s", exc)
             link_store = None
+
+    # Task store for closure candidacy (O4.5) — same failure-safe pattern.
+    if task_store is None:
+        try:
+            from quire.handoff import TaskStore
+            task_store = TaskStore()
+        except Exception as exc:
+            logger.warning("sync_org: could not construct TaskStore: %s", exc)
+            task_store = None
 
     repos = org_store.list_repos()
     all_results: list[dict[str, Any]] = []
@@ -648,6 +679,7 @@ def sync_org(
                 github_remote=github_remote,
                 alignment_store=alignment_store,
                 link_store=link_store,
+                task_store=task_store,
                 token=token,
             )
             results.append(r)

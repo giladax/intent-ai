@@ -179,3 +179,17 @@ The TS backend (`journal/`) is deleted as of Slice 9 (2026-07-22). The Postgres 
 frozen as inherited from Drizzle migrations at git tag `ts-backend-final`. No Drizzle is present
 in the repo. Any future schema change starts by adopting Alembic — see `backend/README.md`
 "Schema changes" section.
+
+## O4.5 — tasks + task_links (2026-07-23)
+
+| Table | Readers | Writers | Verdict | Evidence |
+|---|---|---|---|---|
+| `tasks` | `quire.handoff.TaskStore` reads (`tasks_for_*`, `needs_you_items`) | `quire.handoff.TaskStore` (`create_proposals` / `approve` / `close_*`) — single writer | **LIVE** | backend/quire/handoff.py |
+| `task_links` | same | same | **LIVE** | backend/quire/db/task_models.py |
+
+Node+edge discipline (edges-carry-coupling decision record): `tasks` is a
+node table (identity + content, incl. the honest `grounding_note`);
+`task_links` carries EVERY coupling (serves_promise / builds_on_feature /
+touches_file / closure_candidate / closed_by_check) as evidenced rows.
+Bootstrap: `ensure_task_tables()` (pre-Alembic; same retirement path as
+session_checks/org tables — Alembic adoption folds all of it into one pass).

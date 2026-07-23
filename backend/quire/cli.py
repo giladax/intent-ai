@@ -1156,5 +1156,84 @@ def _now_str() -> str:
     return datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
+@org_app.command("handoff")
+def org_handoff(
+    action: str = typer.Argument(..., help="draft | approve | export"),
+    workspace: str = typer.Argument(..., help="workspace name"),
+    handoff_id: str = typer.Option("", "--handoff", help="handoff id (approve/export)"),
+    source: str = typer.Option("", "--source", help="scope draft to one source artifact reference"),
+    accept_all: bool = typer.Option(
+        False, "--accept-all",
+        help="approve: sign every proposed card (explicit act — you are the signature)",
+    ),
+    approved_by: str = typer.Option("", "--by", help="approve: signer name (required)"),
+    out: str = typer.Option("", "--out", help="export: output markdown path"),
+):
+    """The handoff (O4.5): signed promises become the team's week.
+
+    draft   — propose grounded per-department tasks from the SIGNED contract
+              (live LLM; pauses at proposed — signing is separate).
+    approve — the signing act (per-card via the API; --accept-all here signs
+              every card and requires --by <name>: a signature has a name).
+    export  — render the handoff as one self-contained markdown document
+              (promises + tasks with receipts, ids as footnotes).
+    """
+    from quire.handoff import TaskStore, draft_handoff, export_handoff
+
+    try:
+        store = TaskStore()
+    except Exception as exc:
+        typer.secho(f"task store unavailable: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    if action == "draft":
+        result = draft_handoff(workspace, store=store, source_reference=source or None)
+        if not result["handoff_id"]:
+            for n in result["notes"]:
+                typer.secho(n, fg=typer.colors.YELLOW)
+            raise typer.Exit(1)
+        typer.secho(f"handoff {result['handoff_id']} — proposed tasks:", bold=True)
+        for t in result["tasks"]:
+            typer.echo(f"  [{t['department']}] {t['statement']}")
+        for n in result["notes"]:
+            typer.secho(f"  note: {n}", fg=typer.colors.YELLOW)
+        typer.echo("Next: sign per card in the app, or "
+                   f"`quire org handoff approve {workspace} --handoff "
+                   f"{result['handoff_id']} --accept-all --by <you>`")
+    elif action == "approve":
+        if not handoff_id:
+            typer.secho("--handoff is required", fg=typer.colors.RED)
+            raise typer.Exit(1)
+        if not accept_all:
+            typer.secho(
+                "per-card decisions live in the app/API; the CLI signs all "
+                "cards only with an explicit --accept-all", fg=typer.colors.YELLOW,
+            )
+            raise typer.Exit(1)
+        if not approved_by:
+            typer.secho("--by <name> is required — a signature has a name",
+                        fg=typer.colors.RED)
+            raise typer.Exit(1)
+        tasks = store.tasks_for_handoff(handoff_id)
+        decisions = [{"task_id": t["task_id"], "accept": True}
+                     for t in tasks if t["status"] == "proposed"]
+        result = store.approve(handoff_id, decisions, approved_by)
+        typer.echo(f"signed {result['signed']}, rejected {result['rejected']}")
+    elif action == "export":
+        md, path = export_handoff(
+            workspace, store,
+            handoff_id=handoff_id or None,
+            out_path=pathlib.Path(out) if out else None,
+        )
+        if path:
+            typer.echo(f"wrote {path}")
+        else:
+            typer.echo(md)
+    else:
+        typer.secho(f"unknown action {action!r} (draft|approve|export)",
+                    fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()

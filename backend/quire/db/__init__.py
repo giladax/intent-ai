@@ -19,3 +19,4 @@ Bootstrap via ensure_table_exists(); Alembic will formalize these later.
 # but explicit imports here ensure they are available to Base.metadata.create_all()
 # in test fixtures that call it directly.
 from quire.db import org_models as _org_models  # noqa: F401 — registers tables
+from quire.db import task_models as _task_models  # noqa: F401 — registers tasks + task_links (O4.5)
