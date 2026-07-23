@@ -1,0 +1,13 @@
+workflow_id: pallets-itsdangerous
+requirements:
+  provider: github
+  reference: LICENSE.txt
+repositories:
+- provider: github
+  repository: pallets-itsdangerous
+  path: ../../.repos/pallets__itsdangerous
+eval_sources:
+- type: repository
+  paths:
+  - tests/**
+  - evals/**

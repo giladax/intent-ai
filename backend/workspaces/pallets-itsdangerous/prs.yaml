@@ -1,0 +1,1641 @@
+# PRs: sweep-commit range (int keys) + GitHub PRs (int keys = PR number).
+1:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd^
+  head: 672971d66a2ef9f85151e53283113f33d642dabd
+  title: Merge branch 'stable'
+2:
+  base: b0410878b9e46bd4c008eeac8cf4ed3d345e69b4^
+  head: b0410878b9e46bd4c008eeac8cf4ed3d345e69b4
+  title: remove slsa provenance (#408)
+3:
+  base: 584138c73af1fc7701d37716543826dcfa314fc4^
+  head: 584138c73af1fc7701d37716543826dcfa314fc4
+  title: remove slsa provenance
+4:
+  base: 8953020d029bfc9f9d5a4f853e6dafd11a54a902^
+  head: 8953020d029bfc9f9d5a4f853e6dafd11a54a902
+  title: Merge branch 'stable'
+5:
+  base: f593a0584f2efe929200a20fd1f78f2c3e1dcb04^
+  head: f593a0584f2efe929200a20fd1f78f2c3e1dcb04
+  title: svg logo
+6:
+  base: 73ad98e8629e67a85bf47a525aa7e5c8489e447c^
+  head: 73ad98e8629e67a85bf47a525aa7e5c8489e447c
+  title: Merge branch 'stable'
+7:
+  base: 0b92f16a59022b5756311b1ca5ebd67aabef9371^
+  head: 0b92f16a59022b5756311b1ca5ebd67aabef9371
+  title: svg logo (#407)
+8:
+  base: 38774c9ae5f73312fdfe2abc1267cf19dccb4d21^
+  head: 38774c9ae5f73312fdfe2abc1267cf19dccb4d21
+  title: svg logo
+9:
+  base: 31f46a3469dbfb2ecf83dd0c4297c1efc508fcca^
+  head: 31f46a3469dbfb2ecf83dd0c4297c1efc508fcca
+  title: remove previously deprecated code (#406)
+10:
+  base: 4bb03cd6819228f30079885297299fe568a62863^
+  head: 4bb03cd6819228f30079885297299fe568a62863
+  title: remove previously deprecated code
+430:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: d68599bffdd80c49f68232ab67dd7d46f4b9cf18
+  title: AI junk
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/430
+  author: Devil1716
+  created_at: '2026-07-18T08:18:05Z'
+428:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: d9f3b250e0cac90529e9dd2c6806d4f9d46901fb
+  title: require padding when decoding base64 on Python 3.15+
+  state: open
+  html_url: https://github.com/pallets/itsdangerous/pull/428
+  author: mgorny
+  created_at: '2026-07-03T12:09:50Z'
+427:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 91771412cc8f71e8102e0cce85abf5f0965d92a8
+  title: AI junk
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/427
+  author: ishaanlabs-gg
+  created_at: '2026-07-02T16:49:01Z'
+426:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 9d649509baec6510f9489f6d2e645ea255421af1
+  title: Reject invalid base64 characters
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/426
+  author: CodingFeng101
+  created_at: '2026-06-30T14:48:18Z'
+425:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: b7b7c8f434649e2d278e84d2343e0eb9986b3d88
+  title: AI spam
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/425
+  author: YNan-varamor
+  created_at: '2026-06-16T14:19:41Z'
+424:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 1a3c4b90bbaf6ca7f99d5481ce370ce27374b155
+  title: AI spam
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/424
+  author: wayyoungboy
+  created_at: '2026-06-06T22:28:24Z'
+422:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 56a50e636db0ddd85e28402193f2acd4afe68e08
+  title: AI spam
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/422
+  author: GazingInSpring
+  created_at: '2026-05-27T19:32:07Z'
+421:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 99ad9cd70f8a69501b954438cf19ffe42b9b2937
+  title: AI junk
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/421
+  author: Mirochill
+  created_at: '2026-05-18T15:17:16Z'
+419:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 9554b32a684b94cecce8f86105a0858c89f745d9
+  title: Reject non-ASCII input in base64_decode and add regression test
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/419
+  author: zafar1162014
+  created_at: '2026-05-03T19:49:06Z'
+418:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 9d6d9dfa6b4651cd4549a3f7c32d231c81ca65f6
+  title: 'feat: add deserializer_kwargs parameter to Serializer'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/418
+  author: jlaportebot
+  created_at: '2026-05-03T13:22:11Z'
+415:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: 9f10306508a18cdf77a26c1b204b9c8ee6d4e500
+  title: 'fix: pass serializer_kwargs to load_payload'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/415
+  author: Bahtya
+  created_at: '2026-04-08T19:24:56Z'
+413:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: f021e43914ec3e9e991d4d72124fa737da13038e
+  title: 'feat(serializer): add deserializer_kwargs for load_payload'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/413
+  author: Dhi13man
+  created_at: '2026-03-12T19:21:03Z'
+412:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: d3dd24ae8913276fade744746c91c86de2dcb526
+  title: Fix URLSafeSerializer.dumps to always return str
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/412
+  author: daniel7an
+  created_at: '2026-02-09T20:04:55Z'
+411:
+  base: 672971d66a2ef9f85151e53283113f33d642dabd
+  head: baea3dc6d19f8841837db069ae5b9592feaf961c
+  title: 'Missing header included label: skip issue'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/411
+  author: Anirudh-kasthuri
+  created_at: '2025-12-25T10:52:02Z'
+408:
+  base: f593a0584f2efe929200a20fd1f78f2c3e1dcb04
+  head: 584138c73af1fc7701d37716543826dcfa314fc4
+  title: remove slsa provenance
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/408
+  author: davidism
+  created_at: '2025-06-14T19:56:59Z'
+407:
+  base: 09a8e058a9cca4cae9fb993d936957278cbec151
+  head: 38774c9ae5f73312fdfe2abc1267cf19dccb4d21
+  title: svg logo
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/407
+  author: davidism
+  created_at: '2025-06-11T19:10:01Z'
+406:
+  base: 4dffa1963f896a0a311dec3c14f003a5f382c446
+  head: 4bb03cd6819228f30079885297299fe568a62863
+  title: remove previously deprecated code
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/406
+  author: davidism
+  created_at: '2025-05-28T21:00:44Z'
+405:
+  base: 117218e006641644a038772e557a3ae6cb1448a1
+  head: 7edfa12ed562c5d5e9d6faa06812e42f02efb0e0
+  title: drop end of life python versions
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/405
+  author: davidism
+  created_at: '2025-05-28T20:56:16Z'
+404:
+  base: 1ad903dddad0e38b6ab25be5e4e7a9189cc5a9a4
+  head: c294b2fb47447d83be02470525c9c6292ce5fd74
+  title: Update project to use uv for dependency management
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/404
+  author: aenglander
+  created_at: '2025-05-21T02:04:54Z'
+401:
+  base: 044bb34b2ac4b8cd5d0ed278d94aba00844e9b9c
+  head: 11b0f7ebb0c96ac8af6b42b4b139adf6c627e537
+  title: use global contributing guide
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/401
+  author: davidism
+  created_at: '2025-01-13T18:59:23Z'
+399:
+  base: 62fde54d4ff717fa1c4af688dbebf97845fed495
+  head: 20e3b9e51c5c915ce9fea30afc6c71eb63989d2d
+  title: Pylint alerts corrections as part of an intervention experiment 398
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/399
+  author: evidencebp
+  created_at: '2024-11-25T14:40:58Z'
+397:
+  base: 62fde54d4ff717fa1c4af688dbebf97845fed495
+  head: f9a6c6c813b36e32d3f4fe067a0c1bcf8b0764fa
+  title: Use SPDX license identifier
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/397
+  author: cdce8p
+  created_at: '2024-11-17T19:09:29Z'
+396:
+  base: 3b42a1f39d36cb2333b4a1c9b17533cda4d3f645
+  head: 4bf8d6fd809be4023012439bdf90155c5b300430
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/396
+  author: pre-commit-ci[bot]
+  created_at: '2024-08-05T23:09:24Z'
+395:
+  base: e9881e55236f64c5dfe99f7b6428ef109dc020fa
+  head: a72b0d7729b49bcb75a3b079d93c62dae7b8d6af
+  title: Bump the github-actions group with 3 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/395
+  author: dependabot[bot]
+  created_at: '2024-08-01T14:54:13Z'
+394:
+  base: e9881e55236f64c5dfe99f7b6428ef109dc020fa
+  head: 573e9951ace03c253893343c63cbdcfedbaa22c2
+  title: Bump the python-requirements group in /requirements with 5 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/394
+  author: dependabot[bot]
+  created_at: '2024-08-01T14:20:16Z'
+393:
+  base: 14301495f3b1f6c98708909ab94f5b276fa51a98
+  head: afe72f9c29f8224bd485fb3f85596de5e73b0ed3
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/393
+  author: pre-commit-ci[bot]
+  created_at: '2024-07-02T00:15:35Z'
+392:
+  base: 43e3ac27aa5495b087f61bfc9a54db2ac3b7f974
+  head: 0f151b6c756b8ad59061c42fd9060eb23351e594
+  title: Bump the github-actions group with 2 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/392
+  author: dependabot[bot]
+  created_at: '2024-07-01T14:42:57Z'
+391:
+  base: 43e3ac27aa5495b087f61bfc9a54db2ac3b7f974
+  head: faa2f04ee3901c462d4b300118777768332a08e9
+  title: Bump the python-requirements group in /requirements with 4 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/391
+  author: dependabot[bot]
+  created_at: '2024-07-01T14:22:54Z'
+390:
+  base: 582a23c3bf8195c096c245458aeb645dae72134d
+  head: 5bb67722a5ad082cb0dbb1c8fbb404a9d9955943
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/390
+  author: pre-commit-ci[bot]
+  created_at: '2024-06-03T22:10:50Z'
+388:
+  base: fc61ea1e57a935d3fafe6caef35bdd9b97418448
+  head: 9c83cb4cb9f85bc76e3b7b3036eb0935d4987218
+  title: Bump actions/checkout from 4.1.4 to 4.1.6 in the github-actions group
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/388
+  author: dependabot[bot]
+  created_at: '2024-06-01T14:15:34Z'
+387:
+  base: 6567d656f0386cfe647c9ad5cdfc59e68150487c
+  head: 5876a08e6803ce402a5976937e81198dbf6fc1bc
+  title: Bump the python-requirements group in /requirements with 4 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/387
+  author: dependabot[bot]
+  created_at: '2024-06-01T14:11:10Z'
+385:
+  base: 3ddb1ce418712d02f674a171b3f13ab20f6839a7
+  head: 2da4fabb221369bdcc276dd0e565524013e1af16
+  title: test with python 3.13
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/385
+  author: davidism
+  created_at: '2024-05-11T17:27:19Z'
+384:
+  base: 5feb31a83b11ca684e3060492244137d680a9add
+  head: c1c530b601d5f9cebf79b93f578f31bc9d7ea873
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/384
+  author: pre-commit-ci[bot]
+  created_at: '2024-05-06T22:05:43Z'
+383:
+  base: f17d65d6853e05f25f1c0179e0f5821dd07f2285
+  head: d00108ed18635c595f821c87b17dde84a1db5876
+  title: Bump the github-actions group with 2 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/383
+  author: dependabot[bot]
+  created_at: '2024-05-01T14:52:25Z'
+382:
+  base: f824f3d955b17e0da5afacc5e4a51bfbf6672b8d
+  head: 2c98f9d61f38c707cae8ddd82a90e7544f0830ee
+  title: Bump the python-requirements group in /requirements with 5 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/382
+  author: dependabot[bot]
+  created_at: '2024-05-01T14:46:54Z'
+381:
+  base: 1285985dac688fd734016b6d905ab6c644f2f1ff
+  head: a21926b237d6ad8b46cacc449472671d491ccdb5
+  title: Bump the python-requirements group in /requirements with 4 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/381
+  author: dependabot[bot]
+  created_at: '2024-04-23T23:35:14Z'
+380:
+  base: 1285985dac688fd734016b6d905ab6c644f2f1ff
+  head: c9a0604a473b1d3ad0e12bc8b0af54b82a2b8e30
+  title: Bump the github-actions group with 4 updates
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/380
+  author: dependabot[bot]
+  created_at: '2024-04-23T23:33:08Z'
+379:
+  base: 2f69e841d2a979c616a55b226e444694f5d9c962
+  head: 096c8d42545d3b68ea21a4f890fb2b2d8979c0bd
+  title: release 2.2.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/379
+  author: davidism
+  created_at: '2024-04-16T21:20:02Z'
+378:
+  base: 93ae366874bbd4f69d90495c45b2cd336387496c
+  head: 7f4dcf83a07bb3d53f4e0e65ef1b43327b4cca90
+  title: support FIPS builds without SHA-1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/378
+  author: davidism
+  created_at: '2024-04-16T20:07:23Z'
+377:
+  base: 385c0eb7501b121b1fddafe19c547073f5a458a0
+  head: 999ce7af1f0502a224d33338e6ded8bc1e81cb2f
+  title: Generic serializer
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/377
+  author: Daverball
+  created_at: '2024-04-14T07:45:07Z'
+376:
+  base: 385c0eb7501b121b1fddafe19c547073f5a458a0
+  head: 52890d78bb6d92eac4d8d84f33f61be8bd803da7
+  title: improve generic typing
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/376
+  author: davidism
+  created_at: '2024-04-13T21:20:27Z'
+374:
+  base: bc88e945d31c407e16c3f4e1c713c12dd598e58d
+  head: 01001c63af4a1c58b65328b2aad3df75a6edc843
+  title: type `Serializer` as generic
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/374
+  author: davidism
+  created_at: '2024-04-13T20:20:17Z'
+373:
+  base: 0f15cf139d05d299ce98c9f917442bd0d79ab11c
+  head: 69a3bca7582859bc8ce83ccc28b0cf33f7909388
+  title: improve typing
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/373
+  author: davidism
+  created_at: '2024-04-13T18:53:52Z'
+372:
+  base: 1e9550e9c30a1a9c346fed78815c4b23573ffb73
+  head: f02e32dc3a129eb735aabf507fd6c0c4c9627d72
+  title: drop support for Python 3.7
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/372
+  author: davidism
+  created_at: '2024-04-13T17:49:29Z'
+371:
+  base: 05c805fce50a058ecc72ecbb91d02c98dc4a82ac
+  head: 672f44bcff4a7499665dc9b5de9b14dcd3b0fcb9
+  title: deprecate `__version__`
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/371
+  author: davidism
+  created_at: '2024-04-13T17:39:33Z'
+369:
+  base: 7c6286ed2125c87662eeb102b32fb3d68611a5d6
+  head: 9a25d989cd65c4991c2c8ac46ef55e0e8dfe49ab
+  title: update project files
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/369
+  author: davidism
+  created_at: '2024-04-12T22:19:02Z'
+367:
+  base: 64abe505243bcf6c9581b3e5290d88f0e1eff141
+  head: 48000ecd3fb21d6dc00394a9201f1ad83e2b8c54
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/367
+  author: pre-commit-ci[bot]
+  created_at: '2024-01-01T20:24:04Z'
+366:
+  base: 7c6286ed2125c87662eeb102b32fb3d68611a5d6
+  head: c557093a24f73c593cf83a80caa635e464f38401
+  title: Bump dessant/lock-threads from 4.0.1 to 5.0.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/366
+  author: dependabot[bot]
+  created_at: '2023-12-01T16:17:08Z'
+365:
+  base: 7c6286ed2125c87662eeb102b32fb3d68611a5d6
+  head: a1812fff79537f9c5a8618325ce3ca27d5a17f5d
+  title: Bump actions/checkout from 3.6.0 to 4.1.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/365
+  author: dependabot[bot]
+  created_at: '2023-11-01T16:51:29Z'
+364:
+  base: 7c6286ed2125c87662eeb102b32fb3d68611a5d6
+  head: 1d02380c4217b118101e8658be3fb60e0a84c4fd
+  title: Bump actions/setup-python from 4.7.0 to 4.7.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/364
+  author: dependabot[bot]
+  created_at: '2023-11-01T16:51:25Z'
+363:
+  base: 119bccd1444c31933f29e8441c9e27e93231a31c
+  head: a3ad6e46bdcb737832ab31810f91c58528dbcf9a
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/363
+  author: pre-commit-ci[bot]
+  created_at: '2023-10-03T10:44:30Z'
+362:
+  base: 7c6286ed2125c87662eeb102b32fb3d68611a5d6
+  head: 20c7ba3b3d19d28b8f18ed45cf73b249580d3a06
+  title: Bump actions/upload-artifact from 3.1.2 to 3.1.3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/362
+  author: dependabot[bot]
+  created_at: '2023-10-01T16:40:26Z'
+361:
+  base: 7c6286ed2125c87662eeb102b32fb3d68611a5d6
+  head: 52d2c336ca55d7a85f40733d29b8e4a71f99443f
+  title: Bump actions/cache from 3.3.1 to 3.3.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/361
+  author: dependabot[bot]
+  created_at: '2023-10-01T16:40:21Z'
+360:
+  base: 7c6286ed2125c87662eeb102b32fb3d68611a5d6
+  head: 2ebeaaf379b88615942c0a90d8e1d338c0350199
+  title: Bump actions/checkout from 3.6.0 to 4.1.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/360
+  author: dependabot[bot]
+  created_at: '2023-10-01T16:40:16Z'
+359:
+  base: fdd143efad87f23c3fb972321e28f31c85424f5f
+  head: 94955a009b30ceeb2efbf2a01a2fff55b53a8a72
+  title: Bump actions/checkout from 3.5.3 to 3.6.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/359
+  author: dependabot[bot]
+  created_at: '2023-09-01T16:12:10Z'
+358:
+  base: fdd143efad87f23c3fb972321e28f31c85424f5f
+  head: 5936c9c89474647bef56ae2ac335d376a97f9f77
+  title: Bump slsa-framework/slsa-github-generator from 1.7.0 to 1.9.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/358
+  author: dependabot[bot]
+  created_at: '2023-09-01T16:12:06Z'
+357:
+  base: fdd143efad87f23c3fb972321e28f31c85424f5f
+  head: 74c96ded8a12580dc9f406f31d2ca8d21150b8f9
+  title: Bump pypa/gh-action-pypi-publish from 1.8.8 to 1.8.10
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/357
+  author: dependabot[bot]
+  created_at: '2023-09-01T16:12:01Z'
+356:
+  base: 5837e6decbd3e441832446475fbc57ff22debc9a
+  head: 62d9a445c0570334d046459ef3b76509c1d6817c
+  title: Bump pypa/gh-action-pypi-publish from 1.8.7 to 1.8.8
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/356
+  author: dependabot[bot]
+  created_at: '2023-08-01T16:11:04Z'
+355:
+  base: 5837e6decbd3e441832446475fbc57ff22debc9a
+  head: e28e55b71ea94861c507bddfd075c563fa7322b8
+  title: Bump actions/setup-python from 4.6.1 to 4.7.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/355
+  author: dependabot[bot]
+  created_at: '2023-08-01T16:11:00Z'
+354:
+  base: 02f3dcf612e8939fee251db2d0b3eb842488b6e7
+  head: 7678d9e90386f0612aa8fed567d6dc6ad0c3020d
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/354
+  author: pre-commit-ci[bot]
+  created_at: '2023-08-01T08:45:47Z'
+353:
+  base: c15f434e2fe0c8fc1d6fe8f0df0ea384c8b335ac
+  head: a38e573e8b51f6740d7867517f98a3a30034045f
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/353
+  author: pre-commit-ci[bot]
+  created_at: '2023-07-04T06:36:41Z'
+352:
+  base: 0ab63df6732eafccf36cd3ee2ceb888fde3ae820
+  head: b3c0de070a3342ffd812ab3515bf63ffd5441ce3
+  title: Bump actions/checkout from 3.5.2 to 3.5.3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/352
+  author: dependabot[bot]
+  created_at: '2023-07-01T16:15:59Z'
+351:
+  base: 0ab63df6732eafccf36cd3ee2ceb888fde3ae820
+  head: e46a1fe93f51713dfc455412aa6ca291241db0cd
+  title: Bump slsa-framework/slsa-github-generator from 1.6.0 to 1.7.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/351
+  author: dependabot[bot]
+  created_at: '2023-07-01T16:15:56Z'
+350:
+  base: 0ab63df6732eafccf36cd3ee2ceb888fde3ae820
+  head: da7637b94834872ee28aa88404e86fd8fcd92401
+  title: Bump pypa/gh-action-pypi-publish from 1.8.6 to 1.8.7
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/350
+  author: dependabot[bot]
+  created_at: '2023-07-01T16:15:53Z'
+349:
+  base: 0ab63df6732eafccf36cd3ee2ceb888fde3ae820
+  head: 3ac238d8464d47fd0f7ca5a9806d7716cb6a33f5
+  title: Bump dessant/lock-threads from 4.0.0 to 4.0.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/349
+  author: dependabot[bot]
+  created_at: '2023-07-01T16:15:49Z'
+348:
+  base: aef6c59378ca2d5698d91d771e5277efb415f77f
+  head: d65fa7a16b0807448c331b7de98e6b270096072d
+  title: switch to flit build backend
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/348
+  author: davidism
+  created_at: '2023-06-28T19:00:40Z'
+346:
+  base: 1001d4625affafe1fa3b317cbb3ab84b982170b1
+  head: aa642e9ef4ed5da8fe8fafafc5864567bdb63e58
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/346
+  author: pre-commit-ci[bot]
+  created_at: '2023-06-06T04:21:45Z'
+345:
+  base: 6423621bb7a240d004ded83d8ba1715c3b5009bb
+  head: def089159245be7fb144f2c03327e9223683dc0e
+  title: Bump actions/setup-python from 4.6.0 to 4.6.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/345
+  author: dependabot[bot]
+  created_at: '2023-06-01T16:56:53Z'
+344:
+  base: 6423621bb7a240d004ded83d8ba1715c3b5009bb
+  head: 76cb1e7abfb106ab41e24bdac63906c5598f01bf
+  title: Bump pypa/gh-action-pypi-publish from 1.8.5 to 1.8.6
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/344
+  author: dependabot[bot]
+  created_at: '2023-06-01T16:56:50Z'
+343:
+  base: 6423621bb7a240d004ded83d8ba1715c3b5009bb
+  head: 7ca74353f54fd64bbd13fd96af342ac9c24660ae
+  title: Bump slsa-framework/slsa-github-generator from 1.5.0 to 1.6.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/343
+  author: dependabot[bot]
+  created_at: '2023-06-01T16:56:47Z'
+341:
+  base: aeb0586a728ab23b66ef68dee9669b7c5c11e392
+  head: c02c0a59d9300e9d729fed436897858c8055bf24
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/341
+  author: pre-commit-ci[bot]
+  created_at: '2023-05-02T04:33:25Z'
+340:
+  base: 697d9a5a10e18cc7b3394ab732cd689ab5423b3f
+  head: adc3409ca986503ba1d09ddf7bc73304eeec7bb6
+  title: Bump pypa/gh-action-pypi-publish from 1.8.4 to 1.8.5
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/340
+  author: dependabot[bot]
+  created_at: '2023-05-01T16:57:22Z'
+339:
+  base: 697d9a5a10e18cc7b3394ab732cd689ab5423b3f
+  head: c004014326c2eab83f97ac16b1146e6fac757a64
+  title: Bump actions/setup-python from 4.5.0 to 4.6.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/339
+  author: dependabot[bot]
+  created_at: '2023-05-01T16:57:17Z'
+338:
+  base: 1bb0c0fe17f14e111d3b5c562573c9f8b9136b2d
+  head: 70972f1d3d300cd2cd0948218ce3061d5e3f3f6f
+  title: Bump actions/checkout from 3.5.0 to 3.5.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/338
+  author: dependabot[bot]
+  created_at: '2023-05-01T16:57:12Z'
+337:
+  base: dc33f8d6b40cdce3816d0002ee44921196326825
+  head: f46ab60a4e2cb667c765d4a58f3d86c3825291f6
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/337
+  author: pre-commit-ci[bot]
+  created_at: '2023-04-04T06:31:24Z'
+336:
+  base: de09cad488a4d7c7bbcbcdb8e1c2dfde64325f48
+  head: 348013636c4c5fb52444c3a8cb690f6be92f6c4c
+  title: Bump actions/cache from 3.2.6 to 3.3.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/336
+  author: dependabot[bot]
+  created_at: '2023-04-01T16:57:16Z'
+335:
+  base: de09cad488a4d7c7bbcbcdb8e1c2dfde64325f48
+  head: acb330267fb2e721f0789e120b985d0057810d9d
+  title: Bump pypa/gh-action-pypi-publish from 1.6.4 to 1.8.4
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/335
+  author: dependabot[bot]
+  created_at: '2023-04-01T16:57:11Z'
+334:
+  base: de09cad488a4d7c7bbcbcdb8e1c2dfde64325f48
+  head: df642983c79964a51998d8eb5f6f16da8c1c2a3c
+  title: Bump actions/checkout from 3.3.0 to 3.5.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/334
+  author: dependabot[bot]
+  created_at: '2023-04-01T16:57:07Z'
+333:
+  base: ec4c661303b05799a7d32db16329e6398761d20e
+  head: 0bf007418a16c971bcf8c44ed01923ea9b2c076f
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/333
+  author: pre-commit-ci[bot]
+  created_at: '2023-03-07T03:52:17Z'
+332:
+  base: c7a1848094b73b6d8a31020d626855f580bae5c7
+  head: 0eeee335495c53497bf87a1a2ebaa93eb697eeff
+  title: Bump actions/cache from 3.2.4 to 3.2.6
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/332
+  author: dependabot[bot]
+  created_at: '2023-03-01T16:57:38Z'
+331:
+  base: c7a1848094b73b6d8a31020d626855f580bae5c7
+  head: 9c0fb46dc2ef69788fc447887df33a5842b24836
+  title: Bump slsa-framework/slsa-github-generator from 1.4.0 to 1.5.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/331
+  author: dependabot[bot]
+  created_at: '2023-03-01T16:57:35Z'
+330:
+  base: 9f430cc67270ac5ed6b8cf7970670d4eadc8c82c
+  head: c37f158fccedba6501c72725bc13b9e1839f4970
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/330
+  author: pre-commit-ci[bot]
+  created_at: '2023-02-07T04:43:14Z'
+329:
+  base: 4d342cb6c6efb817250d6169bc9dfeb65267780d
+  head: 79f51b74028037c9842f413a36c768846f8651ff
+  title: Bump actions/cache from 3.2.3 to 3.2.4
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/329
+  author: dependabot[bot]
+  created_at: '2023-02-01T16:01:40Z'
+328:
+  base: 4d342cb6c6efb817250d6169bc9dfeb65267780d
+  head: 16a27d597c295b19962e41a1f80b68c767a3e741
+  title: Bump actions/setup-python from 4.4.0 to 4.5.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/328
+  author: dependabot[bot]
+  created_at: '2023-02-01T16:01:34Z'
+327:
+  base: 3dd95adcaaf07c16e37d39f2d235cb0c552face5
+  head: a08f12ff18b0c4aea9490348b45ee3ca96d621e9
+  title: build, provenance, publish workflow
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/327
+  author: davidism
+  created_at: '2023-01-20T16:24:03Z'
+326:
+  base: 49ca689daa3b80abd7ac84690baff724a6cbb56a
+  head: 876ce6ff93e27aa6527b2964a2112e9dab0ab352
+  title: switch to pyproject.toml
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/326
+  author: davidism
+  created_at: '2023-01-19T14:38:23Z'
+325:
+  base: e095ab5be6566d86ffcc2bbafee97962e2e979c1
+  head: 5f94c803e6881b96ce523da301579c99a24aa912
+  title: update tested python versions
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/325
+  author: davidism
+  created_at: '2023-01-09T22:04:43Z'
+324:
+  base: 931237a806f430dc9461f2b8159338ad100d846e
+  head: 1af0e947b5277e4fe054aa80fb48a124ef554979
+  title: Bump dessant/lock-threads from 3 to 4
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/324
+  author: dependabot[bot]
+  created_at: '2023-01-01T16:01:06Z'
+323:
+  base: 931237a806f430dc9461f2b8159338ad100d846e
+  head: dd9d25cf313220a07212c2862d39e5f08412257f
+  title: Bump actions/cache from 3.0.11 to 3.2.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/323
+  author: dependabot[bot]
+  created_at: '2023-01-01T16:01:03Z'
+322:
+  base: 7c88434349e140955ea8dfd10486e69f7693ff17
+  head: 19a74d2af57e5b195aa9cf4fed57941c615d8fda
+  title: ignore flake8-bugbear B905
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/322
+  author: sileht
+  created_at: '2022-12-29T17:25:38Z'
+321:
+  base: 71df0f9648d94b7f94e376e0429072f773352425
+  head: b05cafd646dbbc7117031fd1322a8d3ea57b263c
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/321
+  author: pre-commit-ci[bot]
+  created_at: '2022-12-06T00:35:01Z'
+320:
+  base: 499a2627ee9dad70f02cf1d39472f67ce2334f30
+  head: f4edc7005ae7620b6fc0bb22f7a9dfb20be75d67
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/320
+  author: pre-commit-ci[bot]
+  created_at: '2022-11-07T23:01:53Z'
+319:
+  base: 6312a21c5ceda0889846206be53f27543080fd38
+  head: 1c8359a43fd4e26b00a26ec3a6774655eb3f3deb
+  title: Bump actions/cache from 3.0.9 to 3.0.11
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/319
+  author: dependabot[bot]
+  created_at: '2022-11-01T16:08:55Z'
+317:
+  base: c4940f7e3e510cc38e05a892fe1657962c018884
+  head: d734747241793a398e4e15266d0f222320e5538a
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/317
+  author: pre-commit-ci[bot]
+  created_at: '2022-10-03T23:30:58Z'
+316:
+  base: e3f80536454bf12b94c1c65d02c8701a943ff63f
+  head: 15b5977ddf4b72da61f594738be8ffa6198c13a7
+  title: Bump actions/cache from 3.0.8 to 3.0.9
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/316
+  author: dependabot[bot]
+  created_at: '2022-10-01T16:03:22Z'
+315:
+  base: 5bf37a58e64f17707629c48ac78fae6e66b3d98f
+  head: ca8382c110012f3894a310da9811e468456f25e6
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/315
+  author: pre-commit-ci[bot]
+  created_at: '2022-09-05T23:32:12Z'
+314:
+  base: 13047062df938aec8c5667376e1de4d61cf124b8
+  head: e17d22efb9c3869c834993fd569cebf05cfb2896
+  title: Bump actions/cache from 3.0.5 to 3.0.8
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/314
+  author: dependabot[bot]
+  created_at: '2022-09-01T16:06:29Z'
+313:
+  base: 42403f74c35942a41dc40062f51addac8cd6be33
+  head: 934b688d847dccea2d0cf7d0ad64bdc7521c3a33
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/313
+  author: pre-commit-ci[bot]
+  created_at: '2022-08-01T23:18:18Z'
+312:
+  base: 484d5e6d3c613160cb6c9336b9454f3204702e74
+  head: 7235c29fcd7924c557f704f9eaf1e5fad5eabbf3
+  title: Bump actions/cache from 3.0.4 to 3.0.5
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/312
+  author: dependabot[bot]
+  created_at: '2022-08-01T16:06:09Z'
+311:
+  base: 8d5179188663db754d2f12851fb8d8eb8dda3eac
+  head: 102df2f73caed8268a7193787947a423b37ff102
+  title: Bump actions/cache from 3.0.3 to 3.0.4
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/311
+  author: dependabot[bot]
+  created_at: '2022-07-01T16:06:18Z'
+310:
+  base: 8d5179188663db754d2f12851fb8d8eb8dda3eac
+  head: 2036af4a7dce2bb565ba6e38c707032546e8b388
+  title: Bump actions/setup-python from 3 to 4
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/310
+  author: dependabot[bot]
+  created_at: '2022-07-01T16:06:15Z'
+308:
+  base: eac727902d930ddd07f2561ef17dfc98b558c70a
+  head: 3e80653ebb8fe6c433d060fa23417ac565cfa0dd
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/308
+  author: pre-commit-ci[bot]
+  created_at: '2022-06-06T20:45:59Z'
+307:
+  base: 6be730c63eebdbc68cf743469fd783ea43c856af
+  head: b758d81e7d3f44a90d4a8b33f93eafa3ee2d14a0
+  title: Bump actions/cache from 3.0.2 to 3.0.3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/307
+  author: dependabot[bot]
+  created_at: '2022-06-01T16:06:38Z'
+306:
+  base: 1e8135ebc584191af7ebbfffeaa6c33eda4a9be8
+  head: 6ae1fcd8e76b6e0817d6207ada628f148e028174
+  title: Bump actions/cache from 3.0.1 to 3.0.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/306
+  author: dependabot[bot]
+  created_at: '2022-05-01T16:03:40Z'
+305:
+  base: e47521d9d0972ebee072ffb37a023eb63d235528
+  head: b094f36cdfcd5c56e24df679c5fbb25bb1b8f4e2
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/305
+  author: pre-commit-ci[bot]
+  created_at: '2022-04-04T20:26:17Z'
+304:
+  base: 49d263f60b6f78df8924be51262eeb5216ab1468
+  head: d72de530a5e41066969f408838a517e8faf31a84
+  title: update requirements
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/304
+  author: davidism
+  created_at: '2022-04-01T20:18:57Z'
+303:
+  base: fca4d63c1c3a443f824667405b8b7ff27c0c69d6
+  head: 591065c5fddad2d3bb0051c1ff106d06b2468b9f
+  title: Bump actions/checkout from 2 to 3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/303
+  author: dependabot[bot]
+  created_at: '2022-04-01T16:04:23Z'
+302:
+  base: fca4d63c1c3a443f824667405b8b7ff27c0c69d6
+  head: 9704e2a8467e0620d4c3930c13df406d0db36df4
+  title: Bump actions/cache from 2 to 3.0.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/302
+  author: dependabot[bot]
+  created_at: '2022-04-01T16:04:21Z'
+301:
+  base: 64cd581d83c0770ec5683d312cedbed06395b9ed
+  head: 8c75d07665ddac3f9a72c1feacdb487a74ab83ea
+  title: release version 2.1.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/301
+  author: davidism
+  created_at: '2022-03-24T15:03:36Z'
+299:
+  base: faa28bccc85ee47a8274536dd3649a0b67d0a75b
+  head: 3edfbbbc615be5090d452bbf8a13dfdd68436659
+  title: Handle OverflowError on parsing timestamps as BadTimeSignature
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/299
+  author: dirkmueller
+  created_at: '2022-03-24T12:03:50Z'
+298:
+  base: 25494a8b4d0968b8fe92877435a62abd1aa54c47
+  head: ff131477a3bb7e280318ea2046423a3d1193ca9a
+  title: release version 2.1.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/298
+  author: davidism
+  created_at: '2022-03-09T16:18:57Z'
+297:
+  base: 3d3dc9f0428f8ede689b2d65121d87fb70d01fce
+  head: ae9fce4ac065a9c2eee3273a377bc973d3b2ca65
+  title: release version 2.1.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/297
+  author: davidism
+  created_at: '2022-03-09T16:15:16Z'
+296:
+  base: 3b762645dab2250933311f8612989a4075100659
+  head: 177196d3a5c7ad37b8ccbd0f88445aced07f1ca0
+  title: Catch unhandled ValueError from future timestamp
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/296
+  author: alanhamlett
+  created_at: '2022-03-08T04:06:27Z'
+295:
+  base: 733783b4083527ef066b8f15b22637beb7369d64
+  head: 4c971d2243ac436781d2fe25d1493138c8be9b79
+  title: Bump actions/setup-python from 2 to 3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/295
+  author: dependabot[bot]
+  created_at: '2022-03-01T16:04:39Z'
+288:
+  base: a95d94a2555121fcd5d6dc5e1a589238a788e5c0
+  head: 5b7c2d6d3bda0afcba89ffeb17a9c696681baf89
+  title: release version 2.1.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/288
+  author: davidism
+  created_at: '2022-02-18T03:25:17Z'
+287:
+  base: dcae87bd556f304782eea446e465f854ebec77c6
+  head: ca2f5ea24c454f03e3bd83029adb36988d69dcc9
+  title: update requirements
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/287
+  author: davidism
+  created_at: '2022-02-16T18:45:07Z'
+286:
+  base: dcae87bd556f304782eea446e465f854ebec77c6
+  head: 3aa85a3631173e906a524930e7ca25ba6594d9eb
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/286
+  author: pre-commit-ci[bot]
+  created_at: '2022-02-07T21:20:32Z'
+285:
+  base: 8abfce3e0e507f2151ad1932f06f68f9bc102bef
+  head: c64aabf84c467737edff176307d3dc406c986b96
+  title: Fixed typo on the Issue Tracker URL
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/285
+  author: danilown
+  created_at: '2022-02-03T13:30:34Z'
+284:
+  base: dcae87bd556f304782eea446e465f854ebec77c6
+  head: 4a1ea778d47cce99921e0fcdf29a1af1f232a911
+  title: Bump pre-commit from 2.16.0 to 2.17.0 in /requirements
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/284
+  author: dependabot[bot]
+  created_at: '2022-02-01T16:05:38Z'
+283:
+  base: dcae87bd556f304782eea446e465f854ebec77c6
+  head: 33026c6c86c7d2b4ea98e5ff737f9c6a2e3291e5
+  title: Bump sphinx from 4.3.2 to 4.4.0 in /requirements
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/283
+  author: dependabot[bot]
+  created_at: '2022-02-01T16:05:19Z'
+282:
+  base: 84e75ea940967545b0eb932f742754a160fd6cb1
+  head: f8f1b8c9620db963bc286b2281c6c0fb8a4bddb7
+  title: Fix Issue Tracker link in README
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/282
+  author: legoktm
+  created_at: '2022-01-13T23:44:26Z'
+280:
+  base: 233527d38bfe35b5c28a11a580555b6e8dda34c3
+  head: 80567362a7c601699877f7a46ae06c3265c2d8a5
+  title: Bump mypy from 0.910 to 0.930
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/280
+  author: dependabot[bot]
+  created_at: '2022-01-01T08:05:58Z'
+279:
+  base: 233527d38bfe35b5c28a11a580555b6e8dda34c3
+  head: b8d2bf71ca3eb71d6b1592906ae6a8594399e9f9
+  title: Bump tox from 3.24.4 to 3.24.5
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/279
+  author: dependabot[bot]
+  created_at: '2022-01-01T08:04:30Z'
+278:
+  base: 233527d38bfe35b5c28a11a580555b6e8dda34c3
+  head: f43bebd81f0af0fb827b66f0080d509ae06e45f9
+  title: Bump sphinx from 4.2.0 to 4.3.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/278
+  author: dependabot[bot]
+  created_at: '2022-01-01T08:03:23Z'
+277:
+  base: 233527d38bfe35b5c28a11a580555b6e8dda34c3
+  head: c11fe77a27dfda34f511a61b2ace29c90ce5c312
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/277
+  author: pre-commit-ci[bot]
+  created_at: '2021-12-06T21:09:38Z'
+276:
+  base: 233527d38bfe35b5c28a11a580555b6e8dda34c3
+  head: f2aa6793c4060e47cc1aa901d6d2be9c65d62531
+  title: Bump pallets-sphinx-themes from 2.0.1 to 2.0.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/276
+  author: dependabot[bot]
+  created_at: '2021-12-01T08:05:12Z'
+275:
+  base: 233527d38bfe35b5c28a11a580555b6e8dda34c3
+  head: cfbf8fe00b0b0a81d5cb6466ed4a2121812cbded
+  title: Bump sphinx from 4.2.0 to 4.3.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/275
+  author: dependabot[bot]
+  created_at: '2021-12-01T08:04:38Z'
+274:
+  base: 233527d38bfe35b5c28a11a580555b6e8dda34c3
+  head: fb73d853ab2f1040f757bfa872e98065f26f760c
+  title: Bump pre-commit from 2.15.0 to 2.16.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/274
+  author: dependabot[bot]
+  created_at: '2021-12-01T08:04:03Z'
+273:
+  base: 7443b9119b9ea29865c41f61e7f6e4e10873f301
+  head: 506ca21d8cc1d16313270c37b6990c9e7762f68e
+  title: remove deprecated code
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/273
+  author: davidism
+  created_at: '2021-11-05T21:29:11Z'
+272:
+  base: 2f3e08104e82735a5c7cfa8c51574cf1c3e16c75
+  head: 4cb15d9e63cd331dcdd4a42636bf09cb68f638e6
+  title: drop Python 3.6
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/272
+  author: davidism
+  created_at: '2021-11-05T17:31:48Z'
+271:
+  base: e66383258258d1fbe83ef34b6045a558b268d5e6
+  head: 9b2a419e2289fc54524b44131c3c5e700b831379
+  title: test Python 3.10 and 3.11-dev
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/271
+  author: davidism
+  created_at: '2021-11-05T13:45:43Z'
+270:
+  base: f2017d74490802f644f1ee9a23ee8872cf47bd34
+  head: 6c3ae819b630d3a9288f3ba2dc124a5e52d27035
+  title: update requirements
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/270
+  author: davidism
+  created_at: '2021-11-01T19:50:04Z'
+269:
+  base: 0e13d6613acebe99be211d27d55f56819cba9147
+  head: 580af3b9a3e7ea6853fe607d5dab43c55fa092e0
+  title: Bump pip-tools from 6.3.0 to 6.4.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/269
+  author: dependabot[bot]
+  created_at: '2021-11-01T08:02:10Z'
+268:
+  base: 516ecfc1aaebea7ad995e2c6aa6bd2fff34cb485
+  head: 3b98b73ef31f0c1833856074de1bfbd3cece2ad8
+  title: update requirements
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/268
+  author: davidism
+  created_at: '2021-10-06T14:59:39Z'
+267:
+  base: ac0225fa921ea252fdee7f10c6d07fb0f8a94911
+  head: fd08baf4409ecd8b23a977235ee0a36cb75d5037
+  title: use exception chaining
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/267
+  author: davidism
+  created_at: '2021-10-06T14:53:11Z'
+266:
+  base: 98af2f4cb5401391c61c1569215816b7f833821d
+  head: 625a8cca9cbdf9029ef5a99f335fdb07afdf12da
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/266
+  author: pre-commit-ci[bot]
+  created_at: '2021-10-04T19:48:54Z'
+265:
+  base: 98af2f4cb5401391c61c1569215816b7f833821d
+  head: 75bc91797f45d6a8c9763a035702b79bb0da45fc
+  title: Bump pip-tools from 6.2.0 to 6.3.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/265
+  author: dependabot[bot]
+  created_at: '2021-10-01T08:05:43Z'
+264:
+  base: 98af2f4cb5401391c61c1569215816b7f833821d
+  head: 5ac5e8eb305a22f29ba31d5eae03665ace2f8c7f
+  title: Bump tox from 3.24.3 to 3.24.4
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/264
+  author: dependabot[bot]
+  created_at: '2021-10-01T08:04:53Z'
+263:
+  base: 98af2f4cb5401391c61c1569215816b7f833821d
+  head: 9b146f90ebb4717d5c915e633990be0ebb097773
+  title: Bump pre-commit from 2.14.1 to 2.15.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/263
+  author: dependabot[bot]
+  created_at: '2021-10-01T08:03:56Z'
+262:
+  base: 98af2f4cb5401391c61c1569215816b7f833821d
+  head: 2bc53036d8bc1cfd128a2ad2cc14829239098846
+  title: Bump sphinx from 4.1.2 to 4.2.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/262
+  author: dependabot[bot]
+  created_at: '2021-10-01T08:02:56Z'
+261:
+  base: 51c798654640ecf5901d30d1dab51a0fdd664327
+  head: dd9af6d09244f9e7cab56fe325b80adca10aad93
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/261
+  author: pre-commit-ci[bot]
+  created_at: '2021-09-06T19:06:55Z'
+260:
+  base: b10f4af1400f4b5d22a6d83633e35d500ade31da
+  head: eeb5d38a60143481080532b698787ab7cf50da36
+  title: Bump pre-commit from 2.13.0 to 2.14.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/260
+  author: dependabot[bot]
+  created_at: '2021-09-01T08:03:18Z'
+259:
+  base: b10f4af1400f4b5d22a6d83633e35d500ade31da
+  head: e1f7bc3c899c5eb8d47d25ca55e2b6c0bcc7ca38
+  title: Bump tox from 3.24.1 to 3.24.3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/259
+  author: dependabot[bot]
+  created_at: '2021-09-01T08:02:53Z'
+258:
+  base: b10f4af1400f4b5d22a6d83633e35d500ade31da
+  head: 9c417b4021e697d8176dcb297afb907a582730ee
+  title: Bump pytest from 6.2.4 to 6.2.5
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/258
+  author: dependabot[bot]
+  created_at: '2021-09-01T08:02:29Z'
+256:
+  base: ed87f92b2fdc30effec1abba8fc5b2e2a34e56cc
+  head: f6a7b35ffad1b9d369d985ad46e81ce966ba9381
+  title: update pip link
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/256
+  author: esadek
+  created_at: '2021-08-09T07:31:40Z'
+254:
+  base: 259d77e03d3e39526bcc91a6b44d4e5cd58ec7f0
+  head: 47245c2321d7caf9a267a9f7fa68766e0f1481d3
+  title: Update README.rst
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/254
+  author: purwowd
+  created_at: '2021-08-06T05:39:11Z'
+253:
+  base: 2576678e7186146e2a75a77d33a3c4392fcfb29b
+  head: 065b4d089760e05b66f20bd61d24351b505bde72
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/253
+  author: pre-commit-ci[bot]
+  created_at: '2021-08-02T18:51:19Z'
+252:
+  base: 2576678e7186146e2a75a77d33a3c4392fcfb29b
+  head: bb5b10f0b5c751c5b29f11d32805ba72dc762c4d
+  title: Bump tox from 3.23.1 to 3.24.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/252
+  author: dependabot[bot]
+  created_at: '2021-08-01T08:11:05Z'
+251:
+  base: 2576678e7186146e2a75a77d33a3c4392fcfb29b
+  head: b2b4ba8c800030a13aaa18002ad3a69a57fb354b
+  title: Bump sphinx from 4.0.2 to 4.1.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/251
+  author: dependabot[bot]
+  created_at: '2021-08-01T08:09:59Z'
+250:
+  base: 2576678e7186146e2a75a77d33a3c4392fcfb29b
+  head: 797dd1739a308ed5fe8ad596b6446d1609df8d77
+  title: Add the ability to specify the timestamp used when signing
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/250
+  author: pgjones
+  created_at: '2021-07-29T10:03:43Z'
+248:
+  base: 038c65150e92542e9875237c4eb02cab7ccdadb1
+  head: 40067f8f7772fc9df447217aa4a2ac8754ec6f72
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/248
+  author: pre-commit-ci[bot]
+  created_at: '2021-07-05T22:10:19Z'
+247:
+  base: b1e32ca0a77a819dc992e0b9ab9e70929b9224aa
+  head: 75ab404df0e3a8b504ffa7399019f7c87b377cbf
+  title: Bump mypy from 0.812 to 0.910
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/247
+  author: dependabot[bot]
+  created_at: '2021-07-01T08:03:07Z'
+246:
+  base: a14b2b19b38dd671674a3a06c8c8f7fb0b56518d
+  head: 8af78a948bae6b3115888b25545565c57f0b33e8
+  title: Bump pip-tools from 6.1.0 to 6.2.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/246
+  author: dependabot[bot]
+  created_at: '2021-07-01T08:02:27Z'
+245:
+  base: 005d16a946eb1fa18aaba36f516ce776fb93e0e1
+  head: f3bfcb879a24bd8622295ec7ca20ae0328029922
+  title: Bump pre-commit from 2.12.1 to 2.13.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/245
+  author: dependabot[bot]
+  created_at: '2021-06-01T08:06:40Z'
+244:
+  base: 4b5c2156590aae1101e28301d61eaa13aa0eff7c
+  head: 2e4aebecb5377f4075093fcbcc4f6354b5ce84b7
+  title: Improve the contributing guide
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/244
+  author: greyli
+  created_at: '2021-05-24T09:52:50Z'
+243:
+  base: d479a75518fbfe12653e6ed38151f3268bce401d
+  head: bdea69563f15770400803236c2eb0faa2d417c73
+  title: Update theme
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/243
+  author: davidism
+  created_at: '2021-05-21T03:25:30Z'
+242:
+  base: 87d4e83a1ff7810b5016d447b39d82ce28496f8f
+  head: eccb31fd83e89a6787884d3e58319965ea459a67
+  title: release version 2.0.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/242
+  author: davidism
+  created_at: '2021-05-18T15:04:06Z'
+241:
+  base: 15a2e0d9b4bdaa38144c947a9aa04ffd49826700
+  head: 41ec419632aae3533ff12838044eeddd9cd1311f
+  title: allow salt=None again
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/241
+  author: davidism
+  created_at: '2021-05-18T14:49:26Z'
+240:
+  base: 56823cd7db35a435029626e5679e546aa260bbd6
+  head: d2250ed8b2185af1ffaea4166b8d114286a95462
+  title: mark top-level names as exported
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/240
+  author: davidism
+  created_at: '2021-05-18T14:10:40Z'
+236:
+  base: 0f372436f47a85a23023abb510e7cc6bc563c392
+  head: b9c36cc5c0b79be80c4c35227db0370a3bc4990f
+  title: rename default branch in files
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/236
+  author: davidism
+  created_at: '2021-05-11T22:55:45Z'
+235:
+  base: d1722ea35b4239b6d08e8d418edc74d6594eebd6
+  head: ca0f59ac73507014729a5857e985229604e5e83b
+  title: Release 2.0.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/235
+  author: davidism
+  created_at: '2021-05-11T20:01:06Z'
+234:
+  base: acbc456c91d4a9e9f63b9230be5a1cf3d5a1d767
+  head: d1eb7aa76756268061f2d31551f79da7882b45a9
+  title: update pre-commit monthly
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/234
+  author: davidism
+  created_at: '2021-05-11T14:06:15Z'
+233:
+  base: c0e6b484a6cdc92c38bec74ffcf350bc42f20e2b
+  head: 04e485a0b0b00d8b2dc73a287852d642d3366c72
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/233
+  author: pre-commit-ci[bot]
+  created_at: '2021-05-10T20:25:52Z'
+232:
+  base: 477f42c3e74f1a823deb3d7c3ab94a5b534d545b
+  head: 6a9df8338ce39b780cebd8a7f54b8a7cb75eeab4
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/232
+  author: pre-commit-ci[bot]
+  created_at: '2021-05-03T17:22:22Z'
+231:
+  base: 4c57181a9aae4e06a15d01fe914358c84e19b718
+  head: 75fd5a1b81b795f15eed9496d936bea2aa489b14
+  title: Bump pre-commit from 2.12.0 to 2.12.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/231
+  author: dependabot[bot]
+  created_at: '2021-04-28T20:53:40Z'
+230:
+  base: 1a506824433582df139d2227dafee441b6c32b3a
+  head: abaf98406b498614945376fc6a10521f53d27687
+  title: Upgrade to GitHub-native Dependabot
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/230
+  author: dependabot-preview[bot]
+  created_at: '2021-04-28T16:46:42Z'
+229:
+  base: 5220a78b4d2ce489ba3d461bc2d98a6c59459093
+  head: beed3f972a0f1a1f4b4db0e0ba0b6b00c12d2231
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/229
+  author: pre-commit-ci[bot]
+  created_at: '2021-04-26T17:22:21Z'
+228:
+  base: 195e5f77308d5464c085ba77d247c5589afab47f
+  head: 4d52c63b40ac361c0ffc7d6ee8d33659a8be6479
+  title: Release 2.0.0rc2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/228
+  author: davidism
+  created_at: '2021-04-16T14:49:30Z'
+227:
+  base: 30cb9602fd51be58918b8786a70c2c8ba4541f08
+  head: d10f64a77821e06025a4d5ea07555bc0ec985f20
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/227
+  author: pre-commit-ci[bot]
+  created_at: '2021-04-12T17:12:42Z'
+226:
+  base: 7b987f4eca3898a7e65d889adfbdd4c079e25aa9
+  head: 95bd4afc3b9c2b5f5533399b5811f94465bf239e
+  title: '[Security] Bump urllib3 from 1.26.3 to 1.26.4'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/226
+  author: dependabot-preview[bot]
+  created_at: '2021-04-06T18:08:04Z'
+225:
+  base: 4c3a0ffc981aaf4302a1a159fdb5c967d6cd51b2
+  head: 8bba4e7cfa75cc723572c2818a101f44ffd65ec4
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/225
+  author: pre-commit-ci[bot]
+  created_at: '2021-04-05T17:12:20Z'
+223:
+  base: 2d8e5b9ea3c2a7c3334752cb6e423d1565a486f1
+  head: c0317f0f5207b4cfda19eb2eb910ca1dc5304b5a
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/223
+  author: pre-commit-ci[bot]
+  created_at: '2021-03-22T17:05:46Z'
+222:
+  base: 21e6d37d0d0945056a365f57c2446a115f57eb18
+  head: 13c1e05226243f3b34ebec6875042d742a87bf73
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/222
+  author: pre-commit-ci[bot]
+  created_at: '2021-03-15T17:01:25Z'
+221:
+  base: 187dcdf12833391251c2865cbc5a48342ccf8aea
+  head: 7501133706c240d2de8a9ecdfaff9721ab1cbd2f
+  title: Bump sphinx from 3.4.3 to 3.5.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/221
+  author: dependabot-preview[bot]
+  created_at: '2021-03-01T12:31:16Z'
+220:
+  base: 187dcdf12833391251c2865cbc5a48342ccf8aea
+  head: e9f25d2fafb408d0f876f477df794d1c12cd9f84
+  title: Bump mypy from 0.800 to 0.812
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/220
+  author: dependabot-preview[bot]
+  created_at: '2021-03-01T12:29:52Z'
+219:
+  base: a71806e8f77c036525722cbc172f0949e3eeef8e
+  head: 841ef5be8c7a291e2eff075056383548d2ef7bbe
+  title: Bump tox from 3.21.4 to 3.22.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/219
+  author: dependabot-preview[bot]
+  created_at: '2021-03-01T12:28:46Z'
+218:
+  base: c23001855d36962ee19e19f9c7286c1b2ec534b8
+  head: d9b95143dc84c762b50ac7b3723c74483e40ca7a
+  title: various cleanup for consistency between projects
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/218
+  author: davidism
+  created_at: '2021-02-24T18:33:07Z'
+217:
+  base: b2ebe981e23943a4857b0e21052532c040a64fb7
+  head: b12ca43eecdff92727ab85c66f049451cd810ed1
+  title: update project files
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/217
+  author: davidism
+  created_at: '2021-02-08T20:22:24Z'
+216:
+  base: efaa1c2aa3eb23cffcd3dea161875d7a798bc1ec
+  head: 2292549675fe2afba29faca3aec1f017fb118ca0
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/216
+  author: pre-commit-ci[bot]
+  created_at: '2021-02-08T16:51:48Z'
+215:
+  base: ceb886aa5bcaae3a809d9246e99530eb5587b263
+  head: 1f4c66b3fae17349d64019d5ae3061c2f95645ce
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/215
+  author: pre-commit-ci[bot]
+  created_at: '2021-02-01T16:49:22Z'
+214:
+  base: 04b30ef6f23c4412ab1adfe929ce7188d0c84715
+  head: d53ea70acc5818b0427db7a71ec0f4cbe2c29cb1
+  title: Bump sphinx from 3.4.1 to 3.4.3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/214
+  author: dependabot-preview[bot]
+  created_at: '2021-02-01T09:52:21Z'
+213:
+  base: 95571560ef9ab3ed07dda7ba454931776081e717
+  head: b60560a1e505fdf30100f4ca52845e4e82d722c8
+  title: Bump pre-commit from 2.9.3 to 2.10.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/213
+  author: dependabot-preview[bot]
+  created_at: '2021-02-01T09:51:09Z'
+212:
+  base: bd2777d1006c418838e5603b48c152e8450706bb
+  head: 317a573b368c6f2939aa3d7cd68a793577aca9c0
+  title: Bump freezegun from 1.0.0 to 1.1.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/212
+  author: dependabot-preview[bot]
+  created_at: '2021-02-01T09:50:19Z'
+211:
+  base: 95571560ef9ab3ed07dda7ba454931776081e717
+  head: af6b462d98f160b579b9f5e11714d3535873d708
+  title: Bump pytest from 6.2.1 to 6.2.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/211
+  author: dependabot-preview[bot]
+  created_at: '2021-02-01T09:49:31Z'
+210:
+  base: a3cad5506ff8684231e2b749eb0f3cf8705d8578
+  head: d661a88ab4dea3ab583acdb6bf04e7a2de7c0189
+  title: Bump mypy from 0.790 to 0.800
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/210
+  author: dependabot-preview[bot]
+  created_at: '2021-02-01T09:48:23Z'
+209:
+  base: bd2777d1006c418838e5603b48c152e8450706bb
+  head: ae6e6b22ba55d6e0ebb2528231bc03fc10e03892
+  title: Bump tox from 3.20.1 to 3.21.3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/209
+  author: dependabot-preview[bot]
+  created_at: '2021-02-01T09:47:14Z'
+208:
+  base: 05d08f9c8131b736a7662256c6a9b7ecde0d1c4e
+  head: 1849fc497dcd56b7b68addad32388d462c288772
+  title: Bump pre-commit from 2.9.2 to 2.9.3
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/208
+  author: dependabot-preview[bot]
+  created_at: '2021-01-01T08:30:16Z'
+207:
+  base: d96b2afca62956d6e3288ae42c7f1392cf7c5ec0
+  head: a6766130ed64b62b10a2ef139a086b96404e0392
+  title: Bump pip-tools from 5.4.0 to 5.5.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/207
+  author: dependabot-preview[bot]
+  created_at: '2021-01-01T08:29:54Z'
+206:
+  base: 5dc90166c3df22f1ce4d5d5eba0e2e7a90204382
+  head: 67a56d7b2630f273893e7e197a905c1be9367759
+  title: Bump pytest from 6.1.2 to 6.2.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/206
+  author: dependabot-preview[bot]
+  created_at: '2021-01-01T08:29:14Z'
+205:
+  base: 5dc90166c3df22f1ce4d5d5eba0e2e7a90204382
+  head: 868383a971c26542b4d22c151a9c466d9176316c
+  title: Bump sphinx from 3.3.1 to 3.4.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/205
+  author: dependabot-preview[bot]
+  created_at: '2021-01-01T08:28:36Z'
+203:
+  base: 00cc5c7277b8e278e2ecb62071b73441d48645ff
+  head: 24361393f0416990def1daab6e55d0442dbc87c8
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/203
+  author: pre-commit-ci[bot]
+  created_at: '2020-12-21T16:44:35Z'
+202:
+  base: 2acf899bb399bd47d2e26cb35a9827d8bebbc59d
+  head: e093c5362864b75443d6237387eee6ec852d157c
+  title: Bump pip-tools from 5.3.1 to 5.4.0
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/202
+  author: dependabot-preview[bot]
+  created_at: '2020-12-01T08:57:36Z'
+201:
+  base: 8206d1190e2314623c58cb194dd400bc3193149a
+  head: ee0036ad060e5fd06c0b276fd8688e95cbfce258
+  title: Bump pre-commit from 2.8.2 to 2.9.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/201
+  author: dependabot-preview[bot]
+  created_at: '2020-12-01T08:56:47Z'
+200:
+  base: 8206d1190e2314623c58cb194dd400bc3193149a
+  head: b2053d9e0af45aba57f951a8c109660ce1dd2af7
+  title: Bump sphinx from 3.2.1 to 3.3.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/200
+  author: dependabot-preview[bot]
+  created_at: '2020-12-01T08:55:59Z'
+199:
+  base: dcf5fdef9bccb47b2fc6f7701a427f8207fa7272
+  head: 887659c5d5199c8a669fb239d01be1241563851d
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/199
+  author: pre-commit-ci[bot]
+  created_at: '2020-11-23T17:16:05Z'
+198:
+  base: ee5108e9886d7d33af7167d1ec24f4912e082558
+  head: f53bd12f0bb1ef3caff81a46d4bfd407172ebd9a
+  title: '[pre-commit.ci] pre-commit autoupdate'
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/198
+  author: pre-commit-ci[bot]
+  created_at: '2020-11-16T17:06:39Z'
+197:
+  base: 9649c7ab4a302af31eabf2bebc2848d5e5693c17
+  head: d87826a94acff6f6b66d16f225c299d10250b204
+  title: Bump tox from 3.20.0 to 3.20.1
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/197
+  author: dependabot-preview[bot]
+  created_at: '2020-11-01T09:29:16Z'
+196:
+  base: f439d83e234a42fbf968f116417072f4d8192246
+  head: 45a3159cb859ddf02930531b6ea4581484fdf64c
+  title: Bump pytest from 6.1.0 to 6.1.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/196
+  author: dependabot-preview[bot]
+  created_at: '2020-11-01T09:28:42Z'
+195:
+  base: f439d83e234a42fbf968f116417072f4d8192246
+  head: ed61b2d8f7ae0e195ed9708b75b2f9d3d7687248
+  title: Bump pre-commit from 2.7.1 to 2.8.2
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/195
+  author: dependabot-preview[bot]
+  created_at: '2020-11-01T09:28:05Z'
+194:
+  base: b45bad49e8e4fea6d183a990d29f44c7821be57f
+  head: b375f75b64acb1b9d49d677d90ebfb0fa17c023b
+  title: Bump mypy from 0.782 to 0.790
+  state: closed
+  html_url: https://github.com/pallets/itsdangerous/pull/194
+  author: dependabot-preview[bot]
+  created_at: '2020-11-01T09:27:32Z'
