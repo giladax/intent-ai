@@ -957,8 +957,20 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
             return None
 
     def _narrative_lookup():
-        """session_id -> {summary, momentCount} | None, read from the journal
-        DB. Returns a no-op lookup when the journal DB is unreachable."""
+        """CC-session-id (KSUID) -> {summary, momentCount} | None.
+
+        The link_store stores the CC session id (the KSUID from the
+        Claude-Session trailer, e.g. "016cmqJ7aie4Kap4ZsZraMF1").  The
+        narratives table uses the DB UUID assigned during digest
+        (sessions.id).  The translation is sessions.source_hash = CC id →
+        sessions.id = DB UUID, because cli.py sets source_hash = path.stem
+        which is the KSUID log filename.
+
+        Fails gracefully: missing/unmapped sessions return None (the "why"
+        card falls back to declared-intent-only).  DB errors are logged at
+        DEBUG rather than silently swallowed, so the absent state stays
+        honest for new sessions while old ones degrade gracefully.
+        """
         try:
             from sqlalchemy import text as _text
 
@@ -966,21 +978,40 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
         except Exception:  # pragma: no cover - env-dependent
             return lambda _sid: None
 
-        def _lookup(session_id: str):
+        def _lookup(cc_session_id: str):
             try:
                 with _get_journal_session() as sess:
+                    # Step 1: translate CC session id (KSUID = source_hash) → DB UUID.
+                    id_row = sess.execute(
+                        _text("SELECT id FROM sessions WHERE source_hash = :h LIMIT 1"),
+                        {"h": cc_session_id},
+                    ).mappings().fetchone()
+                    if not id_row:
+                        logger.debug(
+                            "_narrative_lookup: no sessions row for cc_session_id=%s",
+                            cc_session_id,
+                        )
+                        return None
+                    db_uuid = id_row["id"]
+
+                    # Step 2: fetch narrative + moment count by DB UUID.
                     row = sess.execute(
                         _text(
                             "SELECT n.summary AS summary, "
                             "(SELECT COUNT(*) FROM moments m WHERE m.session_id = :sid) AS mc "
                             "FROM narratives n WHERE n.session_id = :sid"
                         ),
-                        {"sid": session_id},
+                        {"sid": db_uuid},
                     ).mappings().fetchone()
                     if not row or not row["summary"]:
+                        logger.debug(
+                            "_narrative_lookup: no narrative for db_uuid=%s (cc=%s)",
+                            db_uuid, cc_session_id,
+                        )
                         return None
                     return {"summary": row["summary"], "momentCount": int(row["mc"] or 0)}
-            except Exception:
+            except Exception as exc:
+                logger.debug("_narrative_lookup: error for %s: %s", cc_session_id, exc)
                 return None
 
         return _lookup

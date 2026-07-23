@@ -180,6 +180,48 @@ frozen as inherited from Drizzle migrations at git tag `ts-backend-final`. No Dr
 in the repo. Any future schema change starts by adopting Alembic — see `backend/README.md`
 "Schema changes" section.
 
+## O3 — session_uploads (2026-07-21)
+
+| Table | Readers | Writers | Verdict | Evidence |
+|---|---|---|---|---|
+| `session_uploads` | `quire.sessions_api.UploadStore.find_by_sha256`, `get_upload` endpoint | `quire.sessions_api.UploadStore` (`create` / `mark_digested` / `mark_failed`) — single writer | **LIVE** | backend/quire/sessions_api.py |
+
+**Schema bootstrap:** `quire.sessions_api.ensure_upload_table(engine)` runs
+`CREATE TABLE IF NOT EXISTS session_uploads` idempotently.  Called from
+`UploadStore.__init__()`.  Same pre-Alembic pattern as session_checks and org
+tables — Alembic adoption folds all of it into one pass.
+
+**Single writer:** `quire.sessions_api.UploadStore` is the sole writer.  No TS
+path exists.
+
+**Columns:**
+- `id` TEXT PK (UUID)
+- `sha256` TEXT NOT NULL UNIQUE — dedup key; uploading same bytes twice returns the existing row
+- `provider` TEXT NOT NULL — "claude-code" (extensible)
+- `format` TEXT NOT NULL — "jsonl-v1"
+- `repo` TEXT NOT NULL — "owner/name"
+- `branch` TEXT NULL
+- `commits` JSON NOT NULL — list of commit SHAs (may be empty)
+- `pr_number` INTEGER NULL
+- `actor` TEXT NULL
+- `as_intent` BOOLEAN NOT NULL
+- `archive_path` TEXT NOT NULL — absolute path to the archived .jsonl on disk
+- `status` TEXT NOT NULL — "pending" | "digested" | "failed"
+- `session_id` TEXT NULL — set on successful digest (the CC session KSUID)
+- `error` TEXT NULL — set on failure
+- `uploaded_at` TIMESTAMP NOT NULL
+- `digested_at` TIMESTAMP NULL
+
+**Unique constraint:** `sha256` — the dedup key that makes re-upload idempotent.
+
+**Durability invariant (process_upload):**
+1. Archive transcript bytes to disk first (raises on failure — no row created).
+2. sha256 verify-after-write: re-read the archived file and compare hashes;
+   mismatch → OSError (no DB row claiming "archived" for a corrupted file).
+3. Create session_uploads row with status="pending".
+4. Digest via the existing pipeline (failure-safe; marks row failed, transcript safe).
+5. Link via `_match_and_link` + `bind_pr_to_trailer_links` (both failure-safe).
+
 ## O4.5 — tasks + task_links (2026-07-23)
 
 | Table | Readers | Writers | Verdict | Evidence |

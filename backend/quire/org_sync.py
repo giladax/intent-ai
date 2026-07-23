@@ -495,6 +495,33 @@ def handle_pr_event(
             coupled_session_ids=_coupled_session_ids or None,
         )
 
+    # -- Bind PR number onto trailer links in the commit range (failure-safe) ──
+    # Trailer links extracted before the analysis had the PR number carry
+    # pr_number=NULL.  Once we know the PR number, bind it retroactively so
+    # links_for_check can surface the coupling.  Idempotent: re-running is a
+    # no-op because rows already have pr_number set.
+    if not skipped and link_store is not None and event.base_sha and event.head_sha and (mirror / ".git").exists():
+        try:
+            from quire.links import bind_pr_to_trailer_links
+            _bound = bind_pr_to_trailer_links(
+                workspace=workspace,
+                pr_number=event.pr_number,
+                base_sha=event.base_sha,
+                head_sha=event.head_sha,
+                git_dir=str(mirror),
+                engine=link_store._engine,
+            )
+            if _bound:
+                logger.debug(
+                    "handle_pr_event: PR #%d → bound pr_number on %d trailer link(s)",
+                    event.pr_number, _bound,
+                )
+        except Exception as _bind_exc:
+            logger.warning(
+                "handle_pr_event: bind_pr_to_trailer_links failed for PR #%d: %s",
+                event.pr_number, _bind_exc,
+            )
+
     # -- Closure candidacy (O4.5): a fresh check's SATISFIES impacts feed
     # task closure — auto-close only when unambiguous, else Needs-you.
     # Failure-safe: the task layer must never fail the sync.

@@ -281,11 +281,22 @@ def _archive_bytes(data: bytes, filename: str, archive_dir: pathlib.Path | None 
 
     This MUST succeed before any DB writes. Raises on failure — the caller
     must not create a session_uploads row if archiving failed.
+
+    Durability: after writing, re-reads the archived file and compares sha256.
+    A mismatch is treated as an archive failure (raises OSError) so no DB row
+    is ever created claiming a file is archived when it was silently corrupted.
     """
     d = archive_dir if archive_dir is not None else _archive_dir()
     d.mkdir(parents=True, exist_ok=True)
     dest = d / filename
     dest.write_bytes(data)
+    # Verify-after-write: re-read and compare hashes.
+    written = dest.read_bytes()
+    if _sha256_bytes(written) != _sha256_bytes(data):
+        raise OSError(
+            f"archive write verification failed for {dest}: "
+            "sha256 mismatch after write — disk or filesystem error"
+        )
     return dest
 
 
@@ -383,6 +394,43 @@ def process_upload(
         except Exception as exc:
             logger.warning("session upload link step failed (upload still recorded): %s", exc)
 
+    # Step 5: bind pr_number onto trailer links in the commit range (failure-safe).
+    # When the upload carries explicit commits and a pr_number, any trailer links
+    # extracted from that range without a PR number get bound here — the same
+    # deterministic, idempotent operation as org_sync.handle_pr_event.
+    if record.pr_number and record.commits and len(record.commits) >= 2:
+        try:
+            from quire.links import bind_pr_to_trailer_links, LinkStore as _LS
+            _ws = record.repo.split("/")[-1] if "/" in record.repo else record.repo
+            _ws_dir = workspace_dir or _workspace_dir_for_repo(record.repo)
+            _git_dir = str(_ws_dir)
+            _bls = link_store
+            if _bls is None:
+                try:
+                    from quire.db.engine import get_engine as _ge
+                    _bls = _LS(engine=_ge())
+                except Exception:
+                    _bls = None
+            if _bls is not None:
+                _bound = bind_pr_to_trailer_links(
+                    workspace=_ws,
+                    pr_number=record.pr_number,
+                    base_sha=record.commits[0],
+                    head_sha=record.commits[-1],
+                    git_dir=_git_dir,
+                    engine=_bls._engine,
+                )
+                if _bound:
+                    logger.debug(
+                        "process_upload: pr #%d → bound pr_number on %d trailer link(s)",
+                        record.pr_number, _bound,
+                    )
+        except Exception as exc:
+            logger.warning(
+                "process_upload: bind_pr_to_trailer_links failed for PR #%d: %s",
+                record.pr_number, exc,
+            )
+
     return record
 
 
@@ -447,15 +495,21 @@ def _workspace_dir_for_repo(repo: str) -> pathlib.Path:
 
 
 def _match_and_link(record: UploadRecord, link_store=None) -> None:
-    """Execute matching precedence and write links (failure-safe caller).
+    """Write session↔check links for an uploaded session.
 
-    Precedence:
+    Scope: this function covers only steps 1 and 3 of the matching precedence.
+
       1. explicit pr/commits in envelope → kind="attached"
-         (upsert_from_yaml_record already does this via digest_session;
-          but also handle explicit commits list that wasn't processed there)
-      2. Claude-Session trailers in repo commits → kind="trailer"
-         (handled by extract_trailer_links over the commit range)
+         Writes an "attached" link when the upload envelope carried explicit
+         commits.  (upsert_from_yaml_record writes the attached link for the
+         sessions.yaml pr: field during digest; this handles the upload-only path.)
       3. correlate.py structural proposals → kind="inferred" (NEVER auto-promoted)
+         Emitted only when no explicit pr/commits were supplied.
+
+    Trailer matching (step 2 — kind="trailer") is handled upstream in the digest
+    pipeline via extract_trailer_links over the PR's base→head commit range.
+    bind_pr_to_trailer_links (called separately after this function) retroactively
+    populates pr_number on those trailer rows once the PR number is known.
 
     If a link_store is already provided (test), use it.
     Otherwise, try the production store (failure-safe).
@@ -475,6 +529,13 @@ def _match_and_link(record: UploadRecord, link_store=None) -> None:
     if not session_id:
         return
 
+    # TODO(workspace-naming-drift): workspace is derived from the repo name
+    # (e.g. "giladax/intent-ai" → "intent-ai"), but review queries use the
+    # workspace slug from org_repos (e.g. "quire-brain" for this project).
+    # Links stored under "intent-ai" are never found by review_detail querying
+    # "quire-brain".  Fix: resolve workspace via org_repos.workspace keyed on
+    # the repo's github_remote, rather than slicing the repo name.
+    # Follow-up: O6 workspace-name normalisation pass.
     workspace = record.repo.split("/")[-1] if "/" in record.repo else record.repo
 
     # Explicit commits → kind="attached" links for the given commits range
@@ -600,6 +661,10 @@ def create_sessions_router(upload_store: UploadStore | None = None) -> APIRouter
         data = await transcript.read()
         if not data:
             raise HTTPException(400, "transcript file is empty")
+
+        _MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+        if len(data) > _MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "transcript exceeds 50 MB limit")
 
         # Compute filename: use the original name if it looks like a session UUID
         fname = transcript.filename or "upload.jsonl"

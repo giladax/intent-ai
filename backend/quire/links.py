@@ -32,11 +32,14 @@ with Python (quire.links) as the sole writer.
 """
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 import uuid
 from dataclasses import dataclass
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import (
     Column,
@@ -432,6 +435,11 @@ def bind_pr_to_trailer_links(
     This is a deterministic backfill (the commit membership is a structural
     fact) and is idempotent: a second call with the same arguments is a no-op
     because the rows already have pr_number set.
+
+    AMBIGUITY RULE: a commit SHA that is already bound to a DIFFERENT pr_number
+    (i.e. it appears in the ranges of two distinct PRs) must NOT be arbitrarily
+    assigned to this PR. Such rows are skipped and logged at INFO.  The house
+    rule is "never guess" — the link stays unbound rather than misleading.
     """
     import subprocess
 
@@ -459,7 +467,21 @@ def bind_pr_to_trailer_links(
     from sqlalchemy import text
     updated = 0
     with SASession(engine) as s:
-        # Select matching rows
+        # Collect already-bound pr numbers for each evidence SHA in our range.
+        # This lets us detect the AMBIGUITY case: a SHA already bound to a
+        # different PR means the commit lives in two PRs' ranges.
+        bound_rows = s.execute(
+            text(
+                "SELECT evidence, pr_number FROM session_checks "
+                "WHERE workspace = :ws AND pr_number IS NOT NULL AND kind = 'trailer'"
+            ),
+            {"ws": workspace},
+        ).fetchall()
+        sha_to_prs: dict[str, set[int]] = {}
+        for ev, pn in bound_rows:
+            sha_to_prs.setdefault(ev, set()).add(pn)
+
+        # Select matching NULL rows
         rows = s.execute(
             text(
                 "SELECT id, evidence FROM session_checks "
@@ -470,15 +492,31 @@ def bind_pr_to_trailer_links(
 
         for row_id, evidence in rows:
             # evidence is the full 40-char SHA; check if it's in the range
-            if evidence in commits_in_range:
-                s.execute(
-                    text(
-                        "UPDATE session_checks SET pr_number = :pr "
-                        "WHERE id = :id AND pr_number IS NULL"
-                    ),
-                    {"pr": pr_number, "id": row_id},
+            if evidence not in commits_in_range:
+                continue
+
+            # AMBIGUITY check: if this SHA is already bound to a different PR,
+            # skip it — never-guess is the house rule.
+            existing_prs = sha_to_prs.get(evidence, set())
+            if existing_prs and existing_prs != {pr_number}:
+                other_prs = sorted(existing_prs - {pr_number})
+                logger.info(
+                    "bind_pr_to_trailer_links: ambiguous — sha %s…%s in PRs #%s and #%d, "
+                    "leaving unbound",
+                    evidence[:8], evidence[8:12],
+                    ", ".join(f"#{p}" for p in other_prs),
+                    pr_number,
                 )
-                updated += 1
+                continue
+
+            s.execute(
+                text(
+                    "UPDATE session_checks SET pr_number = :pr "
+                    "WHERE id = :id AND pr_number IS NULL"
+                ),
+                {"pr": pr_number, "id": row_id},
+            )
+            updated += 1
 
         if updated:
             s.commit()
