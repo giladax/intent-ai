@@ -301,16 +301,17 @@ function YourCall({ review }: { review: ReviewDetail }) {
     return (
       <div className="rv-settled">
         {review.reviewer
-          ? <>Signed off by <b>{review.reviewer}</b>{review.review_note ? `  -- "${review.review_note}"` : ""}.</>
-          : <>This review needs no human call  -- nothing it touched is governed.</>}
+          ? <>Signed off by <b>{review.reviewer}</b>{review.review_note ? ` — ${review.review_note}` : ""}.</>
+          : <>This review needs no human call — nothing it touched is governed.</>}
       </div>
     );
   }
 
   if (settled) {
+    const rolePart = settled.by.startsWith("as ") ? settled.by : `as ${settled.by}`;
     return (
       <div className="rv-settled rv-settled--fresh">
-        You signed: <b>{settled.act}</b>  -- as {settled.by}. It is on the record.
+        You signed: <b>{settled.act}</b> — {rolePart}. It is on the record.
       </div>
     );
   }
@@ -347,20 +348,21 @@ function YourCall({ review }: { review: ReviewDetail }) {
     <>
       {apiError && (
         <div className="rv-sign-error" role="alert">
-          {apiError} The record was NOT updated  -- try again.
+          {apiError} The record was NOT updated — try again.
         </div>
       )}
       <SigningBlock
         actLabel={act.label}
         tone={act.tone}
-        prompt={`You are about to ${act.label.toLowerCase()}  -- PR #${review.pr_number} on ${review.workspace}.`}
+        prompt={`You are about to ${act.label.toLowerCase()} — PR #${review.pr_number} on ${review.workspace}.`}
         busy={busy}
         onSign={async ({ name, role }) => {
           setBusy(true);
           setApiError(null);
           try {
             await submitReview(review.analysis_id, act.state, name, role || undefined);
-            setSettled({ act: act.label, by: role ? `${name}, ${role}` : name });
+            // role gets its own field when the review contract grows (A3+)
+            setSettled({ act: act.label, by: role ? `as ${role}` : name });
           } catch (err) {
             setApiError(err instanceof Error ? err.message : "Network error.");
           } finally {

@@ -1508,6 +1508,7 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
 .rv-actions .ink-btn { flex: none; }
 .rv-settled { background: var(--gray-bg); border-radius: 9px; padding: 11px 12px; font-size: 13px; line-height: 1.5; color: var(--text); }
 .rv-settled--fresh { background: var(--green-bg); color: var(--text); }
+.rv-sign-error { border-left: 3px solid var(--red); background: var(--red-bg); border-radius: 0 9px 9px 0; padding: 11px 12px; font-size: 13px; line-height: 1.5; color: var(--text); margin-bottom: 12px; }
 .rv-foot { color: var(--faint); font-family: var(--mono); font-size: 10.5px; margin-top: 14px; line-height: 1.6; }
 
 /* ── the signing ceremony — SigningBlock (humans-have-fun) ───────────── */
