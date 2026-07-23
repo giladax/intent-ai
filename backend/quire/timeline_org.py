@@ -19,6 +19,8 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import text
 
+from quire import vocab
+
 _MAX_WINDOW_DAYS = 90
 _VERDICT_INK = {
     # Every value in Classification must be listed here — the test
@@ -150,9 +152,12 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
         if fid_key:
             events_by_feature[fid_key].append(ae)
 
-    # 4. Build check marks from alignment store (per workspace/project).
-    # Map checks to features via project-name slug matching.
+    # 4. Build check marks from alignment store.
+    # Separate repo-wide checks (no feature-specific evidence) from feature-specific ones.
+    # Repo-wide checks attach to a synthetic "All of <repo>" summary row; feature-specific
+    # checks attach to their features.
     check_marks_by_feature: dict[str, list] = defaultdict(list)
+    repo_wide_checks_by_repo_slug: dict[str, list] = defaultdict(list)
     if alignment_store is not None:
         try:
             analyses = alignment_store.list_analyses()
@@ -183,16 +188,26 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
                         else ""
                     ),
                 }
-                # Attach to features in the matching project (by path slug match).
-                matched = [
-                    r
-                    for r in feature_rows
-                    if repo_slug.lower() in r["project_name"].lower()
-                    or r["project_name"].lower() in repo_slug.lower()
-                ]
-                for feat_row in matched:
-                    check_marks_by_feature[str(feat_row["id"])].append(mark)
-                # If no match, omit — don't spray marks on unrelated features.
+                # Determine if this check is feature-specific (has obligation impacts) or repo-wide.
+                impacts = getattr(a, "obligation_impacts", None) or []
+                has_feature_evidence = any(
+                    getattr(i, "relation", None) not in (None, "unrelated")
+                    for i in impacts
+                )
+
+                if has_feature_evidence:
+                    # Feature-specific: attach to features in the matching project.
+                    matched = [
+                        r
+                        for r in feature_rows
+                        if repo_slug.lower() in r["project_name"].lower()
+                        or r["project_name"].lower() in repo_slug.lower()
+                    ]
+                    for feat_row in matched:
+                        check_marks_by_feature[str(feat_row["id"])].append(mark)
+                else:
+                    # Repo-wide: collect for the summary row.
+                    repo_wide_checks_by_repo_slug[repo_slug].append(mark)
         except Exception:
             pass  # alignment store degraded; check marks skipped
 
@@ -216,8 +231,39 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
                     "detail": ae["summary"] or "",
                 })
 
-    # 6. Build rows (only features with marks or activity in window).
+    # 6. Build rows.
+    # Start with synthetic summary rows for repo-wide checks (one per repo slug that has them).
+    # Then add feature rows (only those with marks or activity in window).
     rows = []
+
+    # 6a. Add repo-wide summary rows (for repos with repo-wide checks).
+    for repo_slug, repo_checks in repo_wide_checks_by_repo_slug.items():
+        if repo_checks:
+            # Find the display name for this repo_slug from feature_rows.
+            matching_features = [
+                r for r in feature_rows
+                if repo_slug.lower() in r["project_name"].lower()
+                or r["project_name"].lower() in repo_slug.lower()
+            ]
+            display_name = matching_features[0]["project_name"] if matching_features else repo_slug
+            ws_slug = display_name.lower().replace(" ", "-")
+
+            # Sort marks by timestamp (most recent first).
+            sorted_checks = sorted(repo_checks, key=lambda m: m["ts"] or "", reverse=True)
+            most_recent_ts = sorted_checks[0].get("ts") if sorted_checks else None
+
+            rows.append({
+                "feature_id": None,  # synthetic row, not tied to a feature
+                "feature_name": f"All of {display_name}",
+                "repo": display_name,
+                "repo_workspace": ws_slug,
+                "first_activity": None,
+                "last_activity": most_recent_ts,
+                "event_count": 0,  # synthetic rows don't count as activity
+                "marks": sorted_checks,
+            })
+
+    # 6b. Add feature rows (only those with marks or activity in window).
     for feat_row in feature_rows:
         # feature.id may be a UUID object; stringify to match activity_events.feature_id (text).
         fid = str(feat_row["id"])
@@ -295,10 +341,10 @@ def _empty_shape(window_days, since, until) -> dict:
 
 
 def _verdict_plain(classification: str) -> str:
-    return {
-        "ALIGNED": "Kept all promises",
-        "PARTIAL": "Partially kept",
-        "POSSIBLE_DRIFT": "Possible drift",
-        "UNGOVERNED": "No promise covers this",
-        "UNKNOWN": "Unknown",
-    }.get(classification, classification)
+    """Translate a Classification enum value to plain English.
+
+    Routes through quire.vocab to ensure every surface renders the same label
+    (F2: one place). Never returns the raw enum value — that would leak
+    implementation details into user-facing text.
+    """
+    return vocab.label(classification)

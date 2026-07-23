@@ -142,14 +142,31 @@ def test_window_clamped_to_max():
 
 def test_verdict_plain_known_values():
     """_verdict_plain returns human strings for all known verdicts."""
-    assert "Kept" in _verdict_plain("ALIGNED")
+    aligned = _verdict_plain("ALIGNED")
+    assert "promise" in aligned.lower() or "kept" in aligned.lower()
     assert "promise" in _verdict_plain("UNGOVERNED").lower()
     assert "drift" in _verdict_plain("POSSIBLE_DRIFT").lower()
 
 
-def test_verdict_plain_unknown_passthrough():
-    """Unknown classification → returned as-is."""
-    assert _verdict_plain("SOME_NEW_ENUM") == "SOME_NEW_ENUM"
+def test_verdict_plain_label_lock():
+    """Label lock: every Classification enum value produces a non-enum label.
+
+    Ensures _verdict_plain routes through vocab and never leaks raw enum
+    values into user-facing text (F1 violation prevention).
+    """
+    all_classifications = {c.value for c in Classification}
+    for classification in all_classifications:
+        label = _verdict_plain(classification)
+        # Assert the label is not the enum value itself (would be a leak)
+        assert label != classification, (
+            f"_verdict_plain({classification!r}) returned the enum value itself. "
+            f"Must return a human-readable label from vocab."
+        )
+        # Assert no underscores (enum naming pattern) in the label
+        assert "_" not in label, (
+            f"_verdict_plain({classification!r}) returned {label!r}, "
+            f"which contains underscores (enum naming). Must be plain English."
+        )
 
 
 def test_row_fields_present():
@@ -244,6 +261,9 @@ def test_check_marks_appear_when_alignment_store_wired():
     pathlib.Path, not a dict) and the exception was swallowed → alignment_store
     always None → no check marks. This test calls compose_org_timeline with an
     explicit mocked store and asserts the 'check' kind mark is emitted.
+
+    Post-C3 fix: repo-wide checks (default when no obligation_impacts) go to a
+    summary row, so we expect 2 rows: summary + feature.
     """
     feature_rows = [{"id": "f1", "name": "Payments", "project_name": "my-repo", "project_id": "p1"}]
     ae_rows = [
@@ -259,7 +279,7 @@ def test_check_marks_appear_when_alignment_store_wired():
     ]
     sess = _mock_session(feature_rows=feature_rows, ae_rows=ae_rows)
 
-    # A store with one ALIGNED analysis on the same repo.
+    # A store with one ALIGNED analysis on the same repo (repo-wide by default).
     alignment_store = MagicMock()
     alignment_store.list_analyses.return_value = [
         _fake_analysis(repository="org/my-repo", pr_number=7, classification="ALIGNED")
@@ -267,8 +287,10 @@ def test_check_marks_appear_when_alignment_store_wired():
 
     result = compose_org_timeline(sess, alignment_store=alignment_store)
     assert not result["empty"]
-    assert len(result["rows"]) == 1
-    kinds = {m["kind"] for m in result["rows"][0]["marks"]}
+    assert len(result["rows"]) == 2, "should have summary row + feature row"
+    # Check marks should appear in the summary row
+    summary_row = result["rows"][0]
+    kinds = {m["kind"] for m in summary_row["marks"]}
     assert "check" in kinds, "check mark must appear when alignment store is wired"
 
 
@@ -438,3 +460,107 @@ def test_repo_workspace_is_slugified():
     assert row["repo"] == "My Cool Repo"
     # Slug is lower-case with hyphens
     assert row["repo_workspace"] == "my-cool-repo"
+
+
+# ── C3: repo-wide check segregation ──────────────────────────────────────
+
+def test_repo_wide_checks_go_to_summary_row():
+    """C3 proof: repo-wide checks (no obligation_impacts) attach to 'All of <repo>' row.
+
+    Feature-specific checks should attach to feature rows; repo-wide checks should
+    attach only to a synthetic summary row, preventing duplication across all features.
+    """
+    feature_rows = [
+        {"id": "f1", "name": "Auth", "project_name": "my-repo", "project_id": "p1"},
+        {"id": "f2", "name": "Billing", "project_name": "my-repo", "project_id": "p1"},
+    ]
+    ae_rows = [
+        {
+            "feature_id": "f1",
+            "id": "e1",
+            "timestamp": _ts(1),
+            "category": "c",
+            "summary": "auth work",
+            "session_id": None,
+            "source_type": "session",
+        },
+        {
+            "feature_id": "f2",
+            "id": "e2",
+            "timestamp": _ts(1),
+            "category": "c",
+            "summary": "billing work",
+            "session_id": None,
+            "source_type": "session",
+        },
+    ]
+    sess = _mock_session(feature_rows=feature_rows, ae_rows=ae_rows)
+
+    # A repo-wide check: no obligation_impacts, so relation is not set.
+    alignment_store = MagicMock()
+    repo_wide_analysis = _fake_analysis(
+        repository="org/my-repo",
+        pr_number=1,
+        classification="ALIGNED"
+    )
+    repo_wide_analysis.obligation_impacts = []  # No feature-specific evidence
+    alignment_store.list_analyses.return_value = [repo_wide_analysis]
+
+    result = compose_org_timeline(sess, alignment_store=alignment_store)
+    # Should have 3 rows: summary + f1 + f2
+    assert len(result["rows"]) == 3, f"Expected 3 rows, got {len(result['rows'])}"
+
+    # First row should be the summary row
+    summary_row = result["rows"][0]
+    assert "All of" in summary_row["feature_name"], f"Expected 'All of' in {summary_row['feature_name']}"
+    assert summary_row["feature_id"] is None, "summary row should have feature_id=None"
+    check_kinds = {m["kind"] for m in summary_row["marks"]}
+    assert "check" in check_kinds, "summary row should have check marks"
+
+    # Feature rows should have no check marks (only activity and session marks)
+    for row in result["rows"][1:]:
+        if row["feature_id"]:  # actual feature row
+            check_marks_in_feature = [m for m in row["marks"] if m["kind"] == "check"]
+            assert not check_marks_in_feature, (
+                f"feature row {row['feature_name']} should not have repo-wide checks"
+            )
+
+
+def test_feature_specific_checks_attach_to_features():
+    """Feature-specific checks (with obligation_impacts) attach to their features, not summary."""
+    feature_rows = [
+        {"id": "f1", "name": "Auth", "project_name": "my-repo", "project_id": "p1"},
+    ]
+    ae_rows = [
+        {
+            "feature_id": "f1",
+            "id": "e1",
+            "timestamp": _ts(1),
+            "category": "c",
+            "summary": "auth work",
+            "session_id": None,
+            "source_type": "session",
+        },
+    ]
+    sess = _mock_session(feature_rows=feature_rows, ae_rows=ae_rows)
+
+    # A feature-specific check: has obligation_impacts with a real relation.
+    alignment_store = MagicMock()
+    feature_analysis = _fake_analysis(
+        repository="org/my-repo",
+        pr_number=2,
+        classification="PARTIAL"
+    )
+    # Create a mock impact with a meaningful relation
+    impact = MagicMock()
+    impact.relation = "partially_satisfies"
+    feature_analysis.obligation_impacts = [impact]
+    alignment_store.list_analyses.return_value = [feature_analysis]
+
+    result = compose_org_timeline(sess, alignment_store=alignment_store)
+    # Should have 1 feature row (no summary row, since all checks are feature-specific)
+    feature_rows_result = [r for r in result["rows"] if r["feature_id"]]
+    assert len(feature_rows_result) == 1
+    row = feature_rows_result[0]
+    check_marks = [m for m in row["marks"] if m["kind"] == "check"]
+    assert check_marks, "feature row should have the feature-specific check"
