@@ -5,6 +5,7 @@ import { fetchFeatures } from "../api";
 import type { Feature } from "../types";
 import { loadVocab, inkForVerdict, type VocabPayload } from "../ink/vocab";
 import { Dot } from "../ink/Badge";
+import { AddRepo } from "../surfaces/AddRepo";
 
 /** The familiar shell: topbar + left nav + repo▸feature tree. Every room
  *  renders inside it. The nav mirrors the ruled IA; the tree is org > repos >
@@ -15,6 +16,9 @@ export function Shell({ children, detail = false }: { children: React.ReactNode;
   const [featureCount, setFeatureCount] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState<number | null>(null);
   const [vocab, setVocab] = useState<VocabPayload | null>(null);
+  const [addRepoOpen, setAddRepoOpen] = useState(false);
+  // Bumped when add-repo completes so the tree re-fetches and shows the new repo.
+  const [orgKey, setOrgKey] = useState(0);
 
   useEffect(() => {
     loadVocab().then(setVocab);
@@ -23,7 +27,7 @@ export function Shell({ children, detail = false }: { children: React.ReactNode;
     // feature + session counts feed the nav; fail-quiet.
     fetch("/api/features").then((r) => (r.ok ? r.json() : [])).then((f: unknown[]) => setFeatureCount(f.length)).catch(() => {});
     fetch("/api/sessions").then((r) => (r.ok ? r.json() : [])).then((s: unknown[]) => setSessionCount(s.length)).catch(() => {});
-  }, []);
+  }, [orgKey]);
 
   return (
     <div className="ink-app" data-detail={detail ? "true" : "false"}>
@@ -42,13 +46,35 @@ export function Shell({ children, detail = false }: { children: React.ReactNode;
 
         <div className="ink-sec">
           Repositories
-          <span className="add" title="Add a repository">+</span>
+          <button className="add" title="Add a repository" onClick={() => setAddRepoOpen(true)}>+</button>
         </div>
         {org?.repos.map((r) => (
           <RepoTreeNode key={r.workspace} repo={r} vocab={vocab} />
         ))}
       </aside>
       {children}
+      {addRepoOpen && (
+        <AddRepoModal
+          onDone={() => {
+            setAddRepoOpen(false);
+            setOrgKey((k) => k + 1);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** The add-repo flow in a familiar modal sheet over the shell. */
+function AddRepoModal({ onDone }: { onDone: () => void }) {
+  return (
+    <div className="add-repo-overlay" onClick={(e) => { if (e.target === e.currentTarget) onDone(); }}>
+      <div className="add-repo-sheet">
+        <div className="add-repo-sheet-header">
+          <button className="add-repo-close" onClick={onDone} aria-label="Close">×</button>
+        </div>
+        <AddRepo onDone={onDone} />
+      </div>
     </div>
   );
 }
