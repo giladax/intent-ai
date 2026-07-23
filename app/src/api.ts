@@ -85,6 +85,97 @@ export interface NeedsYouItem {
 }
 export const fetchNeedsYou = () => json<NeedsYouItem[]>("/api/needs-you");
 
+// ── O4.5 — Handoff: PRD in, team's week out ────────────────────────
+
+/** One task card, as returned by the backend contract. */
+export interface TaskLink {
+  kind: string;
+  target_ref: string;
+  target_label: string;
+  evidence: string;
+}
+export type TaskDept = "dev" | "qa" | "product" | "bi";
+export type TaskStatus = "proposed" | "open" | "closed";
+export interface HandoffTask {
+  task_id: string;
+  workspace: string;
+  handoff_id: string;
+  department: TaskDept;
+  statement: string;
+  why: string;
+  grounding_note: string;
+  status: TaskStatus;
+  closure_tier: "check_evidence" | "test_inspection" | "manual_note";
+  closure_note: string | null;
+  signed_by: string | null;
+  links: TaskLink[];
+}
+export interface HandoffDraftResult {
+  handoff_id: string | null;
+  tasks: HandoffTask[];
+  notes: string[];
+}
+export interface HandoffApproveResult {
+  signed: number;
+  rejected: number;
+}
+export interface WorkspaceTasksResult {
+  workspace: string;
+  tasks: HandoffTask[];
+}
+export interface IntentSaveResult {
+  reference: string;
+  path: string;
+  status: "draft" | "ok";
+  note: string;
+}
+
+/** Save a PRD into the workspace's intent directory (authoring door). */
+export const saveIntentSource = (workspace: string, content: string, title?: string, reference?: string) =>
+  json<IntentSaveResult>(`/api/org/repos/${workspace}/intent/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content, title, reference }),
+  });
+
+/** Draft grounded task proposals (Stage 2 — live LLM; pauses at "proposed"). */
+export const draftHandoff = (workspace: string, sourceReference?: string) =>
+  json<HandoffDraftResult>(`/api/org/repos/${workspace}/handoff/draft`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sourceReference ? { source_reference: sourceReference } : {}),
+  });
+
+/** Fetch all tasks for a handoff. */
+export const fetchHandoff = (handoffId: string) =>
+  json<{ handoff_id: string; tasks: HandoffTask[] }>(`/api/org/handoffs/${handoffId}`);
+
+/** Fetch tasks for a workspace (optionally filtered by status). */
+export const fetchWorkspaceTasks = (workspace: string, status?: string) =>
+  json<WorkspaceTasksResult>(
+    `/api/org/repos/${workspace}/tasks${status ? `?status=${status}` : ""}`,
+  );
+
+/** The signing act — per-card accept/reject/edit, explicit, named. */
+export const approveHandoff = (
+  handoffId: string,
+  approved_by: string,
+  tasks: Array<{ task_id: string; accept: boolean; statement?: string }>,
+) =>
+  json<HandoffApproveResult>(`/api/org/handoffs/${handoffId}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approved_by, tasks }),
+  });
+
+/** Manually close a task with a note (product/bi tier, labeled honestly). */
+export const closeTask = (taskId: string, note: string, closed_by: string) =>
+  json<{ closed: boolean }>(`/api/org/tasks/${taskId}/close`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note, closed_by }),
+  });
+
 // Projects
 export const fetchProjects = () => json<Project[]>("/api/projects");
 export const createProject = (name: string, path: string) =>

@@ -488,3 +488,77 @@ def test_engine_less_task_store_raises_in_tests():
     from quire.handoff import TaskStore as Guarded
     with pytest.raises(RuntimeError, match="production Postgres"):
         Guarded()
+
+
+# ---------------------------------------------------------------------------
+# Intent-save endpoint (O4.5 authoring door)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def intent_client(store, tmp_path):
+    """Client with a real workspace dir wired into the router."""
+    from quire.org_router import create_org_router
+    from quire.store import Store
+    import quire.org_router as _mod
+
+    # Temporarily override the workspaces root so the router sees tmp_path.
+    orig = _mod._WORKSPACES_ROOT
+    _mod._WORKSPACES_ROOT = tmp_path
+    # Create a minimal workspace dir with sources.yaml.
+    ws = tmp_path / "demo-ws"
+    ws.mkdir()
+    (ws / "sources.yaml").write_text(
+        "- reference: existing-prd\n  path: existing.md\n  status: approved\n  version: v1\n"
+    )
+    app = FastAPI()
+    app.include_router(create_org_router(None, Store(url=f"sqlite:///{tmp_path}/a.db"),
+                                         task_store=store))
+    c = TestClient(app)
+    yield c, ws
+    _mod._WORKSPACES_ROOT = orig
+
+
+def test_intent_save_writes_file_and_draft_entry(intent_client):
+    client, ws = intent_client
+    resp = client.post("/api/org/repos/demo-ws/intent/save", json={
+        "content": "# My PRD\n\nUsers must be able to reset their password.",
+        "title": "My PRD",
+        "reference": "my-prd",
+    })
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "draft"
+    assert body["reference"] == "my-prd"
+    # File should exist
+    dest = ws / "intent" / "my-prd.md"
+    assert dest.exists()
+    assert "Users must be able to reset their password" in dest.read_text()
+    # sources.yaml should have the draft entry appended, existing preserved
+    import yaml
+    sources = yaml.safe_load((ws / "sources.yaml").read_text())
+    refs = {s["reference"]: s for s in sources}
+    assert refs["existing-prd"]["status"] == "approved"   # existing untouched
+    assert refs["my-prd"]["status"] == "draft"
+
+
+def test_intent_save_idempotent_on_identical_content(intent_client):
+    client, _ws = intent_client
+    payload = {"content": "Same content here.", "reference": "same-prd"}
+    r1 = client.post("/api/org/repos/demo-ws/intent/save", json=payload)
+    r2 = client.post("/api/org/repos/demo-ws/intent/save", json=payload)
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "ok"
+
+
+def test_intent_save_missing_content_returns_400(intent_client):
+    client, _ws = intent_client
+    resp = client.post("/api/org/repos/demo-ws/intent/save", json={"title": "T"})
+    assert resp.status_code == 400
+
+
+def test_intent_save_unknown_workspace_returns_404(intent_client):
+    client, _ws = intent_client
+    resp = client.post("/api/org/repos/no-such-ws/intent/save",
+                       json={"content": "x"})
+    assert resp.status_code == 404

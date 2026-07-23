@@ -361,6 +361,104 @@ def create_org_router(org_store, alignment_store, task_store=None) -> APIRouter:
             raise HTTPException(404, f"No open task {task_id}")
         return {"closed": True}
 
+    # ── O4.5 authoring door — save a PRD into the workspace's intent dir ─
+    # Two doors, equal rank (ruling): author a PRD in-app (this endpoint),
+    # or migrate an existing one (upload/paste, same path). Both ride the
+    # existing analyzer — the file lands in {workspace}/intent/<slug>.md +
+    # sources.yaml gains a draft entry. Human confirms → existing approve
+    # act signs. Nothing governs without approval.
+    #
+    # Contract:
+    #   POST /api/org/repos/{ws}/intent/save
+    #        {content: str, title?: str, reference?: str}
+    #   → 200 {reference, path, status: "draft", note}
+    #         or 409 if a source with that reference already exists (idempotent
+    #         when content is identical — returns same shape with status "ok")
+
+    @router.post("/api/org/repos/{workspace}/intent/save")
+    def intent_save(workspace: str, body: dict = Body(...)):
+        """Save authored or uploaded PRD text into the workspace's intent
+        directory as a draft source. The file is written verbatim; the
+        caller is responsible for the text (the model never mutates content
+        here). A draft entry is appended to sources.yaml so the wizard's
+        existing approve act can promote it to 'approved'.
+
+        Body: {content: str, title?: str, reference?: str}
+        Returns: {reference, path, status, note}
+        """
+        content = (body.get("content") or "").strip()
+        if not content:
+            raise HTTPException(400, "content is required")
+
+        ws_path = _WORKSPACES_ROOT / workspace
+        if not ws_path.exists():
+            raise HTTPException(404, f"No such workspace: {workspace}")
+
+        import re
+        import yaml as _yaml
+
+        title_raw = (body.get("title") or "").strip() or "prd"
+        reference = (body.get("reference") or "").strip()
+        if not reference:
+            slug = re.sub(r"[^a-z0-9]+", "-", title_raw.lower()).strip("-")[:40] or "prd"
+            reference = slug
+
+        intent_dir = ws_path / "intent"
+        intent_dir.mkdir(exist_ok=True)
+
+        # Sanitize reference for a safe filename.
+        safe_slug = re.sub(r"[^a-z0-9-_]", "-", reference)[:60]
+        dest = intent_dir / f"{safe_slug}.md"
+
+        # Idempotency: if the file exists with identical content, return ok.
+        if dest.exists():
+            existing = dest.read_text(encoding="utf-8").strip()
+            if existing == content:
+                return {
+                    "reference": reference,
+                    "path": str(dest.relative_to(ws_path)),
+                    "status": "ok",
+                    "note": "identical content already on disk",
+                }
+            # Different content: overwrite (the human re-authored it).
+
+        dest.write_text(content, encoding="utf-8")
+
+        # Upsert a draft entry in sources.yaml so the approve act can see it.
+        sources_file = ws_path / "sources.yaml"
+        sources: list[dict] = []
+        if sources_file.exists():
+            try:
+                raw = _yaml.safe_load(sources_file.read_text()) or []
+                sources = raw if isinstance(raw, list) else []
+            except Exception:
+                sources = []
+
+        rel_path = str(dest.relative_to(ws_path))
+        # Remove any prior entry with the same reference (overwrite path).
+        sources = [s for s in sources if s.get("reference") != reference]
+        sources.append({
+            "reference": reference,
+            "path": rel_path,
+            "status": "draft",
+            "version": "authored-1",
+        })
+        header = (
+            "# Approved intent sources, read from the repo checkout.\n"
+            "# status governs authority: only `approved` sources feed the analyzer.\n"
+        )
+        sources_file.write_text(header + _yaml.safe_dump(sources, sort_keys=False))
+
+        return {
+            "reference": reference,
+            "path": rel_path,
+            "status": "draft",
+            "note": (
+                "PRD saved as a draft source. Approve via the workspace's "
+                "approve step to make it govern the analyzer."
+            ),
+        }
+
     return router
 
 

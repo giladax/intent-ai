@@ -1527,3 +1527,149 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
 .ink-dock-opener { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); cursor: pointer; }
 .ink-dock-opener:hover { background: var(--line-soft); color: var(--text); }
 .ink-dock-opener.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+/* ── A4.5 Handoff surface ─────────────────────────────────────────────
+   Aesthetic: precise editorial restraint — the weight lives in the moment
+   the cards land, not in visual noise. Staged entrance, receipt depth on
+   demand. Door choice is calm; the reveal is the theatre. */
+
+.hf-main { max-width: 860px; }
+.hf-kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+.hf-h1 { font-size: var(--t-h1); font-weight: 700; letter-spacing: -0.02em; color: var(--text); margin: 0 0 10px; }
+.hf-deck { font-size: 14.5px; color: var(--muted); line-height: 1.6; margin: 0 0 24px; max-width: 580px; }
+
+/* ── Door choice ── */
+.hf-door { padding: 0; }
+.hf-door-head { padding: 26px 28px 0; }
+.hf-doors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 0 28px 28px; }
+.hf-door-card { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 20px 18px; border: 1.5px solid var(--line); border-radius: var(--r-lg); background: var(--bg); cursor: pointer; text-align: left; transition: border-color 140ms, box-shadow 140ms; }
+.hf-door-card:hover:not(:disabled) { border-color: var(--accent); box-shadow: 0 2px 12px rgb(37 99 235 / 0.08); }
+.hf-door-card:disabled { opacity: 0.44; cursor: not-allowed; }
+.hf-door-icon { font-size: 22px; color: var(--accent); }
+.hf-door-title { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.hf-door-desc { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.hf-door-hint { padding: 0 28px 20px; font-size: 12.5px; color: var(--faint); }
+.hf-ws-row { padding: 0 28px 18px; }
+.hf-ws-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.03em; text-transform: uppercase; }
+.hf-ws-select, .hf-ws-input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); font-size: 13.5px; background: var(--panel); color: var(--text); font-family: var(--font); }
+.hf-ws-select:focus, .hf-ws-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+
+/* ── Editor ── */
+.hf-editor-wrap { padding: 0; }
+.hf-editor-head { padding: 26px 28px 0; }
+.hf-title-row { padding: 0 28px 14px; }
+.hf-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.03em; text-transform: uppercase; }
+.hf-input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); font-size: 14px; background: var(--panel); color: var(--text); font-family: var(--font); box-sizing: border-box; }
+.hf-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+.hf-editor-area-wrap { padding: 0 28px 14px; }
+.hf-editor { width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: var(--r-md); font-size: 13.5px; font-family: var(--mono); background: var(--panel); color: var(--text); line-height: 1.6; resize: vertical; box-sizing: border-box; }
+.hf-editor:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+.hf-char-count { font-size: 11px; color: var(--faint); margin-top: 4px; text-align: right; }
+.hf-editor-actions { display: flex; gap: 10px; padding: 0 28px 28px; }
+.hf-run-btn { flex: 1; }
+
+/* ── Progress ── */
+.hf-progress { display: flex; align-items: flex-start; gap: 16px; padding: 40px 28px; }
+.hf-progress-spinner { width: 18px; height: 18px; border: 2.5px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: hf-spin 0.8s linear infinite; flex-shrink: 0; margin-top: 2px; }
+@keyframes hf-spin { to { transform: rotate(360deg); } }
+.hf-progress-text { display: flex; flex-direction: column; gap: 5px; }
+.hf-progress-text strong { font-size: 14.5px; font-weight: 600; color: var(--text); }
+.hf-progress-text span { font-size: 13.5px; color: var(--muted); line-height: 1.55; max-width: 480px; }
+.hf-progress-detail { font-size: 12.5px; color: var(--faint); }
+
+/* ── Review ── */
+.hf-review { padding: 0; }
+.hf-review-head { padding: 26px 28px 0; }
+.hf-notes { margin: 0 28px 12px; padding: 10px 13px; border-left: 3px solid var(--amber); background: var(--amber-bg); border-radius: 0 var(--r-md) var(--r-md) 0; }
+.hf-note { font-size: 12.5px; color: var(--text); line-height: 1.5; }
+
+/* ── Department groups ── */
+.hf-dept { margin-bottom: 28px; }
+.hf-dept-header { display: flex; align-items: center; gap: 10px; padding: 0 28px 10px; }
+.hf-dept-abbr { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; padding: 3px 7px; border-radius: 5px; font-family: var(--mono); }
+.hf-dept-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.hf-dept-count { font-size: 12px; color: var(--muted); margin-left: auto; background: var(--panel); border-radius: 10px; padding: 1px 8px; border: 1px solid var(--line); }
+
+/* ── Task cards — the staged reveal ── */
+@keyframes hf-task-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hf-task { margin: 0 28px 8px; border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; background: var(--bg); opacity: 0; transition: border-color 140ms; }
+.hf-task--revealed { animation: hf-task-in 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.hf-task--rejected { opacity: 0.44; background: var(--panel); }
+.hf-task-top { display: flex; align-items: flex-start; gap: 10px; }
+.hf-task-toggle { font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: var(--font); transition: background 100ms, color 100ms, border-color 100ms; }
+.hf-task-toggle--on { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+.hf-task-stmt { flex: 1; font-size: 13.5px; font-family: var(--font); border: none; background: transparent; color: var(--text); line-height: 1.5; resize: none; padding: 0; font-weight: 500; }
+.hf-task-stmt:focus { outline: none; }
+.hf-task-stmt:disabled { color: var(--muted); }
+.hf-task-why { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; padding-left: calc(10px + /* toggle width approx */ 60px); }
+.hf-task-receipts { margin-top: 8px; padding-left: 70px; }
+.hf-receipt-toggle { font-size: 11.5px; color: var(--accent); cursor: pointer; background: none; border: none; padding: 0; font-family: var(--font); }
+.hf-receipt-body { margin-top: 7px; display: flex; flex-direction: column; gap: 5px; }
+.hf-receipt-row { display: flex; gap: 8px; font-size: 12px; line-height: 1.5; align-items: flex-start; }
+.hf-receipt-row--gap .hf-receipt-label { color: var(--amber); }
+.hf-receipt-row--closure .hf-receipt-label { color: var(--green); }
+.hf-receipt-label { font-weight: 600; color: var(--muted); white-space: nowrap; min-width: 72px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; padding-top: 1px; }
+.hf-receipt-val { color: var(--text); flex: 1; }
+.hf-receipt-quote { margin: 3px 0 0; padding: 5px 8px; border-left: 2.5px solid var(--accent); background: var(--accent-soft); border-radius: 0 5px 5px 0; color: var(--text); font-style: italic; font-size: 11.5px; line-height: 1.5; }
+.hf-receipt-closure-label { color: var(--muted); font-style: italic; }
+
+/* ── Signing ceremony ── */
+.hf-signing-wrap { margin: 0 28px 32px; }
+.hf-signing-rule { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+.hf-signing-context { margin-bottom: 14px; }
+.hf-signing-prompt-head { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 5px; letter-spacing: -0.01em; }
+.hf-signing-copy { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0; max-width: 520px; }
+
+/* ── Done ── */
+.hf-done { padding: 40px 28px; }
+.hf-done-mark { font-size: 32px; color: var(--green); margin-bottom: 12px; }
+.hf-done-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+/* ── Error ── */
+.hf-error { padding: 40px 28px; }
+.hf-error-msg { font-size: 13.5px; color: var(--red); background: var(--red-bg); padding: 11px 14px; border-radius: var(--r-md); margin: 14px 0 20px; line-height: 1.5; }
+
+/* ── Resume banner — a proposed handoff awaiting the signing act ── */
+.hf-resume { display: flex; align-items: center; gap: 14px; margin: 0 28px 22px; padding: 13px 16px; border: 1px solid var(--amber); background: var(--amber-bg); border-radius: var(--r-md); }
+.hf-resume-text { flex: 1; font-size: 13.5px; color: var(--text); line-height: 1.5; }
+.hf-resume .ink-btn { flex: 0 0 auto; width: auto; padding: 8px 16px; }
+
+/* ── The settled week — signed tasks, read-only ── */
+.hf-week { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 22px; }
+.hf-week-head { padding: 0 28px 16px; }
+.hf-week-sub { font-size: 13.5px; color: var(--muted); line-height: 1.55; margin-top: 4px; max-width: 560px; }
+.hf-task--settled { padding: 11px 14px; }
+.hf-task--closed { background: var(--panel); }
+.hf-task-stmt--static { display: block; user-select: text; }
+.hf-task-why--settled { padding-left: 30px; }
+.hf-week-status { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; padding-top: 1px; }
+.hf-week-status--closed { color: var(--green); }
+.hf-week-status--open { color: var(--muted); }
+.hf-week-closed-line { font-size: 12px; color: var(--green); margin-top: 5px; padding-left: 30px; }
+.hf-task-receipts--settled { padding-left: 30px; }
+.hf-footnote { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+
+/* ── WorkspaceTasks — "The work" section on feature/repo pages ── */
+.hf-work { margin-top: 20px; }
+.hf-work-h { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.01em; }
+.hf-work-counts { display: flex; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
+.hf-work-chip { font-size: 11.5px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.hf-work-chip--open { background: var(--blue-bg); color: var(--blue); }
+.hf-work-chip--proposed { background: var(--amber-bg); color: var(--amber); }
+.hf-work-chip--closed { background: var(--green-bg); color: var(--green); }
+.hf-work-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
+.hf-work-row--closed { opacity: 0.6; }
+.hf-work-dept { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.08em; flex-shrink: 0; font-family: var(--mono); }
+.hf-work-row-body { flex: 1; min-width: 0; }
+.hf-work-stmt { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hf-work-closed-receipt { font-size: 11.5px; color: var(--green); margin-top: 2px; }
+.hf-work-unsigned { font-size: 11.5px; color: var(--amber); margin-top: 2px; }
+.hf-work-status { font-size: 13px; flex-shrink: 0; }
+.hf-work-status--closed { color: var(--green); }
+.hf-work-status--proposed { color: var(--amber); }
+.hf-work-status--open { color: var(--muted); }
+.hf-work-loading { font-size: 13px; color: var(--muted); }
+.hf-work-new { display: inline-block; font-size: 12.5px; color: var(--accent); margin-top: 8px; font-weight: 600; }

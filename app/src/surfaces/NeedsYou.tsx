@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { fetchNeedsYou, type NeedsYouItem } from "../api";
 import { VerdictBadge, Dot } from "../ink/Badge";
 import { age } from "../ink/age";
@@ -51,26 +51,66 @@ export function NeedsYou() {
             The org is fine. When a promise breaks or a change needs your call, it lands here.
           </div>
         ) : (
-          items.map((it) => (
-            <div
-              key={it.id}
-              className={`ink-row${it.id === selectedId ? " sel" : ""}`}
-              onClick={() => setParams((p) => { p.set("item", it.id); return p; })}
-            >
-              <Dot ink={it.ink as Ink} />
-              <VerdictBadge label={it.label} ink={it.ink} />
-              <div className="title">
-                <div className="t">{it.label} on {it.repo}</div>
-                <div className="m">
-                  <span>{it.repo}</span> · <span className="mono">PR {it.pr_number}</span>
+          items.map((it) => {
+            // Handoff items (kind: handoff_awaiting_signature, closure_evidence_arrived)
+            // use a different shape — no pr_number, no repo, but have a handoff_id.
+            const isHandoffItem =
+              it.kind === "handoff_awaiting_signature" ||
+              it.kind === "closure_evidence_arrived";
+            const handoffId: string | undefined = (it as unknown as Record<string, string>)["handoff_id"];
+            const wsId: string | undefined = (it as unknown as Record<string, string>)["workspace"];
+            const taskId: string | undefined = (it as unknown as Record<string, string>)["task_id"];
+
+            if (isHandoffItem) {
+              const href = handoffId
+                ? `/handoff/${wsId ?? ""}`
+                : taskId
+                ? `/repo/${wsId ?? ""}`
+                : "/handoff";
+              return (
+                <Link
+                  key={it.id ?? handoffId ?? taskId}
+                  to={href}
+                  className={`ink-row${it.id === selectedId ? " sel" : ""}`}
+                  style={{ textDecoration: "none" }}
+                  onClick={() => {
+                    if (it.id) setParams((p) => { p.set("item", it.id); return p; });
+                  }}
+                >
+                  <Dot ink={(it.ink as Ink) ?? "gold"} />
+                  <VerdictBadge label={it.label} ink={it.ink ?? "gold"} />
+                  <div className="title">
+                    <div className="t">{it.label}</div>
+                    {wsId && (
+                      <div className="m"><span>{wsId}</span></div>
+                    )}
+                  </div>
+                  <div className="rt"><span className="act">Sign →</span></div>
+                </Link>
+              );
+            }
+
+            return (
+              <div
+                key={it.id}
+                className={`ink-row${it.id === selectedId ? " sel" : ""}`}
+                onClick={() => setParams((p) => { p.set("item", it.id); return p; })}
+              >
+                <Dot ink={it.ink as Ink} />
+                <VerdictBadge label={it.label} ink={it.ink} />
+                <div className="title">
+                  <div className="t">{it.label} on {it.repo}</div>
+                  <div className="m">
+                    <span>{it.repo}</span> · <span className="mono">PR {it.pr_number}</span>
+                  </div>
+                </div>
+                <div className="rt">
+                  <span className="age">{age(it.ts)}</span>
+                  <span className="act">Review →</span>
                 </div>
               </div>
-              <div className="rt">
-                <span className="age">{age(it.ts)}</span>
-                <span className="act">Review →</span>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </main>
 

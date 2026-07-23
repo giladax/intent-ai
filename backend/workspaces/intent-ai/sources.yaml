@@ -3,4 +3,8 @@
 - reference: brain-prd
   path: docs/prd.md
   status: approved
-  version: "0.3.2"
+  version: 0.3.2
+- reference: handoff-export-polish
+  path: intent/handoff-export-polish.md
+  status: draft
+  version: authored-1

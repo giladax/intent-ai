@@ -4,6 +4,7 @@ import { fetchOrgFeatureDetail } from "../api";
 import type { OrgFeatureDetail, FeaturePromise, FeatureTimelineItem } from "../types";
 import { VerdictBadge, Dot } from "../ink/Badge";
 import type { Ink } from "../ink/vocab";
+import { WorkspaceTasks } from "./Handoff";
 
 interface FeaturePageProps {
   featureId: string;
@@ -130,6 +131,11 @@ export function FeaturePage({ featureId }: FeaturePageProps) {
                 ))}
               </div>
             </>
+          )}
+
+          {/* The work — task cards for this feature's workspace (A4.5) */}
+          {feature.repoWorkspace && (
+            <WorkspaceTasks workspace={feature.repoWorkspace} featureId={featureId} />
           )}
 
           {feature.promises.length === 0 && !feature.whyCard && feature.timeline.length === 0 && (

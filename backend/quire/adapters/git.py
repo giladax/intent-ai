@@ -7,6 +7,10 @@ plus:
 
     sources.yaml              which repo files are approved intent sources
                               [{reference, path, status, version}]
+                              paths resolve against the repo checkout first,
+                              then the workspace dir (authored sources live
+                              in <workspace>/intent/); unresolvable entries
+                              are skipped with a warning, never fatal
                               (legacy name requirements_index.yaml still read)
     prs.yaml                  pr_number → {base, head, title?, body?, issue?}
                               (title/body default to the head commit message)
@@ -17,10 +21,13 @@ the workspace directory.
 
 from __future__ import annotations
 
+import logging
 import pathlib
 import subprocess
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 from quire.adapters.fixture import FixtureWorkspace
 from quire.models import (
@@ -128,14 +135,30 @@ class GitWorkspace(FixtureWorkspace):
             return super().requirement_artifacts()
         artifacts = []
         for entry in yaml.safe_load(index_path.read_text()) or []:
+            # Repo-checkout paths first (the normal case); workspace-relative
+            # second (authored sources saved into <workspace>/intent/).
             path = self.repo_dir / entry["path"]
+            if not path.exists():
+                alt = self.root / entry["path"]
+                if alt.exists():
+                    path = alt
+            try:
+                content = path.read_text()
+            except OSError as exc:
+                # One unresolvable source must never take down the whole
+                # contract — skip it loudly and keep the ledger serving.
+                logger.warning(
+                    "skipping intent source %r: %s (%s)",
+                    entry.get("reference"), path, exc,
+                )
+                continue
             artifacts.append(
                 ArtifactSnapshot(
                     provider="git",
                     reference=entry["reference"],
                     kind=ArtifactKind.REQUIREMENT,
                     uri=str(path),
-                    content=path.read_text(),
+                    content=content,
                     revision=str(entry.get("version", "")),
                     authority=_AUTHORITY_BY_STATUS.get(
                         str(entry.get("status", "")).lower(), Authority.UNKNOWN

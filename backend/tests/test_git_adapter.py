@@ -84,3 +84,34 @@ def test_requirements_from_index(git_workspace):
     assert "Approved limit is $100" in artifacts[0].content
     obligations = git_workspace.obligations()
     assert obligations[0].source_content_hash == artifacts[0].content_hash
+
+
+def test_workspace_relative_source_resolves(git_workspace):
+    """Authored sources saved into <workspace>/intent/ (the O4.5 authoring
+    door) resolve via the workspace-relative fallback."""
+    ws = git_workspace.root
+    (ws / "intent").mkdir()
+    (ws / "intent" / "authored.md").write_text("# Authored\nUsers must sign.\n")
+    (ws / "requirements_index.yaml").write_text(
+        "- {reference: prd, path: docs/prd.md, status: approved, version: '1'}\n"
+        "- {reference: authored, path: intent/authored.md, status: draft, version: 'a1'}\n"
+    )
+    artifacts = git_workspace.requirement_artifacts()
+    by_ref = {a.reference: a for a in artifacts}
+    assert "Users must sign" in by_ref["authored"].content
+    assert by_ref["authored"].authority == Authority.DRAFT
+    assert by_ref["prd"].authority == Authority.APPROVED
+
+
+def test_unresolvable_source_is_skipped_not_fatal(git_workspace):
+    """A dangling sources entry must never take down the whole contract —
+    the live bug: one bad path made obligations() raise for the workspace."""
+    ws = git_workspace.root
+    (ws / "requirements_index.yaml").write_text(
+        "- {reference: prd, path: docs/prd.md, status: approved, version: '1'}\n"
+        "- {reference: gone, path: nowhere/missing.md, status: draft, version: 'x'}\n"
+    )
+    artifacts = git_workspace.requirement_artifacts()
+    assert [a.reference for a in artifacts] == ["prd"]
+    # And the ledger still serves.
+    assert git_workspace.obligations()

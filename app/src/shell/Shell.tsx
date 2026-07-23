@@ -43,6 +43,7 @@ export function Shell({ children, detail = false }: { children: React.ReactNode;
           <NavItem to="/reviews" icon="⧉" label="Reviews" />
           <NavItem to="/sessions" icon="◴" label="Sessions" count={sessionCount ?? undefined} />
           <NavItem to="/journal" icon="✎" label="Journal" />
+          <NavItem to="/handoff" icon="⇥" label="Handoff" />
           <NavItem to="/channels" icon="◑" label="Channels" />
         </nav>
 
