@@ -77,6 +77,46 @@ def test_fixture_repos_have_no_remote(store):
             assert r["github_remote"] is None
 
 
+def test_resolve_repository_key_intent_ai(store):
+    """resolve_repository_key('intent-ai') must return 'giladax/intent-ai' after seed.
+
+    org_sync writes analyses under the GitHub owner/name key; the card reader
+    must resolve to the same key family (dual-key merge, review finding #1).
+    """
+    seed_demo_org(store)
+    key = store.resolve_repository_key("intent-ai")
+    assert key == "giladax/intent-ai", (
+        f"Expected 'giladax/intent-ai', got {key!r}. "
+        "Did the intent-ai DEMO_REPOS entry lose its repository key?"
+    )
+
+
+def test_seed_patch_forward_backfills_intent_ai_repository(store, engine):
+    """Re-seeding over a NULL intent-ai repository must backfill 'giladax/intent-ai'.
+
+    The production row predates the repository value; seed() is insert-only
+    idempotent but patch-forwards NULL repository when the seed carries one.
+    """
+    from sqlalchemy.orm import Session as SASession
+    from quire.db.org_models import OrgRepo
+
+    seed_demo_org(store)
+    # Simulate the pre-existing production state: NULL repository
+    with SASession(engine) as s:
+        row = s.get(OrgRepo, "intent-ai")
+        row.repository = None
+        s.commit()
+
+    seed_demo_org(store)  # second seed must patch-forward
+
+    with SASession(engine) as s:
+        row = s.get(OrgRepo, "intent-ai")
+        assert row.repository == "giladax/intent-ai", (
+            f"Patch-forward failed: repository is {row.repository!r}"
+        )
+    assert store.resolve_repository_key("intent-ai") == "giladax/intent-ai"
+
+
 # ── card data composition ─────────────────────────────────────────────────
 
 def test_card_data_returns_list(store):
@@ -134,9 +174,14 @@ def test_get_repo_card_data_uses_repository_key_for_alignment_store(store):
     assert "refund-agent" not in all_repo_args, (
         "list_analyses must not be called with bare workspace 'refund-agent'"
     )
-    # intent-ai workspace == repository key, so must be called as-is
-    assert "intent-ai" in all_repo_args, (
-        "Expected list_analyses called with repository='intent-ai' for intent-ai"
+    # intent-ai carries a repository override matching its GitHub owner/name
+    # (org_sync writes analyses under that key — finding #1 dual-key merge)
+    assert "giladax/intent-ai" in all_repo_args, (
+        "Expected list_analyses called with repository='giladax/intent-ai' for intent-ai"
+    )
+    # intent-ai-live has no override → queried by its workspace name
+    assert "intent-ai-live" in all_repo_args, (
+        "Expected list_analyses called with repository='intent-ai-live' (no override)"
     )
 
 

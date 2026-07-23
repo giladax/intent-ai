@@ -405,3 +405,9 @@ class PRAnalysis(BaseModel):
     artifact_snapshot_ids: list[str] = Field(default_factory=list)
     comment_markdown: str = ""
     created_at: datetime = Field(default_factory=utc_now)
+
+    # Transient: set by run_analysis when this result came from the identity
+    # cache (same head_sha + contract snapshot already analyzed). Not a stored
+    # fact — a runtime signal so callers (org_sync) can skip re-publishing and
+    # re-marking the SHA as seen.
+    from_cache: bool = False

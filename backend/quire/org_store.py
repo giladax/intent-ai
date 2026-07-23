@@ -32,6 +32,7 @@ DEMO_REPOS: list[dict[str, Any]] = [
         "github_remote": "https://github.com/giladax/intent-ai",
         "status": "active",
         "read_only": False,
+        "repository": "giladax/intent-ai",  # alignment key matches GitHub owner/name (org_sync writes under it)
     },
     {
         "id": "intent-ai-live",

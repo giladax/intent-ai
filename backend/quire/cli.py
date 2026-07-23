@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import pathlib
+import time
 
 import typer
 
@@ -1036,6 +1037,123 @@ def mcp():
     from quire.mcp.server import start_mcp_server
 
     start_mcp_server()
+
+
+# ── Org sub-group (O2+) ────────────────────────────────────────────────────
+
+org_app = typer.Typer(no_args_is_help=True, add_completion=False,
+                      help="Org platform — governed repos, continuous PR review.")
+app.add_typer(org_app, name="org")
+
+
+@org_app.command("sync")
+def org_sync(
+    loop: bool = typer.Option(False, "--loop", help="poll continuously"),
+    interval: int = typer.Option(
+        300, "--interval", help="seconds between passes when --loop is active"
+    ),
+    max_prs: int = typer.Option(
+        5, "--max-prs", help="max new PRs analyzed per repo per pass"
+    ),
+    db: str = typer.Option("", help="database URL (default sqlite file for alignment store)"),
+):
+    """Analyze new/updated PRs across all active GitHub-governed repos (O2).
+
+    One pass: for each active GitHub workspace in the org, poll open PRs,
+    detect new or updated head SHAs, run the alignment analyzer, and emit a
+    check:analyzed activity event per result.
+
+    Publishing comments on GitHub is OFF by default and must be explicitly
+    enabled per workspace (publish_enabled: true in sync_meta.yaml) AND the
+    repo must be owned by giladax.  Third-party repos (psf/requests, etc.)
+    NEVER receive comments from this system.
+
+    Rate limits: ~3–5 API calls per new PR head SHA; list_prs capped at 2
+    pages (≤200 PRs) per repo per pass.  GITHUB_TOKEN from .env is used when
+    present; tokenless rate limit is 60 req/hr (falls back gracefully).
+    """
+    import os
+
+    from quire.org_store import OrgStore, seed_demo_org
+    from quire.org_sync import sync_org
+    from quire.store import Store
+
+    alignment_store = Store(url=db or None)
+
+    try:
+        from quire.db.engine import get_engine
+        engine = get_engine()
+        org_store = OrgStore(engine=engine)
+        seed_demo_org(org_store)
+    except Exception as exc:
+        typer.secho(
+            f"could not connect to org Postgres: {exc} — "
+            "check DATABASE_URL and that `quire up` is running",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
+
+    def _run_pass() -> None:
+        results = sync_org(
+            org_store,
+            alignment_store,
+            max_prs_per_repo=max_prs,
+        )
+        for r in results:
+            ws = r["workspace"]
+            repo = r["repository"]
+            if r.get("error"):
+                typer.secho(
+                    f"  {ws} ({repo}): ERROR — {r['error']}",
+                    fg=typer.colors.RED,
+                )
+                continue
+            polled = r["events_polled"]
+            analyzed = r["analyzed"]
+            typer.echo(f"  {ws} ({repo}): {polled} PRs polled, {analyzed} analyzed")
+            for res in r["results"]:
+                if res.get("error"):
+                    typer.secho(
+                        f"    PR #{res['pr_number']}: ERROR — {res['error']}",
+                        fg=typer.colors.YELLOW,
+                    )
+                elif res.get("skipped"):
+                    typer.echo(f"    PR #{res['pr_number']}: already analyzed (cached)")
+                else:
+                    from quire import vocab
+                    v = vocab.verdict(res.get("verdict"))
+                    colour = {
+                        "red": typer.colors.RED,
+                        "amber": typer.colors.YELLOW,
+                        "green": typer.colors.GREEN,
+                        "blue": typer.colors.BLUE,
+                    }.get(v["ink"], typer.colors.WHITE)
+                    url_note = (
+                        f" → published: {res['publish_url']}"
+                        if res.get("publish_url")
+                        else ""
+                    )
+                    typer.secho(
+                        f"    PR #{res['pr_number']}: {v['label']}{url_note}",
+                        fg=colour,
+                    )
+
+    if loop:
+        typer.secho(
+            f"org sync --loop: polling every {interval}s (Ctrl-C to stop)",
+            fg=typer.colors.CYAN,
+        )
+        while True:
+            typer.secho(f"\n[pass] {_now_str()}", fg=typer.colors.CYAN)
+            _run_pass()
+            time.sleep(interval)
+    else:
+        _run_pass()
+
+
+def _now_str() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
 if __name__ == "__main__":

@@ -128,4 +128,9 @@ def run_analysis(
         llm = AnthropicAlignmentLLM()
     graph = build_analysis_graph(adapter, llm, store=store, config=config)
     result = graph.invoke({"pr_number": pr_number, "force": force})
-    return result["analysis"]
+    analysis = result["analysis"]
+    if analysis is not None:
+        # Thread the cache-hit flag out of the graph state so callers can
+        # distinguish a fresh analysis from a cached one (org_sync `skipped`).
+        analysis.from_cache = result.get("cached", False)
+    return analysis

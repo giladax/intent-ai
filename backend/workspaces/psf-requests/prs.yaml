@@ -1631,3 +1631,510 @@
   html_url: https://github.com/psf/requests/pull/7349
   author: cjriches
   created_at: '2026-04-09T14:13:51Z'
+7297:
+  base: bc04dfd6dad4cb02cd92f5daa81eb562d280a761
+  head: 85b799b0474df2251ba8f4c3a2ad7f0aefc037c8
+  title: 'docs: warn about using Session across forked processes'
+  state: open
+  author: yuchengpersonal
+  updated_at: '2026-04-13T08:54:00Z'
+7289:
+  base: ebf71906798ec82f34e07d3168f8b8aecaf8a3be
+  head: dd175a5802890a1f2e7f922dcf8db60cb6e6d086
+  title: 'Docs: add complete error handling example to quickstart'
+  state: open
+  author: Cosmic-Escape
+  updated_at: '2026-03-23T14:12:25Z'
+7217:
+  base: da9113c0466850a425e554630a732ec1f7d045fc
+  head: 818d92764bd7035a0450d7b4e52ec9fc6d07abb6
+  title: 'Fix #6122: Empty body with None values sends malformed chunked request'
+  state: open
+  author: rodionsteshenko
+  updated_at: '2026-03-23T17:44:40Z'
+7213:
+  base: da9113c0466850a425e554630a732ec1f7d045fc
+  head: fdb0b75d351a66911029f88677ed4da47ec9c03c
+  title: Fix PreparedRequest.copy() sharing hooks reference with original
+  state: open
+  author: bysiber
+  updated_at: '2026-02-20T07:27:46Z'
+7201:
+  base: 0e4ae38f0c93d4f92a96c774bd52c069d12a4798
+  head: 0406663e1b802bb839aca40e9f6ea89d0c9255ef
+  title: Fix incorrect Content-Length for StringIO with multi-byte characters
+  state: open
+  author: veeceey
+  updated_at: '2026-06-02T19:04:02Z'
+7194:
+  base: 421b8733cf17e4dee8be237e7412b095772c2323
+  head: 1e75a3c8778f6dd1ce0eb7e0396440f472db921a
+  title: 'Fix: Strip proxies when redirect URL matches no_proxy'
+  state: open
+  author: atulk-code
+  updated_at: '2026-01-31T18:53:54Z'
+7184:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 0ff71526d1d78ed88e3a90411b6042650077bf44
+  title: Remove quotes on qop and algorithm values for Digest auth
+  state: open
+  author: almetge
+  updated_at: '2026-01-30T03:50:37Z'
+7183:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: c3e336446804760728a3b4bbbc2b8c52665b64a5
+  title: 'docs: Clarify connect timeout also includes time for sending request body'
+  state: open
+  author: sjoerdsmink
+  updated_at: '2026-01-28T12:14:27Z'
+7151:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 376d1c8f738136a7e21a192580be1024e1dbf81c
+  title: 'Fix: Correct Content-Length for StringIO with multi-byte characters'
+  state: open
+  author: hcthakur2004
+  updated_at: '2026-01-15T23:59:43Z'
+7148:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 128366ea5933dd612c9ecf9cb32c2678c4f1b919
+  title: Add IPv6 CIDR support to no_proxy handling
+  state: open
+  author: Naitik2302
+  updated_at: '2026-01-08T09:51:46Z'
+7135:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 87c172b64686857e318850efcbb75862cb31baf2
+  title: 'Docs: clarify Session safety in multi-process environments'
+  state: open
+  author: Krishna4907
+  updated_at: '2025-12-29T06:37:18Z'
+7133:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 5fef842d42c773f76f3e64e0951cee985b3ff50c
+  title: Add timeout best practices to documentation
+  state: open
+  author: kana44
+  updated_at: '2025-12-29T01:43:00Z'
+7130:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: da7ac03477bc26a687329cfdceadc18e6370fdbd
+  title: Persist CookiePolicy at session level
+  state: open
+  author: godcrampy
+  updated_at: '2025-12-20T12:51:04Z'
+7128:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: a3d9a050e7c0e13d1b0ffa4e033bf2016a1f04bf
+  title: 'fix: handle empty string cookie values correctly'
+  state: open
+  author: shindonghwi
+  updated_at: '2025-12-19T03:56:22Z'
+7127:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: f621223b2ee467b466b8f06ef26b8930fe844191
+  title: 'fix: use context manager for ZipFile in extract_zipped_paths'
+  state: open
+  author: shindonghwi
+  updated_at: '2025-12-19T03:56:21Z'
+7102:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 6b9f6e1d218960e1c424748c3df93dd1f3afba92
+  title: Added documentation for Session safety in multi-process environments
+  state: open
+  author: krishvsoni
+  updated_at: '2025-12-01T18:26:34Z'
+7096:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 5f07f204a026ba847182250d1b88173d11a4d07e
+  title: Remove redundant __ne__ methods
+  state: open
+  author: khanashes
+  updated_at: '2025-11-26T20:47:19Z'
+7083:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 8401716d3d62efd4188941bc1cb8d86887d2baff
+  title: 'Fix: Preserve escaped quotes in cookies'
+  state: open
+  author: egangi
+  updated_at: '2025-11-10T15:31:32Z'
+7068:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: a784de5a5209aabc9c64aae809a9ae5caa706b5b
+  title: 'Fix: Respect no_proxy in proxies dictionary and NO_PROXY env var'
+  state: open
+  author: cjac
+  updated_at: '2025-10-24T20:59:50Z'
+7065:
+  base: 6f66281a1d6326b1b9c4ac09ca30de0fc4e6ef43
+  head: 251dd100f16d4cd5e2f4da7f19929c6ad02dce87
+  title: 'feat: Add IPv6 zone ID detection and parsing support in HTTPAdapter'
+  state: open
+  author: tboy1337
+  updated_at: '2026-07-04T05:21:02Z'
+7051:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: b4e6874e922831256c9a76f9f1025a74d4b180de
+  title: Fix and optimize RequestsCookieJar.multiple_domains() method
+  state: open
+  author: tboy1337
+  updated_at: '2025-10-20T21:33:42Z'
+7044:
+  base: 420d16bc7ef326f7b65f90e4644adc0f6a0e1d44
+  head: 6a3fed9f08f9e282b3738cff71721325acdca4c3
+  title: 'chore: document and test custom SSL Context passing'
+  state: open
+  author: Tasssadar
+  updated_at: '2025-10-14T10:55:35Z'
+7007:
+  base: 131e506079d97606e4214cc4d87b780ac478de7a
+  head: 655e173580ca65e18ae1719241b58ea11047bbd8
+  title: Make the SSL version more human-readable
+  state: open
+  author: mengxunQAQ
+  updated_at: '2025-08-13T14:14:28Z'
+7000:
+  base: da9113c0466850a425e554630a732ec1f7d045fc
+  head: d48c8a00b073b0a8a29812236f11d7945964bb8a
+  title: Fix stringio content length
+  state: open
+  author: killerdevildog
+  updated_at: '2026-02-17T02:56:23Z'
+6923:
+  base: 1764cc938efc3cc9720188dfa6c3852c45211aa0
+  head: 0aceb9f98677b35e01a99af36c9caf1e7102b479
+  title: Don't normalise or double-escape urls
+  state: open
+  author: moben
+  updated_at: '2025-03-29T00:23:57Z'
+6901:
+  base: 8ba805fa93c3f0fc958b48bc136ed565d7c82872
+  head: 101e35426d611c72b83a82d72b29ba22b45dce6c
+  title: Fix SSL verification error
+  state: open
+  author: bughandler
+  updated_at: '2025-02-24T04:37:15Z'
+6891:
+  base: f761e74a4d50d2e88d9e30e660494b36c9d630f8
+  head: 7875ec3a57ead5088558d8f0f5c0a319037651d1
+  title: Remove incorrect handling of escaped quotes in cookie values
+  state: open
+  author: Konano
+  updated_at: '2025-02-12T05:58:04Z'
+6889:
+  base: f2a6ae5e3267f64c47059fd64e43c02e0891f523
+  head: 5927d9945e452b16ae2b853b433086352e84a712
+  title: Updated the test for extract_zipped_paths to run correctly if test_utils.py
+    is changed
+  state: open
+  author: ShivamBang98
+  updated_at: '2025-02-22T09:10:57Z'
+6864:
+  base: 23540c93cac97c763fe59e843a08fa2825aa80fd
+  head: fb52a987db4a26bc087b6fbc0dba4dea584fdc1c
+  title: Add example for handling timeouts in advanced.rst
+  state: open
+  author: sheraz14
+  updated_at: '2024-12-29T23:51:34Z'
+6819:
+  base: 8ff173b186f135670879db9fbe1e68a6b5209c89
+  head: ac351b9819c0d1ea6256897111999a69445d500d
+  title: Add !r to error messages for improved clarity on file paths
+  state: open
+  author: jjkochan-metro
+  updated_at: '2025-06-10T18:34:22Z'
+6814:
+  base: d58d8aa2f45c3575268d6d5250745ef69f9cf8b7
+  head: 418c1d961e43cb5d4066dbf1858236c9a7cc14b3
+  title: update docs for `timeout` arguments to clarify that it uses seconds
+  state: open
+  author: DetachHead
+  updated_at: '2025-07-18T08:19:48Z'
+6772:
+  base: 0e322af87745eff34caffe4df68456ebc20d9068
+  head: e6d8220e3ae1380475b79045390a2103ca5ee9ea
+  title: 'chore(charset issue): Resolution for issue 6102 '
+  state: open
+  author: kalingth
+  updated_at: '2024-07-26T04:26:55Z'
+6709:
+  base: 88dce9d854797c05d0ff296b70e0430535ef8aaf
+  head: c3910379d06dae38fe4b7f92e21da6c7f15d579e
+  title: Add default timeout
+  state: open
+  author: sigmavirus24
+  updated_at: '2026-05-15T19:32:58Z'
+6696:
+  base: 2d5f54779ad174035c5437b3b3c1146b0eaf60fe
+  head: dd5432fcbdb6a104fc8007a6130c6080a358e15e
+  title: 'Docs update: warn that Session.verify is ignored if REQUESTS_CA_BUNDLE is
+    set'
+  state: open
+  author: StefanKopieczek
+  updated_at: '2024-05-08T16:28:36Z'
+6675:
+  base: 70298332899f25826e35e42f8d83425124f755a5
+  head: 991d81d055358a0d1e88e3365003fb296e2ffefa
+  title: Fix utils functions with invalid ip/cidr inputs
+  state: open
+  author: vcapparelli
+  updated_at: '2025-11-07T20:30:30Z'
+6649:
+  base: eeafb6ab3a54ab01cbf864d452ea30f5fdb67ce8
+  head: f153963ba6f0a009fbabe15c203a540363d759fc
+  title: Measure and report test coverage
+  state: open
+  author: sigmavirus24
+  updated_at: '2024-03-14T19:57:28Z'
+6570:
+  base: 839a8edec37c81a18ac8332cfbd44f44e1ae6206
+  head: cd10158789a762d825e80cbd00ca612eacaae61f
+  title: Document that Response.iter_lines is broken and should be avoided
+  state: open
+  author: bemoody
+  updated_at: '2023-12-05T08:34:38Z'
+6568:
+  base: eea3bbf9ac635f465ee6c9903dc57c677952dafd
+  head: e57b722d3b70c042ac46b4f7d9cb276f02d01009
+  title: Bug/6294 zero bytes files are chunked
+  state: open
+  author: eivindt
+  updated_at: '2026-05-10T21:44:45Z'
+6561:
+  base: 839a8edec37c81a18ac8332cfbd44f44e1ae6206
+  head: f32eb8027c4420ed49044c30dc6e2e0c13020254
+  title: url param gets added when empty param is passed
+  state: open
+  author: amkarn258
+  updated_at: '2023-12-05T08:36:07Z'
+6523:
+  base: 881281250f74549f560408e5546d95a8cd73ce28
+  head: fa37b4c6e84f0838231de318d0f9a91d48ac70ef
+  title: Pass response_kw to HTTPConnectionPool through HTTPAdapter.send
+  state: open
+  author: joren485
+  updated_at: '2023-09-16T12:02:39Z'
+6454:
+  base: d3d504436ef0c2ac7ec8af13738b04dcc8c694be
+  head: 1a78dec7c27a817222f18e63e664cb09b9a93591
+  title: Add os.PathLike support for cert files
+  state: open
+  author: steveberdy
+  updated_at: '2025-11-26T06:08:53Z'
+6400:
+  base: 0b4d494192de489701d3a2e32acef8fb5d3f042e
+  head: 0b6cc9e2fee3ca38d6a505389f25fafae49954c8
+  title: 'Codespell: workflow, config + 1 typo fixed'
+  state: open
+  author: yarikoptic
+  updated_at: '2026-04-13T15:05:57Z'
+6388:
+  base: 7f694b79e114c06fac5ec06019cada5a61e5570f
+  head: e3a61f590cd23e50e77c479719090ca5496a2ebe
+  title: Document that a Response is a context manager
+  state: open
+  author: Hawk777
+  updated_at: '2023-03-23T05:37:45Z'
+6383:
+  base: 7f694b79e114c06fac5ec06019cada5a61e5570f
+  head: 1ca07f327c7afb39be0293e7bfed512f62017928
+  title: Clarify docs for multipart file uploads
+  state: open
+  author: SyntaxColoring
+  updated_at: '2023-06-02T14:29:09Z'
+6347:
+  base: 0b4d494192de489701d3a2e32acef8fb5d3f042e
+  head: cabd270765b8da19376a3eae783aba15a3d012f9
+  title: Use context manager to open files
+  state: open
+  author: RichieB2B
+  updated_at: '2023-11-29T14:03:11Z'
+6270:
+  base: 1e62a3ec18e19f85ddae03b4cbbdf0b4c62834c0
+  head: da11e3f9565f8e94ebbf01bddda13dec018db5f0
+  title: 'fix: pass response (self) to ConnectionError constructor'
+  state: open
+  author: ErikBjare
+  updated_at: '2023-09-20T09:44:28Z'
+6185:
+  base: 4d394574f5555a8ddcc38f707e0c9f57f55d9a3b
+  head: b0a2a23fdef6a2750536c5b92110443da88ff2a9
+  title: 'refactor: use contextlib.suppress instead of empty except'
+  state: open
+  author: kkirsche
+  updated_at: '2022-06-29T15:37:24Z'
+6172:
+  base: da9113c0466850a425e554630a732ec1f7d045fc
+  head: fac97cb5630a305fb1967926b421bd1a9253e657
+  title: Clarify setting proxies exceptions
+  state: open
+  author: RichieB2B
+  updated_at: '2026-02-16T07:46:06Z'
+6166:
+  base: da9996fe4dc63356e9467d0a5e10df3d89a8528e
+  head: 52a76b2ca8a8de393d993be279a5318acd5df7fe
+  title: Add union operator support to CaseInsensitiveDict (PEP 584)
+  state: open
+  author: Cubicpath
+  updated_at: '2022-06-18T20:53:16Z'
+6123:
+  base: 40956723f27daf5e0d9759208ca69cef236ab339
+  head: 7d2b7b9997881c6cf08a196372a544c5dbdca45c
+  title: Fix error caused by invalid charset in response headers
+  state: open
+  author: deosrc
+  updated_at: '2022-05-09T09:14:37Z'
+6122:
+  base: 40956723f27daf5e0d9759208ca69cef236ab339
+  head: 32096fecf0da460067b5482bb1e7b3a9a4656532
+  title: Request with data which consists of empty values only sends bad request
+  state: open
+  author: romanyakovlev
+  updated_at: '2025-11-25T23:03:54Z'
+6048:
+  base: 24dfbfde552bb8ce48eec415714cbe793cfa95bd
+  head: fd54e61076b8c6c6f89697385a6072a745a22077
+  title: Fixing unicode surrogates in POST data lead to exception
+  state: open
+  author: mftb
+  updated_at: '2022-03-09T18:26:01Z'
+5953:
+  base: 69f84847045bef7a849cc994a26fe7ba8a169e95
+  head: 4703994030ae796228ab8f3d34626ceeec2e5da9
+  title: Add ipv6 support to should_bypass_proxies
+  state: open
+  author: derekhiggins
+  updated_at: '2026-07-22T11:19:25Z'
+5922:
+  base: aae78010e987a414c176bddbf474cd554505219c
+  head: 62b3d6a26ad2568e63a6603076479723128ca09e
+  title: 'Always use value of session.verify when set, fixes #5921'
+  state: open
+  author: brmzkw
+  updated_at: '2021-09-01T12:47:59Z'
+5915:
+  base: 177dd90f18a8f4dc79a7d2049f0a3f4fcc5932a0
+  head: 7ce0767b9ead091d5332c354272210ccf612679d
+  title: Adds a Realistic WSGI Server for Testing
+  state: open
+  author: theGOTOguy
+  updated_at: '2023-09-12T02:53:52Z'
+5860:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: a14c468354351680ec6d3118c07fe8c50cae781a
+  title: Document de-duplication of keys for params and data
+  state: open
+  author: verhovsky
+  updated_at: '2022-06-11T06:26:05Z'
+5816:
+  base: 0f358eabe6f8e4c472a5030d9cd513965868bd6c
+  head: e95260a2fc39452672046a83c2ec02aa7417f1b6
+  title: Warn user if environment variables are used
+  state: open
+  author: Akasurde
+  updated_at: '2022-06-02T08:14:12Z'
+5779:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: e283d62444da8b81d56042dacc7b299162d9946a
+  title: 'sets a default timeout and resolves #3070'
+  state: open
+  author: grintor
+  updated_at: '2022-01-03T15:05:49Z'
+5776:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: 1ad9b2579a549b20c55fd517d67f32fc99fb7df2
+  title: Added explanation why the timeout is doubled.(#5773)
+  state: open
+  author: cpyberry
+  updated_at: '2022-01-03T15:22:26Z'
+5748:
+  base: d09659997cd1e3eca49a07c59ece5557071c0ab9
+  head: 597a77804d522c74e433294754418b8a1575fd70
+  title: 'Fix: #4362 - Redirect resolved even though allow_redirects is set to False
+    causing exception for unsupported connection adapter'
+  state: open
+  author: luckydenis
+  updated_at: '2021-12-29T03:56:43Z'
+5693:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: 6ab16db7bd55bc63dca2b6ef8ad04d37117927af
+  title: Pass urllib3.SKIP_HEADER when headers should be unset
+  state: open
+  author: sigmavirus24
+  updated_at: '2022-02-17T15:48:57Z'
+5665:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: f398d138e6d0c6581a127d87ef73996d5ec921f5
+  title: Add support for HTTPS proxies.
+  state: open
+  author: jalopezsilva
+  updated_at: '2022-01-03T15:23:25Z'
+5486:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: eaaf7efbe68da013a86f7dd1edf55e2c9524638d
+  title: Allow for autodection of encoding for scalar values
+  state: open
+  author: blenq
+  updated_at: '2022-01-03T15:26:36Z'
+5464:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: 5233ed98de0ff55f3e71e7ffc8e7dc692170b0f6
+  title: Allow semicolon in the href of Link header
+  state: open
+  author: ibnesayeed
+  updated_at: '2022-01-03T15:26:44Z'
+5441:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: c50e59a3597c47cfb5160e109f5c19a672805256
+  title: 'Strip double-quotes on proxy environment variables and add test (issue #4613)'
+  state: open
+  author: bluebird75
+  updated_at: '2022-01-03T15:27:10Z'
+5257:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: c4f0ce7c192916f563680fd5c110e7c9fad6f3f3
+  title: 'Safely handle, when uri contains IPv6 link local with %zone index '
+  state: open
+  author: jjlogu
+  updated_at: '2022-01-03T15:27:48Z'
+5232:
+  base: fab1fd10d0b115e635b9ef1364f8444089725000
+  head: a5058679316abb895b90579aac59d8a9a0e9f667
+  title: Add timeout as a default attribute for Session objects
+  state: open
+  author: ofek
+  updated_at: '2022-01-03T15:28:12Z'
+5221:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: aff1ffed871ac9a6ffaa0174b65636d9935d0bb2
+  title: Change raise_for_status message to hide password in URL
+  state: open
+  author: Overv
+  updated_at: '2025-03-20T11:31:32Z'
+5220:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: 6df6aa7a634ed6ec960e4abc81a9762a65a97727
+  title: Fix connection pool managers not taking varying TLS parameters into account
+  state: open
+  author: Overv
+  updated_at: '2022-01-03T15:28:37Z'
+5172:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: 3c51dd29f8d9a8366a80d2532180f2d0e8f6ddbd
+  title: Fix Issue of Ignoring Session-level Settings
+  state: open
+  author: AndTheDaysGoBy
+  updated_at: '2022-01-03T15:29:17Z'
+4920:
+  base: 39d0fdd9096f7dceccbc8f82e1eda7dd64717a8e
+  head: 7dde3289e39761897e4afdfcf1b75f74ef982054
+  title: iter_content() checks for < 1 chunk_size
+  state: open
+  author: alex-wenzel
+  updated_at: '2021-12-29T03:54:39Z'
+4372:
+  base: 0192aac24123735b3eaf9b08df46429bb770c283
+  head: 78e8258da63b35db032b1e7a962b595400f032f0
+  title: When Location decoding fails, fall back to original
+  state: open
+  author: mjpieters
+  updated_at: '2022-01-03T15:30:58Z'

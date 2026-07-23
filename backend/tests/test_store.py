@@ -29,6 +29,10 @@ def test_second_run_returns_cached_without_llm_calls(refund_workspace, store):
     second = run_analysis(refund_workspace, 101, llm=fake, store=store)
     assert second.analysis_id == first.analysis_id
     assert fake.calls == []  # cache hit — no inference re-run
+    # run_analysis threads the graph state's cached flag onto the result
+    # (review finding #2: org_sync relies on from_cache for `skipped`).
+    assert first.from_cache is False
+    assert second.from_cache is True
 
 
 def test_force_reruns_despite_cache(refund_workspace, store):

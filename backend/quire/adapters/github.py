@@ -129,6 +129,7 @@ class GitHubWorkspace:
                     "base_sha": (pr.get("base") or {}).get("sha", ""),
                     "author": (pr.get("user") or {}).get("login", ""),
                     "created_at": pr.get("created_at", ""),
+                    "updated_at": pr.get("updated_at", ""),
                     "html_url": pr.get("html_url", ""),
                 })
             if len(batch) < per_page:
