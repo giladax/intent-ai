@@ -61,6 +61,28 @@ export function NeedsYou() {
             const wsId: string | undefined = (it as unknown as Record<string, string>)["workspace"];
             const taskId: string | undefined = (it as unknown as Record<string, string>)["task_id"];
 
+            // O4 — a session proposes intent: route to its review room. The
+            // link is provided by the contract (/intent-review/<upload_id>).
+            if (it.kind === "session_proposes_intent") {
+              const href = (it as unknown as Record<string, string>)["link"] ?? "/needs-you";
+              return (
+                <Link
+                  key={it.id}
+                  to={href}
+                  className="ink-row"
+                  style={{ textDecoration: "none" }}
+                >
+                  <Dot ink={(it.ink as Ink) ?? "gold"} />
+                  <VerdictBadge label={it.label} ink={it.ink ?? "gold"} />
+                  <div className="title">
+                    <div className="t">{it.label}</div>
+                    {wsId && <div className="m"><span>{wsId}</span></div>}
+                  </div>
+                  <div className="rt"><span className="act">Review →</span></div>
+                </Link>
+              );
+            }
+
             if (isHandoffItem) {
               const href = handoffId
                 ? `/handoff/${wsId ?? ""}`

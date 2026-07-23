@@ -1,0 +1,7 @@
+# Runtime refund policy configuration.
+# guard_ceiling is enforced at the tool boundary, independent of RefundPolicy.
+guard_ceiling: 100
+premium_max_auto_refund: 250
+standard_max_auto_refund: 25
+# Minimum hours between automatic refunds for the same customer.
+auto_refund_cooldown_hours: 24

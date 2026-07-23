@@ -114,7 +114,8 @@ def test_contents_diff_and_tree():
 
 def test_product_side_stays_local():
     workspace = make_workspace()
-    assert len(workspace.obligations()) == 6
+    # 6 PRD-sourced + OB-201 from the approved session memo (O4).
+    assert len(workspace.obligations()) == 7
     references = {a.reference for a in workspace.requirement_artifacts()}
     assert "refund-policy-prd" in references
 

@@ -56,3 +56,17 @@ obligations:
     source_reference: refund-policy-prd
     source_section: "#escalation-prompt"
     revision: "3"
+
+  # Sourced from an APPROVED session memo, not a PRD — a product-direction
+  # session became an intent source through the human approval act (O4). The
+  # session itself is observed evidence; this obligation traces to the memo
+  # (an approved artifact on the existing ladder), exactly like any PRD-sourced
+  # obligation. This is what proves a session-sourced intent GOVERNS a verdict.
+  - obligation_id: OB-201
+    kind: permission
+    statement: >-
+      Premium-tier customers with a low risk score may receive automatic
+      refunds up to $250 without human involvement.
+    source_reference: session-memo-premium-refund-expansion
+    source_section: "#premium-refund-expansion"
+    revision: "session-memo-2026-07-23"

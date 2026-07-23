@@ -85,6 +85,43 @@ export interface NeedsYouItem {
 }
 export const fetchNeedsYou = () => json<NeedsYouItem[]>("/api/needs-you");
 
+// ── O4 — Sessions as INTENT: a product-direction session becomes a signed
+// intent source. Distilled cards (statement + verbatim quote), the human
+// signs, the memo lands as an approved source. ─────────────────────────
+export interface IntentCard {
+  statement: string;
+  source_quote: string;
+  speaker?: string;
+}
+export interface IntentCardsResult {
+  upload_id: string;
+  session_id: string;
+  repo: string;
+  cards: IntentCard[];
+  notes: string[];
+}
+export const fetchIntentCards = (uploadId: string) =>
+  json<IntentCardsResult>(`/api/sessions/upload/${uploadId}/intent-cards`);
+
+export interface IntentApproveResult {
+  signed: number;
+  reference: string;
+  path: string;
+  workspace: string;
+  statements: string[];
+}
+export const approveIntentCards = (
+  uploadId: string,
+  approved_by: string,
+  cards: Array<IntentCard & { accept: boolean }>,
+  title?: string,
+) =>
+  json<IntentApproveResult>(`/api/sessions/upload/${uploadId}/intent/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approved_by, cards, title }),
+  });
+
 // ── O4.5 — Handoff: PRD in, team's week out ────────────────────────
 
 /** One task card, as returned by the backend contract. */

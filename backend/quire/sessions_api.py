@@ -44,7 +44,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Session as SASession
@@ -472,6 +472,67 @@ def _digest_uploaded(
     return result["session_id"]
 
 
+def intent_needs_you_items(upload_store: "UploadStore | None" = None) -> list[dict]:
+    """Needs-you items for as_intent sessions whose cards await a human.
+
+    An as_intent upload needs review until its intent has been approved into a
+    memo — detected by whether the workspace's sources.yaml already carries a
+    session-memo entry for this upload's session. Plain language; the same item
+    shape the org needs-you list uses. Failure-safe: any trouble yields [].
+    """
+    import yaml as _yaml
+    from sqlalchemy import select
+
+    try:
+        if upload_store is None:
+            from quire.db.engine import get_engine
+
+            upload_store = UploadStore(engine=get_engine())
+        with SASession(upload_store._engine) as s:
+            rows = s.execute(
+                select(SessionUpload).where(SessionUpload.as_intent == 1)
+            ).scalars().all()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("intent needs-you: upload store unavailable (%s)", exc)
+        return []
+
+    items: list[dict] = []
+    for row in rows:
+        rec = _row_to_record(row)
+        session_id = rec.session_id or rec.id
+        ws_dir = _workspace_dir_for_repo(rec.repo)
+        # Already approved? A session-memo source referencing this session
+        # means the intent has been signed — drop it from the review list.
+        approved = False
+        sources_file = ws_dir / "sources.yaml"
+        if sources_file.exists():
+            try:
+                sources = _yaml.safe_load(sources_file.read_text()) or []
+                for entry in sources if isinstance(sources, list) else []:
+                    memo_path = ws_dir / str(entry.get("path", ""))
+                    if str(entry.get("reference", "")).startswith("session-memo-") \
+                            and memo_path.exists() and session_id in memo_path.read_text():
+                        approved = True
+                        break
+            except Exception:
+                approved = False
+        if approved:
+            continue
+        items.append(
+            {
+                "id": f"intent-{rec.id}",
+                "kind": "session_proposes_intent",
+                "upload_id": rec.id,
+                "workspace": ws_dir.name,
+                "repo": rec.repo,
+                "label": "A session proposes intent — review the cards",
+                "ink": "gold",
+                "link": f"/intent-review/{rec.id}",
+            }
+        )
+    return items
+
+
 def _workspace_dir_for_repo(repo: str) -> pathlib.Path:
     """Derive a workspace directory from the repo name.
 
@@ -715,5 +776,107 @@ def create_sessions_router(upload_store: UploadStore | None = None) -> APIRouter
             raise HTTPException(404, f"no upload '{upload_id}'")
         rec = _row_to_record(row)
         return rec.model_dump()
+
+    # ── O4 — sessions as INTENT ──────────────────────────────────────────
+    # An as_intent upload's transcript is distilled into candidate intent
+    # cards (quote-backed against the archived transcript), a human approves
+    # per-card, and approval writes the memo artifact + registers it approved.
+    # The session stays observed evidence; only the approved memo governs.
+
+    def _require_intent_upload(upload_id: str) -> UploadRecord:
+        store = _store()
+        if store is None:
+            raise HTTPException(503, "session upload store unavailable")
+        from sqlalchemy import select
+        with SASession(store._engine) as s:
+            row = s.execute(
+                select(SessionUpload).where(SessionUpload.id == upload_id)
+            ).scalar_one_or_none()
+        if row is None:
+            raise HTTPException(404, f"no upload '{upload_id}'")
+        rec = _row_to_record(row)
+        if not rec.as_intent:
+            raise HTTPException(
+                400,
+                "this session was not uploaded as intent — only as_intent "
+                "sessions produce intent cards",
+            )
+        return rec
+
+    @router.get("/upload/{upload_id}/intent-cards")
+    def get_intent_cards(upload_id: str):
+        """Distill candidate intent cards from the archived transcript.
+
+        Cached beside the archive (distillation is a live LLM call); cards are
+        quote-validated against the transcript before they are returned.
+        """
+        rec = _require_intent_upload(upload_id)
+        from quire.propose_intent import distill_cached
+
+        try:
+            cards, notes = distill_cached(pathlib.Path(rec.archive_path), upload_id)
+        except FileNotFoundError:
+            raise HTTPException(404, "archived transcript not found")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("intent distillation failed for %s: %s", upload_id, exc)
+            raise HTTPException(502, f"intent distillation failed: {exc}")
+        return {
+            "upload_id": upload_id,
+            "session_id": rec.session_id or upload_id,
+            "repo": rec.repo,
+            "cards": [c.model_dump() for c in cards],
+            "notes": notes,
+        }
+
+    @router.post("/upload/{upload_id}/intent/approve")
+    def approve_intent(upload_id: str, body: dict = Body(...)):
+        """The authority act. Explicit per-card decisions + a signature.
+
+        Body: {approved_by, cards: [{statement, source_quote, speaker?, accept}],
+               title?}. Accepted cards are re-validated verbatim against the
+               transcript, then written as the memo artifact + registered as an
+               approved source. Cards without accept:true are dropped (never
+               silently signed). Rejecting all cards mints nothing.
+        """
+        rec = _require_intent_upload(upload_id)
+        approved_by = (body.get("approved_by") or "").strip()
+        if not approved_by:
+            raise HTTPException(400, "approved_by is required — a signature has a name")
+        decisions = body.get("cards") or []
+        from quire.propose_intent import IntentCard, approve_intent_memo
+
+        accepted = [
+            IntentCard(
+                statement=(d.get("statement") or "").strip(),
+                source_quote=(d.get("source_quote") or "").strip(),
+                speaker=(d.get("speaker") or "").strip(),
+            )
+            for d in decisions
+            if d.get("accept")
+        ]
+        if not accepted:
+            raise HTTPException(400, "no cards accepted — nothing to sign")
+
+        ws_dir = _workspace_dir_for_repo(rec.repo)
+        try:
+            result = approve_intent_memo(
+                workspace_dir=ws_dir,
+                source_session=rec.session_id or upload_id,
+                approved_by=approved_by,
+                cards=accepted,
+                transcript_path=pathlib.Path(rec.archive_path),
+                title=(body.get("title") or "").strip() or None,
+                reference=(body.get("reference") or "").strip() or None,
+            )
+        except ValueError as exc:
+            # A quote that no longer resolves verbatim is a hard stop.
+            raise HTTPException(422, str(exc))
+        return {
+            "signed": len(result.statements),
+            "reference": result.reference,
+            "path": result.path,
+            "workspace": ws_dir.name,
+            "statements": result.statements,
+        }
 
     return router

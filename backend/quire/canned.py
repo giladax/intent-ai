@@ -379,6 +379,80 @@ def _pr110_abstain() -> FakeAlignmentLLM:
     return FakeAlignmentLLM()
 
 
+def _pr112_session_memo_partial() -> FakeAlignmentLLM:
+    """O4 governing proof: an APPROVED SESSION MEMO raised the premium ceiling
+    to $250 (OB-201, source_reference = session-memo-premium-refund-expansion).
+    This PR raises the decision policy to $250 but leaves the guard ceiling at
+    $100, so the session-sourced promise is only partially enforced -> PARTIAL.
+
+    The point: the verdict cites a SESSION-SOURCED intent. The obligation the
+    analyzer flags (OB-201) traces to the memo, and the memo resolves as the
+    approved source — a product-direction session governing a real verdict.
+    """
+    return FakeAlignmentLLM(
+        intent=DeclaredIntent(
+            summary="Raise premium low-risk auto-refund limit to $250 per the approved session memo",
+            claims=["Premium, low-risk customers receive automatic refunds up to $250"],
+        ),
+        delta=BehavioralDelta(
+            material=True,
+            summary=(
+                "The decision policy now auto-approves premium low-risk refunds "
+                "up to $250 (was $50); the tool-side guard ceiling only moved to "
+                "$100, so refunds between $100 and $250 are approved by policy but "
+                "rejected at the tool boundary — the session-memo promise is only "
+                "partially enforced."
+            ),
+            changes=[
+                BehaviorChange(
+                    description=(
+                        "Premium low-risk auto-refund decision limit raised from "
+                        "$50 to $250"
+                    ),
+                    direction="relaxed",
+                    control_point_paths=["refund_agent/policy.py"],
+                    declared=True,
+                    evidence=[
+                        _diff_evidence(
+                            "refund_agent/policy.py",
+                            "+    PREMIUM_MAX_AUTO_REFUND = 250.0",
+                        )
+                    ],
+                )
+            ],
+        ),
+        impacts={
+            "OB-201": ObligationImpact(
+                obligation_id="OB-201",
+                relation=ImpactRelation.PARTIALLY_SATISFIES,
+                confidence=0.9,
+                reasoning=(
+                    "The approved session memo permits $250 premium refunds, and "
+                    "RefundPolicy now decides to $250, but the guard ceiling only "
+                    "moved to $100, so the session-sourced promise is delivered "
+                    "only up to $100."
+                ),
+                evidence=[
+                    _diff_evidence(
+                        "refund_agent/policy.py",
+                        "+    PREMIUM_MAX_AUTO_REFUND = 250.0",
+                    ),
+                    _file_evidence(
+                        "refund_agent/guard.py", "request.amount > self.ceiling"
+                    ),
+                    _file_evidence(
+                        "refund_agent/config/policy.yaml", "guard_ceiling: 100"
+                    ),
+                ],
+                missing_evidence=[
+                    "The guard ceiling ($100) does not yet reach the session-memo "
+                    "promised limit of $250"
+                ],
+            ),
+        },
+    )
+
+
 # ── Understanding stage canned LLM (Slice 5b) ─────────────────────────────────
 #
 # A deterministic FakeUnderstandLLM for offline digests and tests: it derives
@@ -498,4 +572,5 @@ _BUILDERS = {
     109: _pr102_aligned,  # same change set as 102; the stale ticket is the distractor
     110: _pr110_abstain,
     111: _pr111_ungoverned,
+    112: _pr112_session_memo_partial,
 }

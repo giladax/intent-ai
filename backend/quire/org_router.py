@@ -32,7 +32,9 @@ logger = logging.getLogger(__name__)
 _WORKSPACES_ROOT = pathlib.Path(__file__).parent.parent / "workspaces"
 
 
-def create_org_router(org_store, alignment_store, task_store=None) -> APIRouter:
+def create_org_router(
+    org_store, alignment_store, task_store=None, upload_store=None
+) -> APIRouter:
     """Factory: returns a configured APIRouter.
 
     Args:
@@ -41,6 +43,9 @@ def create_org_router(org_store, alignment_store, task_store=None) -> APIRouter:
         alignment_store: quire.store.Store instance (SQLite).
         task_store: quire.handoff.TaskStore instance (Postgres), or None —
             handoff endpoints degrade to 503, everything else unaffected.
+        upload_store: quire.sessions_api.UploadStore, or None — when None, the
+            Needs-you list carries no as_intent session items (tests that don't
+            wire it stay isolated from the upload store). Production wires it.
     """
     router = APIRouter()
 
@@ -109,6 +114,16 @@ def create_org_router(org_store, alignment_store, task_store=None) -> APIRouter:
                 items = list(items) + task_store.needs_you_items()
             except Exception as exc:
                 logger.warning("needs-you: task items unavailable: %s", exc)
+        # O4 — as_intent sessions whose cards await a signature (failure-safe).
+        # Only when an upload store is wired (production); tests that don't
+        # inject one stay isolated from the upload store.
+        if upload_store is not None:
+            try:
+                from quire.sessions_api import intent_needs_you_items
+
+                items = list(items) + intent_needs_you_items(upload_store)
+            except Exception as exc:
+                logger.warning("needs-you: intent items unavailable: %s", exc)
         return items
 
     @router.get("/api/org/docket")

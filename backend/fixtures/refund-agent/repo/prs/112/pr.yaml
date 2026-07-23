@@ -1,0 +1,12 @@
+number: 112
+title: "Raise premium auto-refund limit to $250 (session-memo intent)"
+body: |
+  Implements the approved session intent memo (premium refund expansion):
+  premium, low-risk customers can now receive automatic refunds up to $250.
+  The decision policy is updated; the tool-side guard ceiling is left at $100
+  for now, so refunds between $100 and $250 are approved by policy but still
+  rejected at the tool boundary.
+author: dev-bob
+base_sha: fixbase0001
+head_sha: pr112head01
+deleted_files: []

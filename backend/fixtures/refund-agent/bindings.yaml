@@ -74,3 +74,10 @@ bindings:
   - {obligation_id: OB-105, control_point_id: CP-test-policy, relation: verifies}
 
   - {obligation_id: OB-107, control_point_id: CP-prompt, relation: configures}
+
+  # OB-201 (session-memo-sourced premium $250 expansion) binds to the same
+  # control points as the premium-limit promise it supersedes: the decision
+  # policy decides it, the guard enforces the hard ceiling, the config sets it.
+  - {obligation_id: OB-201, control_point_id: CP-policy, relation: decides}
+  - {obligation_id: OB-201, control_point_id: CP-guard, relation: enforces}
+  - {obligation_id: OB-201, control_point_id: CP-config, relation: configures}

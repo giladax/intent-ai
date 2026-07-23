@@ -40,7 +40,9 @@ def test_requirement_artifacts_carry_authority(refund_workspace):
 
 def test_obligations_pinned_to_source_hash(refund_workspace):
     obligations = {o.obligation_id: o for o in refund_workspace.obligations()}
-    assert len(obligations) == 6
+    # 6 PRD-sourced obligations + OB-201 sourced from an approved SESSION MEMO
+    # (O4: a product-direction session signed into intent).
+    assert len(obligations) == 7
     ob = obligations["OB-101"]
     assert ob.kind.value == "permission"
     prd = next(
@@ -49,6 +51,17 @@ def test_obligations_pinned_to_source_hash(refund_workspace):
         if a.reference == "refund-policy-prd"
     )
     assert ob.source_content_hash == prd.content_hash
+    # The session-memo obligation traces to the memo artifact, on the same
+    # approved rung as any PRD — a session-sourced promise that governs.
+    memo_ob = obligations["OB-201"]
+    assert memo_ob.source_reference == "session-memo-premium-refund-expansion"
+    memo = next(
+        a
+        for a in refund_workspace.requirement_artifacts()
+        if a.reference == "session-memo-premium-refund-expansion"
+    )
+    assert memo.authority == Authority.APPROVED
+    assert memo_ob.source_content_hash == memo.content_hash
 
 
 def test_bindings_and_control_points(refund_workspace):

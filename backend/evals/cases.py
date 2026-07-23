@@ -142,6 +142,26 @@ CASES: list[EvalCase] = [
         expected_review_required=True,
         expected_abstained=True,
     ),
+    # O4 — a session became intent, and the next analyze cites it. An approved
+    # SESSION MEMO (a product-direction session signed into intent) raised the
+    # premium ceiling to $250 as OB-201; this PR moves the policy to $250 but
+    # leaves the guard at $100, so the session-sourced promise is only partially
+    # enforced. The verdict resolves the memo as its approved source and flags
+    # OB-201 — a session-sourced intent governing a real verdict.
+    EvalCase(
+        name="session-memo-governed-verdict",
+        pr_number=112,
+        description="Approved session memo raised premium to $250; policy moved, guard lags → PARTIAL, cited to the session memo.",
+        expected_classification="PARTIAL",
+        expected_review_required=True,
+        expected_resolved_sources=["session-memo-premium-refund-expansion"],
+        expected_affected_obligations=["OB-201"],
+        expected_control_points=["CP-policy"],
+        expect_missing_evidence=True,
+        # The premium-limit content overlaps the standing PRD promises; flagging
+        # them alongside the memo-sourced one is a defensible collateral finding.
+        acceptable_extra_obligations=["OB-101", "OB-103", "OB-105"],
+    ),
 ]
 
 

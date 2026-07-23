@@ -153,7 +153,9 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
                 type(error).__name__,
                 error,
             )
-    app.include_router(create_org_router(org_store, app.state.store, task_store))
+    app.include_router(
+        create_org_router(org_store, app.state.store, task_store, _upload_store)
+    )
 
     # ── Journal API (dashboard routes) ──────────────────────────────────
     from quire.journal.router import create_journal_router
