@@ -33,7 +33,7 @@ export function App() {
           {/* Single-column rooms */}
           <Route path="/" element={<ShellFrame><Today /></ShellFrame>} />
           <Route path="/features" element={<ShellFrame><FeaturesRoute /></ShellFrame>} />
-          <Route path="/feature/:id" element={<ShellFrame><FeatureRoute /></ShellFrame>} />
+          <Route path="/feature/:id" element={<ShellFrame detail><FeatureRoute /></ShellFrame>} />
           <Route path="/repositories" element={<ShellFrame><Repositories /></ShellFrame>} />
           <Route path="/repo/:ws" element={<ShellFrame><RepoPage /></ShellFrame>} />
           <Route path="/reviews" element={<ShellFrame><ReviewsRoute /></ShellFrame>} />

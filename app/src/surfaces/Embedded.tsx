@@ -5,7 +5,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { FeaturesPage } from "../components/FeaturesPage";
-import { FeatureDetail } from "../components/FeatureDetail";
+import { FeaturePage } from "./FeaturePage";
 import { ReviewQueue } from "../components/ReviewQueue";
 import { JournalPage } from "../components/JournalPage";
 import { SessionsPage } from "../components/SessionsPage";
@@ -22,11 +22,12 @@ export function FeaturesRoute() {
   return <EmbedFrame><FeaturesPage repoId={null} onFeatureClick={(id) => nav(`/feature/${id}`)} /></EmbedFrame>;
 }
 
+/** The feature definition page brings its own main + right rail (mock 05),
+ *  so it mounts bare — no EmbedFrame. */
 export function FeatureRoute() {
   const { id } = useParams();
-  const nav = useNavigate();
   if (!id) return null;
-  return <EmbedFrame><FeatureDetail featureId={id} onSessionClick={(sid) => nav(`/session/${sid}`)} /></EmbedFrame>;
+  return <FeaturePage featureId={id} />;
 }
 
 export function ReviewsRoute() {
