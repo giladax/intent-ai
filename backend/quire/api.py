@@ -870,8 +870,13 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
         observed: commit, analyzer, per-promise findings with their
         verbatim citations, and who (if anyone) signed off. A check
         number is the check's PR number — the same number every surface
-        already cites as 'check #N'."""
-        from quire.analysis.render import DISPLAY_LABELS
+        already cites as 'check #N'.
+
+        The verdict reads in plain language (vocab.label — "Breaks a promise",
+        not the shouty legacy "CONTRADICTS INTENT"): every public contract
+        speaks the founder-ruled words, and the raw enum rides along under
+        'classification' for any agent that wants to re-translate."""
+        from quire import vocab
 
         adapter = _adapter(workspace)
         analyses = app.state.store.list_analyses(
@@ -890,7 +895,7 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
             "analyzer_version": latest.analyzer_version,
             "contract": latest.contract_snapshot_id,
             "classification": latest.classification.value,
-            "verdict": DISPLAY_LABELS[latest.classification],
+            "verdict": vocab.label(latest.classification.value),
             "review": {
                 "state": latest.review_state.value,
                 "reviewer": latest.reviewer,
@@ -918,6 +923,137 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
             "missing_evidence": latest.missing_evidence,
             "dropped_citations": latest.dropped_citations,
         }
+
+    # ── A2: the review room + repo reviews list ──────────────────────────
+    def _link_store():
+        """A LinkStore over the shared engine, or None when Postgres is
+        unreachable. Failure-safe: the review room degrades to an honest
+        'no session attached' state rather than 500-ing."""
+        try:
+            from quire.db.engine import get_engine
+            from quire.links import LinkStore
+
+            return LinkStore(engine=get_engine())
+        except Exception as error:  # pragma: no cover - env-dependent
+            logger.warning("link store unavailable (%s) — sessions won't couple", error)
+            return None
+
+    def _narrative_lookup():
+        """session_id -> {summary, momentCount} | None, read from the journal
+        DB. Returns a no-op lookup when the journal DB is unreachable."""
+        try:
+            from sqlalchemy import text as _text
+
+            from quire.db.engine import get_session as _get_journal_session
+        except Exception:  # pragma: no cover - env-dependent
+            return lambda _sid: None
+
+        def _lookup(session_id: str):
+            try:
+                with _get_journal_session() as sess:
+                    row = sess.execute(
+                        _text(
+                            "SELECT n.summary AS summary, "
+                            "(SELECT COUNT(*) FROM moments m WHERE m.session_id = :sid) AS mc "
+                            "FROM narratives n WHERE n.session_id = :sid"
+                        ),
+                        {"sid": session_id},
+                    ).mappings().fetchone()
+                    if not row or not row["summary"]:
+                        return None
+                    return {"summary": row["summary"], "momentCount": int(row["mc"] or 0)}
+            except Exception:
+                return None
+
+        return _lookup
+
+    @app.get("/api/repos/{workspace:path}/reviews")
+    def repo_reviews(workspace: str):
+        """The repo's reviews as a list, newest first — each a one-line human
+        PR title, its plain-language verdict, and when it was observed. The
+        title comes from the workspace registry (prs.yaml); the analysis
+        alone carries no human title. An empty list is a first-class state."""
+        from quire import review as review_mod
+
+        adapter = _adapter(workspace)
+        return {
+            "workspace": workspace,
+            "reviews": review_mod.repo_reviews(app.state.store, adapter, workspace),
+        }
+
+    @app.get("/api/reviews/{workspace:path}/{pr_number}")
+    def review_room(workspace: str, pr_number: int):
+        """The review room for one PR (mock 09's three zones): the verdict
+        head (one plain sentence + stamps), the manuscript body (changed
+        files with deltas and the diff, plus file-level promise notes), and
+        the rail (promise cards with verbatim receipts, the coverage gap, and
+        'why the author did it' — declared intent plus the coupled session
+        when a Claude-Session trailer bound one, honestly absent otherwise).
+        Every verdict reads in plain language (vocab); ids stay footnotes."""
+        from quire import review as review_mod
+
+        adapter = _adapter(workspace)
+        detail = review_mod.review_detail(
+            app.state.store,
+            adapter,
+            workspace,
+            pr_number,
+            link_store=_link_store(),
+            narrative_lookup=_narrative_lookup(),
+        )
+        if detail is None:
+            raise HTTPException(404, f"no review for PR #{pr_number} in {workspace}")
+        return detail
+
+    @app.get("/api/features/{feature_id}/promises")
+    def feature_promises(feature_id: str):
+        """The promises a feature holds — the deterministic edge between a
+        feature and the obligations that govern its files (a binding's
+        control-point path ∩ the feature's files). An edge derivation, not
+        node pollution: this reads the feature's files + workspace from the
+        journal DB, builds the workspace adapter, and intersects. Fail-safe:
+        an unresolvable feature/workspace returns an empty, count-0 body."""
+        from quire import review as review_mod
+
+        empty = {"promises": [], "promiseCount": 0}
+        try:
+            from sqlalchemy import text as _text
+
+            from quire.db.engine import get_session as _get_journal_session
+        except Exception:  # pragma: no cover - env-dependent
+            return empty
+
+        try:
+            with _get_journal_session() as sess:
+                files = [
+                    dict(r) for r in sess.execute(
+                        _text(
+                            "SELECT glob, file_path FROM feature_files "
+                            "WHERE feature_id = :fid"
+                        ),
+                        {"fid": feature_id},
+                    ).mappings().all()
+                ]
+                proj = sess.execute(
+                    _text(
+                        "SELECT p.name AS name FROM features f "
+                        "JOIN projects p ON p.id = f.project_id WHERE f.id = :fid"
+                    ),
+                    {"fid": feature_id},
+                ).mappings().fetchone()
+        except Exception as error:
+            logger.warning("feature_promises: journal read failed for %s: %s", feature_id, error)
+            return empty
+
+        if not proj or not proj["name"]:
+            return empty
+        workspace = proj["name"].lower().replace(" ", "-")
+        try:
+            adapter = workspace_mod.build_adapter(workspace)
+        except Exception:
+            # No onboarded workspace (or no obligations yet) — no promises to hold.
+            return empty
+        return review_mod.feature_promises(adapter, files)
 
     @app.get("/app/{workspace:path}")
     def app_page(workspace: str):

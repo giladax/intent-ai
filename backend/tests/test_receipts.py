@@ -27,6 +27,12 @@ def test_receipt_carries_the_chain(refund_workspace, tmp_path):
     assert receipt["commit"] == analysis.head_sha
     assert receipt["analyzer_version"] == analysis.analyzer_version
     assert receipt["verdict"]  # display language, never the raw enum alone
+    # Plain language on every public contract: the receipt speaks the
+    # founder-ruled words (vocab.label), never the shouty legacy labels.
+    from quire import vocab
+    assert receipt["verdict"] == vocab.label(receipt["classification"])
+    # PR 101 partly keeps its promise — "Partly kept", not "PARTIAL".
+    assert receipt["verdict"] == "Partly kept"
     finding = next(f for f in receipt["findings"] if f["promise"] == "OB-101")
     assert finding["statement"].startswith("Premium-tier")
     assert finding["citations"], "a relation-asserting finding cites its evidence"

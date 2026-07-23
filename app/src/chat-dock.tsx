@@ -83,3 +83,10 @@ export function useChatDock(): ChatDockState {
   if (!ctx) throw new Error("useChatDock must be used inside ChatDockProvider");
   return ctx;
 }
+
+/** Like useChatDock, but returns null instead of throwing when no provider is
+ *  present — for chrome (e.g. the masthead opener) that may render in isolation
+ *  (unit tests) where the dock isn't mounted. */
+export function useChatDockOptional(): ChatDockState | null {
+  return useContext(Ctx);
+}

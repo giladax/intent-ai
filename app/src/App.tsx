@@ -9,6 +9,7 @@ import { Shell } from "./shell/Shell";
 import { Today } from "./surfaces/Today";
 import { NeedsYou } from "./surfaces/NeedsYou";
 import { Repositories, RepoPage } from "./surfaces/Repositories";
+import { ReviewRoom } from "./surfaces/Review";
 import { Channels, Correspondence } from "./surfaces/Misc";
 import {
   FeaturesRoute, FeatureRoute, ReviewsRoute, JournalRoute,
@@ -36,6 +37,7 @@ export function App() {
           <Route path="/feature/:id" element={<ShellFrame detail><FeatureRoute /></ShellFrame>} />
           <Route path="/repositories" element={<ShellFrame><Repositories /></ShellFrame>} />
           <Route path="/repo/:ws" element={<ShellFrame><RepoPage /></ShellFrame>} />
+          <Route path="/repo/:ws/review/:n" element={<ShellFrame detail><ReviewRoom /></ShellFrame>} />
           <Route path="/reviews" element={<ShellFrame><ReviewsRoute /></ShellFrame>} />
           <Route path="/sessions" element={<ShellFrame><SessionsRoute /></ShellFrame>} />
           <Route path="/session/:id" element={<ShellFrame><SessionRoute /></ShellFrame>} />

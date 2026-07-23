@@ -20,6 +20,9 @@ import type {
   ApproveResult,
   FirstResultsResult,
   OrgFeatureDetail,
+  ReviewRow,
+  ReviewDetail,
+  FeaturePromisesResult,
 } from "./types";
 
 // Alias for use in fetchOrgFeatureDetail to avoid shadowing the local FeatureDetail import.
@@ -339,6 +342,24 @@ export const firstResults = (workspace: string, n_prs = 3) =>
     body: JSON.stringify({ n_prs }),
   });
 
+// ── A2 review room ───────────────────────────────────────────────────
+// The repo's reviews (newest first, plain verdict + human title + when),
+// the assembled review room for one PR, and a feature's held promises.
+// Each renders a documented JSON contract the same way an agent reads it.
+
+export const fetchRepoReviews = (workspace: string) =>
+  json<{ workspace: string; reviews: ReviewRow[] }>(
+    `/api/repos/${encodeURIComponent(workspace)}/reviews`,
+  );
+
+export const fetchReview = (workspace: string, prNumber: number) =>
+  json<ReviewDetail>(
+    `/api/reviews/${encodeURIComponent(workspace)}/${prNumber}`,
+  );
+
+export const fetchFeaturePromises = (featureId: string) =>
+  json<FeaturePromisesResult>(`/api/features/${encodeURIComponent(featureId)}/promises`);
+
 /** Fetch the Feature definition page data.
  *  Uses the existing /api/features/{id} endpoint (FeatureDetail shape);
  *  maps into the OrgFeatureDetail shape for the feature page renderer.
@@ -347,6 +368,16 @@ export const firstResults = (workspace: string, n_prs = 3) =>
 export async function fetchOrgFeatureDetail(featureId: string): Promise<OrgFeatureDetail> {
   const detail = await json<FeatureDetailShape>(`/api/features/${featureId}`);
   const f = detail.feature;
+  // The real promises this feature holds — the deterministic edge between the
+  // feature's files and the obligations that govern them (bindings ∩ files).
+  // Fail-quiet: a repo with no onboarded contract yields an empty, count-0
+  // body, and the feature page falls back to its observation-derived cards.
+  let held: FeaturePromisesResult = { promises: [], promiseCount: 0 };
+  try {
+    held = await json<FeaturePromisesResult>(`/api/features/${featureId}/promises`);
+  } catch {
+    // keep the empty fallback
+  }
   // Resolve the owning project's DISPLAY NAME — ids stay footnotes, never headlines.
   // Fail-quiet: if the projects list is unreachable, fall back to the id.
   let repoName = f.project_id;
@@ -366,21 +397,36 @@ export async function fetchOrgFeatureDetail(featureId: string): Promise<OrgFeatu
     summary: f.description || f.current_understanding || undefined,
     statusLabel: "No reviews yet",
     statusInk: "gray",
-    promiseCount: 0,
+    promiseCount: held.promiseCount,
     brokenCount: 0,
     sessionCount: detail.sessions.length,
     fileCount: (detail.files ?? []).length,
     lastChange: detail.sessions[0]?.startedAt ?? undefined,
-    promises: (detail.observations ?? []).slice(0, 5).map((o) => ({
-      id: o.id,
-      statement: o.summary,
-      status: "no_rule",
-      statusLabel: "No rule yet",
-      statusInk: "gray",
-      explanation: undefined,
-      sourceRef: undefined,
-      reviewLink: undefined,
-    })),
+    // Prefer the real held promises (signed obligations governing this
+    // feature's files); fall back to observation-derived cards when the
+    // repo carries no contract yet. A held promise reads as a plain
+    // statement with its obligation id as a footnote.
+    promises: held.promises.length > 0
+      ? held.promises.slice(0, 8).map((p) => ({
+          id: p.obligation_id,
+          statement: p.statement || p.obligation_id,
+          status: "kept",
+          statusLabel: "A promise we made",
+          statusInk: "green",
+          explanation: undefined,
+          sourceRef: p.obligation_id,
+          reviewLink: undefined,
+        }))
+      : (detail.observations ?? []).slice(0, 5).map((o) => ({
+          id: o.id,
+          statement: o.summary,
+          status: "no_rule",
+          statusLabel: "No rule yet",
+          statusInk: "gray",
+          explanation: undefined,
+          sourceRef: undefined,
+          reviewLink: undefined,
+        })),
     whyCard: detail.sessions[0]?.narrativeSummary
       ? {
           summary: detail.sessions[0].narrativeSummary,

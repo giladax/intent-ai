@@ -6,6 +6,8 @@ import type { Feature } from "../types";
 import { loadVocab, inkForVerdict, type VocabPayload } from "../ink/vocab";
 import { Dot } from "../ink/Badge";
 import { AddRepo } from "../surfaces/AddRepo";
+import { useChatDockOptional } from "../chat-dock";
+import { MessageSquare } from "lucide-react";
 
 /** The familiar shell: topbar + left nav + repo▸feature tree. Every room
  *  renders inside it. The nav mirrors the ruled IA; the tree is org > repos >
@@ -94,10 +96,29 @@ function Topbar({ orgName }: { orgName?: string }) {
         <span className="k">⌘K</span>
       </div>
       <div className="ink-topright">
+        <ChatDockOpener />
         <span>?</span>
         <div className="ink-avatar">G</div>
       </div>
     </div>
+  );
+}
+
+/** The Correspondence opener in the masthead — parked since A0, now live.
+ *  Toggles the always-mounted chat dock; the dock keeps its conversation. */
+function ChatDockOpener() {
+  const dock = useChatDockOptional();
+  if (!dock) return null; // no dock mounted (isolated render) — nothing to open
+  const { toggleDock, open } = dock;
+  return (
+    <button
+      className={`ink-dock-opener${open ? " active" : ""}`}
+      onClick={() => toggleDock()}
+      title="Open the Correspondence (⌘J)"
+      aria-label="Open the Correspondence"
+    >
+      <MessageSquare size={16} />
+    </button>
   );
 }
 

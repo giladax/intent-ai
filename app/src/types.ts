@@ -539,3 +539,94 @@ export interface OrgFeatureDetail {
   relatedFeatures: Array<{ id: string; name: string; ink: string }>;
   mentionedIn?: { sessions: number; threads: number; specs: number };
 }
+
+// ── The review room (mock 09) ────────────────────────────────────────
+// Renders the GET /api/reviews/{ws}/{n} contract directly; verdicts are
+// pre-translated to plain language server-side (ink is a token, never hex).
+
+export interface ReviewRow {
+  pr_number: number;
+  analysis_id: string;
+  title: string;              // human PR title (from the registry)
+  verdict: string;            // raw enum (agents re-translate)
+  label: string;              // plain-language verdict
+  ink: string;                // verdict ink token
+  review_state: string;
+  head_sha: string;
+  ts: string;
+  link: string;               // /repo/:ws/review/:n
+}
+
+export interface ReviewCitation {
+  reference: string;
+  lines: [number, number];
+  excerpt: string;
+  valid: boolean | null;
+}
+
+export interface ReviewPromiseCard {
+  obligation_id: string;
+  statement: string;
+  relation: string;
+  label: string;              // plain: "Keeps/Partly keeps/Breaks this promise"
+  ink: string;
+  confidence: number;
+  reasoning: string;
+  citations: ReviewCitation[];
+}
+
+export interface ReviewFileNote {
+  id: string;
+  path: string;
+  obligation_id: string;
+  label: string;
+  ink: string;
+  statement: string;
+  reasoning: string;
+  source_ref: string;
+}
+
+export interface ReviewFile {
+  path: string;
+  additions: number;
+  deletions: number;
+  patch: string;
+  notes: string[];            // note ids anchored to this file
+}
+
+export interface ReviewWhy {
+  summary: string;
+  claims: string[];
+  session: { id: string; link: string; summary?: string; steps?: number; kind?: string } | null;
+}
+
+export interface ReviewDetail {
+  workspace: string;
+  pr_number: number;
+  analysis_id: string;
+  title: string;
+  verdict: string;            // raw enum
+  label: string;              // plain-language verdict
+  ink: string;
+  verdict_sentence: string;   // ONE plain sentence for the head
+  head_sha: string;
+  base_sha: string;
+  analyzer_version: string;
+  observed_at: string;
+  review_state: string;
+  reviewer: string;
+  review_note: string;
+  counts: { broken: number; partial: number; kept: number; not_verified: number };
+  files: ReviewFile[];
+  file_notes: ReviewFileNote[];
+  promises: ReviewPromiseCard[];
+  gap: { has_gap: boolean; summary: string; items: string[] };
+  why: ReviewWhy | null;
+  intent_ledger_url: string;
+}
+
+/** The obligations a feature holds — bindings paths ∩ feature_files. */
+export interface FeaturePromisesResult {
+  promises: Array<{ obligation_id: string; statement: string; files: string[] }>;
+  promiseCount: number;
+}
