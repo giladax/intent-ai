@@ -1163,9 +1163,30 @@ class TestBindPrToTrailerLinks:
         )
         assert n_pr10 >= 1, "PR #10 should bind sha_a"
 
-        # sha_a's evidence is now bound to PR #10.
+        # Manually insert a second NULL row with the same evidence sha_a under a different session_id.
+        # This ensures sha_a has an entry that could be bound to PR #11.
+        from sqlalchemy import text
+        from sqlalchemy.orm import Session as SASession
+        with SASession(engine) as s:
+            s.execute(
+                text(
+                    "INSERT INTO session_checks (id, workspace, session_id, evidence, pr_number, kind, confidence, base_sha, head_sha) "
+                    "VALUES (:id, :ws, :sid, :evidence, NULL, 'trailer', 1.0, :base, :head)"
+                ),
+                {
+                    "id": str(uuid.uuid4()),
+                    "ws": "ws-ambig",
+                    "sid": str(uuid.uuid4()),
+                    "evidence": sha_a,
+                    "base": base,
+                    "head": sha_b,
+                }
+            )
+            s.commit()
+
+        # sha_a's evidence is now bound to PR #10 in one row, and unbound (NULL) in another.
         # Now try to bind PR #11 to the full range (base..sha_b).
-        # sha_a is in PR #11's range too — it's AMBIGUOUS.
+        # sha_a is in PR #11's range too — it's AMBIGUOUS (already bound to PR #10).
         # RULE: sha_a must NOT be re-bound to PR #11.
         n_pr11 = bind_pr_to_trailer_links(
             workspace="ws-ambig", pr_number=11,
@@ -1175,9 +1196,8 @@ class TestBindPrToTrailerLinks:
 
         # sha_b (only in PR #11's range, not PR #10's) should be bound.
         # sha_a (in both PR #10 and PR #11 ranges) must be skipped.
-        # So at most 1 row is updated (sha_b), never sha_a.
-        from sqlalchemy import text
-        from sqlalchemy.orm import Session as SASession
+        # We should see: one row with sha_a bound to PR #10, one row with sha_a as NULL,
+        # and one row with sha_b bound to PR #11.
         with SASession(engine) as s:
             rows = s.execute(
                 text(
@@ -1185,15 +1205,28 @@ class TestBindPrToTrailerLinks:
                     "WHERE workspace = 'ws-ambig' AND kind = 'trailer'"
                 )
             ).fetchall()
-        sha_to_pr = {ev: pr for ev, pr in rows}
 
-        # sha_a must still be bound only to PR #10, NOT PR #11
-        assert sha_to_pr.get(sha_a) == 10, (
-            f"sha_a must remain bound to PR #10, got {sha_to_pr.get(sha_a)}"
+        # Build a dict grouping by evidence, collecting all pr_numbers
+        from collections import defaultdict
+        sha_to_prs_list: dict[str, list] = defaultdict(list)
+        for ev, pr in rows:
+            sha_to_prs_list[ev].append(pr)
+
+        # sha_a must have at least one row bound to PR #10
+        assert 10 in sha_to_prs_list[sha_a], (
+            f"sha_a must have a row bound to PR #10, got {sha_to_prs_list[sha_a]}"
         )
-        # sha_b (only in PR #11's range) must be bound to PR #11
-        assert sha_to_pr.get(sha_b) == 11, (
-            f"sha_b must be bound to PR #11, got {sha_to_pr.get(sha_b)}"
+        # sha_a must also have at least one NULL row (the one we tried to bind to PR #11 but was skipped)
+        assert None in sha_to_prs_list[sha_a], (
+            f"sha_a must have an unbound (NULL) row, got {sha_to_prs_list[sha_a]}"
+        )
+        # CRITICAL: sha_a must NOT be bound to PR #11 (the ambiguity check prevented it)
+        assert 11 not in sha_to_prs_list[sha_a], (
+            f"sha_a must NOT be bound to PR #11, got {sha_to_prs_list[sha_a]}"
+        )
+        # sha_b must be bound to PR #11
+        assert 11 in sha_to_prs_list[sha_b], (
+            f"sha_b must be bound to PR #11, got {sha_to_prs_list[sha_b]}"
         )
 
 

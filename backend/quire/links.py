@@ -504,7 +504,7 @@ def bind_pr_to_trailer_links(
                     "bind_pr_to_trailer_links: ambiguous — sha %s…%s in PRs #%s and #%d, "
                     "leaving unbound",
                     evidence[:8], evidence[8:12],
-                    ", ".join(f"#{p}" for p in other_prs),
+                    ", ".join(f"{p}" for p in other_prs),
                     pr_number,
                 )
                 continue
