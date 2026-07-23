@@ -1000,3 +1000,51 @@ def test_draft_rejects_path_outside_the_repo(tmp_path):
     assert result["bindings"] == []
     assert all("outside the repo" in n for n in result["notes"])
     assert len(result["notes"]) == 2
+
+
+def test_draft_renumbers_obligation_ids_across_sources(tmp_path, monkeypatch):
+    """Each source's proposer mints ids from OB-001, so a multi-source draft
+    would collide (and write_workspace refuses duplicate ids at approve).
+    draft_repo must renumber across sources — and remap each source's
+    bindings to the renumbered ids."""
+    from types import SimpleNamespace
+
+    import quire.propose as propose_mod
+    from quire.org_onboard import draft_repo
+
+    mirror = tmp_path / "mirror"
+    mirror.mkdir()
+    (mirror / "a.md").write_text("# doc a\n")
+    (mirror / "b.md").write_text("# doc b\n")
+
+    def fake_propose_contract(doc_path, repo, out_dir, source_reference, llm=None):
+        # Both sources mint the same local ids — the collision under test.
+        obs = [
+            SimpleNamespace(
+                obligation_id="OB-001", kind="promise",
+                statement=f"promise one from {doc_path.name}",
+                source_quote="q1", source_section=None,
+            ),
+            SimpleNamespace(
+                obligation_id="OB-002", kind="promise",
+                statement=f"promise two from {doc_path.name}",
+                source_quote="q2", source_section=None,
+            ),
+        ]
+        bindings = [
+            SimpleNamespace(
+                obligation_id="OB-001", path="src/x.py", symbol=None,
+                role="executor", relation="enforces", why="",
+            ),
+        ]
+        return obs, bindings, []
+
+    monkeypatch.setattr(propose_mod, "propose_contract", fake_propose_contract)
+
+    result = draft_repo(mirror, "ws", [{"path": "a.md"}, {"path": "b.md"}], llm=None)
+
+    ids = [o["obligation_id"] for o in result["obligations"]]
+    assert ids == ["OB-001", "OB-002", "OB-003", "OB-004"]
+    # Bindings follow their own source's remap: a.md's binding stays OB-001,
+    # b.md's binding (locally OB-001) becomes OB-003.
+    assert [b["obligation_id"] for b in result["bindings"]] == ["OB-001", "OB-003"]

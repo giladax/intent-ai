@@ -283,10 +283,18 @@ def draft_repo(
                 source_reference=reference,
                 llm=llm,
             )
+            # Each source's proposer mints ids from OB-001 — renumber across
+            # sources so the merged draft has unique ids (write_workspace
+            # refuses duplicates at approve time). Bindings follow their
+            # source's remap.
+            id_remap = {
+                o.obligation_id: f"OB-{len(all_obligations) + i + 1:03d}"
+                for i, o in enumerate(obs)
+            }
             # Convert pydantic models to plain dicts for JSON serialization.
             all_obligations.extend(
                 {
-                    "obligation_id": o.obligation_id,
+                    "obligation_id": id_remap[o.obligation_id],
                     "kind": o.kind,
                     "statement": o.statement,
                     "source_quote": o.source_quote,
@@ -299,7 +307,7 @@ def draft_repo(
             )
             all_bindings.extend(
                 {
-                    "obligation_id": b.obligation_id,
+                    "obligation_id": id_remap.get(b.obligation_id, b.obligation_id),
                     "path": b.path,
                     "symbol": b.symbol,
                     "role": b.role,
