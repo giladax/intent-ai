@@ -66,7 +66,7 @@ Gates named once: **[PY]** full backend pytest + both evals · **[APP]** app bui
 - [ ] Exactly the constitutional design above; approval UX reuses the wizard Approve surface; artifacts validate verbatim forever.
 - [ ] Done when: a product-direction session becomes an approved intent source and the next analyze cites it. [PY][DEMO]
 
-### O4.5 — The handoff: a PRD becomes the team's week (⚑ M scope ruling)
+### O4.5 — The handoff: a PRD becomes the team's week (⚑ M (RULED 2026-07-23: handoff preview, in the cut) scope ruling)
 
 **Founder (2026-07-23):** "Show how a PRD becomes a list of tasks relevant to all
 departments. We know all repos and the designs and can deduce requirements
@@ -95,7 +95,7 @@ pattern reused).
   deterministic retrieval (binding paths + name/path overlap; similarity
   proposes context, never authority). The task proposer (Sonnet,
   structured) then drafts per-department task cards — **departments are
-  fixed-schema: dev / QA / product / BI** (⚑ L) — each carrying its WHY as
+  fixed-schema: dev / QA / product / BI** (⚑ L (RULED 2026-07-23: fixed four)) — each carrying its WHY as
   receipts: the promise it serves (quote), what it builds on ("extends
   Feature X — src/… exists") or the honest gap ("nothing covers this —
   new module"). Deterministic validation drops any citation that doesn't
@@ -108,19 +108,19 @@ pattern reused).
   a QA task closes when test-inspection detects covering tests (partial —
   where the analyzer's existing tests/evals inspection reaches); product/
   BI tasks close **manually with a note** in the demo, labeled "evidence
-  detection coming" (⚑ N — no dreams: we never fake a closure signal we
+  detection coming" (⚑ N (RULED 2026-07-23: show honestly) — no dreams: we never fake a closure signal we
   don't have).
 - [ ] Done when: a PRD (authored or uploaded) becomes signed, grounded,
   department-tagged tasks visible with receipts — and one dev task closes
   on a real check. [PY][APP][DEMO]
 
-**⚑ M — scope ruling (recommend b):** (a) full beat incl. complete task
+**⚑ M (RULED 2026-07-23: handoff preview, in the cut) — scope ruling (recommend b):** (a) full beat incl. complete task
 lifecycle — ~3 slices, too heavy pre-demo; **(b) the handoff preview above
 — 1 backend + 1 app slice, mostly existing machinery, and it IS the
 "huge" moment; in the demo cut**; (c) post-demo — surrenders the
-differentiator beat. **⚑ L:** departments fixed for the demo (known
+differentiator beat. **⚑ L (RULED 2026-07-23: fixed four):** departments fixed for the demo (known
 R&D domain = the fixed-schema thesis); org-level renames later, never a
-free ontology. **⚑ N:** show manual closure honestly labeled rather than
+free ontology. **⚑ N (RULED 2026-07-23: show honestly):** show manual closure honestly labeled rather than
 hiding product/BI closure.
 
 **Demo narrative (ties the beats):** the purpose-built demo repo's PRD v2
