@@ -104,6 +104,24 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
     app = FastAPI(title="Quire Align", version="0.1.0")
     app.state.store = store or Store()
 
+    # ── Sessions API (O3) — session upload standard ─────────────────────
+    # Failure-safe: Postgres unavailable → /api/sessions/* degrade to 503.
+    from quire.sessions_api import create_sessions_router
+
+    try:
+        from quire.sessions_api import UploadStore
+        from quire.db.engine import get_engine as _get_engine
+
+        _upload_store = UploadStore(engine=_get_engine())
+    except Exception as _upload_err:
+        logger.warning(
+            "sessions upload store unavailable (%s: %s) — /api/sessions/* degrade to 503",
+            type(_upload_err).__name__,
+            _upload_err,
+        )
+        _upload_store = None
+    app.include_router(create_sessions_router(_upload_store))
+
     # ── Org API (O0) ────────────────────────────────────────────────────
     # Failure-safe: a missing/unreachable Postgres (or the test-time guard
     # on implicit production stores) must not take down the rest of the

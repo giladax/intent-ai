@@ -128,3 +128,29 @@ def _no_implicit_production_task_store(monkeypatch):
             super().__init__(engine=engine)
 
     monkeypatch.setattr(handoff_mod, "TaskStore", GuardedTaskStore)
+
+
+@pytest.fixture(autouse=True)
+def _no_implicit_production_upload_store(monkeypatch):
+    """Guard: UploadStore() with no engine raises in tests.
+
+    Same guard pattern as LinkStore/OrgStore/TaskStore — prevents test code
+    from accidentally writing to the production session_uploads table.
+    Tests that need an UploadStore must pass an explicit test engine:
+        UploadStore(engine=make_test_engine())
+    """
+    from quire import sessions_api as sessions_api_mod
+
+    real_upload_store = sessions_api_mod.UploadStore
+
+    class GuardedUploadStore(real_upload_store):
+        def __init__(self, engine=None):
+            if engine is None:
+                raise RuntimeError(
+                    "test constructed UploadStore() with no engine — this would "
+                    "write to production Postgres. Pass an explicit test "
+                    "engine: UploadStore(engine=make_test_engine())."
+                )
+            super().__init__(engine=engine)
+
+    monkeypatch.setattr(sessions_api_mod, "UploadStore", GuardedUploadStore)

@@ -408,6 +408,85 @@ def upsert_from_yaml_record(
 
 
 # ---------------------------------------------------------------------------
+# A2-carry: bind pr_number onto trailer links that match a known PR's range
+# ---------------------------------------------------------------------------
+
+def bind_pr_to_trailer_links(
+    *,
+    workspace: str,
+    pr_number: int,
+    base_sha: str,
+    head_sha: str,
+    git_dir: str,
+    engine=None,
+) -> int:
+    """Populate pr_number on session_checks rows for a PR's commit range.
+
+    When trailer links were extracted without knowing the PR number (e.g. the
+    range was scanned before the analysis existed), their pr_number is NULL.
+    This function deterministically finds which evidence-commit SHAs fall in
+    base_sha..head_sha and updates those rows to pr_number=<pr_number>.
+
+    Returns the number of rows updated.
+
+    This is a deterministic backfill (the commit membership is a structural
+    fact) and is idempotent: a second call with the same arguments is a no-op
+    because the rows already have pr_number set.
+    """
+    import subprocess
+
+    if engine is None:
+        from quire.db.engine import get_engine
+        engine = get_engine()
+
+    # Get all commit SHAs in the range
+    try:
+        result = subprocess.run(
+            ["git", "-C", git_dir, "log", f"{base_sha}..{head_sha}", "--format=%H"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            return 0
+        commits_in_range = {sha.strip() for sha in result.stdout.splitlines() if sha.strip()}
+    except Exception:
+        return 0
+
+    if not commits_in_range:
+        return 0
+
+    # Find trailer links in this workspace with pr_number=NULL whose evidence
+    # (commit SHA) falls in the range
+    from sqlalchemy import text
+    updated = 0
+    with SASession(engine) as s:
+        # Select matching rows
+        rows = s.execute(
+            text(
+                "SELECT id, evidence FROM session_checks "
+                "WHERE workspace = :ws AND pr_number IS NULL AND kind = 'trailer'"
+            ),
+            {"ws": workspace},
+        ).fetchall()
+
+        for row_id, evidence in rows:
+            # evidence is the full 40-char SHA; check if it's in the range
+            if evidence in commits_in_range:
+                s.execute(
+                    text(
+                        "UPDATE session_checks SET pr_number = :pr "
+                        "WHERE id = :id AND pr_number IS NULL"
+                    ),
+                    {"pr": pr_number, "id": row_id},
+                )
+                updated += 1
+
+        if updated:
+            s.commit()
+
+    return updated
+
+
+# ---------------------------------------------------------------------------
 # Schema bootstrap (pre-Alembic; idempotent)
 # ---------------------------------------------------------------------------
 

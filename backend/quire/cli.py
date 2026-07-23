@@ -27,11 +27,18 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 workspace_mod.load_env()
 
 # ── Journal sub-group ──────────────────────────────────────────────────
-# Future slices will hang more commands here (features, sessions, etc.).
 
 journal_app = typer.Typer(no_args_is_help=True, add_completion=False,
                           help="Read from the journal Postgres (activity_events, sessions, …).")
 app.add_typer(journal_app, name="journal")
+
+# ── Sessions sub-group (O3) ────────────────────────────────────────────
+# Couple a coding session to a PR: upload (standard envelope), attach, propose.
+# See docs/plans/2026-07-21-pr-session-unification.md § U1.
+
+sessions_app = typer.Typer(no_args_is_help=True, add_completion=False,
+                            help="Session coupling — upload, attach, propose (O3).")
+app.add_typer(sessions_app, name="sessions")
 
 
 def _adapter(workspace: str):
@@ -1233,6 +1240,236 @@ def org_handoff(
         typer.secho(f"unknown action {action!r} (draft|approve|export)",
                     fg=typer.colors.RED)
         raise typer.Exit(1)
+
+
+# ── sessions sub-group commands (O3) ──────────────────────────────────
+
+@sessions_app.command("upload")
+def sessions_upload(
+    transcript: str = typer.Argument(help="path to a Claude Code .jsonl transcript"),
+    repo: str = typer.Option(..., help="owner/name, e.g. 'giladax/intent-ai'"),
+    provider: str = typer.Option("claude-code", help="session provider"),
+    format: str = typer.Option("jsonl-v1", help="transcript format"),
+    branch: str = typer.Option("", help="branch the session ran on"),
+    pr: int = typer.Option(-1, help="explicit PR number to couple to (kind=attached)"),
+    commits: str = typer.Option("", help="comma-separated commit SHAs to couple to"),
+    actor: str = typer.Option("", help="actor/author of the session"),
+    as_intent: bool = typer.Option(False, help="treat session as intent evidence"),
+    offline: bool = typer.Option(False, help="skip LLM digest (metadata only, for tests)"),
+):
+    """Upload a coding session transcript using the standard envelope.
+
+    Persist-first: archives the transcript (sha256-verified), creates a
+    session_uploads row, digests via the existing pipeline, then links by
+    matching precedence (attached > trailer > inferred proposals).
+
+    Idempotent: uploading the same bytes twice returns the existing record
+    without re-digesting (sha256 dedup).
+
+    ## Coupling a session to a PR (developer workflow)
+
+    trailer = automatic (Claude-Session: trailer in the commit message)
+    attach  = one line: quire sessions upload transcript.jsonl --repo owner/name --pr 42
+    propose = when you forgot: quire sessions propose <workspace> <pr>
+    """
+    import json
+    import pathlib
+
+    from quire.sessions_api import (
+        SUPPORTED_FORMATS,
+        SUPPORTED_PROVIDERS,
+        UploadStore,
+        process_upload,
+    )
+
+    # Validate provider/format early (same 400 semantics as the API)
+    if provider not in SUPPORTED_PROVIDERS:
+        typer.secho(
+            f"Unknown provider {provider!r}. Supported: {sorted(SUPPORTED_PROVIDERS)}",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
+    if format not in SUPPORTED_FORMATS:
+        typer.secho(
+            f"Unknown format {format!r}. Supported: {sorted(SUPPORTED_FORMATS)}",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
+
+    path = pathlib.Path(transcript).expanduser()
+    if not path.exists():
+        typer.secho(f"no such transcript: {path}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    data = path.read_bytes()
+    if not data:
+        typer.secho("transcript file is empty", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    commits_list: list[str] = (
+        [c.strip() for c in commits.split(",") if c.strip()] if commits else []
+    )
+
+    # Build injected stores (failure-safe: warn if Postgres is down)
+    try:
+        from quire.db.engine import get_engine
+        engine = get_engine()
+        store = UploadStore(engine=engine)
+    except Exception as exc:
+        typer.secho(
+            f"upload store unavailable ({exc}) — check DATABASE_URL",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
+
+    # Build optional offline digester
+    digester = None
+    if offline:
+        from quire.session import FakeSessionDigester, SessionDigest, read_transcript
+        raw = read_transcript(path)
+        digester = FakeSessionDigester(SessionDigest(
+            title=f"session {raw.session_id[:8]}",
+            summary=f"{raw.turns} turns touching {len(raw.touched_paths)} files (offline)",
+            reasoning=raw.reasoning_text[:500],
+        ))
+
+    try:
+        record = process_upload(
+            transcript_bytes=data,
+            filename=path.name if path.name.endswith(".jsonl") else path.name + ".jsonl",
+            provider=provider,
+            format=format,
+            repo=repo,
+            branch=branch or None,
+            commits=commits_list,
+            pr_number=pr if pr >= 0 else None,
+            actor=actor or None,
+            as_intent=as_intent,
+            upload_store=store,
+            digester=digester,
+        )
+    except OSError as exc:
+        typer.secho(f"archive write failed: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    color = typer.colors.GREEN if record.status == "digested" else typer.colors.YELLOW
+    typer.secho(
+        f"upload {record.status}: {record.id} (sha256: {record.sha256[:16]}…)",
+        fg=color,
+    )
+    if record.session_id:
+        typer.echo(f"  session_id: {record.session_id}")
+    if record.pr_number:
+        typer.echo(f"  coupled to PR #{record.pr_number} (kind=attached)")
+    if record.error:
+        typer.secho(f"  digest failed: {record.error}", fg=typer.colors.RED)
+    typer.echo(f"  archive: {record.archive_path}")
+
+
+@sessions_app.command("attach")
+def sessions_attach(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+    pr_number: int = typer.Argument(help="PR/check number to couple to"),
+    session_ref: str = typer.Argument(help="session id or 'session-<prefix>'"),
+):
+    """Explicitly couple a session to a PR (kind=attached).
+
+    Promotes an inferred proposal or creates a new attached link.
+    This is the definitive bind: explicit human attaches have the same
+    authority as Claude-Session trailers.
+    """
+    from quire.links import LinkStore, SessionCheckLink
+    from quire.session import find_session
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    record = find_session(ws_dir, session_ref)
+    if record is None:
+        typer.secho(f"no session matching '{session_ref}'", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    session_id = record["session_id"]
+    try:
+        from quire.db.engine import get_engine
+        ls = LinkStore(engine=get_engine())
+    except Exception as exc:
+        typer.secho(f"link store unavailable: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    link = SessionCheckLink(
+        session_id=session_id,
+        workspace=workspace,
+        pr_number=pr_number,
+        base_sha=record.get("base_sha") or "",
+        head_sha=record.get("head_sha") or "",
+        kind="attached",
+        confidence=1.0,
+        evidence=f"cli:sessions attach:{session_id}",
+    )
+    ls.upsert(link)
+    typer.secho(
+        f"attached: session {session_id[:12]} → PR #{pr_number} (kind=attached)",
+        fg=typer.colors.GREEN,
+    )
+
+
+@sessions_app.command("propose")
+def sessions_propose(
+    workspace: str = typer.Argument(help="workspace dir or name"),
+    pr_number: int = typer.Argument(help="PR/check number to propose couplings for"),
+):
+    """Propose structural couplings for a PR (kind=inferred, never auto-promoted).
+
+    Scans sessions.yaml for sessions whose touched paths overlap with the PR's
+    changed files. Proposals are stored for human confirmation — use
+    'sessions attach' to confirm one.
+
+    Language: 'Session <id> edited 4 of this PR's 6 files during its commit
+    window' — structural facts only, no content similarity.
+    """
+    from quire.correlate import propose_couplings
+    from quire.links import LinkStore
+    from quire.session import load_sessions
+
+    ws_dir = workspace_mod.resolve_workspace_dir(workspace)
+    sessions = load_sessions(ws_dir)
+    if not sessions:
+        typer.echo("no sessions found in sessions.yaml")
+        return
+
+    try:
+        from quire.db.engine import get_engine
+        ls = LinkStore(engine=get_engine())
+    except Exception as exc:
+        typer.secho(f"link store unavailable: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    all_proposals = []
+    repo = workspace  # approximate — proposals are best-effort
+    for s in sessions:
+        sid = s.get("session_id", "")
+        proposals = propose_couplings(
+            session_id=sid,
+            repo=repo,
+            branch=None,
+            workspace=workspace,
+            sessions_dir=ws_dir,
+        )
+        for p in proposals:
+            if p.pr_number == pr_number:
+                all_proposals.append(p)
+
+    if not all_proposals:
+        typer.echo(f"no structural proposals for PR #{pr_number}")
+        return
+
+    for prop in all_proposals:
+        ls.upsert(prop)
+        typer.echo(f"  proposed ({prop.confidence:.0%}): {prop.evidence}")
+    typer.secho(
+        f"{len(all_proposals)} proposal(s) stored — confirm with: "
+        f"quire sessions attach {workspace} {pr_number} <session-id>",
+        fg=typer.colors.CYAN,
+    )
 
 
 if __name__ == "__main__":

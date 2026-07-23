@@ -284,6 +284,7 @@ def _emit_check_analyzed(
     publish_url: str | None,
     repo: str | None,
     branch: str | None,
+    coupled_session_ids: list[str] | None = None,
 ) -> None:
     """Emit a check:analyzed activity_events row (failure-safe).
 
@@ -294,12 +295,23 @@ def _emit_check_analyzed(
     GitHub list_prs payload holds it under head.ref, which the adapter does
     not surface today).  If branch attribution becomes useful for event
     filtering, extend PrEvent with a head_ref field and pass it through here.
+
+    `coupled_session_ids` (U5): when non-empty, appends "Reasoned in session …"
+    to the summary — plain language, ids as footnotes (ruling C 2026-07-21).
     """
     from quire import vocab
 
     v = vocab.verdict(verdict)
     label = v["label"]
     summary = f"PR #{pr_number} on {repository}: {label}"
+
+    # U5 — coupling line: "Reasoned in session <short-id>, …" when links exist
+    if coupled_session_ids:
+        short_ids = [sid[:12] for sid in coupled_session_ids]
+        if len(short_ids) == 1:
+            summary += f". Reasoned in session {short_ids[0]}"
+        else:
+            summary += f". Reasoned in {len(short_ids)} sessions: {', '.join(short_ids)}"
 
     event: dict[str, Any] = {
         "timestamp": None,          # emit_activity_events fills now()
@@ -315,6 +327,7 @@ def _emit_check_analyzed(
             "workspace": workspace,
             "repository": repository,
             "publish_url": publish_url,
+            "coupled_session_ids": coupled_session_ids or [],
         },
         "source_type": "check",
         "source_id": f"{workspace}:{pr_number}:{head_sha[:12]}",
@@ -462,6 +475,14 @@ def handle_pr_event(
     # A cache hit means the event for this head_sha was already emitted on
     # the pass that produced the analysis — re-emitting would duplicate it.
     if not skipped:
+        # U5: collect coupled session ids for the "Reasoned in session…" line.
+        _coupled_session_ids: list[str] = []
+        if link_store is not None:
+            try:
+                links = link_store.links_for_check(workspace, event.pr_number)
+                _coupled_session_ids = [lnk.session_id for lnk in links]
+            except Exception as _link_exc:
+                logger.debug("handle_pr_event: links_for_check failed: %s", _link_exc)
         _emit_check_analyzed(
             pr_number=event.pr_number,
             head_sha=event.head_sha,
@@ -471,6 +492,7 @@ def handle_pr_event(
             publish_url=publish_url,
             repo=f"{owner}/{name}",
             branch=None,
+            coupled_session_ids=_coupled_session_ids or None,
         )
 
     # -- Closure candidacy (O4.5): a fresh check's SATISFIES impacts feed
