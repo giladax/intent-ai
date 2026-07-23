@@ -975,3 +975,28 @@ def test_first_results_invokes_trailer_extraction(tmp_path, engine, monkeypatch)
     # result should indicate 1 PR was replayed.
     assert result["prs_fetched"] >= 1
     assert result["replayed"] >= 1
+
+
+# ── Security: /draft must not read outside the mirror (path traversal) ──
+
+def test_draft_rejects_path_outside_the_repo(tmp_path):
+    """A request-body source path like '../../etc/passwd' must be skipped, not
+    read and fed to the LLM. The guard fires before any LLM call, so llm=None
+    is never invoked."""
+    from quire.org_onboard import draft_repo
+
+    mirror = tmp_path / "mirror"
+    mirror.mkdir()
+    (mirror / "real.md").write_text("# a real doc inside the repo\n")
+    # a secret file OUTSIDE the mirror the traversal would try to reach
+    (tmp_path / "secret.txt").write_text("TOP SECRET")
+
+    result = draft_repo(
+        mirror, "ws",
+        [{"path": "../secret.txt"}, {"path": "../../etc/passwd"}],
+        llm=None,  # must never be called — all sources are rejected first
+    )
+    assert result["obligations"] == []
+    assert result["bindings"] == []
+    assert all("outside the repo" in n for n in result["notes"])
+    assert len(result["notes"]) == 2

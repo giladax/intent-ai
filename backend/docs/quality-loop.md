@@ -5,7 +5,64 @@ Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
 moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: 0fa325f
+last-reviewed: 29e5c85
+
+## 2026-07-23 — tick over 0fa325f..29e5c85 (O1 onboarding + vocab + needs-you)
+
+Two slices: O1 (the hero flow — paste a GitHub URL → clone a mirror → scan →
+LLM-draft obligations → approve → replay recent PRs, in org_onboard.py + O1
+POST endpoints) and A0-backend (vocab.py single verdict vocabulary, /api/vocab,
+/api/needs-you). Reviewed ~3k lines, security-focused on the onboarding path.
+One agent, both lenses.
+
+Onboarding safety verdict: git-clone injection SAFE (list-form argv, fixed
+https/dest prefixes, timeouts), mirror-path traversal SAFE (owner/name regex
+forbids `/`). One real hole found and fixed.
+
+**Tier-1 applied:**
+- **SECURITY — path traversal in /draft (arbitrary file read).** `draft_repo`
+  built `doc_path = mirror / source["path"]` from the request body with only
+  an `is_file()` guard — `{"path": "../../etc/passwd"}` would be read and fed
+  to the LLM. Added a `is_relative_to(mirror.resolve())` containment check;
+  out-of-repo paths are skipped with a note. Regression test added
+  (`test_draft_rejects_path_outside_the_repo`) — llm=None proves the guard
+  fires before any LLM call.
+- **Secret-leak — git stderr echoed to the client.** The clone remote embeds
+  an auth token (`https://{token}@github.com/…`); on failure the raw
+  `result.stderr` (which can contain the tokened URL) was raised and surfaced
+  to the HTTP client. Now: log server-side with the token scrubbed (`_scrub`),
+  raise a plain "could not download {owner}/{name}" message.
+- **Plain-language error strings (founder's rule):** reworded jargon/`repr`
+  leaks in HTTPException details — `workspace {!r} not found in org` → "We
+  don't have a repo named X."; `mirror not found — register first` → "This
+  repo hasn't been downloaded yet — connect it first."; `mirror clone failed:
+  {exc}` → the plain message.
+- Fixed a misleading `_update_prs_yaml` docstring (claimed "negative numbers by
+  convention" — the code uses real PR numbers; documented the real
+  never-overwrite behavior + the latent key-collision assumption).
+
+**Verified single-source:** get_docket/get_needs_you/cards already read verdict
+language from vocab.py (my old _DOCKET_VERDICT_PHRASE was replaced) — good.
+
+**Tier-2 logged (deferred):**
+- **vocab.py is NOT yet the single source.** `analysis/render.py`'s
+  DISPLAY_LABELS is a second, DIVERGENT verdict map still read by the CLI/api/
+  timeline/mirror/model — its labels ("CONTRADICTS INTENT") contradict vocab
+  ("Breaks a promise"). Unifying is entangled with the noun decision below and
+  breaks a pinned test (test_mirror `verdict_display == "NOT COVERED"`), so
+  it's a deliberate follow-up, not a mechanical fix.
+- **NOUN inconsistency — FOUNDER decision.** One concept is named four ways
+  across user-visible surfaces: promise (vocab), rule (PRD/UI mocks),
+  obligation (code/API fields), contract (render). vocab commits to "promise";
+  recommend standardizing human strings on one noun and keeping "obligation"
+  internal-only. (This session's UI work chose "rule"; committed vocab.py uses
+  "promise" — needs a ruling.)
+- Orphaned on-disk mirror clones aren't cleaned on failed registration
+  (unbounded .repos/ growth); approve→active status write isn't transactional
+  with the workspace write; `_parse_owner_name` last-resort split mishandles
+  names containing `-`; needs-you returns raw `relation`/`obligation_id`.
+
+Gate: `cd backend && python3 -m pytest` → 657 passed, 1 skipped.
 
 ## 2026-07-22 — tick over 0084932..0fa325f (the Docket endpoint)
 

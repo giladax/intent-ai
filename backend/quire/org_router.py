@@ -133,7 +133,7 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
         except RuntimeError as exc:
-            raise HTTPException(502, f"mirror clone failed: {exc}") from exc
+            raise HTTPException(502, str(exc)) from exc
         # Post-registration work goes here. If any of it fails after the row
         # was written by _register(), clean up so no orphaned row persists.
         workspace = result.get("workspace")
@@ -159,13 +159,13 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         repos = org_store.list_repos()
         repo_row = next((r for r in repos if r["workspace"] == workspace), None)
         if repo_row is None:
-            raise HTTPException(404, f"workspace {workspace!r} not found in org")
+            raise HTTPException(404, f"We don't have a repo named {workspace}.")
         # Derive owner/name from github_remote or workspace id
         owner, name = _parse_owner_name(repo_row, workspace)
         from quire.org_onboard import mirror_path, scan_repo as _scan
         mirror = mirror_path(owner, name)
         if not (mirror / ".git").exists():
-            raise HTTPException(400, f"mirror not found for {workspace} — register first")
+            raise HTTPException(400, f"This repo hasn't been downloaded yet — connect it first.")
         extra_skip = set(body.get("extra_skip_parts") or [])
         return _scan(mirror, extra_skip_parts=extra_skip or None)
 
@@ -181,7 +181,7 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         repos = org_store.list_repos()
         repo_row = next((r for r in repos if r["workspace"] == workspace), None)
         if repo_row is None:
-            raise HTTPException(404, f"workspace {workspace!r} not found")
+            raise HTTPException(404, f"We don't have a repo named {workspace}.")
         owner, name = _parse_owner_name(repo_row, workspace)
         sources = body.get("sources") or []
         if not sources:
@@ -202,7 +202,7 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         repos = org_store.list_repos()
         repo_row = next((r for r in repos if r["workspace"] == workspace), None)
         if repo_row is None:
-            raise HTTPException(404, f"workspace {workspace!r} not found")
+            raise HTTPException(404, f"We don't have a repo named {workspace}.")
         owner, name = _parse_owner_name(repo_row, workspace)
         sources = body.get("sources") or []
         obligations = body.get("obligations") or []
@@ -241,7 +241,7 @@ def create_org_router(org_store, alignment_store) -> APIRouter:
         repos = org_store.list_repos()
         repo_row = next((r for r in repos if r["workspace"] == workspace), None)
         if repo_row is None:
-            raise HTTPException(404, f"workspace {workspace!r} not found")
+            raise HTTPException(404, f"We don't have a repo named {workspace}.")
         # Approve must precede first-results: status must be "active".
         if repo_row.get("status") != "active":
             raise HTTPException(

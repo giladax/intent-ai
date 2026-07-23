@@ -119,7 +119,7 @@ def ensure_mirror(owner: str, name: str, token: str | None = None) -> pathlib.Pa
         if result.returncode != 0:
             logger.warning(
                 "mirror refresh failed for %s/%s: %s",
-                owner, name, result.stderr.strip(),
+                owner, name, _scrub(result.stderr.strip(), token),
             )
     else:
         logger.info("mirror clone: %s/%s → %s (depth=10)", owner, name, dest)
@@ -136,11 +136,22 @@ def ensure_mirror(owner: str, name: str, token: str | None = None) -> pathlib.Pa
             timeout=300,
         )
         if result.returncode != 0:
+            # Log the real reason server-side (token scrubbed); raise a plain
+            # message so a tokened remote URL in stderr never reaches the client.
+            logger.warning(
+                "git clone failed for %s/%s: %s",
+                owner, name, _scrub(result.stderr.strip(), token),
+            )
             raise RuntimeError(
-                f"git clone failed for {owner}/{name}: {result.stderr.strip()}"
+                f"could not download {owner}/{name} — check the URL and that the repo is reachable"
             )
 
     return dest
+
+
+def _scrub(text: str, token: str | None) -> str:
+    """Redact an auth token if it leaked into git output (e.g. a tokened URL)."""
+    return text.replace(token, "***") if token else text
 
 
 def _remote_url(owner: str, name: str, token: str | None) -> str:
@@ -252,8 +263,14 @@ def draft_repo(
     all_notes: list[str] = []
 
     # Draft from the top 3 sources (bounded token spend).
+    mirror_resolved = mirror.resolve()
     for source in sources[:3]:
-        doc_path = mirror / source["path"]
+        # `path` comes from the request body — confine it to the mirror so a
+        # crafted "../../../etc/passwd" can't be read and fed to the LLM.
+        doc_path = (mirror / source["path"]).resolve()
+        if not doc_path.is_relative_to(mirror_resolved):
+            all_notes.append(f"source {source['path']!r} is outside the repo — skipped")
+            continue
         if not doc_path.is_file():
             all_notes.append(f"source {source['path']!r} not found — skipped")
             continue
@@ -517,13 +534,13 @@ def first_results(
 
 
 def _update_prs_yaml(ws_path: pathlib.Path, prs: list[dict]) -> None:
-    """Merge GitHub PR list into prs.yaml (GitHub PR entries use negative
-    numbers by convention to avoid colliding with the sweep-commit range
-    written by write_workspace; we use the real PR number directly since
-    the workspace is fresh).
+    """Merge the GitHub PR list into prs.yaml, keyed by the real PR number.
 
-    For a new workspace (written by approve_repo), prs.yaml already exists
-    with the sweep-commit range. We ADD GitHub PR entries, keyed by PR number.
+    For a new workspace (written by approve_repo) prs.yaml already exists with
+    the sweep-commit range; we ADD GitHub PR entries. Existing keys are never
+    overwritten — so if a sweep-commit pseudo-entry ever shared an int key with
+    a real PR number, the real PR would be dropped. Fresh workspaces don't hit
+    that today; namespace the keys if sweep and PR ranges can ever overlap.
     """
     import yaml
 
