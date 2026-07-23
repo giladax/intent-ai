@@ -347,11 +347,20 @@ export const firstResults = (workspace: string, n_prs = 3) =>
 export async function fetchOrgFeatureDetail(featureId: string): Promise<OrgFeatureDetail> {
   const detail = await json<FeatureDetailShape>(`/api/features/${featureId}`);
   const f = detail.feature;
+  // Resolve the owning project's NAME — ids stay footnotes, never headlines.
+  // Fail-quiet: if the projects list is unreachable, fall back to the id.
+  let repoName = f.project_id;
+  try {
+    const projects = await json<Project[]>("/api/projects");
+    repoName = projects.find((p) => p.id === f.project_id)?.name ?? f.project_id;
+  } catch {
+    // keep the id fallback
+  }
   return {
     id: f.id,
     name: f.name,
-    repo: f.project_id,
-    repoWorkspace: f.project_id,
+    repo: repoName,
+    repoWorkspace: repoName,
     summary: f.description || f.current_understanding || undefined,
     statusLabel: "No reviews yet",
     statusInk: "gray",

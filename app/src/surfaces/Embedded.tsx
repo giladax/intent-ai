@@ -13,8 +13,10 @@ import { SessionDetailPage } from "../components/SessionDetailPage";
 import { fetchFeatures, fetchSessions } from "../api";
 import type { Feature, Session } from "../types";
 
+/** Legacy surfaces keep their journal-era (paper) shadcn theme via
+ *  .ink-legacy — scoped so the shell's ink text tokens stay untouched. */
 function EmbedFrame({ children }: { children: React.ReactNode }) {
-  return <main className="ink-main">{children}</main>;
+  return <main className="ink-main ink-legacy">{children}</main>;
 }
 
 export function FeaturesRoute() {

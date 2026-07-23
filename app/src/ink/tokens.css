@@ -9,7 +9,11 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
-:root {
+/* Declared on .ink-app as well as :root: the legacy shadcn theme (index.css)
+   defines --muted / --accent as oklch BACKGROUND tokens at :root and wins the
+   cascade there — inside the shell, these ink values must govern. */
+:root,
+.ink-app {
   /* surfaces */
   --bg: #ffffff;
   --panel: #f7f8f9;

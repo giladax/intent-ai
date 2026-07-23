@@ -39,7 +39,13 @@
   --j-serif: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
   --j-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
-  /* re-map shadcn tokens → every component turns paper */
+}
+
+/* Legacy journal-era surfaces only (mounted under .ink-legacy wrappers):
+   re-map shadcn tokens → the component turns paper. Scoped OFF .ink-app
+   itself — the familiar shell's ink tokens (--muted, --accent as TEXT
+   colors) must not be clobbered by these background-tinted values. */
+.ink-legacy {
   --background: var(--j-paper);
   --foreground: var(--j-ink);
   --card: var(--j-paper-raise);

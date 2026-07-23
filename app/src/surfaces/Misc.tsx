@@ -29,7 +29,7 @@ export function Correspondence() {
   const [features, setFeatures] = useState<Feature[]>([]);
   useEffect(() => { fetchFeatures("").then(setFeatures).catch(() => setFeatures([])); }, []);
   return (
-    <div className="ink-embed" style={{ background: "var(--bg)" }}>
+    <div className="ink-embed ink-legacy" style={{ background: "var(--bg)" }}>
       <LensChatView features={features} projectId={null} onSessionClick={(id) => nav(`/session/${id}`)} />
     </div>
   );
