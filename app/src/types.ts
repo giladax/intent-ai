@@ -475,7 +475,8 @@ export interface ApproveResult {
 
 /** One PR verdict from first-results. */
 export interface FirstResultVerdict {
-  pr: number;
+  pr_number: number;
+  title?: string;
   verdict: string;
   analysis_id?: string;
 }
