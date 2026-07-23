@@ -37,7 +37,6 @@ import pathlib
 import uuid
 from typing import Literal
 
-import yaml
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session as SASession
@@ -149,8 +148,7 @@ def assemble_grounding(
             "obligation_id": o.obligation_id,
             "statement": o.statement,
             "kind": o.kind.value if hasattr(o.kind, "value") else str(o.kind),
-            "quote": getattr(o, "provenance_quote", "") or o.source_quote
-            if hasattr(o, "source_quote") else getattr(o, "provenance_quote", ""),
+            "quote": getattr(o, "source_quote", None) or getattr(o, "provenance_quote", "") or "",
             "source_reference": o.source_reference,
         })
 
@@ -720,6 +718,8 @@ def render_handoff_markdown(
                 lines.append(f"- Honest gap: {t['grounding_note']}")
             if t["closure_tier"] == "manual_note" and t["status"] != "closed":
                 lines.append("- Closes: manually with a note (evidence detection coming)")
+            if t["closure_tier"] == "test_inspection" and t["status"] != "closed":
+                lines.append("- Closes: when test inspection detects covering tests (partial — wired for dev, coming for QA)")
             if t["closure_note"]:
                 lines.append(f"- {t['closure_note']}")
             lines.append("")

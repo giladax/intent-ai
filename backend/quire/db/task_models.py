@@ -65,7 +65,7 @@ class Task(Base):
 
     id: str = Column(String, primary_key=True)
     workspace: str = Column(Text, nullable=False, index=True)
-    handoff_id: str = Column(Text, nullable=False, index=True)
+    handoff_id: str = Column(Text, nullable=False, index=True)  # batch grouper string (no handoffs table, not a FK) — node stays relation-free
     department: str = Column(Text, nullable=False)
     statement: str = Column(Text, nullable=False)
     # Plain-language WHY (content — the receipts live on edges).

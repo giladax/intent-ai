@@ -31,6 +31,7 @@ from quire.handoff import (
     render_grounding_packet,
     render_handoff_markdown,
     validate_cards,
+    _MAX_PACKET_CHARS,
 )
 
 _NOW = dt.datetime.now(dt.timezone.utc)
@@ -134,6 +135,13 @@ class FakeHandoffLLM:
                 why="The boundary is the risky edge.",
             ),
             CandidateTask(
+                department="product",
+                statement="Document the new $100 refund tier in the policy guide.",
+                serves_obligation_id="OB-002",
+                builds_on=[],
+                why="Clarity for support and legal.",
+            ),
+            CandidateTask(
                 department="bi",
                 statement="Measure refund auto-approval rate after the change.",
                 serves_obligation_id="OB-999",  # unknown promise → card dropped
@@ -172,13 +180,13 @@ def test_grounding_survives_journal_outage(monkeypatch):
 def test_packet_renders_within_budget(grounding):
     packet = render_grounding_packet(grounding)
     assert "OB-002" in packet and "src/guard.py" in packet
-    assert len(packet) <= 14100
+    assert len(packet) <= _MAX_PACKET_CHARS
 
 
 def test_validation_drops_unknown_promise_card(grounding):
     kept, notes = validate_cards(FakeHandoffLLM().propose_tasks(
         render_grounding_packet(grounding)), grounding)
-    assert len(kept) == 2  # bi card dropped
+    assert len(kept) == 3  # bi card dropped; dev, qa, product kept
     assert all(k["serves_obligation_id"] == "OB-002" for k in kept)
     assert any("OB-999" in n for n in notes)
 
@@ -211,7 +219,7 @@ def test_draft_persists_nodes_and_evidenced_edges(store, grounding, monkeypatch,
                            llm=FakeHandoffLLM(), engine=journal_engine)
     assert result["handoff_id"]
     tasks = result["tasks"]
-    assert len(tasks) == 2 and all(t["status"] == "proposed" for t in tasks)
+    assert len(tasks) == 3 and all(t["status"] == "proposed" for t in tasks)
     dev = next(t for t in tasks if t["department"] == "dev")
     # The node carries content only; every coupling is an edge with evidence.
     serves = [l for l in dev["links"] if l["kind"] == "serves_promise"]
@@ -220,6 +228,8 @@ def test_draft_persists_nodes_and_evidenced_edges(store, grounding, monkeypatch,
     assert dev["closure_tier"] == "check_evidence"
     qa = next(t for t in tasks if t["department"] == "qa")
     assert qa["closure_tier"] == "test_inspection"
+    product = next(t for t in tasks if t["department"] == "product")
+    assert product["closure_tier"] == "manual_note"
 
 
 def test_draft_refuses_without_signed_promises(store, monkeypatch):
@@ -351,11 +361,11 @@ def test_non_satisfies_relations_do_nothing(store, grounding, monkeypatch, journ
 
 def test_manual_close_carries_honest_label(store, grounding, monkeypatch, journal_engine):
     r = _seed_handoff(store, grounding, monkeypatch, journal_engine)
-    qa = next(t for t in r["tasks"] if t["department"] == "qa")
-    store.approve(r["handoff_id"], [{"task_id": qa["task_id"], "accept": True}],
+    product = next(t for t in r["tasks"] if t["department"] == "product")
+    store.approve(r["handoff_id"], [{"task_id": product["task_id"], "accept": True}],
                   approved_by="G")
-    assert store.close_manual(qa["task_id"], "verified by hand", "Gilad")
-    t = {x["task_id"]: x for x in store.tasks_for_workspace("refund-agent")}[qa["task_id"]]
+    assert store.close_manual(product["task_id"], "verified by hand", "Gilad")
+    t = {x["task_id"]: x for x in store.tasks_for_workspace("refund-agent")}[product["task_id"]]
     assert "evidence detection coming" in t["closure_note"]
 
 
@@ -387,6 +397,20 @@ def test_export_renders_sentences_receipts_and_footnotes(
     assert "unsigned" in md           # the qa card stayed proposed
     # No jargon
     assert "epic" not in md.lower() and "story" not in md.lower()
+
+
+
+def test_export_qa_task_shows_test_inspection_label(store, grounding, monkeypatch, journal_engine):
+    """QA tasks render honest closure label: test_inspection tier."""
+    r = _seed_handoff(store, grounding, monkeypatch, journal_engine)
+    qa = next(t for t in r["tasks"] if t["department"] == "qa")
+    store.approve(r["handoff_id"], [{"task_id": qa["task_id"], "accept": True}],
+                  approved_by="G")
+    md = render_handoff_markdown(
+        "refund-agent", store.tasks_for_handoff(r["handoff_id"]), grounding,
+        r["handoff_id"])
+    # QA task shows test_inspection closure label
+    assert "wired for dev, coming for QA" in md
 
 
 def test_export_writes_file(store, grounding, monkeypatch, journal_engine, tmp_path):
