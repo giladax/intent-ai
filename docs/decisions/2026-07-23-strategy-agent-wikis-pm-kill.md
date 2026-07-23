@@ -44,11 +44,58 @@ built, whether those still match, and who signed.
 | The coupling — what changed × why the author did it × what was promised, on one artifact | shipped (U0 links; review-manuscript design) | Needs session+commit+promise joined at write time. |
 | Org-wide, many repos, one queue | shipped (O0/O1: org, paste-a-URL governance) | The quartet are single-corpus tools. |
 | Proactive governance — quote-backed alarms, silent on healthy work | shipped (`watch`; Telegram in O5) | A wiki never taps your shoulder. |
+| **The owned schema** — a fixed R&D domain topology that ships with the product; slots the model can mechanically verify | shipped as constitution (org-natural-hierarchy, evidence topology); see §1.5 | The quartet's layer 3 is a schema file the CUSTOMER writes. Their success is coupled to each customer's ontology skill; ours is not. |
 
 Also worth stealing from the article: its limit 2 (an early bad summary
 poisons every later answer) is exactly what our verbatim receipts fix —
 compiled understanding you can audit back to the source. Say that out loud in
 sales conversations.
+
+## 1.5 The schema is the top level — the wave's structural weakness (founder refinement, 2026-07-23)
+
+Look again at the article's own three layers. Layer 3 — the schema file,
+CLAUDE.md or AGENTS.md — is where all four products quietly hand the hardest
+problem back to the customer. **The user defines the schema.** Which means:
+
+- The product's success is coupled to how well each customer authored their
+  own ontology and what data they fed it. When an agent wiki works
+  brilliantly, it is because someone did a brilliant *custom* job for one
+  company. That brilliance is per-company, fragile, and unownable — the
+  vendor cannot compound it, cannot compare across it, cannot even take
+  credit for it.
+- A base LLM maintaining *generic* organization knowledge does not work —
+  too many things to decide, too many failure points. The founder's read,
+  and ours: when it works, someone did a bespoke schema job for that one
+  company.
+- Jira fails the same way from the other direction: epics, stories,
+  sub-tickets, semantic tags are a user-configurable topology. Every Jira
+  instance is a different homemade ontology, poorly defined, unmaintained,
+  understood by nobody. The board rots twice — once as status fiction
+  (section 2), and once as schema fiction.
+
+**The only tractable path is also the opening: fix the domain.** Quire is
+not a generic org-knowledge tool. It is project/product management for R&D
+with a strong code focus — and because the domain is fixed, **the schema
+ships WITH the product**. Intent → promises → features → work → sessions and
+PRs → verdicts. The user never authors an ontology. Every slot is one the
+system can fill and *mechanically verify* from the work itself — a promise
+has a quote, a verdict has a diff, a session has a transcript. The LLM is
+never asked to maintain an open ontology (the thing that fails); it is asked
+to maintain slots it can check (the thing that works).
+
+This was already Quire's constitution before the article existed — the
+org-natural-hierarchy rule ("top level is derived, not declared; no bare
+words; no orphans") and the fixed evidence topology are this exact argument,
+recorded weeks ago. The article lets us finally say it as a market claim:
+**the wiki players sell you a schema file; we sell you a schema.**
+
+**And: familiar primitives, not a new language.** People have used keyboard
+and mouse for fifty years. Tasks broken down from higher intent, PRDs, a
+North Star — these are natural and they stay. Epics and stories die (nobody
+ever understood them). The product is *the vehicle that brings R&D to a new
+age* — new engine, familiar controls. This independently re-confirms two
+rulings already made: the familiar app shell, and the CodeRabbit-familiar
+wedge.
 
 ## 2. The kill thesis, made concrete
 
@@ -114,6 +161,16 @@ Nobody in the current map can follow here: the wiki quartet is single-corpus,
 Mem0 is per-user, and a signed ledger cannot be backfilled — authority
 accumulates in time, which makes early signed orgs a moat that compounds.
 
+**The fixed schema is what makes (b) possible at all** (§1.5). Patterns can
+only move between companies if the companies are described in the SAME
+topology. Jira can never do cross-company benchmarks because every Jira
+instance is a different homemade ontology; the wiki players can never do it
+because every customer wrote their own schema file. Quire's slots are
+identical in every org — a promise is a promise, a verdict is a verdict, a
+drift class is a drift class — so patterns are comparable across companies
+by construction. The owned schema is not just the tractability answer; it is
+the precondition of the network-effect horizon.
+
 ## 4. Business framing
 
 **Category.** Reject "org memory" (Mem0 owns the word "memory," one level
@@ -123,7 +180,12 @@ documents, memory knows users — **Quire knows the org: what it wants, what it
 built, whether they still match, and who signed.** Working category line:
 *"the org's living source of truth — derived from the work, signed by
 humans."* Marketing spear for the kill: *"Your board is fiction. Quire is
-receipts."*
+receipts."* And the founder's own line carries the posture for everything we
+build and say: **the vehicle that brings R&D to a new age — new engine,
+familiar controls.** We never ask a customer to learn a new language (tasks,
+PRDs, a North Star stay; epics and stories die) and we never ask them to
+write a schema (§1.5). What is new is the engine underneath: derived, not
+declared; verified, not asserted; signed, not assumed.
 
 **Who buys, in what order.**
 1. **Wedge — eng lead / CTO:** "AI code review that knows your promises."
@@ -159,19 +221,36 @@ backfill.
   understanding as plain markdown pages agents expect, backed by our
   receipts. Makes us legible to the agent-wiki ecosystem for near-zero cost.
 
-## ⚑ Founder decisions
+## ⚑ Founder decisions (revised after the schema refinement)
 
 - **⚑ G — Kill-target precision:** the wedge-kill is Jira/Linear-class
   engineering PM; Monday's generic-ops market is deferred (maybe never).
-  Recommend: confirm.
+  Recommend: confirm — and the schema argument (§1.5) upgrades this from a
+  wedge choice to the tractability thesis itself: the fixed R&D domain is
+  WHY the product can work at all, not just where we enter.
 - **⚑ H — Promote the timeline/Gantt perspective into the demo cut** (the
   "board that writes itself" moment). Recommend: yes if it fits the demo
-  date; otherwise first slice after.
+  date; otherwise first slice after. Unchanged by the refinement.
 - **⚑ I — Language:** category line "the org's living source of truth —
   derived from the work, signed by humans"; wedge label "AI code review that
-  knows your promises." Recommend: adopt; reword freely — the two-layer
-  structure (familiar wedge, new category) is the part to keep.
+  knows your promises"; posture line (founder's own) "the vehicle that
+  brings R&D to a new age — new engine, familiar controls"; schema claim for
+  technical buyers: "they sell you a schema file; we sell you a schema."
+  Recommend: adopt the four-piece kit; reword freely — keep the structure
+  (familiar wedge, new category, owned schema).
 - **⚑ J — Cross-company architecture rule, adopted now:** patterns must stay
   structurally separable from evidence; nothing evidence-level ever crosses
-  an org boundary; consent-gated everything. Costless today, existential
-  later. Recommend: adopt as a standing constraint.
+  an org boundary; consent-gated everything. Recommend: adopt — STRENGTHENED
+  by the refinement: the fixed schema is what makes cross-company patterns
+  comparable at all, so protecting schema fixedness protects the horizon.
+- **⚑ K (new) — The task bridge:** adopt "tasks broken from higher intent"
+  as a first-class primitive in the product — familiar vocabulary (task,
+  PRD, North Star; never epic/story), new mechanics: a task is born from
+  signed intent (proposed by humans or distilled from sessions-as-intent),
+  and it CLOSES on evidence, not on a card drag — done when the work proves
+  it done, with receipts. This is the concrete bridge that lets a Jira team
+  walk over without learning anything new. Product implication: a Tasks slot
+  in the schema + a "broken down from" relation to intent, surfacing in
+  Needs-you and the feature pages. Recommend: adopt the vocabulary and the
+  closes-on-evidence rule now; schedule the primitive as its own slice after
+  the demo cut (it must not delay O2–O5).
