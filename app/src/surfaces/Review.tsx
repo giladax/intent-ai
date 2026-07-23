@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchReview } from "../api";
+import { fetchReview, submitReview } from "../api";
 import type { ReviewDetail, ReviewFile, ReviewFileNote, ReviewPromiseCard } from "../types";
 import { VerdictBadge } from "../ink/Badge";
 import { SigningBlock } from "../ink/SigningBlock";
 
-/** The review room (mock 09) — three zones:
+/** The review room (mock 09)  -- three zones:
  *  1. verdict head: ONE plain sentence + stamps;
  *  2. manuscript body: changed files with deltas, expandable to the diff,
  *     with file-level promise notes inline where a binding anchors a promise;
@@ -155,7 +155,7 @@ function DeltaSum({ files }: { files: ReviewFile[] }) {
   );
 }
 
-/** One changed file — a delta header, expandable to its diff, with any
+/** One changed file  -- a delta header, expandable to its diff, with any
  *  file-level promise notes anchored inline (the margin content in familiar
  *  review-comment chrome). */
 function FileBlock({ file, notes }: { file: ReviewFile; notes: ReviewFileNote[] }) {
@@ -197,7 +197,7 @@ function FileBlock({ file, notes }: { file: ReviewFile; notes: ReviewFileNote[] 
                 <b>Quire</b> · on {nt.path}
               </div>
               <div className="rv-note-b">
-                <div className="rv-note-statement">Promise: “{nt.statement}”</div>
+                <div className="rv-note-statement">Promise: "{nt.statement}"</div>
                 {nt.reasoning && <div className="rv-note-reason">{nt.reasoning}</div>}
                 <div className="rv-note-src">{nt.source_ref} · checked against this change</div>
               </div>
@@ -242,7 +242,7 @@ function RailPromise({ promise: p }: { promise: ReviewPromiseCard }) {
       {p.reasoning && <div className="rv-promise-why">{p.reasoning}</div>}
       {receipt && (
         <>
-          <div className={`rv-quote ink-${p.ink}`}>“{receipt.excerpt}”</div>
+          <div className={`rv-quote ink-${p.ink}`}>"{receipt.excerpt}"</div>
           <div className="rv-promise-src">
             {receipt.reference}
             {receipt.lines[0] ? ` · lines ${receipt.lines[0]}–${receipt.lines[1]}` : ""}
@@ -280,42 +280,51 @@ function WhyCard({ why }: { why: NonNullable<ReviewDetail["why"]> }) {
   );
 }
 
-/** The signing act — mock 09's "Draw the missing promise & sign / Wave it
+type SignAct = { label: string; tone: "primary" | "danger"; state: string };
+
+/** The signing act  -- mock 09's "Draw the missing promise & sign / Wave it
  *  through / Send back". Choosing an act opens the signing ceremony (name,
  *  role, deliberate confirm). Pending reviews get the ceremony; a settled
- *  review shows who signed. */
+ *  review shows who signed.
+ *
+ *  The sign is durable: onSign submits to POST /analyses/{id}/review and only
+ *  shows "It is on the record" after the server confirms. On failure an honest
+ *  error is shown  -- the record was NOT updated. A page reload renders the
+ *  settled state from the GET endpoint (review_state/reviewer/review_note). */
 function YourCall({ review }: { review: ReviewDetail }) {
-  const [act, setAct] = useState<null | { label: string; tone: "primary" | "danger" }>(null);
-  const [signed, setSigned] = useState<{ act: string; by: string } | null>(null);
+  const [act, setAct] = useState<SignAct | null>(null);
+  const [settled, setSettled] = useState<{ act: string; by: string } | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   if (review.review_state !== "pending") {
     return (
       <div className="rv-settled">
         {review.reviewer
-          ? <>Signed off by <b>{review.reviewer}</b>{review.review_note ? ` — “${review.review_note}”` : ""}.</>
-          : <>This review needs no human call — nothing it touched is governed.</>}
+          ? <>Signed off by <b>{review.reviewer}</b>{review.review_note ? `  -- "${review.review_note}"` : ""}.</>
+          : <>This review needs no human call  -- nothing it touched is governed.</>}
       </div>
     );
   }
 
-  if (signed) {
+  if (settled) {
     return (
       <div className="rv-settled rv-settled--fresh">
-        You signed: <b>{signed.act}</b> — as {signed.by}. It is on the record.
+        You signed: <b>{settled.act}</b>  -- as {settled.by}. It is on the record.
       </div>
     );
   }
 
-  const acts: Array<{ label: string; tone: "primary" | "danger" | "plain" }> =
+  const acts: Array<{ label: string; tone: "primary" | "danger" | "plain"; state: string }> =
     review.ink === "blue" || review.counts.not_verified > 0
       ? [
-          { label: "Draw the missing promise & sign", tone: "primary" },
-          { label: "Wave it through", tone: "plain" },
-          { label: "Send back", tone: "danger" },
+          { label: "Draw the missing promise & sign", tone: "primary", state: "approved" },
+          { label: "Wave it through", tone: "plain", state: "approved" },
+          { label: "Send back", tone: "danger", state: "rejected" },
         ]
       : [
-          { label: "Wave it through", tone: "primary" },
-          { label: "Send back", tone: "danger" },
+          { label: "Wave it through", tone: "primary", state: "approved" },
+          { label: "Send back", tone: "danger", state: "rejected" },
         ];
 
   if (!act) {
@@ -325,7 +334,7 @@ function YourCall({ review }: { review: ReviewDetail }) {
           <button
             key={a.label}
             className={`ink-btn ${a.tone === "primary" ? "primary" : a.tone === "danger" ? "danger" : ""}`}
-            onClick={() => setAct({ label: a.label, tone: a.tone === "danger" ? "danger" : "primary" })}
+            onClick={() => { setApiError(null); setAct({ label: a.label, tone: a.tone === "danger" ? "danger" : "primary", state: a.state }); }}
           >
             {a.label}
           </button>
@@ -335,12 +344,31 @@ function YourCall({ review }: { review: ReviewDetail }) {
   }
 
   return (
-    <SigningBlock
-      actLabel={act.label}
-      tone={act.tone}
-      prompt={`You are about to ${act.label.toLowerCase()} — PR #${review.pr_number} on ${review.workspace}.`}
-      onSign={({ name, role }) => setSigned({ act: act.label, by: role ? `${name}, ${role}` : name })}
-    />
+    <>
+      {apiError && (
+        <div className="rv-sign-error" role="alert">
+          {apiError} The record was NOT updated  -- try again.
+        </div>
+      )}
+      <SigningBlock
+        actLabel={act.label}
+        tone={act.tone}
+        prompt={`You are about to ${act.label.toLowerCase()}  -- PR #${review.pr_number} on ${review.workspace}.`}
+        busy={busy}
+        onSign={async ({ name, role }) => {
+          setBusy(true);
+          setApiError(null);
+          try {
+            await submitReview(review.analysis_id, act.state, name, role || undefined);
+            setSettled({ act: act.label, by: role ? `${name}, ${role}` : name });
+          } catch (err) {
+            setApiError(err instanceof Error ? err.message : "Network error.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+    </>
   );
 }
 
@@ -354,7 +382,7 @@ function parsePatch(patch: string): PLine[] {
     if (raw.startsWith("--- ") || raw.startsWith("+++ ")) continue;
     if (raw.startsWith("@@")) {
       out.push({ kind: "hunk", text: raw });
-      // "@@ -a,b +c,d @@" — take the new-file start line.
+      // "@@ -a,b +c,d @@"  -- take the new-file start line.
       const plus = raw.split("+")[1];
       newNo = plus ? parseInt(plus, 10) || 0 : 0;
       continue;

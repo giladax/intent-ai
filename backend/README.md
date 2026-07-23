@@ -184,6 +184,7 @@ are useful: drift verdicts either flag unauthorized behavior or tell you
 which intent (specs in `docs/superpowers/specs/`, plans) should be
 registered as approved sources next. To audit another commit: add a
 base/head entry to `workspaces/intent-ai/prs.yaml` and analyze it.
+**Invariant: `prs.yaml` entries must use full SHA literals for `base` and `head`, never branch names -- a branch ref re-resolved at render time can diverge from the analyzed commit, producing a misleading diff.**
 
 ## Onboarding wizard (proactive)
 

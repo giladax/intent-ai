@@ -6,6 +6,8 @@ coverage gap, and "why the author did it" — all in plain language, ids as
 footnotes. Deterministic: the refund-agent fixture + canned PR 101.
 """
 import pathlib
+import uuid as _uuid
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
@@ -151,3 +153,109 @@ def test_repo_reviews_endpoint(tmp_path):
     assert r.status_code == 200
     reviews = r.json()["reviews"]
     assert reviews and reviews[0]["label"] == "Partly kept"
+
+
+def test_files_and_notes_mismatch_returns_unavailable_marker(tmp_path):
+    """When get_pr()'s head_sha differs from the stored analysis head_sha
+    (prs.yaml was a branch ref that moved), _files_and_notes returns the
+    honest 'diff unavailable' marker file instead of a misleading diff."""
+    from unittest.mock import patch as _patch
+    from quire.models import PullRequest as _PR
+
+    ws, store = _refund_store(tmp_path)
+    det = review.review_detail(store, ws, "refund-agent", 101)
+    assert det is not None
+
+    # Simulate the workspace ref having moved: patch adapter.get_pr to return
+    # a PR with a different head_sha (as if the branch ref advanced).
+    stale_pr = ws.get_pr(101)
+    moved_pr = _PR(
+        number=stale_pr.number,
+        title=stale_pr.title,
+        body=stale_pr.body,
+        author=stale_pr.author,
+        base_sha=stale_pr.base_sha,
+        head_sha="0000000000000000000000000000000000000000",  # moved
+        issue_key=stale_pr.issue_key,
+        deleted_files=stale_pr.deleted_files,
+    )
+
+    analysis = store.get_analysis(det["analysis_id"])
+
+    with _patch.object(ws, "get_pr", return_value=moved_pr):
+        files, notes = review._files_and_notes(ws, analysis, {})
+
+    assert len(files) == 1
+    assert "unavailable" in files[0]["path"]
+    assert notes == []
+
+
+def test_feature_promises_endpoint_workspace_name_derivation(tmp_path):
+    """GET /api/features/{id}/promises: a project named with a space derives
+    its workspace slug as lower().replace(' ', '-'), and the endpoint resolves
+    bindings through that slug.
+
+    Seeding: project name 'Refund Agent' -> workspace 'refund-agent' (matches
+    the fixture workspace in backend/fixtures/refund-agent/). Uses an in-memory
+    SQLite DB with the journal ORM schema — fully offline, no Postgres required.
+    """
+    from sqlalchemy.orm import sessionmaker as _sm
+    from quire.db.engine import make_test_engine
+    from quire.db.models import Base, Feature, FeatureFile, Project
+    import quire.db.engine as _engine_mod
+
+    # Build a file-based SQLite journal DB so all sessions share the same data.
+    # In-memory SQLite creates an isolated DB per connection; a file path avoids
+    # that pitfall (seed session and endpoint session see the same tables/rows).
+    journal_db = tmp_path / "journal.db"
+    test_engine = make_test_engine(url=f"sqlite:///{journal_db}")
+    Base.metadata.create_all(test_engine)
+    _TestSession = _sm(bind=test_engine, expire_on_commit=False)
+
+    def _test_get_session():
+        return _TestSession()
+
+    # Seed: project with a space in the name so workspace = 'refund-agent'
+    # after lower().replace(' ', '-').
+    ws_fixture = FixtureWorkspace(FIXTURES / "refund-agent")
+    cp_by_id = {cp.control_point_id: cp.path for cp in ws_fixture.control_points()}
+    a_path = next(
+        cp_by_id[b.control_point_id]
+        for b in ws_fixture.bindings()
+        if b.control_point_id in cp_by_id
+    )
+
+    now = datetime.now(timezone.utc)
+    project_id = str(_uuid.uuid4())
+    feature_id = str(_uuid.uuid4())
+    file_id = str(_uuid.uuid4())
+
+    with _TestSession() as sess:
+        sess.add(Project(id=project_id, name="Refund Agent", path="/tmp/refund", created_at=now))
+        sess.add(Feature(
+            id=feature_id, project_id=project_id, name="Test Feature",
+            description="", created_at=now,
+        ))
+        sess.add(FeatureFile(
+            id=file_id, feature_id=feature_id,
+            glob=a_path, file_path=a_path, created_at=now,
+        ))
+        sess.commit()
+
+    # Patch get_session at the module level so the endpoint's local import
+    # picks up the test session factory.
+    orig_get_session = _engine_mod.get_session
+    _engine_mod.get_session = _test_get_session
+    try:
+        align_store = Store(url=f"sqlite:///{tmp_path}/align.db")
+        client = TestClient(create_app(store=align_store))
+        r = client.get(f"/api/features/{feature_id}/promises")
+    finally:
+        _engine_mod.get_session = orig_get_session
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["promiseCount"] >= 1, (
+        f"expected >= 1 promise for path {a_path!r} in 'refund-agent' workspace; got {body}"
+    )
+    assert any(a_path in p["files"] for p in body["promises"])

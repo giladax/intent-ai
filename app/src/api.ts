@@ -360,6 +360,18 @@ export const fetchReview = (workspace: string, prNumber: number) =>
 export const fetchFeaturePromises = (featureId: string) =>
   json<FeaturePromisesResult>(`/api/features/${encodeURIComponent(featureId)}/promises`);
 
+export const submitReview = (
+  analysisId: string,
+  state: string,
+  reviewer: string,
+  note = "",
+) =>
+  json<unknown>(`/analyses/${encodeURIComponent(analysisId)}/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ state, reviewer, note }),
+  });
+
 /** Fetch the Feature definition page data.
  *  Uses the existing /api/features/{id} endpoint (FeatureDetail shape);
  *  maps into the OrgFeatureDetail shape for the feature page renderer.

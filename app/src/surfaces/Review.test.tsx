@@ -8,10 +8,11 @@ import type { ReviewDetail } from "../types";
 // the fixture below IS that contract.
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
-  return { ...actual, fetchReview: vi.fn() };
+  return { ...actual, fetchReview: vi.fn(), submitReview: vi.fn() };
 });
-import { fetchReview } from "../api";
+import { fetchReview, submitReview } from "../api";
 const mockedFetch = vi.mocked(fetchReview);
+const mockedSubmit = vi.mocked(submitReview);
 
 const REVIEW: ReviewDetail = {
   workspace: "quire-brain",
@@ -120,8 +121,9 @@ describe("ReviewRoom", () => {
     expect(screen.getByText(/No coding session is attached/)).toBeInTheDocument();
   });
 
-  it("the signing ceremony: choosing an act opens the name/role sign block", async () => {
+  it("signing calls the API with the typed name and shows settled state on success", async () => {
     mockedFetch.mockResolvedValue(REVIEW);
+    mockedSubmit.mockResolvedValue({});
     renderRoom();
     await waitFor(() => expect(screen.getByText("Your call")).toBeInTheDocument());
     // A not-covered/unverified review offers "Draw the missing promise & sign".
@@ -131,7 +133,23 @@ describe("ReviewRoom", () => {
     expect(nameInput).toBeInTheDocument();
     fireEvent.change(nameInput, { target: { value: "Gilad" } });
     fireEvent.click(screen.getByText(/Sign — wave it through/i));
-    await waitFor(() => expect(screen.getByText(/You signed:/)).toBeInTheDocument());
+    await waitFor(() => expect(mockedSubmit).toHaveBeenCalledWith(
+      REVIEW.analysis_id, "approved", "Gilad", undefined
+    ));
+    await waitFor(() => expect(screen.getByText(/It is on the record/)).toBeInTheDocument());
+  });
+
+  it("signing failure does NOT show 'on the record' and shows an honest error", async () => {
+    mockedFetch.mockResolvedValue(REVIEW);
+    mockedSubmit.mockRejectedValue(new Error("503: upstream down"));
+    renderRoom();
+    await waitFor(() => expect(screen.getByText("Your call")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Wave it through"));
+    const nameInput = await screen.findByPlaceholderText("Your name");
+    fireEvent.change(nameInput, { target: { value: "Gilad" } });
+    fireEvent.click(screen.getByText(/Sign — wave it through/i));
+    await waitFor(() => expect(screen.queryByText(/on the record/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
   });
 
   it("renders the honest empty state when the review is missing", async () => {

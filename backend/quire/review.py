@@ -389,6 +389,12 @@ def _files_and_notes(
     feature join uses. Each note carries the promise's plain verdict on this
     change (from the obligation impact) so the manuscript reads with its
     margin content inline.
+
+    Invariant: prs.yaml refs must be SHA literals, not branch names — a
+    branch ref re-resolved at render time can diverge from the SHA that was
+    analyzed, silently showing a different diff. When get_pr()'s head_sha
+    does not match the stored analysis head_sha the diff is marked unavailable
+    (honest-state: never show a diff that wasn't analyzed).
     """
     try:
         pr = adapter.get_pr(a.pr_number)
@@ -396,6 +402,25 @@ def _files_and_notes(
     except Exception as error:
         logger.warning("_files_and_notes: diff unavailable for PR %s: %s", a.pr_number, error)
         return [], []
+
+    # Invariant: prs.yaml refs must be SHA literals, not branch names — a
+    # branch name re-resolved here can diverge from the SHA that was analyzed,
+    # silently showing a diff for a different commit.
+    if pr.head_sha != a.head_sha:
+        logger.warning(
+            "_files_and_notes: head_sha mismatch for PR %s "
+            "(analyzed %s, workspace now %s) — diff unavailable",
+            a.pr_number, a.head_sha, pr.head_sha,
+        )
+        return [
+            {
+                "path": "(diff unavailable -- source moved since analysis)",
+                "additions": 0,
+                "deletions": 0,
+                "patch": "",
+                "notes": [],
+            }
+        ], []
 
     # obligation_id -> impact (for the note verdict)
     impact_by_ob = {i.obligation_id: i for i in a.obligation_impacts}
