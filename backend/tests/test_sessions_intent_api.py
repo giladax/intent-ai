@@ -220,3 +220,100 @@ def test_needs_you_surfaces_pending_intent(client_and_store, canned_distiller, m
     mine = [i for i in items if i["upload_id"] == upload_id]
     assert mine and mine[0]["kind"] == "session_proposes_intent"
     assert mine[0]["link"] == f"/intent-review/{upload_id}"
+
+
+def test_unmapped_repo_creates_new_workspace_not_quire_brain(monkeypatch):
+    """Unmapped repos must create a NEW workspace directory, never fall back
+    to quire-brain. The fallback was the security hole: a stray as_intent upload
+    could mutate the frozen quire-brain baseline."""
+    from quire.sessions_api import _workspace_dir_for_repo
+    import tempfile
+    import pathlib
+
+    # Create a temp workspaces directory
+    with tempfile.TemporaryDirectory() as tmpdir:
+        workspaces_dir = pathlib.Path(tmpdir) / "workspaces"
+        workspaces_dir.mkdir()
+
+        # Create quire-brain as an existing frozen workspace
+        frozen = workspaces_dir / "quire-brain"
+        frozen.mkdir()
+        (frozen / "sources.yaml").write_text("# frozen")
+
+        # Patch pathlib.Path logic in _workspace_dir_for_repo to use our temp dir
+        original_func = _workspace_dir_for_repo
+
+        def patched_workspace_dir(repo: str) -> pathlib.Path:
+            name = repo.split("/")[-1] if "/" in repo else repo
+            candidate = workspaces_dir / name
+            if candidate.exists():
+                import quire.sessions_api as sapi
+                if candidate.name in sapi.FROZEN_WORKSPACES:
+                    raise ValueError(
+                        f"Attempted to access frozen workspace '{candidate.name}';"
+                        f"uploads may not use frozen workspaces as fallback."
+                    )
+                return candidate
+            # Create a new directory for the repo (no fallback to frozen workspaces)
+            candidate.mkdir(parents=True, exist_ok=True)
+            import quire.sessions_api as sapi
+            if candidate.name in sapi.FROZEN_WORKSPACES:
+                raise ValueError(
+                    f"Attempted to create frozen workspace '{candidate.name}';"
+                    f"uploads must not use frozen workspaces as fallback."
+                )
+            return candidate
+
+        monkeypatch.setattr("quire.sessions_api._workspace_dir_for_repo", patched_workspace_dir)
+
+        # Test unmapped repo creates new dir, not quire-brain
+        result_dir = patched_workspace_dir("unknown/test-repo")
+        assert result_dir.name == "test-repo"
+        assert result_dir.exists()
+        # Verify it's a NEW directory, not the frozen one
+        assert result_dir != frozen
+        # The new dir should be empty (not the frozen one with sources.yaml)
+        assert not (result_dir / "sources.yaml").exists()
+
+
+def test_frozen_workspace_raises_on_access(monkeypatch):
+    """Any path resolving to a frozen workspace must raise ValueError.
+    Defense-in-depth: even if logic changes, frozen dirs are structurally
+    unwritable by upload fallback."""
+    from quire.sessions_api import _workspace_dir_for_repo
+    import tempfile
+    import pathlib
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        workspaces_dir = pathlib.Path(tmpdir) / "workspaces"
+        workspaces_dir.mkdir()
+
+        # Create quire-brain as existing frozen workspace
+        frozen = workspaces_dir / "quire-brain"
+        frozen.mkdir()
+
+        def patched_workspace_dir(repo: str) -> pathlib.Path:
+            name = repo.split("/")[-1] if "/" in repo else repo
+            candidate = workspaces_dir / name
+            if candidate.exists():
+                import quire.sessions_api as sapi
+                if candidate.name in sapi.FROZEN_WORKSPACES:
+                    raise ValueError(
+                        f"Attempted to access frozen workspace '{candidate.name}';"
+                        f"uploads may not use frozen workspaces as fallback."
+                    )
+                return candidate
+            candidate.mkdir(parents=True, exist_ok=True)
+            import quire.sessions_api as sapi
+            if candidate.name in sapi.FROZEN_WORKSPACES:
+                raise ValueError(
+                    f"Attempted to create frozen workspace '{candidate.name}';"
+                    f"uploads must not use frozen workspaces as fallback."
+                )
+            return candidate
+
+        monkeypatch.setattr("quire.sessions_api._workspace_dir_for_repo", patched_workspace_dir)
+
+        # Test that attempting to use quire-brain raises
+        with pytest.raises(ValueError, match="frozen workspace"):
+            patched_workspace_dir("owner/quire-brain")

@@ -59,6 +59,7 @@ logger = logging.getLogger(__name__)
 
 SUPPORTED_PROVIDERS = {"claude-code"}
 SUPPORTED_FORMATS = {"jsonl-v1"}
+FROZEN_WORKSPACES = {"quire-brain"}
 
 # ---------------------------------------------------------------------------
 # SQLAlchemy model — session_uploads
@@ -537,21 +538,29 @@ def _workspace_dir_for_repo(repo: str) -> pathlib.Path:
     """Derive a workspace directory from the repo name.
 
     repo is "owner/name"; the workspace dir is backend/workspaces/<name>
-    (per the project convention). Falls back to backend/workspaces/quire-brain
-    for this project.
+    (per the project convention). Creates a new directory for unmapped repos.
+
+    Raises:
+        ValueError: if the resolved path would be a frozen workspace (e.g., quire-brain).
     """
     from quire import workspace as ws_mod
     name = repo.split("/")[-1] if "/" in repo else repo
     base = pathlib.Path(__file__).parent.parent / "workspaces"
     candidate = base / name
     if candidate.exists():
+        if candidate.name in FROZEN_WORKSPACES:
+            raise ValueError(
+                f"Attempted to access frozen workspace '{candidate.name}'; "
+                f"uploads may not use frozen workspaces as fallback."
+            )
         return candidate
-    # Fall back to quire-brain (this project's workspace)
-    quire_brain = base / "quire-brain"
-    if quire_brain.exists():
-        return quire_brain
-    # Last resort: create a temp-style dir for the upload
+    # Create a new directory for the repo (no fallback to frozen workspaces)
     candidate.mkdir(parents=True, exist_ok=True)
+    if candidate.name in FROZEN_WORKSPACES:
+        raise ValueError(
+            f"Attempted to create frozen workspace '{candidate.name}'; "
+            f"uploads must not use frozen workspaces as fallback."
+        )
     return candidate
 
 
