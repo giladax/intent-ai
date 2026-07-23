@@ -80,6 +80,9 @@ export interface FeatureDetail {
   story: string;
   files?: FeatureFile[];
   observations?: FeatureObservation[];
+  /** Workspace key (slug) resolved by the backend from projects.name — e.g. "intent-ai".
+   *  Used as the /repo/:ws route parameter. Null when the project row is missing. */
+  workspace?: string | null;
 }
 
 export interface SessionMoment {

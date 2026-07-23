@@ -330,7 +330,27 @@ def create_journal_router() -> APIRouter:
             ).mappings().all()
             observations = [dict(r) for r in obs_rows]
 
-        return {"feature": feature, "sessions": sessions, "story": story, "files": files, "observations": observations}
+            # Resolve workspace key from project name — slug conversion.
+            # Fail-safe: None when the project row is missing or name is blank.
+            workspace_key: str | None = None
+            try:
+                proj_row = sess.execute(
+                    text("SELECT name FROM projects WHERE id = :pid"),
+                    {"pid": feature.get("project_id")},
+                ).mappings().fetchone()
+                if proj_row and proj_row["name"]:
+                    workspace_key = proj_row["name"].lower().replace(" ", "-")
+            except Exception:
+                pass  # never break the feature endpoint over a missing project row
+
+        return {
+            "feature": feature,
+            "sessions": sessions,
+            "story": story,
+            "files": files,
+            "observations": observations,
+            "workspace": workspace_key,
+        }
 
     @router.patch("/api/features/{feature_id}")
     def patch_feature(feature_id: str, req: PatchFeatureRequest):

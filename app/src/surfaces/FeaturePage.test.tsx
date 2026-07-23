@@ -135,6 +135,26 @@ describe("FeaturePage", () => {
     expect(screen.getByText(/4 coding sessions/)).toBeInTheDocument();
   });
 
+  it("uses repoWorkspace (workspace key slug) for /repo/ links, not the display name", async () => {
+    // The fixture has repoWorkspace: "refund-agent" — the lowercase-hyphenated workspace key.
+    // Both the breadcrumb and the "Part of" rail link must route to /repo/refund-agent.
+    // This guards against the bug where the display name ("Refund Agent") was used instead,
+    // which would 404 once the /repo/:ws route went live.
+    render(<MemoryRouter><FeaturePage featureId="feat-refund-limits" /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText("Part of")).toBeInTheDocument());
+    const links = document.querySelectorAll("a[href]");
+    const repoLinks = Array.from(links).filter(
+      (l) => l.getAttribute("href")?.includes("/repo/")
+    );
+    expect(repoLinks.length).toBeGreaterThan(0);
+    for (const link of repoLinks) {
+      const href = link.getAttribute("href") ?? "";
+      // Workspace keys are lowercase-hyphenated slugs — never uppercase or spaces.
+      expect(href).not.toMatch(/[A-Z ]/);
+      expect(href).toContain("/repo/refund-agent");
+    }
+  });
+
   it("renders a quiet not-found state when the fetch fails", async () => {
     mockedFetch.mockRejectedValue(new Error("404"));
     render(<MemoryRouter><FeaturePage featureId="nope" /></MemoryRouter>);

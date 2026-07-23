@@ -244,3 +244,57 @@ def test_brain_discover_unknown_project(client):
     """POST /api/brain/discover with nonexistent project → 404."""
     resp = client.post("/api/brain/discover", json={"repoId": "nonexistent-id-xyz"})
     assert resp.status_code == 404
+
+
+@pytest.mark.requires_postgres
+def test_feature_not_found_returns_404(client):
+    """GET /api/features/{valid-uuid-not-in-db} → 404."""
+    # The features.id column is a Postgres UUID — pass a well-formed UUID that doesn't exist.
+    resp = client.get("/api/features/00000000-0000-0000-0000-000000000000")
+    assert resp.status_code == 404
+
+
+@pytest.mark.requires_postgres
+def test_feature_detail_envelope_has_workspace(client):
+    """GET /api/features/{id} → response envelope includes 'workspace' key derived from project name.
+
+    Seeds a project named 'Intent AI' and a feature directly via SQL (the POST /api/projects
+    endpoint has a pre-existing uuid cast issue — bypass it for this test). Verifies that
+    the workspace field resolves to 'intent-ai' (slug of the project display name).
+    """
+    from sqlalchemy import text as sa_text
+    from quire.db.engine import get_session as _db
+
+    # Seed project + feature directly via SQL to avoid the POST /api/projects uuid-cast issue.
+    with _db() as sess:
+        proj_row = sess.execute(
+            sa_text(
+                "INSERT INTO projects (id, name, path, created_at) "
+                "VALUES (gen_random_uuid(), 'Intent AI', '/repos/intent-ai', now()) "
+                "RETURNING id::text AS id"
+            )
+        ).mappings().fetchone()
+        project_id = proj_row["id"]
+
+        feat_row = sess.execute(
+            sa_text(
+                "INSERT INTO features (id, project_id, name, description, created_at, constraints, known_unknowns) "
+                "VALUES (gen_random_uuid(), :pid, 'Test Feature', '', now(), '[]'::jsonb, '[]'::jsonb) "
+                "RETURNING id::text AS id"
+            ),
+            {"pid": project_id},
+        ).mappings().fetchone()
+        feature_id = feat_row["id"]
+        sess.commit()
+
+    detail_resp = client.get(f"/api/features/{feature_id}")
+    assert detail_resp.status_code == 200, (
+        f"Expected 200, got {detail_resp.status_code}: {detail_resp.text[:200]}"
+    )
+    data = detail_resp.json()
+    assert "workspace" in data, (
+        f"'workspace' key missing from feature detail response: {list(data.keys())}"
+    )
+    assert data["workspace"] == "intent-ai", (
+        f"Expected workspace='intent-ai', got {data['workspace']!r}"
+    )

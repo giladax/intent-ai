@@ -347,7 +347,7 @@ export const firstResults = (workspace: string, n_prs = 3) =>
 export async function fetchOrgFeatureDetail(featureId: string): Promise<OrgFeatureDetail> {
   const detail = await json<FeatureDetailShape>(`/api/features/${featureId}`);
   const f = detail.feature;
-  // Resolve the owning project's NAME — ids stay footnotes, never headlines.
+  // Resolve the owning project's DISPLAY NAME — ids stay footnotes, never headlines.
   // Fail-quiet: if the projects list is unreachable, fall back to the id.
   let repoName = f.project_id;
   try {
@@ -360,7 +360,9 @@ export async function fetchOrgFeatureDetail(featureId: string): Promise<OrgFeatu
     id: f.id,
     name: f.name,
     repo: repoName,
-    repoWorkspace: repoName,
+    // Use the backend-resolved workspace key (slug) for /repo/:ws routing.
+    // Falls back to repoName when backend doesn't carry the field yet (degraded state).
+    repoWorkspace: detail.workspace ?? repoName,
     summary: f.description || f.current_understanding || undefined,
     statusLabel: "No reviews yet",
     statusInk: "gray",
