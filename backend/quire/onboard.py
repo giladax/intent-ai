@@ -41,6 +41,12 @@ _SKIP_PARTS_EXTRA_DEFAULT = {
     "eval-runs", ".superpowers", "handoffs", ".claude", ".repo", "skills",
     "worktrees", "drizzle",
 }
+# Filenames that are never approved intent, regardless of content.
+# Matched case-insensitively against the file stem (no suffix).
+# LICENSE, COPYING, NOTICE, CODE_OF_CONDUCT are legal/boilerplate — they
+# contain promise words ("shall", "must", "required") that inflate their score
+# but carry no product intent.
+_SKIP_STEM_PREFIXES = ("LICENSE", "COPYING", "NOTICE", "CODE_OF_CONDUCT")
 
 
 def scan_intent_sources(
@@ -60,6 +66,8 @@ def scan_intent_sources(
             continue
         rel = path.relative_to(repo)
         if any(part in skip_parts for part in rel.parts):
+            continue
+        if path.stem.upper().startswith(_SKIP_STEM_PREFIXES):
             continue
         try:
             text = path.read_text()

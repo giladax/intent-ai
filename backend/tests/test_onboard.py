@@ -156,3 +156,75 @@ def test_write_workspace_provider_parameter(tmp_path):
     assert data["requirements"]["provider"] == "github"
     # repositories block also uses the parameter
     assert data["repositories"][0]["provider"] == "github"
+
+
+def test_scan_excludes_license_files(tmp_path):
+    """scan_intent_sources never ranks LICENSE*, COPYING*, NOTICE*, CODE_OF_CONDUCT* files."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    # A dense promise-word LICENSE file that would outscore a real PRD without the filter.
+    (repo / "LICENSE.txt").write_text(
+        "MIT License\n\nPermission is hereby granted, free of charge, to any person "
+        "obtaining a copy of this software and associated documentation files (the "
+        '"Software"), to deal in the Software without restriction, including without '
+        "limitation the rights to use, copy, modify, merge, publish, distribute, "
+        "sublicense, and/or sell copies of the Software, and to permit persons to "
+        "whom the Software is furnished to do so, subject to the following conditions:\n\n"
+        "The above copyright notice and this permission notice shall be included in all "
+        "copies or substantial portions of the Software.\n\n"
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR "
+        "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
+        "FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE "
+        "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER "
+        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, "
+        "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN "
+        "THE SOFTWARE.\n"
+    )
+
+    # A README with some promise words — should be ranked.
+    (repo / "README.md").write_text(
+        "# Refund Agent\n\n"
+        "This service must process refunds within 24 hours. Refunds shall never exceed "
+        "the approved limit. The system is required to log every transaction and must "
+        "never allow unauthorized access. Approved amounts are enforced at the gateway.\n"
+        "Constraints apply to all environments. This policy must be followed at all times.\n"
+    )
+
+    sources = scan_intent_sources(repo, extra_skip_parts=set())
+    paths = [s["path"] for s in sources]
+
+    assert not any("LICENSE" in p.upper() for p in paths), (
+        f"LICENSE file must be excluded from intent sources, but got: {paths}"
+    )
+    assert any("README" in p.upper() for p in paths), (
+        f"README.md should be included in intent sources, but got: {paths}"
+    )
+
+
+def test_scan_excludes_all_license_variants(tmp_path):
+    """COPYING.txt, NOTICE.md, CODE_OF_CONDUCT.md are all excluded from intent scan."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    boilerplate_text = (
+        "This license shall be enforced. You must comply. Required by law. "
+        "Approved by the board. Never violate these terms. Always follow them. "
+        "Enforcement is guaranteed. This constraint is binding on all parties. "
+        "Approval is required. Violations are forbidden. Policy must be followed.\n"
+    ) * 5  # repeat to exceed the 40-word minimum
+
+    (repo / "COPYING.txt").write_text(boilerplate_text)
+    (repo / "NOTICE.md").write_text(boilerplate_text)
+    (repo / "CODE_OF_CONDUCT.md").write_text(boilerplate_text)
+    (repo / "README.md").write_text(
+        ("# Product\n\nThis product must work. It shall scale. Required features.\n") * 5
+    )
+
+    sources = scan_intent_sources(repo, extra_skip_parts=set())
+    paths = [s["path"] for s in sources]
+
+    for excluded in ("COPYING", "NOTICE", "CODE_OF_CONDUCT"):
+        assert not any(excluded in p.upper() for p in paths), (
+            f"{excluded} file must be excluded, but got: {paths}"
+        )
