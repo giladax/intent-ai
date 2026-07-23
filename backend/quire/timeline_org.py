@@ -22,17 +22,7 @@ from sqlalchemy import text
 from quire import vocab
 
 _MAX_WINDOW_DAYS = 90
-_VERDICT_INK = {
-    # Every value in Classification must be listed here — the test
-    # test_verdict_ink_covers_all_classifications enforces this invariant.
-    "ALIGNED": "green",
-    "PARTIAL": "amber",
-    "POSSIBLE_DRIFT": "amber",
-    "UNGOVERNED": "blue",
-    "UNKNOWN": "gray",
-    "OFF_INTENT": "red",          # contradicts intent — loudest signal
-    "NO_MATERIAL_IMPACT": "gray", # no product-relevant change — quiet
-}
+# Verdict ink comes from quire.vocab — the one place (F2). See vocab.ink().
 
 
 def _now_utc() -> datetime:
@@ -167,7 +157,7 @@ def _build(pg_session, alignment_store, since, until, window_days) -> dict:
                     ts = ts.replace(tzinfo=timezone.utc)
                 if not (since <= ts < until):
                     continue
-                ink = _VERDICT_INK.get(a.classification.value, "gray")
+                ink = vocab.ink(a.classification.value)
                 verdict_label = _verdict_plain(a.classification.value)
                 ts_label = ts.strftime("%-d %b")
                 # Compute repo_slug before the mark dict so the link is clean.

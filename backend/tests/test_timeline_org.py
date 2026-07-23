@@ -11,7 +11,6 @@ from unittest.mock import MagicMock
 from quire.models import Classification
 from quire.timeline_org import (
     _MAX_WINDOW_DAYS,
-    _VERDICT_INK,
     _empty_shape,
     _verdict_plain,
     compose_org_timeline,
@@ -409,32 +408,28 @@ def test_session_mark_appears_on_both_features_when_spanning_two():
         )
 
 
-# ── M2: _VERDICT_INK completeness ────────────────────────────────────────────
+# ── M2: verdict ink completeness (via the single vocab source) ──────────────
 
 def test_verdict_ink_covers_all_classifications():
-    """M2: every Classification enum value must have an explicit entry in _VERDICT_INK.
-
-    The .get(key, 'gray') fallback must never be the load-bearing path —
-    missing keys are silent misrepresentations (OFF_INTENT 'gray' instead of
-    'red' would hide the worst verdict). Lock the mapping to the full vocab.
-    """
-    all_verdicts = {c.value for c in Classification}
-    missing = all_verdicts - set(_VERDICT_INK)
-    assert not missing, (
-        f"_VERDICT_INK is missing explicit entries for: {missing}. "
-        "Add them — OFF_INTENT must map to 'red', "
-        "NO_MATERIAL_IMPACT must map to 'gray'."
-    )
+    """M2: every Classification value has a non-fallback ink in the ONE source,
+    quire.vocab. A silent 'gray' fallback would misrepresent the worst verdict
+    (OFF_INTENT must be loud). timeline_org now reads vocab.ink directly."""
+    from quire import vocab
+    for c in Classification:
+        # a real row, not the unknown fallback (which is also gray but explicit)
+        assert vocab.verdict(c.value)["ink"], f"{c.value} has no ink in vocab"
 
 
 def test_verdict_ink_off_intent_is_red():
     """OFF_INTENT must map to 'red' — it contradicts intent, the loudest signal."""
-    assert _VERDICT_INK["OFF_INTENT"] == "red"
+    from quire import vocab
+    assert vocab.ink("OFF_INTENT") == "red"
 
 
 def test_verdict_ink_no_material_impact_is_gray():
     """NO_MATERIAL_IMPACT must map to 'gray' — a quiet, non-alarm verdict."""
-    assert _VERDICT_INK["NO_MATERIAL_IMPACT"] == "gray"
+    from quire import vocab
+    assert vocab.ink("NO_MATERIAL_IMPACT") == "gray"
 
 
 # ── M4: repo_workspace slug ──────────────────────────────────────────────────

@@ -108,6 +108,19 @@ def relation(relation_value: str | None) -> dict[str, str]:
     return dict(_RELATIONS.get(relation_value, fallback))
 
 
+# Plain labels for alarm/tap receipt rows — so a founder's phone never shows a
+# raw internal kind ("signing", "gap"). One home, shared by every delivery path.
+_RECEIPT_LABELS = {
+    "signing": "signed", "promise": "promise", "check": "check",
+    "mandate": "mandate", "gap": "coverage",
+}
+
+
+def receipt_label(kind: str | None) -> str:
+    """Plain label for a receipt row kind (falls back to the kind itself)."""
+    return _RECEIPT_LABELS.get(kind or "", kind or "receipt")
+
+
 def verdict(classification: str | None) -> dict[str, str]:
     """Return the full vocab row for a classification enum (or the safe
     unknown fallback). Never raises."""

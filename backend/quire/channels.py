@@ -68,23 +68,27 @@ class TelegramChannel:
         """
         import httpx
 
-        # Build the full message: main text + receipt block
+        # Build the full message: main text + receipt block. Plain text only —
+        # a promise quote in the body can contain unbalanced Markdown (_ * ` [),
+        # which Telegram's Markdown parser rejects with a 400, silently dropping
+        # the alarm forever. The content is a plain sentence, so send it plain.
+        from quire import vocab
+
         body = text
         if receipts:
-            lines = ["\n\n_Receipts:_"]
+            lines = ["\n\nReceipts:"]
             for r in receipts:
-                label = r.get("kind", "receipt")
+                label = vocab.receipt_label(r.get("kind"))  # plain, never a raw enum
                 ref = r.get("ref", "")
                 note = r.get("note", "")
                 note_str = f" — {note}" if note else ""
-                lines.append(f"  • {label}: `{ref}`{note_str}")
+                lines.append(f"  • {label}: {ref}{note_str}")
             body += "\n".join(lines)
 
         url = self._API.format(token=self._token)
         payload = {
             "chat_id": self._chat_id,
             "text": body,
-            "parse_mode": "Markdown",
             "disable_web_page_preview": True,
         }
         try:

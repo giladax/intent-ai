@@ -5,7 +5,52 @@ Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
 moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: da35e06
+last-reviewed: 3ea57f5
+
+## 2026-07-24 — tick over da35e06..3ea57f5 (O3 upload + O4 intent + O5 Telegram tap + timeline)
+
+Reviewed ~2.3k lines of new logic across six modules — channels.py +
+deliver_alarms.py (the Telegram "tap", OUTWARD-FACING), sessions_api.py (the
+891-line session-upload standard), propose_intent.py, correlate.py,
+timeline_org.py. Security-focused. One agent, both lenses.
+
+**Security surfaces verified SAFE (no fix needed):**
+- Telegram token never leaked — `_redact` scrubs it from every log/error; only
+  ever placed in the URL path, never the body.
+- Alarm delivery is deduplicated (persisted `dedup_key`s, capped at 500; a
+  failed send isn't marked, so it retries; a new break re-fires) and
+  failure-contained (httpx timeout 10s; send never raises; loop + sync both
+  try/except-wrapped).
+- Upload input: 50 MB cap, empty/format/provider allow-listed, sha256
+  idempotency, archive-first + verify-after-write. propose_intent keeps the LLM
+  at the edge and re-validates every quote verbatim at approve time — a
+  fabricated intent cannot persist.
+
+**Tier-1 applied:**
+- **Telegram delivery bug (E3):** `parse_mode: "Markdown"` over an embedded
+  promise quote with unbalanced `_ * ` [` makes Telegram 400 and silently drop
+  the alarm forever. Dropped parse_mode — the content is a plain sentence.
+- **Telegram jargon on the phone (E1/P1):** the receipt block showed raw enums
+  (`signing:`, `gap:`). Added `vocab.receipt_label()` (one home) and routed the
+  delivery block through it → `signed`, `coverage`; also dropped backticks/
+  underscores from the block.
+- **Second verdict-colour source (E2):** timeline_org hand-rolled `_VERDICT_INK`
+  (Classification→ink) duplicating `vocab.ink` (verified identical). Deleted it,
+  call `vocab.ink`; the completeness invariant test now asserts against vocab.
+- **Plain 422 (P3):** the intent-approve quote-mismatch error dumped raw
+  "…resolve verbatim…" to the client → plain message, exc logged server-side.
+- **Traversal hardening (E6):** `_workspace_dir_for_repo` now rejects an unsafe
+  repo name (empty/`.`/`..`/slash/leading-dot) so an uploader's "owner/.." can't
+  escape workspaces/.
+
+**Tier-2 logged (deferred):** render.py DISPLAY_LABELS is still a second shouty
+Classification source (carried from prior ticks); NOUN sprawl now spans
+promise/rule/obligation/contract PLUS intent/"cards" (sessions) and "coupling"
+(CLI) — needs a founder ruling; correlate derives the repo root by fragile
+`.parent` hops and is a no-op diff for non-intent-ai repos; timeline "All of
+{repo}" row label; the "recovered ✓" glyph in the tap.
+
+Gate: `cd backend && python3 -m pytest` → 875 passed, 1 skipped.
 
 ## 2026-07-23 — tick over 29e5c85..da35e06 (O2 sync + O4.5 handoff + A2 review)
 

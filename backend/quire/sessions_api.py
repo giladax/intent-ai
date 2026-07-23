@@ -545,6 +545,10 @@ def _workspace_dir_for_repo(repo: str) -> pathlib.Path:
     """
     from quire import workspace as ws_mod
     name = repo.split("/")[-1] if "/" in repo else repo
+    # Confine the name to a single safe directory segment — an uploader-
+    # supplied repo like "owner/.." would otherwise escape workspaces/.
+    if not name or name in (".", "..") or "/" in name or "\\" in name or name.startswith("."):
+        raise ValueError(f"unsafe repo name: {repo!r}")
     base = pathlib.Path(__file__).parent.parent / "workspaces"
     candidate = base / name
     if candidate.exists():
@@ -878,8 +882,13 @@ def create_sessions_router(upload_store: UploadStore | None = None) -> APIRouter
                 reference=(body.get("reference") or "").strip() or None,
             )
         except ValueError as exc:
-            # A quote that no longer resolves verbatim is a hard stop.
-            raise HTTPException(422, str(exc))
+            # A quote that no longer matches the session text is a hard stop.
+            logger.warning("intent approve: quote mismatch: %s", exc)
+            raise HTTPException(
+                422,
+                "An approved statement's quote no longer matches the session "
+                "text exactly, so it can't be signed. Re-check the edited quote.",
+            )
         return {
             "signed": len(result.statements),
             "reference": result.reference,
