@@ -83,9 +83,29 @@ _UNKNOWN = {
     "severity": "medium",
 }
 
+# Per-promise verdicts — how one PR relates to ONE promise (ImpactRelation).
+# The companion to the PR-level verdicts above, kept here so promise-level and
+# PR-level verdict language share one home (F2: one place). Keyed by
+# ImpactRelation.value so vocab need not import the models.
+_RELATIONS = {
+    "satisfies": {"label": "Keeps this promise", "ink": "green"},
+    "partially_satisfies": {"label": "Partly keeps this promise", "ink": "amber"},
+    "contradicts": {"label": "Breaks this promise", "ink": "red"},
+    "unrelated": {"label": "Doesn't touch this promise", "ink": "gray"},
+}
+
 # Docket ranking: loudest first. Shared with alarms._RANK so the page, the
 # tap, and the phone agree on order.
 SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "info": 3}
+
+
+def relation(relation_value: str | None) -> dict[str, str]:
+    """Plain {label, ink} for a per-promise verdict (an ImpactRelation.value).
+    Falls back to the unknown row. Never raises."""
+    fallback = {"label": _UNKNOWN["label"], "ink": _UNKNOWN["ink"]}
+    if not relation_value:
+        return fallback
+    return dict(_RELATIONS.get(relation_value, fallback))
 
 
 def verdict(classification: str | None) -> dict[str, str]:

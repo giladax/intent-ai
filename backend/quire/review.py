@@ -234,12 +234,10 @@ def _path_matches(path: str, feature_ref: str) -> bool:
     return path == stem or path.startswith(stem + "/")
 
 
-_RELATION_VERDICT = {
-    ImpactRelation.SATISFIES: ("Keeps this promise", "green"),
-    ImpactRelation.PARTIALLY_SATISFIES: ("Partly keeps this promise", "amber"),
-    ImpactRelation.CONTRADICTS: ("Breaks this promise", "red"),
-    ImpactRelation.UNRELATED: ("Doesn't touch this promise", "gray"),
-}
+# Per-promise verdict language lives in one place — quire.vocab.relation().
+def _relation_label_ink(rel) -> tuple[str, str]:
+    v = vocab.relation(getattr(rel, "value", rel))
+    return v["label"], v["ink"]
 
 
 def _promise_cards(a: PRAnalysis, statements: dict[str, str]) -> list[dict[str, Any]]:
@@ -252,7 +250,7 @@ def _promise_cards(a: PRAnalysis, statements: dict[str, str]) -> list[dict[str, 
     )
     cards: list[dict[str, Any]] = []
     for imp in ranked:
-        label, ink = _RELATION_VERDICT.get(imp.relation, ("Needs your review", "gray"))
+        label, ink = _relation_label_ink(imp.relation)
         cards.append({
             "obligation_id": imp.obligation_id,
             "statement": statements.get(imp.obligation_id, ""),
@@ -438,7 +436,7 @@ def _files_and_notes(
                 continue
             note_seq += 1
             note_id = f"note-{note_seq}"
-            label, ink = _RELATION_VERDICT.get(imp.relation, ("Needs your review", "gray"))
+            label, ink = _relation_label_ink(imp.relation)
             notes.append({
                 "id": note_id,
                 "path": path,

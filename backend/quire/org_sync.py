@@ -216,9 +216,9 @@ def _save_sync_meta(ws_path: pathlib.Path, meta: dict[str, Any]) -> None:
 def _load_seen_shas(ws_path: pathlib.Path) -> set[str]:
     """Return the set of head_sha values already analyzed in this workspace.
 
-    Reads prs.yaml and extracts all `head` values that have a companion
-    `analyzed_head_sha` marker, OR uses the analysis store idempotency cache.
-    We track them additionally in sync_meta so offline tests don't need a DB.
+    Reads the `analyzed_head_shas` list from sync_meta.yaml (the analysis
+    store's sha256 identity cache is the other idempotency layer; this local
+    marker lets offline tests dedup without a DB).
     """
     meta = _load_sync_meta(ws_path)
     return set(meta.get("analyzed_head_shas", []))
@@ -375,6 +375,13 @@ def handle_pr_event(
 
     mirror = mirror_path(owner, name)
     repository = f"{owner}/{name}"
+
+    # A PR with no head sha can't be identified or de-duplicated. Skip it so an
+    # empty "" never enters the analyzed-sha seen-set — otherwise every later
+    # sha-less PR would look already-analyzed and be silently dropped.
+    if not event.head_sha:
+        return {"pr_number": event.pr_number, "head_sha": "",
+                "verdict": None, "skipped": True, "error": "no head sha"}
 
     # -- Trailer link extraction (before analysis; failure-safe) ──────────
     if (
@@ -614,7 +621,9 @@ def sync_org(
         github_remote = repo.get("github_remote")
         if not github_remote:
             continue
-        workspace = repo["workspace"]
+        workspace = repo.get("workspace")
+        if not workspace:
+            continue  # a malformed row must not abort the whole sync pass
         ws_path = workspaces_root / workspace
 
         if not ws_path.is_dir():

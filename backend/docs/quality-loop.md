@@ -5,7 +5,54 @@ Each entry: date, reviewed SHA, findings, fixes applied. The loop skips
 ticks with no new commits past `last-reviewed`. (Formerly alignment/docs/;
 moved with the alignment/ → backend/ rename in slice 1, defe5af.)
 
-last-reviewed: 29e5c85
+last-reviewed: da35e06
+
+## 2026-07-23 — tick over 29e5c85..da35e06 (O2 sync + O4.5 handoff + A2 review)
+
+Reviewed ~2.7k lines of new logic: org_sync.py (continuous PR review), handoff.py
+(a PRD becomes the team's week of tasks), review.py (the review room),
+task_models.py, plus O2/O4.5 wiring. One agent, both lenses. Overall: strong,
+disciplined — the PrEventSource seam, failure-safe wrapping, and idempotency
+(analysis_key upsert + uq_task_link) are real; handoff follows deterministic-
+shell/LLM-at-the-edge with validate_cards dropping any fabricated task.
+
+**Tier-1 applied:**
+- org_sync: **empty head_sha would poison the seen-set** — a PR with no head
+  sha marked "" as analyzed, after which every later sha-less PR looked
+  already-done and was silently dropped. Now skipped up front.
+- org_sync: `repo["workspace"]` subscript could abort the whole sync pass on one
+  malformed row → `.get()` + continue (matches the per-repo containment intent).
+- org_sync: corrected a stale `_load_seen_shas` docstring (claimed it reads
+  prs.yaml; it reads sync_meta).
+- **Single verdict source:** review.py had a second, hand-maintained
+  ImpactRelation→label/ink map (`_RELATION_VERDICT`) — a per-promise verdict
+  vocabulary drifting from vocab.py ("Breaks this promise" vs "Breaks a
+  promise"). Added `vocab.relation()` (the companion to `vocab.verdict()`) and
+  routed review.py through it, so promise-level and PR-level verdict language
+  share one home. Labels unchanged; 761 green.
+
+**Checked, NOT changed:**
+- `_why` "dead guard" (finding #3): FALSE POSITIVE. The loop does continue past
+  the bare-coupling fallback, so a later link WITH a narrative still wins; the
+  `if session is None` correctly pins the fallback to the FIRST bare link. Left
+  as is.
+
+**Tier-2 logged (deferred):**
+- render.py DISPLAY_LABELS is still the shouty pre-existing second Classification
+  source (CLI/timeline/mirror) — unify to vocab once the noun is ruled.
+- **NOUN inconsistency (founder decision):** promise / rule / obligation /
+  contract name one thing; vocab commits to "promise"; new handoff code adds
+  "contract" (docstring) and keeps `serves_obligation_id`.
+- org_sync `last_seen_updated_at` is written but never gates (dead watermark);
+  intent_save reference/safe_slug can diverge; handoff auto-close honesty
+  invariant lives in the query not the decision point; `_emit_check_analyzed`
+  tags carry the raw enum; closure notes bake in "(evidence detection coming)".
+- handoff-draft 502 leaks raw exc text (plain-language fix) — DEFERRED because
+  org_router.py currently holds unrelated uncommitted work.
+
+Gate: `cd backend && python3 -m pytest` → 761 passed, 1 skipped (verified with
+the unrelated in-progress intent_save work set aside; that failure is not part
+of this tick and not in any file committed here).
 
 ## 2026-07-23 — tick over 0fa325f..29e5c85 (O1 onboarding + vocab + needs-you)
 
