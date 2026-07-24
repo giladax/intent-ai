@@ -9,3 +9,8 @@ quire/static/dashboard/
 # O1 GitHub mirror cache — shallow clones of governed repos (refresh on sync)
 # depth=10; gitignored because this is ephemeral data, not source
 .repos/
+
+# Demo stage assets — session transcripts and PRD drafts used during live demos.
+# Kept local; not committed because transcripts contain realistic-looking customer
+# data and should not appear in public history.
+.demo-assets/
