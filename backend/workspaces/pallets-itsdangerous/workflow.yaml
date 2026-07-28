@@ -4,7 +4,7 @@ requirements:
   reference: LICENSE.txt
 repositories:
 - provider: github
-  repository: pallets-itsdangerous
+  repository: pallets/itsdangerous
   path: ../../.repos/pallets__itsdangerous
 eval_sources:
 - type: repository

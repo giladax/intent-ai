@@ -1086,3 +1086,217 @@ def test_approve_accepts_scan_shaped_sources(tmp_path, engine, monkeypatch):
     assert result["status"] == "active"
     wf = yaml.safe_load((tmp_path / "workspaces" / "o-r" / "workflow.yaml").read_text())
     assert wf["requirements"]["reference"] == "README.md"
+
+
+# ---------------------------------------------------------------------------
+# END-TO-END onboarding regression: register → scan → draft → approve MUST
+# leave a workspace whose analyzer adapter resolves an APPROVED source.
+#
+# This is the guard for the whole class of bug the live demo surfaced: approve
+# wrote obligations.yaml + an empty-form sources.yaml but never materialized
+# requirements/*.md, so build_adapter(ws).requirement_artifacts() returned []
+# and every verdict abstained to UNKNOWN. Revert-check: without the
+# requirements-materialization in onboard.write_workspace, this test FAILS
+# (requirement_artifacts() == []).
+# ---------------------------------------------------------------------------
+
+
+def _onboard_git_mirror(tmp_path) -> pathlib.Path:
+    """A git mirror with one promise-dense product doc (PRODUCT.md)."""
+    repo = tmp_path / "mirrors" / "acme__widgets"
+    repo.mkdir(parents=True)
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.email", "t@t"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "t"], check=True)
+    (repo / "PRODUCT.md").write_text(
+        "# Widget Platform: Product Promises\n\n"
+        "The system must never issue a refund above the approved limit. "
+        "All refunds require supervisor sign-off. "
+        "High-risk requests always require human approval before processing. "
+        "The platform shall enforce the $50 automatic-refund ceiling. "
+        "Users may not bypass the standard verification workflow.\n"
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "initial"], check=True)
+    return repo
+
+
+def _fake_proposer():
+    """A FakeProposer that mines PRODUCT.md into one verbatim-backed obligation
+    so the draft step needs no live LLM."""
+    from quire.propose import (
+        BindingCandidates,
+        CandidateBinding,
+        CandidateObligation,
+        FakeProposer,
+        ObligationCandidates,
+    )
+
+    obligations = ObligationCandidates(
+        candidates=[
+            CandidateObligation(
+                obligation_id="OB-001",
+                kind="hard_rule",
+                statement="Refunds above the approved limit are never issued.",
+                source_quote="The system must never issue a refund above the approved limit.",
+                source_section="Product Promises",
+            )
+        ]
+    )
+    bindings = BindingCandidates(candidates=[])
+    return FakeProposer(obligations, bindings)
+
+
+def test_onboard_e2e_approve_materializes_approved_source(tmp_path, engine, monkeypatch):
+    """register → scan → draft(canned) → approve, then the analyzer adapter
+    built over the written workspace MUST resolve ≥1 requirement artifact with
+    Authority.APPROVED. Regression guard for the UNKNOWN-abstain demo bug.
+
+    Revert-check: delete the requirements-materialization block in
+    onboard.write_workspace and this assertion fails (artifacts == []).
+    """
+    from quire.adapters.fixture import FixtureWorkspace
+    from quire.models import Authority
+    from quire.org_onboard import approve_repo, draft_repo, scan_repo
+    import quire.org_onboard as org_onboard_mod
+
+    ensure_org_tables(engine)
+    store = OrgStore(engine)
+    store.seed("Quire", "quire", [])
+    store.add_repo(
+        org_id="quire", repo_id="acme-widgets", workspace="acme-widgets",
+        display_name="acme/widgets", status="scanning", repository="acme/widgets",
+    )
+
+    mirror = _onboard_git_mirror(tmp_path)
+    monkeypatch.setattr(org_onboard_mod, "mirror_path", lambda owner, name: mirror)
+
+    # SCAN — find candidate sources (deterministic).
+    scanned = scan_repo(mirror)
+    assert scanned["sources"], "scan should find PRODUCT.md"
+    top = scanned["sources"][0]
+
+    # DRAFT — mine the top source into obligations with a canned proposer.
+    drafted = draft_repo(mirror, "acme-widgets", [top], llm=_fake_proposer())
+    assert drafted["obligations"], "draft should yield ≥1 obligation"
+
+    # APPROVE — write the approved workspace (scan-shaped source: no reference).
+    workspaces_root = tmp_path / "workspaces"
+    result = approve_repo(
+        workspace="acme-widgets", owner="acme", name="widgets",
+        org_store=store, workspaces_root=workspaces_root,
+        sources=[top],
+        obligations=drafted["obligations"],
+        bindings=drafted["bindings"],
+        sweep_commits=[],
+    )
+    assert result["status"] == "active"
+
+    # THE GUARD: the analyzer adapter resolves an APPROVED requirement source.
+    ws_path = workspaces_root / "acme-widgets"
+    adapter = FixtureWorkspace(ws_path)
+    artifacts = adapter.requirement_artifacts()
+    assert len(artifacts) >= 1, "requirement_artifacts() must not be empty after approve"
+    approved = [a for a in artifacts if a.authority == Authority.APPROVED]
+    assert approved, "at least one requirement artifact must have Authority.APPROVED"
+
+    # The materialized source's reference joins to the obligations and the
+    # manifest — the ladder admits by reference, so they MUST agree.
+    manifest_ref = adapter.manifest().requirements.reference
+    ob_refs = {o.source_reference for o in adapter.obligations()}
+    art_refs = {a.reference for a in approved}
+    assert manifest_ref in art_refs
+    assert art_refs & ob_refs, "requirement reference must match an obligation source_reference"
+
+    # The materialized body carries the actual source content (not a stub).
+    assert any("never issue a refund" in a.content for a in approved)
+
+
+def test_onboard_e2e_workspace_repository_is_owner_name(tmp_path, engine, monkeypatch):
+    """The written workflow.yaml repository field must be owner/name (the
+    GitHub API key), never the workspace slug — the slug 404s on publish/fetch.
+    """
+    from quire.adapters.fixture import FixtureWorkspace
+    from quire.org_onboard import approve_repo
+    import quire.org_onboard as org_onboard_mod
+
+    ensure_org_tables(engine)
+    store = OrgStore(engine)
+    store.seed("Quire", "quire", [])
+    store.add_repo(
+        org_id="quire", repo_id="acme-widgets", workspace="acme-widgets",
+        display_name="acme/widgets", status="scanning", repository="acme/widgets",
+    )
+    mirror = _onboard_git_mirror(tmp_path)
+    monkeypatch.setattr(org_onboard_mod, "mirror_path", lambda owner, name: mirror)
+
+    workspaces_root = tmp_path / "workspaces"
+    approve_repo(
+        workspace="acme-widgets", owner="acme", name="widgets",
+        org_store=store, workspaces_root=workspaces_root,
+        sources=[{"path": "PRODUCT.md", "score": 1.0}],
+        obligations=[{
+            "obligation_id": "OB-001", "kind": "hard_rule", "statement": "s",
+            "source_quote": "q", "source_reference": "PRODUCT.md", "revision": "draft-1",
+        }],
+        bindings=[], sweep_commits=[],
+    )
+    adapter = FixtureWorkspace(workspaces_root / "acme-widgets")
+    assert adapter.repository() == "acme/widgets"  # owner/name, NOT "acme-widgets"
+
+
+def test_onboard_e2e_github_workspace_does_not_abstain_for_missing_source(
+    tmp_path, engine, monkeypatch
+):
+    """A github-onboarded workspace, given a canned OFF_INTENT-shaped analysis,
+    must NOT abstain to UNKNOWN for lack of an approved source — the context
+    ladder resolves the materialized requirement. Canned LLM, no live spend."""
+    from quire.adapters.fixture import FixtureWorkspace
+    from quire.analysis.context import resolve_context
+    from quire.models import Authority, PullRequest
+    from quire.org_onboard import approve_repo
+    import quire.org_onboard as org_onboard_mod
+
+    ensure_org_tables(engine)
+    store = OrgStore(engine)
+    store.seed("Quire", "quire", [])
+    store.add_repo(
+        org_id="quire", repo_id="acme-widgets", workspace="acme-widgets",
+        display_name="acme/widgets", status="scanning", repository="acme/widgets",
+    )
+    mirror = _onboard_git_mirror(tmp_path)
+    monkeypatch.setattr(org_onboard_mod, "mirror_path", lambda owner, name: mirror)
+
+    workspaces_root = tmp_path / "workspaces"
+    approve_repo(
+        workspace="acme-widgets", owner="acme", name="widgets",
+        org_store=store, workspaces_root=workspaces_root,
+        sources=[{"path": "PRODUCT.md", "reference": "PRODUCT.md", "score": 1.0}],
+        obligations=[{
+            "obligation_id": "AW-001", "kind": "hard_rule",
+            "statement": "Refunds above the approved limit are never issued.",
+            "source_quote": "q", "source_reference": "PRODUCT.md", "revision": "1",
+        }],
+        bindings=[], sweep_commits=[],
+    )
+    adapter = FixtureWorkspace(workspaces_root / "acme-widgets")
+
+    # A PR whose title lexically overlaps the approved source (retrieval rung
+    # admits it) — the ladder must resolve, not abstain.
+    pr = PullRequest(
+        number=1,
+        title="Raise the automatic refund ceiling above the approved limit",
+        body="Refund limit change touching the refund ceiling and approval flow.",
+        author="dev", base_sha="a" * 40, head_sha="b" * 40,
+    )
+    resolution = resolve_context(
+        pr=pr, issue=None, manifest=adapter.manifest(),
+        artifacts=adapter.requirement_artifacts(),
+        obligations=adapter.obligations(),
+        matched_control_points=[], bindings=adapter.bindings(),
+    )
+    assert not resolution.abstained, (
+        f"ladder must resolve the approved source, got abstain: "
+        f"{resolution.abstain_reason}"
+    )
+    assert "PRODUCT.md" in resolution.resolved_references

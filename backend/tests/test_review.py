@@ -259,3 +259,46 @@ def test_feature_promises_endpoint_workspace_name_derivation(tmp_path):
         f"expected >= 1 promise for path {a_path!r} in 'refund-agent' workspace; got {body}"
     )
     assert any(a_path in p["files"] for p in body["promises"])
+
+
+# ── verdict-head vocab: raw enum never leaks into a human field ──────────────
+
+def test_review_verdict_head_is_plain_language_never_raw_enum(tmp_path):
+    """Every Classification maps to a plain vocab label, and the review
+    contract's verdict head (label + verdict_sentence) never carries the raw
+    enum string. `verdict` is the ONLY field that may hold the enum (agents
+    re-translate it via /api/vocab).
+
+    Guards the founder ruling: plain language on this public contract. If a
+    future change routed the head off vocab, the raw enum would leak here.
+    """
+    from quire import vocab
+    from quire.models import Classification, PRAnalysis, ReviewState
+
+    for cls in Classification:
+        v = vocab.verdict(cls.value)
+        # Every classification maps to a real plain label (not the fallback-by-
+        # accident enum, not an empty string).
+        assert v["label"], f"{cls.value} has no plain label"
+        assert cls.value != v["label"], f"{cls.value} label is the raw enum"
+
+        # Build a minimal analysis carrying this classification and assemble the
+        # verdict head exactly as review_detail does.
+        a = PRAnalysis(
+            analysis_id=str(_uuid.uuid4()),
+            workflow_id="wf",
+            repository="acme/widgets",
+            pr_number=1,
+            head_sha="h" * 40,
+            base_sha="b" * 40,
+            contract_snapshot_id="cs",
+            analyzer_version="test",
+            classification=cls,
+            review_state=ReviewState.PENDING,
+        )
+        sentence = review._verdict_sentence(a, v)
+        # The head reads in plain language; the raw enum appears nowhere in it.
+        assert v["label"] in sentence
+        assert cls.value not in sentence, (
+            f"raw enum {cls.value!r} leaked into the verdict head: {sentence!r}"
+        )

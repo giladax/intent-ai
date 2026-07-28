@@ -119,6 +119,7 @@ def write_workspace(
     bindings: list[dict],
     sweep_commits: list[dict],  # [{sha, subject}]
     provider: str = "git",
+    repository: str | None = None,  # "owner/name" — the GitHub API key (slug 404s)
 ) -> pathlib.Path:
     # Refuse before writing anything — a refusal must not leave a
     # half-created workspace directory behind.
@@ -162,22 +163,56 @@ def write_workspace(
     rel_repo = _relative(out, repo)
     primary_ref = sources[0]["reference"] if sources else "intent-source"
 
+    # The GitHub API keys off "owner/name"; the workflow slug (e.g.
+    # "giladax-swiftrefunds") 404s on publish/fetch. Prefer the caller-supplied
+    # owner/name; fall back to the slug only when none is given (local `git`
+    # provider workspaces that never hit the GitHub API).
+    repo_key = repository or workflow_id
+
     (out / "workflow.yaml").write_text(
         yaml.safe_dump(
             {
                 "workflow_id": workflow_id,
                 "requirements": {"provider": provider, "reference": primary_ref},
                 "repositories": [
-                    {"provider": provider, "repository": workflow_id, "path": rel_repo}
+                    {"provider": provider, "repository": repo_key, "path": rel_repo}
                 ],
                 "eval_sources": [{"type": "repository", "paths": ["tests/**", "evals/**"]}],
             },
             sort_keys=False,
         )
     )
+
+    # Materialize each approved source as requirements/<slug>.md — this is the
+    # form the analyzer's adapter reads (FixtureWorkspace.requirement_artifacts
+    # globs requirements/*.md and reads frontmatter status → Authority). Without
+    # this file the context ladder finds no approved product-intent source and
+    # every verdict abstains to UNKNOWN. `reference` in the frontmatter MUST
+    # match the obligations' `source_reference` and the manifest reference so
+    # the ladder can admit the artifact by reference.
+    #
+    # sources.yaml is retained as a human-facing manifest of what was approved;
+    # requirements/*.md is the authoritative form the adapter reads.
+    reqs_dir = out / "requirements"
+    reqs_dir.mkdir(exist_ok=True)
+    used_slugs: set[str] = set()
+    for source in sources:
+        reference = source["reference"]
+        version = str(source.get("version", "onboard-1"))
+        body = _read_source_content(repo, source.get("path", ""))
+        slug = _requirement_slug(reference, used_slugs)
+        used_slugs.add(slug)
+        frontmatter = yaml.safe_dump(
+            {"reference": reference, "version": version, "status": "approved"},
+            sort_keys=False,
+        )
+        (reqs_dir / f"{slug}.md").write_text(f"---\n{frontmatter}---\n\n{body}")
+
     (out / "sources.yaml").write_text(
-        "# Approved intent sources, read from the repo checkout.\n"
-        "# status governs authority: only `approved` sources feed the analyzer.\n"
+        "# Approved intent sources (human-facing manifest). The AUTHORITATIVE\n"
+        "# form the analyzer reads is requirements/*.md — each source is\n"
+        "# materialized there with `status: approved`. This file records what\n"
+        "# was approved and where it came from in the repo checkout.\n"
         + yaml.safe_dump(
             [
                 {
@@ -223,3 +258,35 @@ def _relative(from_dir: pathlib.Path, to: pathlib.Path) -> str:
     import os
 
     return os.path.relpath(to.resolve(), from_dir.resolve())
+
+
+def _read_source_content(repo: pathlib.Path, source_path: str) -> str:
+    """Read an approved source's body from the repo checkout, confined to the
+    repo (a crafted '../../etc/passwd' path must not escape into the workspace).
+    A missing/unreadable source degrades to a placeholder note rather than
+    failing the whole approve — the obligations still carry the verbatim
+    provenance quotes, so the contract remains usable."""
+    if not source_path:
+        return "(no source path recorded)\n"
+    repo_resolved = repo.resolve()
+    doc = (repo / source_path).resolve()
+    if not doc.is_relative_to(repo_resolved):
+        return f"(source {source_path!r} is outside the repo — content omitted)\n"
+    try:
+        return doc.read_text()
+    except (FileNotFoundError, UnicodeDecodeError, OSError):
+        return f"(source {source_path!r} could not be read from the checkout)\n"
+
+
+def _requirement_slug(reference: str, used: set[str]) -> str:
+    """A filesystem-safe, unique stem for a requirements/*.md file, derived from
+    the source reference. The frontmatter `reference` — not the filename —
+    carries the authority join, so the slug only needs to be a stable,
+    collision-free filename."""
+    base = re.sub(r"[^A-Za-z0-9]+", "-", reference).strip("-").lower() or "source"
+    slug = base
+    n = 2
+    while slug in used:
+        slug = f"{base}-{n}"
+        n += 1
+    return slug

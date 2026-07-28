@@ -1,0 +1,12 @@
+# Approved intent sources (human-facing manifest). The AUTHORITATIVE
+# form the analyzer reads is requirements/*.md — each source is
+# materialized there with `status: approved`. This file records what
+# was approved and where it came from in the repo checkout.
+- reference: PRODUCT.md
+  path: PRODUCT.md
+  status: approved
+  version: onboard-1
+- reference: README.md
+  path: README.md
+  status: approved
+  version: onboard-1

@@ -1,0 +1,5 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
+control_points: []
+bindings: []

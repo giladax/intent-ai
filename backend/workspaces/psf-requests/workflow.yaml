@@ -4,7 +4,7 @@ requirements:
   reference: contributing-guide
 repositories:
 - provider: github
-  repository: psf-requests
+  repository: psf/requests
   path: ../../.repos/psf__requests
 eval_sources:
 - type: repository

@@ -378,6 +378,7 @@ def approve_repo(
         bindings=_normalize_bindings(bindings),
         sweep_commits=sweep_commits,
         provider="github",
+        repository=f"{owner}/{name}",  # GitHub API key; the slug 404s
     )
 
     # Only update the row after the workspace is successfully written.

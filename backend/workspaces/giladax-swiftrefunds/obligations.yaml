@@ -1,0 +1,222 @@
+# Approved product promises (obligations). `revision` pins the exact
+# wording an analysis judged against — bump it whenever a statement
+# changes so history stays replayable.
+obligations:
+- obligation_id: GILADA-001
+  kind: hard_rule
+  statement: A high-risk flagged account must never be auto-approved, regardless of the requested
+    amount, and must always be placed in the pending queue.
+  source_quote: An account carrying a high-risk flag is never auto-approved, even if the requested
+    amount would otherwise qualify. All high-risk requests go to the pending queue.
+  source_section: P4. High-risk accounts always require human review, regardless of amount.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: An account carrying a high-risk flag is never auto-approved, even if the
+    requested amount would otherwise qualify. All high-risk requests go to the pending queue.
+  accept: true
+- obligation_id: GILADA-002
+  kind: hard_rule
+  statement: Any refund request exceeding the tier's automatic approval limit must never be
+    auto-approved and must be placed in a pending queue requiring explicit approval from an
+    identified staff member before any funds move.
+  source_quote: "Requests that exceed the tier limit \u2014 $50 for standard, $100 for premium\
+    \ \u2014 are never auto-approved. They are placed in a pending queue and require an explicit\
+    \ approval from an identified staff member before any funds move."
+  source_section: P3. Every refund above the automatic approval limit requires a named human
+    approver.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: "Requests that exceed the tier limit \u2014 $50 for standard, $100 for\
+    \ premium \u2014 are never auto-approved. They are placed in a pending queue and require\
+    \ an explicit approval from an identified staff member before any funds move."
+  accept: true
+- obligation_id: GILADA-003
+  kind: permission
+  statement: A standard-tier account whose refund request is $50 or under and is not flagged
+    high-risk may be approved automatically without any human review.
+  source_quote: A standard-tier account whose refund request is $50 or under is approved automatically
+    without any human review, provided the account is not flagged high-risk.
+  source_section: P1. Standard customers receive automatic refunds up to $50.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: A standard-tier account whose refund request is $50 or under is approved
+    automatically without any human review, provided the account is not flagged high-risk.
+  accept: true
+- obligation_id: GILADA-004
+  kind: permission
+  statement: A premium-tier account whose risk score is below the high-risk threshold and
+    whose request is $100 or under may be approved automatically and immediately without human
+    review.
+  source_quote: A premium-tier account whose risk score is below the high-risk threshold and
+    whose request is $100 or under is approved automatically and immediately.
+  source_section: P2. Premium customers with a low risk score receive automatic refunds up
+    to $100 without human review.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: A premium-tier account whose risk score is below the high-risk threshold
+    and whose request is $100 or under is approved automatically and immediately.
+  accept: true
+- obligation_id: GILADA-005
+  kind: hard_rule
+  statement: When a refund is denied, the system must include in the response a plain-language
+    explanation identifying the specific policy rule that caused the denial.
+  source_quote: 'When a refund is denied, the response includes a plain-language explanation
+    identifying the specific policy rule that caused the denial (for example: "amount exceeds
+    the $50 automatic limit for standard accounts" or "account is flagged high-risk").'
+  source_section: P6. A denied customer is always told which rule denied them.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: 'When a refund is denied, the response includes a plain-language explanation
+    identifying the specific policy rule that caused the denial (for example: "amount exceeds
+    the $50 automatic limit for standard accounts" or "account is flagged high-risk").'
+  accept: true
+- obligation_id: GILADA-006
+  kind: hard_rule
+  statement: Every refund decision outcome (approved, denied, or pending) must be recorded
+    with a timestamp, account ID, amount, and the specific reason the decision was reached.
+  source_quote: "Each outcome \u2014 approved, denied, or pending \u2014 is recorded with\
+    \ a timestamp, the account id, the amount, and the specific reason the decision was reached."
+  source_section: P5. Every refund decision is logged with its reason.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: "Each outcome \u2014 approved, denied, or pending \u2014 is recorded with\
+    \ a timestamp, the account id, the amount, and the specific reason the decision was reached."
+  accept: true
+- obligation_id: GILADA-007
+  kind: invariant
+  statement: Every refund decision log record must be permanent and must not be modified after
+    the fact.
+  source_quote: This record is permanent and not modified after the fact.
+  source_section: P5. Every refund decision is logged with its reason.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: This record is permanent and not modified after the fact.
+  accept: true
+- obligation_id: GILADA-008
+  kind: hard_rule
+  statement: If a refund request arrives with an unrecognized account tier, the system must
+    reject the request with a clear error rather than defaulting to any approval limit.
+  source_quote: If a refund request arrives with an unrecognized tier, the request is rejected
+    with a clear error rather than defaulting to any approval limit.
+  source_section: P8. The system never silently swallows an unknown account tier.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: If a refund request arrives with an unrecognized tier, the request is
+    rejected with a clear error rather than defaulting to any approval limit.
+  accept: true
+- obligation_id: GILADA-009
+  kind: invariant
+  statement: All numeric policy thresholds (tier limits and risk cutoffs) must reside in a
+    single policy module; no other module may hard-code dollar amounts or risk values.
+  source_quote: "The numeric thresholds \u2014 tier limits, risk cutoffs \u2014 live in a\
+    \ single policy module. No other module hard-codes dollar amounts or risk values; all\
+    \ enforcement reads from the policy module."
+  source_section: P7. Policy limits and risk thresholds are declared in one place.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: "The numeric thresholds \u2014 tier limits, risk cutoffs \u2014 live in\
+    \ a single policy module. No other module hard-codes dollar amounts or risk values; all\
+    \ enforcement reads from the policy module."
+  accept: true
+- obligation_id: GILADA-010
+  kind: invariant
+  statement: All enforcement logic must read tier limits and risk thresholds from the single
+    policy module rather than from any other source.
+  source_quote: all enforcement reads from the policy module.
+  source_section: P7. Policy limits and risk thresholds are declared in one place.
+  source_reference: PRODUCT.md
+  revision: draft-1
+  provenance_quote: all enforcement reads from the policy module.
+  accept: true
+- obligation_id: GILADA-011
+  kind: hard_rule
+  statement: The system must auto-approve refund requests that are within the limit for standard
+    and premium customers.
+  source_quote: Auto-approves within-limit requests for standard and premium customers
+  source_section: What it does
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: Auto-approves within-limit requests for standard and premium customers
+  accept: true
+- obligation_id: GILADA-012
+  kind: hard_rule
+  statement: The system must route high-risk accounts to human review.
+  source_quote: Routes high-risk accounts and over-limit requests to human review
+  source_section: What it does
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: Routes high-risk accounts and over-limit requests to human review
+  accept: true
+- obligation_id: GILADA-013
+  kind: hard_rule
+  statement: The system must route over-limit requests to human review.
+  source_quote: Routes high-risk accounts and over-limit requests to human review
+  source_section: What it does
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: Routes high-risk accounts and over-limit requests to human review
+  accept: true
+- obligation_id: GILADA-014
+  kind: hard_rule
+  statement: The system must log every decision with a reason.
+  source_quote: Logs every decision with a reason
+  source_section: What it does
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: Logs every decision with a reason
+  accept: true
+- obligation_id: GILADA-015
+  kind: hard_rule
+  statement: 'The system must return one of three outcomes for each refund request: approval,
+    denial, or pending-review.'
+  source_quote: Takes a refund request, evaluates it against customer tier and risk profile,
+    and returns an approval, denial, or pending-review outcome.
+  source_section: What it does
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: Takes a refund request, evaluates it against customer tier and risk profile,
+    and returns an approval, denial, or pending-review outcome.
+  accept: true
+- obligation_id: GILADA-016
+  kind: hard_rule
+  statement: The enforcement layer (guard.py) must never hard-code thresholds; it must read
+    them from policy.
+  source_quote: "guard.py       \u2014 enforcement layer (reads policy, never hard-codes thresholds)"
+  source_section: Structure
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: "guard.py       \u2014 enforcement layer (reads policy, never hard-codes\
+    \ thresholds)"
+  accept: true
+- obligation_id: GILADA-017
+  kind: invariant
+  statement: Tier limits and risk thresholds must have a single source of truth (policy.py);
+    no other module may define them independently.
+  source_quote: "policy.py      \u2014 tier limits and risk thresholds (single source of truth)"
+  source_section: Structure
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: "policy.py      \u2014 tier limits and risk thresholds (single source\
+    \ of truth)"
+  accept: true
+- obligation_id: GILADA-018
+  kind: hard_rule
+  statement: The system must evaluate each refund request against both the customer tier and
+    the customer risk profile before producing an outcome.
+  source_quote: Takes a refund request, evaluates it against customer tier and risk profile,
+    and returns an approval, denial, or pending-review outcome.
+  source_section: What it does
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: Takes a refund request, evaluates it against customer tier and risk profile,
+    and returns an approval, denial, or pending-review outcome.
+  accept: true
+- obligation_id: GILADA-019
+  kind: hard_rule
+  statement: The system must expose its functionality via an HTTP API implemented with FastAPI.
+  source_quote: Exposes a small HTTP API (FastAPI)
+  source_section: What it does
+  source_reference: README.md
+  revision: draft-1
+  provenance_quote: Exposes a small HTTP API (FastAPI)
+  accept: true
