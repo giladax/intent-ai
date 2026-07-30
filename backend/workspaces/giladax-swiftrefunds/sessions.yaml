@@ -1,0 +1,40 @@
+# Ingested coding sessions — OBSERVED evidence (they happened);
+# reasoning is the agent's own words, verbatim. The transcript is
+# the external source of record.
+- session_id: b4f2e1a0-cc47-4d88-b3f9-swiftrefunds-break
+  title: Raise Premium Tier Auto-Approval Limit to $250
+  summary: Raised the premium tier auto-approval limit from $100 to $250 in policy.py
+    and updated the corresponding policy and guard boundary tests; no guard.py edits
+    were needed because it reads limits from policy at call time.
+  decisions:
+  - choice: Raise TIER_PREMIUM limit in policy.py from $100.00 to $250.00
+    why: policy.py is the single source of truth for all limits; one change propagates
+      everywhere
+    rejected: ''
+  - choice: No edits to guard.py
+    why: guard.py reads the limit from policy at call time, so the enforcement boundary
+      moves automatically with the policy change
+    rejected: Editing guard.py directly
+  - choice: Update guard boundary test to $250.01
+    why: $100.01 now falls inside the approved range and would produce a false failure
+    rejected: Keeping the old $100.01 boundary test
+  - choice: Defer end-to-end coverage for the $100–$250 approval range
+    why: Identified as a gap but tracked separately to keep this change focused
+    rejected: Adding the coverage in this session
+  reasoning: 'The policy module is the declared single source of truth for all limits.
+    Since guard.py reads the limit from policy at call time, changing AUTO_APPROVAL_LIMITS
+    for the premium tier in policy.py is sufficient to move the enforcement boundary
+    everywhere — no guard edits needed. The existing boundary test at $100.01 was
+    stale (that value now approves under the new limit), so it was updated to $250.01.
+    A coverage gap was identified and flagged: there is no end-to-end test exercising
+    a premium request in the newly approved $100–$250 range; that is deferred and
+    tracked separately.'
+  touched_paths:
+  - Users/giladkoch/dev/swiftrefunds/swiftrefunds/policy.py
+  - Users/giladkoch/dev/swiftrefunds/tests/test_guard.py
+  - Users/giladkoch/dev/swiftrefunds/tests/test_policy.py
+  pr: 2
+  started_at: '2026-07-18T14:22:00Z'
+  turns: 7
+  digested_at: '2026-07-30T07:34:32.221790+00:00'
+  source: /Users/giladkoch/dev/intent-ai/backend/.intent/raw-sessions/swiftrefunds-break-session.jsonl
