@@ -1905,3 +1905,334 @@ button.ink-tag:hover { border-color: var(--j-faint); color: var(--j-ink); backgr
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ── The session experience — the manuscript and the margin ─────────────
+   One uploaded session rendered as it was lived. The human's crafted
+   prompts are manuscript (Newsreader serif, elevated paper); the agent's
+   work is quiet ledger chrome (collapsed tool artifacts, inline change
+   chips); the spans Quire extracted carry a gold receipt mark. The most
+   beautiful room in the app — the substance IS the ornament.            */
+
+.sx-room { background: var(--bg); }
+.sx-column {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 28px 40px;
+}
+.sx-column--wide { max-width: 860px; }
+
+.sx-head { padding: 18px 0 6px; }
+.sx-head .ink-masthead { margin-top: 8px; font-size: 2rem; }
+.sx-head .ink-deck { margin-top: 10px; max-width: 60ch; }
+
+.sx-byline {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  margin-top: 14px;
+  font-size: 12.5px; color: var(--muted);
+}
+.sx-byline .sx-actor { font-weight: 600; color: var(--text); }
+.sx-byline span + span::before { content: ""; }
+
+/* the work, measured — the exec lens, honest */
+.sx-effort {
+  display: flex; flex-wrap: wrap; gap: 0;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.sx-fig {
+  font-family: var(--j-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  padding: 9px 16px 9px 0;
+  margin-right: 16px;
+  border-right: 1px solid var(--line-soft);
+}
+.sx-fig:last-child { border-right: none; }
+.sx-fig b {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  font-family: var(--font); letter-spacing: -0.01em; margin-right: 2px;
+}
+
+.sx-note {
+  margin-top: 12px; padding: 9px 12px;
+  background: var(--amber-bg); color: var(--amber);
+  border-radius: var(--r-md); font-size: 12.5px;
+}
+
+/* ── the thread — a hairline spine ties the conversation together ── */
+.sx-thread {
+  position: relative;
+  margin-top: 26px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.sx-thread::before {
+  content: "";
+  position: absolute; left: 15px; top: 8px; bottom: 8px;
+  width: 1px; background: var(--line);
+}
+
+/* ── the prompt — manuscript, elevated ── */
+.sx-prompt {
+  position: relative;
+  margin-left: 34px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--j-gold);
+  border-radius: 10px;
+  padding: 14px 20px 16px;
+  box-shadow: 0 1px 2px rgb(26 29 33 / 0.04), 0 6px 18px -12px rgb(26 29 33 / 0.12);
+}
+.sx-prompt::before {
+  /* the node on the spine */
+  content: "";
+  position: absolute; left: -24px; top: 20px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--j-gold); border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.sx-prompt-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.sx-ava {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text);
+  background: var(--j-gold-soft);
+  border: 1px solid color-mix(in oklab, var(--j-gold) 40%, transparent);
+  border-radius: 999px; padding: 2px 9px;
+}
+.sx-turn-meta { font-family: var(--j-mono); font-size: 11px; color: var(--faint); }
+.sx-receipt-flag {
+  margin-left: auto;
+  font-family: var(--j-mono); font-size: 10.5px; letter-spacing: 0.04em;
+  color: var(--j-gold);
+}
+.sx-prompt-body {
+  font-family: var(--j-serif);
+  font-size: 1.07rem;
+  line-height: 1.62;
+  color: var(--j-ink);
+}
+.sx-prompt-body p { margin: 0 0 0.7em; }
+.sx-prompt-body p:last-child { margin-bottom: 0; }
+
+/* ── the reply — quiet ledger chrome ── */
+.sx-reply { position: relative; margin-left: 34px; padding: 0 2px; }
+.sx-reply::before {
+  content: "";
+  position: absolute; left: -22px; top: 8px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--faint);
+}
+.sx-reply-head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;
+}
+.sx-turn-who {
+  font-family: var(--j-mono); font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--faint);
+}
+.sx-reply-text {
+  font-size: 14px; line-height: 1.62; color: var(--text);
+  max-width: 62ch;
+}
+.sx-reply-text p { margin: 0 0 0.65em; }
+.sx-reply-text p:last-child { margin-bottom: 0; }
+.sx-ul { margin: 0.2em 0 0.65em; padding-left: 1.3em; }
+.sx-ul li { margin: 0.2em 0; }
+.sx-code {
+  font-family: var(--j-mono); font-size: 0.88em;
+  background: var(--panel); border: 1px solid var(--line-soft);
+  border-radius: 4px; padding: 0.5px 4px;
+}
+.sx-fence {
+  font-family: var(--j-mono); font-size: 12px; line-height: 1.55;
+  background: var(--panel); border: 1px solid var(--line-soft);
+  border-radius: 8px; padding: 10px 12px; overflow-x: auto;
+  margin: 0.4em 0 0.7em; white-space: pre-wrap;
+}
+
+/* ── receipt marks — the "you're heard" span ── */
+.sx-mark {
+  background: var(--j-gold-soft);
+  border-bottom: 2px solid var(--j-gold);
+  border-radius: 2px;
+  padding: 0 1px;
+  color: inherit;
+  cursor: help;
+}
+.sx-mark-sig {
+  font-size: 0.72em; color: var(--j-gold);
+  margin-left: 2px; user-select: none;
+}
+@keyframes sx-mark-flash {
+  0% { background: color-mix(in oklab, var(--j-gold) 38%, transparent); }
+  100% { background: var(--j-gold-soft); }
+}
+.sx-mark-flash { animation: sx-mark-flash 1.2s ease-out both; }
+
+/* ── tool calls — designed artifacts, collapsed by default ── */
+.sx-tool {
+  margin: 6px 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  overflow: hidden;
+  max-width: 560px;
+}
+.sx-tool.open { background: var(--bg); border-color: var(--line); }
+.sx-tool-head {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; text-align: left;
+  padding: 7px 12px;
+  background: none; border: none; cursor: pointer;
+  font-size: 12.5px; color: var(--text);
+}
+.sx-tool-head:hover { background: var(--line-soft); }
+.sx-tool-glyph {
+  font-family: var(--j-mono); font-size: 12px; color: var(--muted);
+  width: 18px; height: 18px; display: inline-flex; align-items: center;
+  justify-content: center; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 5px; flex: none;
+}
+.sx-tool-sum { font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sx-tool-note {
+  font-family: var(--j-mono); font-size: 10.5px; color: var(--faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-left: auto; max-width: 45%;
+}
+.sx-tool-delta { margin-left: auto; font-family: var(--j-mono); font-size: 11px; display: flex; gap: 6px; }
+.sx-tool-delta .add, .sx-file-pill .add { color: var(--green); font-weight: 600; }
+.sx-tool-delta .del, .sx-file-pill .del { color: var(--red); font-weight: 600; }
+.sx-tool-chev { color: var(--faint); font-size: 10px; flex: none; }
+.sx-tool-deep { border-top: 1px solid var(--line-soft); padding: 10px 12px; }
+.sx-deep-label {
+  font-family: var(--j-mono); font-size: 9.5px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--faint); margin: 8px 0 4px;
+}
+.sx-deep-label:first-child { margin-top: 0; }
+.sx-deep-pre {
+  font-family: var(--j-mono); font-size: 11.5px; line-height: 1.55;
+  background: var(--panel); border: 1px solid var(--line-soft);
+  border-radius: 6px; padding: 8px 10px; margin: 0;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 260px; overflow-y: auto;
+}
+
+/* ── change artifacts — the session produced real change ── */
+.sx-diff { margin-top: 2px; }
+.sx-diff-path {
+  font-family: var(--j-mono); font-size: 11px; color: var(--muted);
+  margin-bottom: 6px;
+}
+.sx-turn-artifacts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sx-file-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--j-mono); font-size: 11px; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 999px; padding: 3px 10px;
+}
+.sx-file-pill-glyph { color: var(--muted); }
+
+.sx-colophon {
+  margin: 30px 0 8px; text-align: center;
+  font-family: var(--j-mono); font-size: 10.5px; letter-spacing: 0.12em;
+  color: var(--faint);
+}
+
+/* ── the margin (rail): what Quire kept ── */
+.sx-kept { margin-bottom: 16px; }
+.sx-kept-sum { font-size: 13px; line-height: 1.55; color: var(--text); margin: 0 0 10px; }
+.sx-decision { display: flex; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line-soft); }
+.sx-decision-glyph { color: var(--j-teal); font-size: 11px; padding-top: 2px; flex: none; }
+.sx-decision-choice { font-size: 12.5px; font-weight: 600; line-height: 1.45; }
+.sx-decision-why { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+.sx-decision-rej { font-size: 11.5px; color: var(--faint); margin-top: 2px; font-style: italic; }
+
+.sx-receipt {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--j-gold);
+  border-radius: 9px;
+  padding: 10px 12px; margin-bottom: 10px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.sx-receipt:hover {
+  box-shadow: 0 2px 10px -4px rgb(26 29 33 / 0.18);
+  transform: translateY(-1px);
+}
+.sx-receipt-quote {
+  display: block;
+  font-family: var(--j-serif); font-style: italic;
+  font-size: 13px; line-height: 1.5; color: var(--j-ink);
+}
+.sx-receipt-why { display: block; font-size: 11.5px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+.sx-receipt-foot {
+  display: block; font-family: var(--j-mono); font-size: 10px;
+  color: var(--j-gold); margin-top: 6px; letter-spacing: 0.03em;
+}
+
+.sx-rel {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 9px; padding: 10px 12px; margin-bottom: 10px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.sx-rel:hover { box-shadow: 0 2px 10px -4px rgb(26 29 33 / 0.18); transform: translateY(-1px); }
+.sx-rel--in { border-left: 3px solid var(--accent); }
+.sx-rel--out { border-left: 3px solid var(--j-moss); }
+.sx-rel-kind {
+  display: block; font-family: var(--j-mono); font-size: 9.5px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--j-moss);
+  margin-bottom: 4px;
+}
+.sx-rel-title { display: block; font-size: 13px; font-weight: 600; line-height: 1.45; }
+.sx-rel-title .ink-badge { margin-left: 6px; }
+.sx-rel-foot { display: block; font-family: var(--j-mono); font-size: 10.5px; color: var(--faint); margin-top: 5px; }
+
+/* ── the sessions ledger ── */
+.sx-share { margin-top: 16px; }
+.sx-share-bar {
+  display: flex; height: 10px; border-radius: 999px; overflow: hidden;
+  background: var(--panel); border: 1px solid var(--line-soft);
+}
+.sx-share-seg { display: block; height: 100%; }
+.sx-share-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px;
+  font-size: 12px; color: var(--muted); align-items: center;
+}
+.sx-share-key { display: inline-flex; align-items: center; gap: 6px; }
+.sx-share-key .n { color: var(--faint); font-family: var(--j-mono); font-size: 11px; }
+.sx-share-note { margin-left: auto; font-family: var(--j-mono); font-size: 10.5px; color: var(--faint); }
+
+.sx-ledger { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.sx-lrow {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  text-decoration: none; color: inherit;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 13px 16px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.sx-lrow:hover {
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--line));
+  box-shadow: 0 3px 14px -6px rgb(26 29 33 / 0.16);
+  transform: translateY(-1px);
+}
+.sx-lrow--quiet { background: var(--panel); border-color: var(--line-soft); }
+.sx-lrow-main { min-width: 0; }
+.sx-lrow-title { display: block; font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+.sx-lrow-meta { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; font-family: var(--j-mono); }
+.sx-lrow-sum {
+  display: block; font-size: 12.5px; color: var(--muted); margin-top: 5px; line-height: 1.5;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.sx-lrow-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.sx-lrow-pr { font-family: var(--j-mono); font-size: 11px; color: var(--faint); }
+.sx-journal-sec { margin-top: 34px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-receipt, .sx-rel, .sx-lrow { transition: none; }
+  .sx-mark-flash { animation: none; }
+}

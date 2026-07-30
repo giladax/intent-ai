@@ -16,8 +16,9 @@ import { Timeline } from "./surfaces/Timeline";
 import { IntentReview } from "./surfaces/IntentReview";
 import {
   FeaturesRoute, FeatureRoute, ReviewsRoute, JournalRoute,
-  SessionsRoute, SessionRoute,
 } from "./surfaces/Embedded";
+import { SessionExperience } from "./surfaces/SessionExperience";
+import { SessionsLedger } from "./surfaces/SessionsLedger";
 
 /** The app is a renderer over contracts. The familiar shell mounts at `/`;
  *  every room is a clean URL backed by the same JSON an agent would call.
@@ -46,8 +47,8 @@ export function App() {
           <Route path="/handoff/:ws" element={<ShellFrame><Handoff /></ShellFrame>} />
           <Route path="/intent-review/:id" element={<ShellFrame><IntentReview /></ShellFrame>} />
           <Route path="/reviews" element={<ShellFrame><ReviewsRoute /></ShellFrame>} />
-          <Route path="/sessions" element={<ShellFrame><SessionsRoute /></ShellFrame>} />
-          <Route path="/session/:id" element={<ShellFrame><SessionRoute /></ShellFrame>} />
+          <Route path="/sessions" element={<ShellFrame><SessionsLedger /></ShellFrame>} />
+          <Route path="/session/:id" element={<ShellFrame detail><SessionExperience /></ShellFrame>} />
           <Route path="/journal" element={<ShellFrame><JournalRoute /></ShellFrame>} />
           <Route path="/channels" element={<ShellFrame><Channels /></ShellFrame>} />
 

@@ -120,7 +120,9 @@ def create_app(store: Store | None = None, org_store=None) -> FastAPI:
             _upload_err,
         )
         _upload_store = None
-    app.include_router(create_sessions_router(_upload_store))
+    app.include_router(
+        create_sessions_router(_upload_store, analysis_store=app.state.store)
+    )
 
     # ── Org API (O0) ────────────────────────────────────────────────────
     # Failure-safe: a missing/unreachable Postgres (or the test-time guard

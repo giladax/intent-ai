@@ -247,7 +247,13 @@ def digest_session(
             from quire.links import upsert_from_yaml_record
             # upsert_from_yaml_record constructs the production LinkStore
             # only when link_store is None (injectable for tests).
-            upsert_from_yaml_record(record, link_store)
+            # The record itself carries no workspace (sessions.yaml is
+            # workspace-local); the link table is global, so the link row
+            # must name the workspace — otherwise review_detail's
+            # links_for_check(workspace, pr) can never find it.
+            upsert_from_yaml_record(
+                {**record, "workspace": workspace_dir.name}, link_store
+            )
         except Exception as _link_err:  # noqa: BLE001
             import warnings
             warnings.warn(

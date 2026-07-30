@@ -8,10 +8,8 @@ import { FeaturesPage } from "../components/FeaturesPage";
 import { FeaturePage } from "./FeaturePage";
 import { ReviewQueue } from "../components/ReviewQueue";
 import { JournalPage } from "../components/JournalPage";
-import { SessionsPage } from "../components/SessionsPage";
-import { SessionDetailPage } from "../components/SessionDetailPage";
-import { fetchFeatures, fetchSessions } from "../api";
-import type { Feature, Session } from "../types";
+import { fetchFeatures } from "../api";
+import type { Feature } from "../types";
 
 /** Legacy surfaces keep their journal-era (paper) shadcn theme via
  *  .ink-legacy — scoped so the shell's ink text tokens stay untouched. */
@@ -54,27 +52,6 @@ export function JournalRoute() {
   );
 }
 
-export function SessionsRoute() {
-  const nav = useNavigate();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  useEffect(() => { fetchSessions().then(setSessions).catch(() => setSessions([])); }, []);
-  return (
-    <EmbedFrame>
-      <SessionsPage
-        repoId={null}
-        sessions={sessions}
-        undigestedCount={0}
-        liveState={null}
-        onSync={() => {}}
-        onSessionClick={(id) => { if (id !== "live") nav(`/session/${id}`); }}
-      />
-    </EmbedFrame>
-  );
-}
-
-export function SessionRoute() {
-  const { id } = useParams();
-  const nav = useNavigate();
-  if (!id) return null;
-  return <EmbedFrame><SessionDetailPage sessionId={id} onBack={() => nav("/sessions")} /></EmbedFrame>;
-}
+// Sessions routes now live in surfaces/SessionsLedger.tsx and
+// surfaces/SessionExperience.tsx — the journal-era SessionsPage /
+// SessionDetailPage embeds were replaced by the session experience.

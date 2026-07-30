@@ -402,7 +402,9 @@ def process_upload(
     if record.pr_number and record.commits and len(record.commits) >= 2:
         try:
             from quire.links import bind_pr_to_trailer_links, LinkStore as _LS
-            _ws = record.repo.split("/")[-1] if "/" in record.repo else record.repo
+            _ws = resolve_workspace_name(record.repo) or (
+                record.repo.split("/")[-1] if "/" in record.repo else record.repo
+            )
             _ws_dir = workspace_dir or _workspace_dir_for_repo(record.repo)
             _git_dir = str(_ws_dir)
             _bls = link_store
@@ -534,17 +536,49 @@ def intent_needs_you_items(upload_store: "UploadStore | None" = None) -> list[di
     return items
 
 
+def resolve_workspace_name(repo: str, org_engine=None) -> str | None:
+    """The org's workspace slug for a repo, via org_repos (O6 normalisation).
+
+    Keyed on org_repos.repository ("owner/name") or a github_remote ending in
+    the repo path — so an upload for "giladax/swiftrefunds" lands in the SAME
+    workspace the review room queries ("giladax-swiftrefunds"), not a freshly
+    minted name-sliced directory. Failure-safe: any trouble (no Postgres, no
+    org row) returns None and the caller falls back to name-slicing.
+    """
+    try:
+        from sqlalchemy import select
+        from sqlalchemy.orm import Session as _SASession
+
+        from quire.org_store import OrgRepo, OrgStore
+
+        store = OrgStore(engine=org_engine) if org_engine is not None else OrgStore()
+        with _SASession(store._engine) as s:
+            rows = s.execute(select(OrgRepo)).scalars().all()
+            for row in rows:
+                if row.repository == repo:
+                    return row.workspace
+                remote = (row.github_remote or "").rstrip("/")
+                if remote and (remote.endswith("/" + repo) or remote.endswith(":" + repo)):
+                    return row.workspace
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("resolve_workspace_name: org lookup unavailable (%s)", exc)
+    return None
+
+
 def _workspace_dir_for_repo(repo: str) -> pathlib.Path:
     """Derive a workspace directory from the repo name.
 
-    repo is "owner/name"; the workspace dir is backend/workspaces/<name>
-    (per the project convention). Creates a new directory for unmapped repos.
+    Resolution order (O6 normalisation):
+      1. org_repos mapping (resolve_workspace_name) — the registered slug;
+      2. fall back to the repo's name segment.
+
+    Creates a new directory for unmapped repos.
 
     Raises:
         ValueError: if the resolved path would be a frozen workspace (e.g., quire-brain).
     """
     from quire import workspace as ws_mod
-    name = repo.split("/")[-1] if "/" in repo else repo
+    name = resolve_workspace_name(repo) or (repo.split("/")[-1] if "/" in repo else repo)
     # Confine the name to a single safe directory segment — an uploader-
     # supplied repo like "owner/.." would otherwise escape workspaces/.
     if not name or name in (".", "..") or "/" in name or "\\" in name or name.startswith("."):
@@ -603,14 +637,13 @@ def _match_and_link(record: UploadRecord, link_store=None) -> None:
     if not session_id:
         return
 
-    # TODO(workspace-naming-drift): workspace is derived from the repo name
-    # (e.g. "giladax/intent-ai" → "intent-ai"), but review queries use the
-    # workspace slug from org_repos (e.g. "quire-brain" for this project).
-    # Links stored under "intent-ai" are never found by review_detail querying
-    # "quire-brain".  Fix: resolve workspace via org_repos.workspace keyed on
-    # the repo's github_remote, rather than slicing the repo name.
-    # Follow-up: O6 workspace-name normalisation pass.
-    workspace = record.repo.split("/")[-1] if "/" in record.repo else record.repo
+    # O6 workspace-name normalisation: resolve the org's registered slug for
+    # this repo (org_repos.repository / github_remote) so links land under the
+    # SAME workspace key review_detail queries. Name-slicing stays the honest
+    # fallback for unregistered repos.
+    workspace = resolve_workspace_name(record.repo) or (
+        record.repo.split("/")[-1] if "/" in record.repo else record.repo
+    )
 
     # Explicit commits → kind="attached" links for the given commits range
     if record.commits:
@@ -663,12 +696,24 @@ def _match_and_link(record: UploadRecord, link_store=None) -> None:
 # FastAPI router
 # ---------------------------------------------------------------------------
 
-def create_sessions_router(upload_store: UploadStore | None = None) -> APIRouter:
+def create_sessions_router(
+    upload_store: UploadStore | None = None,
+    *,
+    analysis_store=None,
+    link_store=None,
+    journal_engine=None,
+    workspaces_dir: pathlib.Path | None = None,
+) -> APIRouter:
     """Build the /api/sessions router.
 
     upload_store is injectable for tests; when None, a production store is
     constructed lazily per request (failure-safe: the endpoint returns 503
     when the store is unavailable rather than crashing the app).
+
+    analysis_store / link_store / journal_engine / workspaces_dir are
+    injectable for the experience + ledger endpoints (same test-engine
+    pattern); when None, production stores are constructed lazily and every
+    join stays failure-safe.
     """
     router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
@@ -896,5 +941,73 @@ def create_sessions_router(upload_store: UploadStore | None = None) -> APIRouter
             "workspace": ws_dir.name,
             "statements": result.statements,
         }
+
+    # ── The session experience — the page contract ───────────────────────
+    # One documented JSON body carrying everything the session page renders:
+    # the conversation (turns, paired tool calls, change artifacts), the
+    # extracted quotes anchored to their exact spans, the digest, and the
+    # artifact relations in both directions. Agents read the same shape.
+
+    @router.get("/ledger")
+    def sessions_ledger():
+        """Every digested session across the org's workspaces, newest first,
+        with per-repo effort aggregation (sessions, turns, files touched) —
+        the honest "how AI effort is distributed" read. Effort proxies only;
+        no invented spend figures. Failure-safe: never 500s."""
+        from quire.session_experience import build_ledger
+
+        return build_ledger(
+            workspaces_dir=workspaces_dir,
+            store=analysis_store,
+            upload_store=upload_store if upload_store is not None else _store(),
+        )
+
+    @router.get("/{session_id}/experience")
+    def session_experience(session_id: str):
+        """The full session experience for one session.
+
+        `session_id` may be the CC session id (from the transcript), an
+        upload id, or a journal DB UUID — all three resolve. Returns:
+
+          header        — title, summary, repo/workspace, actor, PR, when,
+                          and effort figures (prompts, tool calls, files,
+                          duration seconds).
+          turns         — the conversation: user prompts verbatim (role
+                          "user", text), assistant turns (role "assistant",
+                          blocks of {type:text|tool}); tool blocks carry a
+                          plain summary, the paired result, and a
+                          file_change artifact (mini-diff) when they edited
+                          a file.
+          quotes        — spans Quire extracted as evidence, each with an
+                          anchor {turn, block, start, end} into `turns`
+                          (null when the quote no longer resolves).
+          produced      — artifacts born in this session (signed intent
+                          memos), with links.
+          referenced_by — artifacts citing this session (coupled checks
+                          with their plain-language verdict + ink), with
+                          links.
+          digest        — what Quire kept: summary, decisions, reasoning.
+          notes         — plain-language degradations (e.g. transcript
+                          missing from disk).
+
+        404 (plain language) only when the session is entirely unknown.
+        """
+        from quire.session_experience import build_experience
+
+        experience = build_experience(
+            session_id,
+            upload_store=upload_store if upload_store is not None else _store(),
+            link_store=link_store,
+            store=analysis_store,
+            journal_engine=journal_engine,
+            workspaces_dir=workspaces_dir,
+        )
+        if experience is None:
+            raise HTTPException(
+                404,
+                f"Quire has no record of session '{session_id}' — it was "
+                "never uploaded or digested here.",
+            )
+        return experience
 
     return router

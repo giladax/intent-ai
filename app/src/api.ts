@@ -709,3 +709,127 @@ export interface TimelineData {
 
 export const fetchTimeline = (windowStr = "30d") =>
   json<TimelineData>(`/api/timeline?window=${encodeURIComponent(windowStr)}`);
+
+// ── The session experience — one session, remembered ─────────────────
+// GET /api/sessions/{id}/experience: the conversation (prompts first-class,
+// tool calls paired with results, change artifacts), the quotes that became
+// receipts (anchored to their exact spans), the digest, and the artifact
+// relations in both directions. Agents read the same contract (ruling 4).
+
+export interface SxFileChange {
+  path: string;
+  kind: "edit" | "write";
+  diff: string;
+  additions: number;
+  deletions: number;
+}
+export interface SxTextBlock {
+  type: "text";
+  text: string;
+}
+export interface SxToolBlock {
+  type: "tool";
+  id: string;
+  name: string;
+  summary: string;
+  result_note: string;
+  input_display: string;
+  result_display: string;
+  file_change: SxFileChange | null;
+}
+export type SxBlock = SxTextBlock | SxToolBlock;
+export interface SxTurn {
+  index: number;
+  role: "user" | "assistant";
+  ts: string;
+  text?: string;                 // user turns
+  blocks?: SxBlock[];            // assistant turns
+  files_changed?: Array<{ path: string; additions: number; deletions: number }>;
+}
+export interface SxQuote {
+  quote: string;
+  kind: string;                  // "moment" | "intent_card"
+  why: string;
+  anchor: { turn: number; block: number; start: number; end: number } | null;
+}
+export interface SxEffort {
+  prompts: number;
+  assistant_turns: number;
+  tool_calls: number;
+  files_touched: number;
+  duration_seconds: number | null;
+}
+export interface SxReference {
+  kind: string;
+  workspace: string;
+  pr_number: number;
+  title: string;
+  label: string;
+  ink: string;
+  verdict: string | null;
+  via: string;
+  link: string;
+}
+export interface SxProduced {
+  kind: string;
+  reference: string;
+  title: string;
+  workspace: string;
+  link: string;
+}
+export interface SessionExperienceData {
+  session_id: string;
+  header: {
+    title: string;
+    summary: string;
+    repo: string;
+    workspace: string;
+    actor: string;
+    pr: number | null;
+    started_at: string;
+    ended_at: string;
+    effort: SxEffort;
+  };
+  turns: SxTurn[];
+  quotes: SxQuote[];
+  produced: SxProduced[];
+  referenced_by: SxReference[];
+  digest: {
+    title: string;
+    summary: string;
+    decisions: Array<{ choice: string; why: string; rejected: string }>;
+    reasoning: string;
+    pr: number | null;
+  } | null;
+  notes: string[];
+}
+
+export const fetchSessionExperience = (id: string) =>
+  json<SessionExperienceData>(`/api/sessions/${encodeURIComponent(id)}/experience`);
+
+// GET /api/sessions/ledger — every digested session across the org, with the
+// honest effort distribution (proxies: sessions, turns, files; never invented
+// spend figures).
+export interface LedgerSession {
+  session_id: string;
+  workspace: string;
+  repo: string;
+  actor: string;
+  title: string;
+  summary: string;
+  when: string;
+  turns: number;
+  files_touched: number;
+  decisions: number;
+  pr: number | null;
+  verdict: { label: string; ink: string; pr: number } | null;
+  link: string;
+}
+export interface SessionsLedgerData {
+  sessions: LedgerSession[];
+  totals: { sessions: number; turns: number; files_touched: number };
+  by_repo: Array<{ repo: string; workspace: string; sessions: number; turns: number; files_touched: number }>;
+}
+
+export const fetchSessionsLedger = () =>
+  json<SessionsLedgerData>("/api/sessions/ledger");
