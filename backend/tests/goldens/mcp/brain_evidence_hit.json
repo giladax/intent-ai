@@ -1,0 +1,12 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Moment [1b00ccce\u2026]: The audit handoff \u2014 docs/handoffs/2026-07-04-digest-quality-audit-handoff.md.\n\nEvidence (1 quote):\n  > \"The audit handoff \u2014 docs/handoffs/2026-07-04-digest-quality-audit-handoff.md.\" \u00b7 user [event: b27716d1\u2026]"
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 30
+}

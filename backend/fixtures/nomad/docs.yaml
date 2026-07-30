@@ -1,0 +1,28 @@
+# Authored intent — the specs and direction notes the org wrote down.
+# These COUNT AS ATTENTION (kind: doc) in the stream, so their wording is
+# deliberate: they state the backwards-compat promise WITHOUT naming the
+# CLI area by its entity words. The promise was written; the drift still
+# went unwatched. Both predate kai's flag rename (2026-07-08) — the policy
+# existed first; nobody was watching when it was later broken.
+
+- id: GD-COMPAT-POLICY
+  author: jae
+  title: Compatibility Policy
+  ts: '2026-06-25T09:00:00+00:00'
+  text: >-
+    Our promise to users: a working invocation keeps working across a minor
+    release. We may add new options, but we never rename or remove one that
+    already shipped in a minor. Renaming a shipped option is a major-version
+    change, full stop — it strands scripts our users have already written.
+    If a name has to change, keep the old spelling as a hidden alias until
+    the next major. Terse on purpose: the rule is one sentence, "a minor
+    never breaks a user's existing usage," and it is not negotiable.
+
+- id: GD-FOUNDER-DIRECTION
+  author: robin
+  title: Backwards compatibility is our reputation
+  ts: '2026-06-20T17:30:00+00:00'
+  text: >-
+    Nomad's whole reputation is that you can trust an upgrade. Never break a
+    user's existing usage in a minor — that's the one line I care about most.
+    Everything else we can iterate on; this we don't.

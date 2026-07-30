@@ -1,0 +1,15 @@
+workflow_id: refund-agent
+requirements:
+  provider: fixture
+  reference: refund-policy-prd
+repositories:
+  - provider: fixture
+    repository: company/refund-agent
+work_tracking:
+  provider: fixture
+  project: REF
+eval_sources:
+  - type: repository
+    paths:
+      - tests/refunds/**
+      - evals/refund_agent/**

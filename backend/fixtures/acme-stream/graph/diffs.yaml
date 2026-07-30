@@ -1,0 +1,163 @@
+- diff_id: GD-1
+  question: Create Payments?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-payments
+    name: Payments
+    identity_sentence: How money moves and returns to customers.
+    aliases:
+    - refunds
+    - payouts
+  - op: attach
+    entity_id: ent-payments
+    kind: promise
+    ref: OB-PAY-1
+    note: ''
+  - op: attach
+    entity_id: ent-payments
+    kind: promise
+    ref: OB-PAY-2
+    note: ''
+  - op: attach
+    entity_id: ent-payments
+    kind: promise
+    ref: OB-PAY-3
+    note: ''
+  - op: attach
+    entity_id: ent-payments
+    kind: code
+    ref: repo/refunds/guard.py
+    note: ''
+  - op: attach
+    entity_id: ent-payments
+    kind: code
+    ref: repo/refunds/policy.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 2.0
+  shape_key: b7988a9eb32e
+  status: approved
+  proposed_at: '2026-06-10T10:00:00+00:00'
+  decision:
+    action: approved
+    by: dana
+    at: '2026-06-10T10:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-2
+  question: Create Checkout?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-checkout
+    name: Checkout
+    identity_sentence: The order payment flow, from cart to confirmation.
+    aliases:
+    - cart
+    - order flow
+  - op: attach
+    entity_id: ent-checkout
+    kind: promise
+    ref: OB-CHK-1
+    note: ''
+  - op: attach
+    entity_id: ent-checkout
+    kind: promise
+    ref: OB-CHK-2
+    note: ''
+  - op: attach
+    entity_id: ent-checkout
+    kind: code
+    ref: repo/checkout/authorize.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.6
+  shape_key: 2dbbfd4a2ad7
+  status: approved
+  proposed_at: '2026-06-11T10:00:00+00:00'
+  decision:
+    action: approved
+    by: lee
+    at: '2026-06-11T10:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-3
+  question: Create Risk?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-risk
+    name: Risk
+    identity_sentence: Fraud scoring and the on-call escalation it triggers.
+    aliases:
+    - fraud
+  - op: attach
+    entity_id: ent-risk
+    kind: promise
+    ref: OB-RISK-1
+    note: ''
+  - op: attach
+    entity_id: ent-risk
+    kind: code
+    ref: repo/risk/score.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.4
+  shape_key: c3e07bd16f73
+  status: approved
+  proposed_at: '2026-06-11T11:00:00+00:00'
+  decision:
+    action: approved
+    by: lee
+    at: '2026-06-11T11:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-4
+  question: Create Notifications?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-notifications
+    name: Notifications
+    identity_sentence: Order-state messages to customers.
+    aliases:
+    - alerts
+  - op: attach
+    entity_id: ent-notifications
+    kind: promise
+    ref: OB-NOTIF-1
+    note: ''
+  - op: attach
+    entity_id: ent-notifications
+    kind: promise
+    ref: OB-NOTIF-2
+    note: ''
+  - op: attach
+    entity_id: ent-notifications
+    kind: code
+    ref: repo/notify/sender.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.6
+  shape_key: 40faba387133
+  status: approved
+  proposed_at: '2026-06-12T10:00:00+00:00'
+  decision:
+    action: approved
+    by: dana
+    at: '2026-06-12T10:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false

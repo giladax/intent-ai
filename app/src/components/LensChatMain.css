@@ -1,0 +1,496 @@
+/* ── LensChatMain styles — ported from mockups/lens-chat/01-arrival.html
+   Scoped to .lc-main to avoid conflicts with existing ink-app system.  */
+
+.lc-main {
+  position: relative;
+  height: 100vh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  flex: 1;
+}
+
+.lc-meta-top {
+  position: fixed;
+  top: 20px;
+  right: 26px;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  color: var(--lc-ink-40);
+  letter-spacing: 0.06em;
+  z-index: 5;
+}
+
+.lc-chat {
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 16vh 32px clamp(80px, 15vh, 190px);
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+}
+
+/* Widen container when feed is rendered */
+.lc-chat:has(.feed-stream) { max-width: 744px; }
+
+/* Brain turns */
+.lc-turn-brain {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lc-speaker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--lc-ink-40);
+  text-transform: uppercase;
+}
+
+.lc-speaker::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--lc-moss);
+  flex-shrink: 0;
+}
+
+.lc-scope {
+  color: var(--lc-cobalt);
+  font-weight: 600;
+}
+
+/* Verdict heading */
+.lc-verdict {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+/* Word animation — one per word */
+.lc-word {
+  display: inline-block;
+  animation: lc-word 0.55s var(--lc-ease) both;
+}
+
+/* Brainline body copy */
+.lc-brainline {
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--lc-ink);
+  max-width: 56ch;
+}
+
+.lc-dim {
+  color: var(--lc-ink-60);
+}
+
+/* Dashed underline handles */
+.lc-handle {
+  text-decoration: underline dashed var(--lc-ink-40);
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: color 0.3s var(--lc-ease);
+}
+
+.lc-handle:hover {
+  color: var(--lc-cobalt);
+}
+
+.lc-handle--amber {
+  text-decoration-color: var(--lc-amber);
+  color: var(--lc-amber);
+  font-weight: 600;
+}
+
+/* Whisper chips */
+.lc-whispers {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--lc-ink-25);
+  border-radius: 99px;
+  padding: 5px 11px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--lc-ink-60);
+  transition: background 0.3s var(--lc-ease), color 0.3s var(--lc-ease), border-color 0.3s var(--lc-ease);
+}
+
+.lc-chip .lc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.lc-chip:hover {
+  background: var(--lc-ink);
+  color: var(--lc-paper);
+  border-color: var(--lc-ink);
+}
+
+/* Dissolve animation for arrival section */
+.lc-dissolve {
+  animation: lc-dissolve 0.55s var(--lc-ease) both;
+}
+
+/* User turns */
+.lc-turn-user {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.lc-who {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--lc-ink-40);
+  text-transform: uppercase;
+}
+
+.lc-bubble {
+  background: var(--lc-ink);
+  color: var(--lc-bone);
+  border-radius: 18px 18px 4px 18px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.55;
+  max-width: 520px;
+}
+
+/* ── Ask bar ─────────────────────────────────────────────────────────── */
+
+.lc-askwrap {
+  position: fixed;
+  bottom: 0;
+  left: var(--lc-rail-w);
+  right: 0;
+  padding: 22px 32px 26px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--lc-paper) 62%, transparent);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+}
+
+.lc-ask {
+  pointer-events: auto;
+  width: min(620px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FAF4E4;
+  border: 1.5px solid var(--lc-ink);
+  border-radius: 99px;
+  padding: 12px 16px 12px 12px;
+  box-shadow: 0 10px 30px -14px rgba(28, 26, 21, 0.28);
+  transition: transform 0.4s var(--lc-ease), box-shadow 0.4s var(--lc-ease), border-color 0.5s var(--lc-ease);
+}
+
+.lc-ask:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 38px -14px rgba(28, 26, 21, 0.34);
+}
+
+.lc-ask--scoped {
+  border-color: var(--lc-cobalt);
+}
+
+.lc-brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lc-moss);
+  animation: lc-breathe 5.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.lc-scopetag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  background: var(--lc-cobalt);
+  color: var(--lc-bone);
+  border-radius: 99px;
+  padding: 7px 12px;
+  border: none;
+  cursor: pointer;
+  animation: lc-rise 0.6s var(--lc-ease) both;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lc-x {
+  opacity: 0.65;
+  cursor: pointer;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.lc-scopetag:hover .lc-x {
+  opacity: 1;
+}
+
+.lc-ask input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--lc-ink);
+  min-width: 0;
+}
+
+.lc-ask input::placeholder {
+  color: var(--lc-ink-40);
+}
+
+.lc-enter {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  color: var(--lc-ink-40);
+  border: 1px solid var(--lc-ink-12);
+  border-radius: 6px;
+  padding: 3px 7px;
+  flex-shrink: 0;
+}
+
+/* ── Approval cards (seal/stamp) ────────────────────────────────────── */
+
+.lc-seal-card {
+  border: 1.5px solid var(--lc-ink);
+  border-radius: 14px;
+  background: var(--lc-bone);
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  transition: opacity 0.5s var(--lc-ease);
+}
+
+.lc-seal-card--sealed {
+  opacity: 0.7;
+}
+
+.lc-seal-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  border-radius: 6px;
+  padding: 4px 8px;
+  align-self: flex-start;
+}
+
+.lc-seal-tag--pending {
+  background: var(--lc-amber);
+  color: white;
+}
+
+.lc-seal-tag--approved {
+  background: var(--lc-moss);
+  color: white;
+}
+
+.lc-seal-tag--rejected {
+  background: var(--lc-ink-40);
+  color: white;
+}
+
+.lc-seal-feature {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--lc-cobalt);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.lc-seal-summary {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--lc-ink);
+}
+
+.lc-seal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.lc-btn {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: 8px 18px;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: background 0.25s var(--lc-ease), color 0.25s var(--lc-ease);
+}
+
+.lc-btn--approve {
+  background: var(--lc-moss);
+  color: white;
+  border-color: var(--lc-moss);
+}
+
+.lc-btn--approve:hover {
+  background: transparent;
+  color: var(--lc-moss);
+}
+
+.lc-btn--approve:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lc-btn--reject {
+  background: transparent;
+  color: var(--lc-ink-60);
+  border-color: var(--lc-ink-25);
+}
+
+.lc-btn--reject:hover {
+  background: var(--lc-vermilion);
+  color: white;
+  border-color: var(--lc-vermilion);
+}
+
+.lc-btn--reject:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lc-stamp {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 8px;
+  align-self: flex-start;
+  animation: lc-stampin 0.7s var(--lc-spring) both;
+}
+
+.lc-stamp--approved {
+  background: var(--lc-moss);
+  color: white;
+  transform: rotate(-8deg);
+}
+
+.lc-stamp--rejected {
+  background: var(--lc-ink-40);
+  color: white;
+  transform: rotate(-8deg);
+}
+
+/* Rise class for dynamic elements */
+.lc-rise {
+  animation: lc-rise 0.8s var(--lc-ease) both;
+}
+
+/* ── Timeline opening — the window's sessions as a clickable ledger ──── */
+
+.lc-sessionlist {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--lc-ink-12);
+  margin-top: 4px;
+}
+
+.lc-sessionrow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 4px;
+  border: none;
+  border-bottom: 1px solid var(--lc-ink-12);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--lc-ink);
+  transition: background 0.25s var(--lc-ease);
+}
+
+.lc-sessionrow:hover {
+  background: rgba(28, 26, 21, 0.04);
+}
+
+.lc-sessionrow-date {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--lc-ink-40);
+  text-transform: uppercase;
+}
+
+.lc-sessionrow-sum {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--lc-ink-60);
+  max-width: 58ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* In-place "more" affordance for long opening turns */
+.lc-more {
+  align-self: flex-start;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lc-ink-60);
+  background: transparent;
+  border: 1px solid var(--lc-ink-25);
+  border-radius: 99px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.3s var(--lc-ease), color 0.3s var(--lc-ease), border-color 0.3s var(--lc-ease);
+}
+
+.lc-more:hover {
+  background: var(--lc-ink);
+  color: var(--lc-paper);
+  border-color: var(--lc-ink);
+}
+
+@media (min-width: 1600px) {
+  .lc-chat { max-width: 860px; }
+  .lc-chat:has(.feed-stream) { max-width: 860px; }
+  .lc-ask { width: min(780px, 100%); }
+}

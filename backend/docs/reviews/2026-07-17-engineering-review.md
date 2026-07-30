@@ -1,0 +1,17 @@
+# Engineering-quality review (2026-07-17)
+
+Verdict on the "LLM engineering smell" complaint: half right — grouping.py's algorithm layer is well documented; the smell is cryptic private names, an anonymous union-find, and the same hand-rolled NLP re-implemented 4x with silently different rules.
+
+Tier 1:
+1. Workspace/adapter resolution copy-pasted 4x (cli.py:33-50, api.py:40-57, api.py:223-227, cli.py:254-259); github provider never dispatched → --publish unreachable. Fix: quire/workspace.py with resolve_workspace_dir() + build_adapter() dispatching git/github/fixture; CLI+API use it.
+2. github.py:_files no pagination (>100 files silently truncated); list_paths ignores trees "truncated" flag. Fix: paginate; raise/log on truncated.
+3. AnthropicAlignmentLLM zero retry; ProposerLLM retry catches bare Exception (auth/rate-limit retried with misleading suffix). Fix: shared _invoke_with_retry catching only validation/parse errors; use in both.
+4. intent.html XSS: onclick="saveAlias('${esc(q)}'...)" — esc doesn't cover single quotes; c.anchor unescaped. Fix: data-term/data-anchor attrs + JS listener.
+5. onboard.html: LLM-produced strings interpolated unescaped (s.path, group ids, labels, bind fields); draft/regroup/create fetches don't check r.ok. Fix: esc() everywhere; error paths like scanBtn's.
+6. CP id minting duplicated Python (propose.py:330 stem) vs JS (onboard.html split('.')[0]), diverges + first-wins collisions. Fix: mint server-side only in /api/onboard/draft response; derive from full path.
+7. grouping.py naming altitude: _Ctx→_SimilarityContext, _terms→_content_words, typed Endpoint NamedTuple (kind: obligation|file), extract _UnionFind class.
+8. Tokenizer/TF-IDF/cosine/jaccard hand-rolled 4x with different rules (grouping.py, analysis/context.py, propose.py, ask.py); none handles digits ("$50","24h"). Fix: quire/text.py: tokenize(text,*,min_len,keep_digits,stopwords), tf_idf_vectors, cosine_similarity, jaccard_similarity; all call sites use it explicitly.
+9. Dead code: prompts.extract_section (0 callers), write_draft workflow_id param unused, match_eval_paths test-only (wire eval_sources into inspect_coverage as fallback verification when obligation has no verifies binding — keeps spec's manifest field meaningful), state.dropped_citations write-only → add to PRAnalysis.
+10. Five endpoints take request: dict → Pydantic request models (OnboardScanRequest, OnboardDraftRequest, OnboardCreateRequest, RegroupRequest, AliasRequest) → 422s not 500s.
+
+Tier 2 (apply all): timeline.py narrow bare except; classify.py redundant hard-rule clause (delete redundancy, keep behavior); matching._symbol_present word-boundary regex; call-site scan once per diff; store default DB path doc + update_review comment on non-atomicity; fixture.requirement_artifacts single read_text; parse_frontmatter limitation comment; onboard._SKIP_PARTS split generic default + repo-specific extras param; propose tree truncation note (log when truncated); cli --offline unknown fixture KeyError → friendly message listing known PRs; ask.py rename `_` loop vars to score, rationale comments for thresholds, inline _touches; unify .env loading in workspace.py; api /analyses error handling (502-style message on adapter/LLM failure); intent.html setInterval catch; shared esc note (leave inline, comment); canned 110 wrap _pr110_abstain(); grouping must-link mutation comment; /api/onboard/scan path-trust comment. DO NOT change Classification enum stored values (breaks persisted analyses + LangSmith dataset) — display labels only.

@@ -1,0 +1,12 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Unknown recorded (id: 51f5a778-508b-4c11-99f6-c524d96b05c7, status: pending review)."
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 21
+}

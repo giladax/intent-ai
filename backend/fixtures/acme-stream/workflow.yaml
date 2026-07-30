@@ -1,0 +1,4 @@
+workflow_id: acme-stream
+requirements: {provider: fixture, reference: acme-prd}
+repositories:
+  - {provider: fixture, repository: acme-commerce, path: repo}

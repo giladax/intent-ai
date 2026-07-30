@@ -1,0 +1,105 @@
+- id: m1
+  channel: '#payments-eng'
+  actor: dana
+  ts: '2026-06-20T09:00:00+00:00'
+  kind: message
+  text: 'reminder: high-risk refunds always need human approval before payout. non-negotiable
+    for compliance.'
+- id: m2
+  channel: '#payments-eng'
+  actor: sam
+  ts: '2026-06-20T09:05:00+00:00'
+  kind: message
+  text: agreed on refunds approval. but the batch export path is slow, can we auto-approve
+    there?
+- id: m3
+  channel: '#payments-eng'
+  actor: dana
+  ts: '2026-06-20T09:10:00+00:00'
+  kind: decision
+  text: 'decision: no auto-approve on high-risk refunds, batch included. approval
+    stays.'
+- id: m4
+  channel: '#payments-eng'
+  actor: rui
+  ts: '2026-06-21T14:00:00+00:00'
+  kind: message
+  text: heads up, the refunds guard ceiling and the policy limit are drifting apart
+    again
+- id: m5
+  channel: '#product'
+  actor: dana
+  ts: '2026-06-22T10:00:00+00:00'
+  kind: message
+  text: customers report double charges on checkout retry. we promised checkout never
+    double-charges.
+- id: m6
+  channel: '#product'
+  actor: lee
+  ts: '2026-06-22T10:20:00+00:00'
+  kind: message
+  text: checkout retry idempotency is on the backlog, no one is on it yet
+- id: m7
+  channel: '#product'
+  actor: rui
+  ts: '2026-06-23T09:00:00+00:00'
+  kind: message
+  text: still seeing the checkout double-charge in support tickets
+- id: m8
+  channel: '#general'
+  actor: sam
+  ts: '2026-06-20T12:00:00+00:00'
+  kind: message
+  text: lunch?
+- id: m9
+  channel: '#general'
+  actor: lee
+  ts: '2026-06-24T12:00:00+00:00'
+  kind: message
+  text: planning the offsite agenda
+- id: m10
+  channel: '#leadership'
+  actor: vp-eng
+  ts: '2026-06-09T08:05:00+00:00'
+  kind: message
+  text: 'posting my Q3 note now. one hard priority for the whole org: high-risk refunds
+    always get a human before any payout. treat that as a non-negotiable, above roadmap
+    speed. if a fix trades it away for latency, escalate to me before shipping.'
+- id: m11
+  channel: '#product'
+  actor: maya
+  ts: '2026-06-09T16:00:00+00:00'
+  kind: decision
+  text: 'decision (Payments): shipping the Refund Policy Spec. no auto-approve on high-risk
+    refunds, batch export explicitly included and out of scope for automation. the
+    $100 premium auto-refund is the only automatic payout and it stays capped.'
+- id: m12
+  channel: '#product'
+  actor: maya
+  ts: '2026-06-20T11:00:00+00:00'
+  kind: message
+  text: 'to be crystal clear for eng before anyone touches the batch path: batch refunds
+    are still refunds. the human-approval rule has no batch exception. impact if we
+    get this wrong is regulatory, not just a bad UX day.'
+- id: m13
+  channel: '#payments-eng'
+  actor: priya
+  ts: '2026-06-22T09:30:00+00:00'
+  kind: message
+  text: picking up the guard/policy ceiling drift rui flagged. root cause is two hardcoded
+    copies of the limit. going to make both read one shared constant so the guard still
+    fails closed but can't enforce a stale number.
+- id: m14
+  channel: '#payments-eng'
+  actor: rui
+  ts: '2026-06-22T09:45:00+00:00'
+  kind: message
+  text: nice, that's the real fix. thank you for not just bumping the hardcoded value
+    again.
+- id: m15
+  channel: '#payments-eng'
+  actor: omar
+  ts: '2026-06-24T09:00:00+00:00'
+  kind: message
+  text: fraud escalation next. the score crosses the threshold and today nobody gets
+    paged, so i'm wiring the on-call page into scoring per the spec.

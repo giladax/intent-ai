@@ -1,0 +1,23 @@
+# Every actor in the Vela org stream → their ROLE.
+# Roles drive the timeline's "who was paying attention" read: devs ship code,
+# PMs author specs (intent), the stakeholder sets the compliance line.
+#
+# The tragedy is cross-role: the exec MANDATED the opt-in promise and the PM
+# SPECCED it — both long before the incident — yet when a refactor silently
+# dropped the opt-in gate during the Alerts firefight, every eye (dev, pm,
+# stakeholder alike) was on the incident. The promise was governed and
+# articulated, and it STILL drifted with zero attention.
+
+# devs — they write code and firefight
+tomas: dev
+aisha: dev
+ben: dev
+nadia: dev
+carlos: dev
+dr-liu: dev          # on-call clinician engineer; pages and firefights with the devs
+
+# product managers — they author specs (intent) and post in #product
+hana: pm
+
+# stakeholder — the exec who sets the compliance line and writes strategy
+vp-product: stakeholder

@@ -1,0 +1,7 @@
+Log: tests/eval/fixtures/scope-implementation.jsonl
+  Raw events:        587
+  Normalized events: 587
+  Chunks:            11
+  Time span:         May 22, 00:16 → May 22, 14:34 (858 min)
+  Categories:        intent:17, reflection:198, result:222, action:135, proposal:15
+  Directives:

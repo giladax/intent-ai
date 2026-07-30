@@ -1,0 +1,133 @@
+- diff_id: GD-1
+  question: Create Ledger?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-ledger
+    name: Ledger
+    identity_sentence: 'The double-entry core: postings, balances, and the invariant
+      that they net to zero.'
+    aliases:
+    - postings
+    - double-entry
+  - op: attach
+    entity_id: ent-ledger
+    kind: promise
+    ref: OB-LED-1
+    note: ''
+  - op: attach
+    entity_id: ent-ledger
+    kind: promise
+    ref: OB-LED-2
+    note: ''
+  - op: attach
+    entity_id: ent-ledger
+    kind: promise
+    ref: OB-LED-3
+    note: ''
+  - op: attach
+    entity_id: ent-ledger
+    kind: code
+    ref: repo/ledger/postings.py
+    note: ''
+  - op: attach
+    entity_id: ent-ledger
+    kind: code
+    ref: repo/ledger/balance.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 2.0
+  shape_key: b58751a4b507
+  status: approved
+  proposed_at: '2026-06-08T10:00:00+00:00'
+  decision:
+    action: approved
+    by: priya
+    at: '2026-06-08T10:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-2
+  question: Create Reconciliation?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-reconciliation
+    name: Reconciliation
+    identity_sentence: Matching ledger entries against external statements and flagging
+      what does not tie out.
+    aliases:
+    - reconcile
+    - matching
+  - op: attach
+    entity_id: ent-reconciliation
+    kind: promise
+    ref: OB-REC-1
+    note: ''
+  - op: attach
+    entity_id: ent-reconciliation
+    kind: promise
+    ref: OB-REC-2
+    note: ''
+  - op: attach
+    entity_id: ent-reconciliation
+    kind: code
+    ref: repo/reconcile/matcher.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.6
+  shape_key: 117d3a00b8da
+  status: approved
+  proposed_at: '2026-06-09T11:00:00+00:00'
+  decision:
+    action: approved
+    by: elena
+    at: '2026-06-09T11:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-3
+  question: Create Reporting?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-reporting
+    name: Reporting
+    identity_sentence: Statements and balance reports drawn only from committed ledger
+      state.
+    aliases:
+    - reports
+    - statements
+  - op: attach
+    entity_id: ent-reporting
+    kind: promise
+    ref: OB-REP-1
+    note: ''
+  - op: attach
+    entity_id: ent-reporting
+    kind: promise
+    ref: OB-REP-2
+    note: ''
+  - op: attach
+    entity_id: ent-reporting
+    kind: code
+    ref: repo/reporting/statements.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.6
+  shape_key: 55431c136045
+  status: approved
+  proposed_at: '2026-06-10T09:30:00+00:00'
+  decision:
+    action: approved
+    by: jun
+    at: '2026-06-10T09:30:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false

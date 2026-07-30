@@ -1,0 +1,143 @@
+- diff_id: GD-1
+  question: Create Alerts?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-alerts
+    name: Alerts
+    identity_sentence: Time-critical pages to the on-call clinician when a patient
+      threshold trips.
+    aliases:
+    - on-call
+    - paging
+  - op: attach
+    entity_id: ent-alerts
+    kind: promise
+    ref: OB-ALERTS-1
+    note: ''
+  - op: attach
+    entity_id: ent-alerts
+    kind: promise
+    ref: OB-ALERTS-2
+    note: ''
+  - op: attach
+    entity_id: ent-alerts
+    kind: code
+    ref: repo/alerts/dispatch.py
+    note: ''
+  - op: attach
+    entity_id: ent-alerts
+    kind: code
+    ref: repo/alerts/audit.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.8
+  shape_key: 2b10174f5a1a
+  status: approved
+  proposed_at: '2026-07-02T10:00:00+00:00'
+  decision:
+    action: approved
+    by: ben
+    at: '2026-07-02T10:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-2
+  question: Create Consent?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-consent
+    name: Consent
+    identity_sentence: The recorded permission that gates whether a recipient may
+      be messaged at all.
+    aliases:
+    - opt-in
+    - permission gate
+  - op: attach
+    entity_id: ent-consent
+    kind: promise
+    ref: OB-CONSENT-1
+    note: ''
+  - op: attach
+    entity_id: ent-consent
+    kind: promise
+    ref: OB-CONSENT-2
+    note: ''
+  - op: attach
+    entity_id: ent-consent
+    kind: promise
+    ref: OB-CONSENT-3
+    note: ''
+  - op: attach
+    entity_id: ent-consent
+    kind: code
+    ref: repo/consent/gate.py
+    note: ''
+  - op: attach
+    entity_id: ent-consent
+    kind: code
+    ref: repo/messaging/send.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 2.0
+  shape_key: 388c4ca53a41
+  status: approved
+  proposed_at: '2026-07-02T11:00:00+00:00'
+  decision:
+    action: approved
+    by: aisha
+    at: '2026-07-02T11:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false
+- diff_id: GD-3
+  question: Create Delivery?
+  proposed_by: llm
+  evidence: []
+  operations:
+  - op: create_entity
+    entity_id: ent-delivery
+    name: Delivery
+    identity_sentence: The send pipeline that gets a message out, retries failures,
+      and keeps PHI out of logs.
+    aliases:
+    - send pipeline
+    - retry
+  - op: attach
+    entity_id: ent-delivery
+    kind: promise
+    ref: OB-DELIVERY-1
+    note: ''
+  - op: attach
+    entity_id: ent-delivery
+    kind: promise
+    ref: OB-DELIVERY-2
+    note: ''
+  - op: attach
+    entity_id: ent-delivery
+    kind: promise
+    ref: OB-DELIVERY-3
+    note: ''
+  - op: attach
+    entity_id: ent-delivery
+    kind: code
+    ref: repo/delivery/retry.py
+    note: ''
+  mechanics_note: ''
+  reasoning: ''
+  stakes: 1.8
+  shape_key: 6e5cf61759d4
+  status: approved
+  proposed_at: '2026-07-03T09:00:00+00:00'
+  decision:
+    action: approved
+    by: tomas
+    at: '2026-07-03T09:00:00+00:00'
+    reason_code: ''
+    reason_text: ''
+    amended: false

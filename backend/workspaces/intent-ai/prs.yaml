@@ -1,0 +1,18 @@
+# PRs: sweep-commit range (int keys) + GitHub PRs (int keys = PR number).
+1:
+  base: 5efa0b18dd803f5b78372a3e14c72a6834c60001
+  head: 71551275432e8905bfe343480bb18fdf7ac0560c
+  updated_at: '2026-07-23T11:07:14Z'
+  state: open
+2:
+  base: 3aa62fc^
+  head: 3aa62fc
+3:
+  base: 71a63e2^
+  head: 71a63e2
+4:
+  base: 3446a05^
+  head: 3446a05
+5:
+  base: 474c2e0^
+  head: 474c2e0

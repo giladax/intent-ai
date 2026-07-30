@@ -1,0 +1,1269 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
+control_points:
+- control_point_id: CP-pydantic-core-tests-validators-test-bool-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_bool.py
+  description: Test file for bool validator covers strict mode rejection of non-boolean types
+    (integers, strings, bytes).
+- control_point_id: CP-pydantic-core-tests-test-strict-py
+  role: test_or_eval
+  path: pydantic-core/tests/test_strict.py
+  description: Dedicated strict-mode test file verifies that strict mode enforces type constraints
+    including bool fields.
+- control_point_id: CP-pydantic-internal-generate-schema-py
+  role: decision
+  path: pydantic/_internal/_generate_schema.py
+  description: Generates the pydantic-core bool schema with strict mode configuration, determining
+    which validator is applied.
+- control_point_id: CP-pydantic-core-tests-validators-test-string-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_string.py
+  description: Test file for string validator covers strict mode rejection of bytes, bytearray,
+    enums, and numbers for str fields.
+- control_point_id: CP-pydantic-core-tests-validators-test-bytes-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_bytes.py
+  description: Test file for bytes validator covers strict mode rejection of strings and bytearray,
+    and JSON mode behavior.
+- control_point_id: CP-pydantic-core-tests-validators-test-int-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_int.py
+  description: Test file for int validator covers float-to-int coercion rules including rejection
+    of inf, NaN, and non-zero fractional parts.
+- control_point_id: CP-pydantic-core-tests-validators-test-float-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_float.py
+  description: Test file for float validator exercises float validity constraints relevant
+    to integer coercion.
+- control_point_id: CP-pydantic-internal-validators-py
+  role: enforcement
+  path: pydantic/_internal/_validators.py
+  description: Contains Python-side validators that may enforce float-to-int coercion constraints
+    (inf, NaN, fractional part checks).
+- control_point_id: CP-pydantic-core-tests-validators-test-datetime-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_datetime.py
+  symbol: test_datetime_strict
+  description: 'Directly tests strict mode for datetime: only datetime instances accepted
+    in Python mode, RFC 3339 strings/unix timestamps in JSON mode.'
+- control_point_id: CP-pydantic-core-tests-validators-test-list-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_list.py
+  description: Tests list/sequence validation including rejection of strings and bytes as
+    sequence inputs.
+- control_point_id: CP-pydantic-core-tests-serializers-test-functions-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_functions.py
+  description: Tests serialization of callables, verifying that PydanticSerializationError
+    is raised in JSON mode.
+- control_point_id: CP-pydantic-core-tests-serializers-test-other-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_other.py
+  description: Tests serialization of miscellaneous types including callables in JSON mode.
+- control_point_id: CP-pydantic-core-tests-serializers-test-decimal-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_decimal.py
+  description: Tests that Decimal instances are serialized as strings in JSON mode.
+- control_point_id: CP-pydantic-core-tests-validators-test-decimal-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_decimal.py
+  description: 'Tests strict mode for Decimal: only decimal.Decimal instances accepted in
+    Python strict mode; JSON mode unaffected.'
+- control_point_id: CP-pydantic-core-tests-validators-test-tuple-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_tuple.py
+  description: Tests tuple validation in strict mode, confirming inner items are not subject
+    to strict mode constraints.
+- control_point_id: CP-pydantic-core-tests-validators-test-dict-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_dict.py
+  description: Tests dict validation in strict mode, confirming inner key/value types are
+    not subject to strict mode constraints.
+- control_point_id: CP-pydantic-core-tests-validators-test-set-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_set.py
+  description: Tests set validation in strict mode, confirming inner items are not subject
+    to strict mode constraints.
+- control_point_id: CP-pydantic-core-tests-validators-test-callable-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_callable.py
+  description: Tests that callable validation only checks callability, not parameter count,
+    types, or return type.
+- control_point_id: CP-pydantic-core-tests-validators-test-generator-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_generator.py
+  description: Tests that Iterable/generator items are validated lazily at iteration time,
+    not eagerly at input time.
+- control_point_id: CP-pydantic-config-py
+  role: configuration
+  path: pydantic/config.py
+  symbol: ConfigDict
+  description: Defines the coerce_numbers_to_str configuration option that enables number-to-string
+    coercion.
+- control_point_id: CP-pydantic-internal-config-py
+  role: enforcement
+  path: pydantic/_internal/_config.py
+  description: Processes and propagates the coerce_numbers_to_str config setting into the
+    core schema configuration.
+- control_point_id: CP-pydantic-core-tests-test-config-py
+  role: test_or_eval
+  path: pydantic-core/tests/test_config.py
+  description: Tests configuration options including coerce_numbers_to_str behavior.
+- control_point_id: CP-pydantic-internal-serializers-py
+  role: enforcement
+  path: pydantic/_internal/_serializers.py
+  description: Contains serializer logic for special types; Fraction serialization as string
+    in both Python and JSON modes would be configured here.
+- control_point_id: CP-pydantic-core-tests-serializers-test-simple-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_simple.py
+  description: Tests serialization of simple/primitive types which may include Fraction serialization
+    as string.
+- control_point_id: CP-pydantic-core-tests-serializers-test-any-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_any.py
+  description: Tests serialization of arbitrary/unsupported types and verifies PydanticSerializationError
+    is raised when a value cannot be serialized to JSON.
+- control_point_id: CP-pydantic-core-python-pydantic-core-init-py
+  role: configuration
+  path: pydantic-core/python/pydantic_core/__init__.py
+  symbol: PydanticSerializationError
+  description: Exports PydanticSerializationError as part of the public API, making it the
+    designated exception type for serialization failures.
+- control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_model.py
+  description: Imports and uses PydanticSerializationError to verify it is raised when unsupported
+    types are encountered during serialization.
+- control_point_id: CP-pydantic-internal-decorators-py
+  role: enforcement
+  path: pydantic/_internal/_decorators.py
+  description: Processes @field_serializer and @model_serializer decorators and enforces that
+    only one serializer may be defined per field or model, raising errors on conflicts.
+- control_point_id: CP-pydantic-core-tests-serializers-test-serialize-as-any-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_serialize_as_any.py
+  description: Directly tests the serialize_as_any / polymorphic serialization behavior, verifying
+    the default is to serialize only annotation-type fields.
+- control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+  role: configuration
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  description: Defines schema building functions (e.g. is_instance_schema, union_schema) that
+    encode the rule that subclasses are serialized via their superclass schema.
+- control_point_id: CP-pydantic-functional-serializers-py
+  role: enforcement
+  path: pydantic/functional_serializers.py
+  symbol: field_serializer
+  description: Implements the @field_serializer decorator that enforces plain mode serializers
+    are invoked unconditionally.
+- control_point_id: CP-pydantic-main-py
+  role: enforcement
+  path: pydantic/main.py
+  symbol: __iter__
+  description: Implements __iter__ on BaseModel to yield field values as-is without converting
+    sub-models to dicts.
+- control_point_id: CP-pydantic-core-tests-serializers-test-typed-dict-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_typed_dict.py
+  symbol: test_include_exclude_schema
+  description: Tests that serialization_exclude at the field level overrides include arguments
+    passed at runtime.
+- control_point_id: CP-pydantic-core-tests-serializers-test-dataclasses-py
+  role: test_or_eval
+  path: pydantic-core/tests/serializers/test_dataclasses.py
+  symbol: test_serialization_exclude
+  description: Tests that field-level serialization_exclude takes priority over runtime include
+    parameters.
+- control_point_id: CP-pydantic-internal-dataclasses-py
+  role: enforcement
+  path: pydantic/_internal/_dataclasses.py
+  description: Handles Pydantic dataclass schema generation and enforces that polymorphic
+    serialization is only available for Pydantic models and Pydantic dataclasses, not stdlib
+    dataclasses.
+- control_point_id: CP-pydantic-type-adapter-py
+  role: executor
+  path: pydantic/type_adapter.py
+  symbol: dump_python
+  description: Implements dump_python on TypeAdapter which accepts the serialize_as_any flag
+    enabling runtime polymorphic serialization.
+- control_point_id: CP-pydantic-core-tests-validators-test-union-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_union.py
+  description: Test file for union validators covers left-to-right validation order behavior
+    in pydantic-core.
+- control_point_id: CP-docs-concepts-unions-md
+  role: configuration
+  path: docs/concepts/unions.md
+  description: Documents the left-to-right union validation mode and its behavior for users.
+- control_point_id: CP-pydantic-fields-py
+  role: enforcement
+  path: pydantic/fields.py
+  symbol: Field
+  description: Defines the Field function that accepts union_mode parameter to configure left-to-right
+    mode.
+- control_point_id: CP-pydantic-internal-discriminated-union-py
+  role: enforcement
+  path: pydantic/_internal/_discriminated_union.py
+  description: Handles callable discriminator logic and raises union_tag_not_found when discriminator
+    returns None.
+- control_point_id: CP-pydantic-core-tests-validators-test-tagged-union-py
+  role: test_or_eval
+  path: pydantic-core/tests/validators/test_tagged_union.py
+  description: Tests that union_tag_not_found error is raised when a callable discriminator
+    returns None.
+- control_point_id: CP-docs-errors-validation-errors-md
+  role: audit
+  path: docs/errors/validation_errors.md
+  description: Documents the union_tag_not_found validation error type and when it is raised.
+- control_point_id: CP-pydantic-json-schema-py
+  role: executor
+  path: pydantic/json_schema.py
+  description: Generates JSON schema for discriminated unions including the OpenAPI discriminator
+    attribute.
+- control_point_id: CP-pydantic-types-py
+  role: configuration
+  path: pydantic/types.py
+  symbol: Discriminator
+  description: Defines the Discriminator class that accepts custom_error_type, custom_error_message,
+    and custom_error_context parameters.
+- control_point_id: CP-pydantic-internal-known-annotated-metadata-py
+  role: enforcement
+  path: pydantic/_internal/_known_annotated_metadata.py
+  description: Processes annotated metadata including union_mode from Field annotations to
+    configure union validation.
+- control_point_id: CP-docs-version-policy-md
+  role: audit
+  path: docs/version-policy.md
+  description: Documents the version policy under which internal algorithm changes (like smart
+    mode) may occur in minor releases.
+- control_point_id: CP-tests-benchmarks-test-discriminated-unions-py
+  role: test_or_eval
+  path: tests/benchmarks/test_discriminated_unions.py
+  description: Benchmark tests for discriminated unions that exercise union validation paths
+    including left-to-right.
+bindings:
+- obligation_id: PYDANT-001
+  path: pydantic-core/tests/validators/test_bool.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Test file for bool validator covers strict mode rejection of non-boolean types (integers,
+    strings, bytes).
+  control_point_id: CP-pydantic-core-tests-validators-test-bool-py
+- obligation_id: PYDANT-001
+  path: pydantic-core/tests/test_strict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Dedicated strict-mode test file verifies that strict mode enforces type constraints
+    including bool fields.
+  control_point_id: CP-pydantic-core-tests-test-strict-py
+- obligation_id: PYDANT-001
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the pydantic-core bool schema with strict mode configuration, determining
+    which validator is applied.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-002
+  path: pydantic-core/tests/validators/test_string.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Test file for string validator covers strict mode rejection of bytes, bytearray, enums,
+    and numbers for str fields.
+  control_point_id: CP-pydantic-core-tests-validators-test-string-py
+- obligation_id: PYDANT-002
+  path: pydantic-core/tests/test_strict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Dedicated strict-mode test file verifies strict str field validation rejects non-string
+    types.
+  control_point_id: CP-pydantic-core-tests-test-strict-py
+- obligation_id: PYDANT-002
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the pydantic-core str schema with strict mode settings, controlling which
+    types are accepted.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-003
+  path: pydantic-core/tests/validators/test_bytes.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Test file for bytes validator covers strict mode rejection of strings and bytearray,
+    and JSON mode behavior.
+  control_point_id: CP-pydantic-core-tests-validators-test-bytes-py
+- obligation_id: PYDANT-003
+  path: pydantic-core/tests/test_strict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Dedicated strict-mode test file verifies bytes field strict validation rules.
+  control_point_id: CP-pydantic-core-tests-test-strict-py
+- obligation_id: PYDANT-004
+  path: pydantic-core/tests/validators/test_int.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Test file for int validator covers float-to-int coercion rules including rejection
+    of inf, NaN, and non-zero fractional parts.
+  control_point_id: CP-pydantic-core-tests-validators-test-int-py
+- obligation_id: PYDANT-004
+  path: pydantic-core/tests/validators/test_float.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Test file for float validator exercises float validity constraints relevant to integer
+    coercion.
+  control_point_id: CP-pydantic-core-tests-validators-test-float-py
+- obligation_id: PYDANT-004
+  path: pydantic/_internal/_validators.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Contains Python-side validators that may enforce float-to-int coercion constraints
+    (inf, NaN, fractional part checks).
+  control_point_id: CP-pydantic-internal-validators-py
+- obligation_id: PYDANT-005
+  path: pydantic-core/tests/validators/test_datetime.py
+  symbol: test_datetime_strict
+  role: test_or_eval
+  relation: verifies
+  why: 'Directly tests strict mode for datetime: only datetime instances accepted in Python
+    mode, RFC 3339 strings/unix timestamps in JSON mode.'
+  control_point_id: CP-pydantic-core-tests-validators-test-datetime-py
+- obligation_id: PYDANT-005
+  path: pydantic-core/tests/test_strict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Dedicated strict-mode test file verifies datetime strict validation behavior.
+  control_point_id: CP-pydantic-core-tests-test-strict-py
+- obligation_id: PYDANT-006
+  path: pydantic-core/tests/validators/test_list.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests list/sequence validation including rejection of strings and bytes as sequence
+    inputs.
+  control_point_id: CP-pydantic-core-tests-validators-test-list-py
+- obligation_id: PYDANT-006
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the schema for Sequence types, controlling whether strings/bytes are accepted
+    as valid sequence inputs.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-007
+  path: pydantic-core/tests/serializers/test_functions.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests serialization of callables, verifying that PydanticSerializationError is raised
+    in JSON mode.
+  control_point_id: CP-pydantic-core-tests-serializers-test-functions-py
+- obligation_id: PYDANT-007
+  path: pydantic-core/tests/serializers/test_other.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests serialization of miscellaneous types including callables in JSON mode.
+  control_point_id: CP-pydantic-core-tests-serializers-test-other-py
+- obligation_id: PYDANT-008
+  path: pydantic-core/tests/serializers/test_other.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests serialization of type objects (type[X]) in JSON mode, verifying PydanticSerializationError
+    is raised.
+  control_point_id: CP-pydantic-core-tests-serializers-test-other-py
+- obligation_id: PYDANT-009
+  path: pydantic-core/tests/serializers/test_decimal.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that Decimal instances are serialized as strings in JSON mode.
+  control_point_id: CP-pydantic-core-tests-serializers-test-decimal-py
+- obligation_id: PYDANT-009
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the Decimal schema including the serializer configuration that produces strings
+    in JSON mode.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-010
+  path: pydantic-core/tests/validators/test_decimal.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: 'Tests strict mode for Decimal: only decimal.Decimal instances accepted in Python strict
+    mode; JSON mode unaffected.'
+  control_point_id: CP-pydantic-core-tests-validators-test-decimal-py
+- obligation_id: PYDANT-010
+  path: pydantic-core/tests/test_strict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Dedicated strict-mode test file verifies Decimal strict validation behavior.
+  control_point_id: CP-pydantic-core-tests-test-strict-py
+- obligation_id: PYDANT-011
+  path: pydantic-core/tests/test_strict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Dedicated strict-mode test file verifies that strictness on collection types does not
+    propagate to inner/item types.
+  control_point_id: CP-pydantic-core-tests-test-strict-py
+- obligation_id: PYDANT-011
+  path: pydantic-core/tests/validators/test_list.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests list validation in strict mode, confirming inner items are not subject to strict
+    mode constraints.
+  control_point_id: CP-pydantic-core-tests-validators-test-list-py
+- obligation_id: PYDANT-011
+  path: pydantic-core/tests/validators/test_tuple.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests tuple validation in strict mode, confirming inner items are not subject to strict
+    mode constraints.
+  control_point_id: CP-pydantic-core-tests-validators-test-tuple-py
+- obligation_id: PYDANT-011
+  path: pydantic-core/tests/validators/test_dict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests dict validation in strict mode, confirming inner key/value types are not subject
+    to strict mode constraints.
+  control_point_id: CP-pydantic-core-tests-validators-test-dict-py
+- obligation_id: PYDANT-011
+  path: pydantic-core/tests/validators/test_set.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests set validation in strict mode, confirming inner items are not subject to strict
+    mode constraints.
+  control_point_id: CP-pydantic-core-tests-validators-test-set-py
+- obligation_id: PYDANT-012
+  path: pydantic-core/tests/validators/test_callable.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that callable validation only checks callability, not parameter count, types,
+    or return type.
+  control_point_id: CP-pydantic-core-tests-validators-test-callable-py
+- obligation_id: PYDANT-012
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the callable schema which determines that only callability is checked, not
+    signature details.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-013
+  path: pydantic-core/tests/validators/test_generator.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that Iterable/generator items are validated lazily at iteration time, not eagerly
+    at input time.
+  control_point_id: CP-pydantic-core-tests-validators-test-generator-py
+- obligation_id: PYDANT-013
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the iterable/generator schema that configures lazy item validation.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-014
+  path: pydantic/config.py
+  symbol: ConfigDict
+  role: configuration
+  relation: configures
+  why: Defines the coerce_numbers_to_str configuration option that enables number-to-string
+    coercion.
+  control_point_id: CP-pydantic-config-py
+- obligation_id: PYDANT-014
+  path: pydantic/_internal/_config.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Processes and propagates the coerce_numbers_to_str config setting into the core schema
+    configuration.
+  control_point_id: CP-pydantic-internal-config-py
+- obligation_id: PYDANT-014
+  path: pydantic-core/tests/validators/test_string.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that coerce_numbers_to_str allows int, float, and Decimal to be accepted as valid
+    str inputs.
+  control_point_id: CP-pydantic-core-tests-validators-test-string-py
+- obligation_id: PYDANT-014
+  path: pydantic-core/tests/test_config.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests configuration options including coerce_numbers_to_str behavior.
+  control_point_id: CP-pydantic-core-tests-test-config-py
+- obligation_id: PYDANT-015
+  path: pydantic/_internal/_serializers.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Contains serializer logic for special types; Fraction serialization as string in both
+    Python and JSON modes would be configured here.
+  control_point_id: CP-pydantic-internal-serializers-py
+- obligation_id: PYDANT-015
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the schema for Fraction type including the serializer that produces string
+    output in both modes.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-015
+  path: pydantic-core/tests/serializers/test_simple.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests serialization of simple/primitive types which may include Fraction serialization
+    as string.
+  control_point_id: CP-pydantic-core-tests-serializers-test-simple-py
+- obligation_id: PYDANT-016
+  path: pydantic-core/tests/serializers/test_any.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests serialization of arbitrary/unsupported types and verifies PydanticSerializationError
+    is raised when a value cannot be serialized to JSON.
+  control_point_id: CP-pydantic-core-tests-serializers-test-any-py
+- obligation_id: PYDANT-016
+  path: pydantic-core/tests/serializers/test_other.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests edge-case serialization scenarios including unsupported types that should raise
+    PydanticSerializationError.
+  control_point_id: CP-pydantic-core-tests-serializers-test-other-py
+- obligation_id: PYDANT-016
+  path: pydantic-core/python/pydantic_core/__init__.py
+  symbol: PydanticSerializationError
+  role: configuration
+  relation: configures
+  why: Exports PydanticSerializationError as part of the public API, making it the designated
+    exception type for serialization failures.
+  control_point_id: CP-pydantic-core-python-pydantic-core-init-py
+- obligation_id: PYDANT-016
+  path: pydantic-core/tests/serializers/test_model.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Imports and uses PydanticSerializationError to verify it is raised when unsupported
+    types are encountered during serialization.
+  control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+- obligation_id: PYDANT-017
+  path: pydantic/_internal/_decorators.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Processes @field_serializer and @model_serializer decorators and enforces that only
+    one serializer may be defined per field or model, raising errors on conflicts.
+  control_point_id: CP-pydantic-internal-decorators-py
+- obligation_id: PYDANT-017
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Builds the core schema for fields/models and enforces that conflicting serializer definitions
+    (plain + wrap) are not combined.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-017
+  path: pydantic-core/tests/serializers/test_functions.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests function-based serializers including plain and wrap modes, verifying that combining
+    multiple serializers on the same field is not permitted.
+  control_point_id: CP-pydantic-core-tests-serializers-test-functions-py
+- obligation_id: PYDANT-018
+  path: pydantic-core/tests/serializers/test_model.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Contains tests for subclass instances assigned to base-type fields, verifying only
+    the annotation type's fields are serialized by default.
+  control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+- obligation_id: PYDANT-018
+  path: pydantic-core/tests/serializers/test_serialize_as_any.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Directly tests the serialize_as_any / polymorphic serialization behavior, verifying
+    the default is to serialize only annotation-type fields.
+  control_point_id: CP-pydantic-core-tests-serializers-test-serialize-as-any-py
+- obligation_id: PYDANT-018
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the model schema that determines which fields are included during serialization,
+    defaulting to the annotated type's fields only.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-019
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Defines schema building functions (e.g. is_instance_schema, union_schema) that encode
+    the rule that subclasses are serialized via their superclass schema.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-019
+  path: pydantic-core/tests/serializers/test_any.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests serialization of subclass instances to confirm they follow the superclass serialization
+    schema.
+  control_point_id: CP-pydantic-core-tests-serializers-test-any-py
+- obligation_id: PYDANT-019
+  path: pydantic-core/tests/serializers/test_model.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests BasicSubModel serialization against BasicModel schema, verifying subclass instances
+    are serialized per the superclass schema.
+  control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+- obligation_id: PYDANT-020
+  path: pydantic/_internal/_decorators.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Processes @field_serializer(mode='plain') decorators and wires them so the plain serializer
+    is called unconditionally, bypassing built-in logic.
+  control_point_id: CP-pydantic-internal-decorators-py
+- obligation_id: PYDANT-020
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: plain_serializer_function_ser_schema
+  role: configuration
+  relation: configures
+  why: Defines the plain_serializer_function_ser_schema schema builder that configures a plain
+    serializer to be called unconditionally.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-020
+  path: pydantic-core/tests/serializers/test_functions.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests plain function serializers to verify they are called unconditionally, bypassing
+    Pydantic's built-in serialization.
+  control_point_id: CP-pydantic-core-tests-serializers-test-functions-py
+- obligation_id: PYDANT-020
+  path: pydantic/functional_serializers.py
+  symbol: field_serializer
+  role: enforcement
+  relation: enforces
+  why: Implements the @field_serializer decorator that enforces plain mode serializers are
+    invoked unconditionally.
+  control_point_id: CP-pydantic-functional-serializers-py
+- obligation_id: PYDANT-021
+  path: pydantic/_internal/_decorators.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Validates wrap field serializer signatures to ensure the mandatory handler parameter
+    is present.
+  control_point_id: CP-pydantic-internal-decorators-py
+- obligation_id: PYDANT-021
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: wrap_serializer_function_ser_schema
+  role: configuration
+  relation: configures
+  why: Defines the wrap_serializer_function_ser_schema builder that requires a handler callable
+    parameter for delegating serialization.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-021
+  path: pydantic-core/tests/serializers/test_functions.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests wrap serializer functions to verify the handler parameter is accepted and delegates
+    to Pydantic's serialization.
+  control_point_id: CP-pydantic-core-tests-serializers-test-functions-py
+- obligation_id: PYDANT-021
+  path: pydantic/functional_serializers.py
+  symbol: field_serializer
+  role: enforcement
+  relation: enforces
+  why: Implements @field_serializer(mode='wrap') and enforces the handler parameter contract
+    for wrap serializers.
+  control_point_id: CP-pydantic-functional-serializers-py
+- obligation_id: PYDANT-022
+  path: pydantic/_internal/_decorators.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Validates wrap model serializer signatures to ensure the mandatory handler parameter
+    accepting the model instance is present.
+  control_point_id: CP-pydantic-internal-decorators-py
+- obligation_id: PYDANT-022
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: wrap_serializer_function_ser_schema
+  role: configuration
+  relation: configures
+  why: Defines the schema builder for wrap model serializers requiring a handler callable
+    for delegating model serialization.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-022
+  path: pydantic/functional_serializers.py
+  symbol: model_serializer
+  role: enforcement
+  relation: enforces
+  why: Implements @model_serializer(mode='wrap') and enforces the handler parameter contract
+    for wrap model serializers.
+  control_point_id: CP-pydantic-functional-serializers-py
+- obligation_id: PYDANT-022
+  path: pydantic-core/tests/serializers/test_model.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests wrap model serializers to verify the handler parameter is present and delegates
+    model serialization to Pydantic.
+  control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+- obligation_id: PYDANT-023
+  path: pydantic/main.py
+  symbol: __iter__
+  role: enforcement
+  relation: enforces
+  why: Implements __iter__ on BaseModel to yield field values as-is without converting sub-models
+    to dicts.
+  control_point_id: CP-pydantic-main-py
+- obligation_id: PYDANT-023
+  path: pydantic-core/tests/serializers/test_model.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests model iteration behavior to verify sub-models are not converted to dicts during
+    iteration.
+  control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+- obligation_id: PYDANT-024
+  path: pydantic-core/tests/serializers/test_model.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests include/exclude parameter interactions to verify field-level exclusion takes
+    priority over the include parameter.
+  control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+- obligation_id: PYDANT-024
+  path: pydantic-core/tests/serializers/test_typed_dict.py
+  symbol: test_include_exclude_schema
+  role: test_or_eval
+  relation: verifies
+  why: Tests that serialization_exclude at the field level overrides include arguments passed
+    at runtime.
+  control_point_id: CP-pydantic-core-tests-serializers-test-typed-dict-py
+- obligation_id: PYDANT-024
+  path: pydantic-core/tests/serializers/test_dataclasses.py
+  symbol: test_serialization_exclude
+  role: test_or_eval
+  relation: verifies
+  why: Tests that field-level serialization_exclude takes priority over runtime include parameters.
+  control_point_id: CP-pydantic-core-tests-serializers-test-dataclasses-py
+- obligation_id: PYDANT-025
+  path: pydantic-core/tests/serializers/test_dataclasses.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests dataclass serialization including stdlib dataclasses that are subclasses of Pydantic
+    dataclasses, verifying polymorphic serialization is not supported for stdlib dataclasses.
+  control_point_id: CP-pydantic-core-tests-serializers-test-dataclasses-py
+- obligation_id: PYDANT-025
+  path: pydantic/_internal/_dataclasses.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Handles Pydantic dataclass schema generation and enforces that polymorphic serialization
+    is only available for Pydantic models and Pydantic dataclasses, not stdlib dataclasses.
+  control_point_id: CP-pydantic-internal-dataclasses-py
+- obligation_id: PYDANT-025
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Decides whether to apply polymorphic serialization based on whether the type is a Pydantic
+    model or Pydantic dataclass vs. a stdlib dataclass.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-026
+  path: pydantic-core/tests/serializers/test_serialize_as_any.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that passing polymorphic_serialization=True (serialize_as_any) at runtime causes
+    the actual subclass schema to be used for serialization.
+  control_point_id: CP-pydantic-core-tests-serializers-test-serialize-as-any-py
+- obligation_id: PYDANT-026
+  path: pydantic/main.py
+  symbol: model_dump
+  role: executor
+  relation: executes
+  why: Implements model_dump which accepts and passes through the serialize_as_any/polymorphic_serialization
+    flag to the core serializer.
+  control_point_id: CP-pydantic-main-py
+- obligation_id: PYDANT-026
+  path: pydantic/type_adapter.py
+  symbol: dump_python
+  role: executor
+  relation: executes
+  why: Implements dump_python on TypeAdapter which accepts the serialize_as_any flag enabling
+    runtime polymorphic serialization.
+  control_point_id: CP-pydantic-type-adapter-py
+- obligation_id: PYDANT-027
+  path: pydantic/_internal/_decorators.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Inspects return type annotations on serializer functions and triggers building of an
+    extra return-type serializer when a return type is present.
+  control_point_id: CP-pydantic-internal-decorators-py
+- obligation_id: PYDANT-027
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Builds the extra serializer for the return type when return_type is provided to a field
+    or model serializer.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-027
+  path: pydantic-core/tests/serializers/test_functions.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests serializer functions with return type annotations to verify an extra serializer
+    is built to enforce the return type.
+  control_point_id: CP-pydantic-core-tests-serializers-test-functions-py
+- obligation_id: PYDANT-028
+  path: pydantic/main.py
+  symbol: model_dump
+  role: enforcement
+  relation: enforces
+  why: Implements model_dump(mode='json') which enforces that only JSON-compatible types appear
+    in the output.
+  control_point_id: CP-pydantic-main-py
+- obligation_id: PYDANT-028
+  path: pydantic-core/tests/serializers/test_model.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests to_python with mode='json' to verify only JSON-compatible types are produced
+    (e.g. bytes become strings).
+  control_point_id: CP-pydantic-core-tests-serializers-test-model-py
+- obligation_id: PYDANT-028
+  path: pydantic-core/tests/serializers/test_dataclasses.py
+  symbol: test_dataclass
+  role: test_or_eval
+  relation: verifies
+  why: Tests mode='json' serialization of dataclasses to verify JSON-compatible output (bytes
+    serialized as strings).
+  control_point_id: CP-pydantic-core-tests-serializers-test-dataclasses-py
+- obligation_id: PYDANT-028
+  path: pydantic-core/tests/serializers/test_typed_dict.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests typed dict serialization with mode='json' to verify only JSON-compatible types
+    are in the output.
+  control_point_id: CP-pydantic-core-tests-serializers-test-typed-dict-py
+- obligation_id: PYDANT-029
+  path: pydantic/functional_serializers.py
+  symbol: field_serializer
+  role: decision
+  relation: decides
+  why: Implements the @field_serializer decorator and handles the '*' wildcard field name
+    to apply the serializer to all fields including subclass fields.
+  control_point_id: CP-pydantic-functional-serializers-py
+- obligation_id: PYDANT-029
+  path: pydantic/_internal/_decorators.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Processes the '*' field name in @field_serializer and applies the serializer across
+    all fields including those in subclasses.
+  control_point_id: CP-pydantic-internal-decorators-py
+- obligation_id: PYDANT-029
+  path: pydantic-core/tests/serializers/test_functions.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests @field_serializer with '*' to verify it applies to all fields including those
+    defined in subclasses.
+  control_point_id: CP-pydantic-core-tests-serializers-test-functions-py
+- obligation_id: PYDANT-030
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Test file for union validators covers left-to-right validation order behavior in pydantic-core.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-030
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates the union schema with left_to_right mode, determining validation order for
+    union members.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-030
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents the left-to-right union validation mode and its behavior for users.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-031
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates union schemas and defaults to smart mode for Pydantic v2 union fields.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-031
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents that smart mode is the default union validation mode in Pydantic v2.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-032
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that validation errors from all union members are included when left-to-right
+    validation fails on all.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-032
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents that errors from all union members are included when left-to-right validation
+    fails.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-033
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests smart mode behavior for non-model types, including exact type match short-circuit.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-033
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents smart mode exact match behavior for non-model types.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-034
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests smart mode for BaseModel/dataclass/TypedDict where valid-fields-set count determines
+    the winner.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-034
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents that valid-fields-set count is the primary selection criterion for model
+    types in smart mode.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-035
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests smart mode fallback to leftmost strict match when no exact match exists.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-035
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents smart mode strict match fallback behavior for non-model types.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-036
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests smart mode fallback to leftmost lax match when no exact or strict match exists.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-036
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents smart mode lax match fallback behavior for non-model types.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-037
+  path: pydantic/_internal/_discriminated_union.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Handles callable discriminator logic and raises union_tag_not_found when discriminator
+    returns None.
+  control_point_id: CP-pydantic-internal-discriminated-union-py
+- obligation_id: PYDANT-037
+  path: pydantic-core/tests/validators/test_tagged_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that union_tag_not_found error is raised when a callable discriminator returns
+    None.
+  control_point_id: CP-pydantic-core-tests-validators-test-tagged-union-py
+- obligation_id: PYDANT-037
+  path: docs/errors/validation_errors.md
+  symbol: ''
+  role: audit
+  relation: observes
+  why: Documents the union_tag_not_found validation error type and when it is raised.
+  control_point_id: CP-docs-errors-validation-errors-md
+- obligation_id: PYDANT-038
+  path: pydantic/_internal/_discriminated_union.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Ensures discriminated union validation only validates the matching member, limiting
+    error scope.
+  control_point_id: CP-pydantic-internal-discriminated-union-py
+- obligation_id: PYDANT-038
+  path: pydantic-core/tests/validators/test_tagged_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that discriminated union errors are scoped to the matching member only.
+  control_point_id: CP-pydantic-core-tests-validators-test-tagged-union-py
+- obligation_id: PYDANT-039
+  path: pydantic/json_schema.py
+  symbol: ''
+  role: executor
+  relation: executes
+  why: Generates JSON schema for discriminated unions including the OpenAPI discriminator
+    attribute.
+  control_point_id: CP-pydantic-json-schema-py
+- obligation_id: PYDANT-039
+  path: pydantic/_internal/_discriminated_union.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Prepares discriminated union schema metadata used by JSON schema generation for the
+    discriminator field.
+  control_point_id: CP-pydantic-internal-discriminated-union-py
+- obligation_id: PYDANT-039
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents that discriminated unions produce JSON schema with the OpenAPI discriminator
+    attribute.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-040
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that valid-fields-set count takes priority over exactness score for model types
+    in smart mode.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-040
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents that valid-fields-set count takes priority over exactness score for models
+    in smart mode.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-041
+  path: pydantic/types.py
+  symbol: Discriminator
+  role: configuration
+  relation: configures
+  why: Defines the Discriminator class that accepts custom_error_type, custom_error_message,
+    and custom_error_context parameters.
+  control_point_id: CP-pydantic-types-py
+- obligation_id: PYDANT-041
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: tagged_union_schema
+  role: configuration
+  relation: configures
+  why: Defines the core schema for tagged unions including custom_error_type, custom_error_message,
+    and custom_error_context parameters.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-041
+  path: pydantic-core/tests/validators/test_tagged_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that custom error parameters on Discriminator produce the expected custom validation
+    errors.
+  control_point_id: CP-pydantic-core-tests-validators-test-tagged-union-py
+- obligation_id: PYDANT-041
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents the custom_error_type, custom_error_message, and custom_error_context parameters
+    on Discriminator.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-031
+  path: pydantic-core/tests/validators/test_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests that smart mode is the default union validation mode in pydantic-core.
+  control_point_id: CP-pydantic-core-tests-validators-test-union-py
+- obligation_id: PYDANT-039
+  path: pydantic-core/tests/validators/test_tagged_union.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Tests discriminated union schema generation and validation behavior.
+  control_point_id: CP-pydantic-core-tests-validators-test-tagged-union-py
+- obligation_id: PYDANT-030
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: union_schema
+  role: decision
+  relation: decides
+  why: Defines the union_schema with mode parameter controlling left-to-right vs smart validation
+    order.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-031
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: union_schema
+  role: decision
+  relation: decides
+  why: Defines union_schema where smart mode is the default mode parameter value.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-032
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: union_schema
+  role: decision
+  relation: decides
+  why: Defines union_schema behavior that collects errors from all members in left-to-right
+    mode on total failure.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-037
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: tagged_union_schema
+  role: decision
+  relation: decides
+  why: Defines tagged_union_schema which specifies union_tag_not_found error when discriminator
+    returns None.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-038
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: tagged_union_schema
+  role: decision
+  relation: decides
+  why: Defines tagged_union_schema that validates only the matched member, scoping errors
+    accordingly.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-034
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates smart union schema for model types where valid-fields-set count is the primary
+    selection criterion.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-040
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates smart union schema logic that prioritizes valid-fields-set count over exactness
+    for model types.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-033
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates smart union schema for non-model types where exact type match causes immediate
+    return.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-035
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates smart union schema for non-model types with strict match fallback when no
+    exact match found.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-036
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Generates smart union schema for non-model types with lax match fallback when no exact
+    or strict match found.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-041
+  path: pydantic/_internal/_discriminated_union.py
+  symbol: ''
+  role: enforcement
+  relation: enforces
+  why: Applies custom_error_type, custom_error_message, and custom_error_context from Discriminator
+    to the generated schema.
+  control_point_id: CP-pydantic-internal-discriminated-union-py
+- obligation_id: PYDANT-041
+  path: pydantic/_internal/_generate_schema.py
+  symbol: ''
+  role: decision
+  relation: decides
+  why: Reads Discriminator custom error parameters and passes them into the tagged union schema
+    generation.
+  control_point_id: CP-pydantic-internal-generate-schema-py
+- obligation_id: PYDANT-037
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents that callable discriminators returning None raise union_tag_not_found error.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-038
+  path: docs/concepts/unions.md
+  symbol: ''
+  role: configuration
+  relation: configures
+  why: Documents that discriminated union errors are scoped to the matching member only.
+  control_point_id: CP-docs-concepts-unions-md
+- obligation_id: PYDANT-039
+  path: pydantic-core/python/pydantic_core/core_schema.py
+  symbol: tagged_union_schema
+  role: decision
+  relation: decides
+  why: Defines tagged_union_schema which is the basis for discriminated union JSON schema
+    generation with OpenAPI discriminator.
+  control_point_id: CP-pydantic-core-python-pydantic-core-core-schema-py
+- obligation_id: PYDANT-030
+  path: tests/benchmarks/test_discriminated_unions.py
+  symbol: ''
+  role: test_or_eval
+  relation: verifies
+  why: Benchmark tests for discriminated unions that exercise union validation paths including
+    left-to-right.
+  control_point_id: CP-tests-benchmarks-test-discriminated-unions-py

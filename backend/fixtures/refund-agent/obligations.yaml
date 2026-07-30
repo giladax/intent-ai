@@ -1,0 +1,72 @@
+# Approved behavioral obligations for workflow refund-agent.
+# Every obligation traces to a section of an approved requirements artifact.
+# Code never adds to this file; only approved product changes do.
+obligations:
+  - obligation_id: OB-101
+    kind: permission
+    statement: >-
+      Premium-tier customers with a low risk score may receive automatic
+      refunds up to $100 without human involvement.
+    source_reference: refund-policy-prd
+    source_section: "#premium-refunds"
+    revision: "3"
+
+  - obligation_id: OB-102
+    kind: hard_rule
+    statement: >-
+      Refund requests flagged high-risk always require human approval,
+      regardless of tier or amount; the agent must never execute a
+      high-risk refund automatically.
+    source_reference: refund-policy-prd
+    source_section: "#high-risk"
+    revision: "3"
+
+  - obligation_id: OB-103
+    kind: hard_rule
+    statement: >-
+      No automatic refund above the approved premium limit may ever be
+      executed; the tool-side guard must enforce a hard ceiling
+      independently of the decision policy.
+    source_reference: refund-policy-prd
+    source_section: "#enforcement"
+    revision: "4"
+
+  - obligation_id: OB-104
+    kind: invariant
+    statement: >-
+      Every refund decision — approved, denied, or escalated — must emit an
+      audit event containing the decision rationale.
+    source_reference: refund-policy-prd
+    source_section: "#audit"
+    revision: "3"
+
+  - obligation_id: OB-105
+    kind: permission
+    statement: >-
+      Standard-tier customers may receive automatic refunds up to $25.
+    source_reference: refund-policy-prd
+    source_section: "#standard-tier"
+    revision: "3"
+
+  - obligation_id: OB-107
+    kind: invariant
+    statement: >-
+      The agent's operating prompt must instruct it to escalate high-risk
+      requests to a human operator.
+    source_reference: refund-policy-prd
+    source_section: "#escalation-prompt"
+    revision: "3"
+
+  # Sourced from an APPROVED session memo, not a PRD — a product-direction
+  # session became an intent source through the human approval act (O4). The
+  # session itself is observed evidence; this obligation traces to the memo
+  # (an approved artifact on the existing ladder), exactly like any PRD-sourced
+  # obligation. This is what proves a session-sourced intent GOVERNS a verdict.
+  - obligation_id: OB-201
+    kind: permission
+    statement: >-
+      Premium-tier customers with a low risk score may receive automatic
+      refunds up to $250 without human involvement.
+    source_reference: session-memo-premium-refund-expansion
+    source_section: "#premium-refund-expansion"
+    revision: "session-memo-2026-07-23"

@@ -1,0 +1,12 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Multiple/ambiguous Feature candidates (file: journal/src/mcp/server.ts). Pick one and call brain_feature_context(featureId):\n\n- Activity Event Backbone  [id: 1bc74e71-4587-45fb-94b7-4f830c7d8022] \u2014 A freeform, self-contained event table that acts as the observability index layer for all pipeline and MCP activity, with repo/branch/worktr\n- Agentic Team Loop & Workflow Orchestration  [id: 5ace2e20-0e5b-41b6-b0b6-aa8f3c67fe0e] \u2014 A workflow-backed parallel agent execution system using git worktrees, human gates on consequential actions, and handoff artifacts \u2014 enablin\n- Dashboard UI & Journal  [id: c41bdbbb-483b-457a-a510-35155de46e29] \u2014 A React single-page application serving as the human-facing surface of the brain, featuring a journal-as-river primary view, feature detail \n- Digest Pipeline & Understanding Stage  [id: 9e23fadf-7d34-49aa-87bd-e741ad09d84e] \u2014 The core ingestion pipeline that reads raw session transcripts, extracts moments, classifies exchanges, and produces structured understandin\n- MCP Server & Brain Query Layer  [id: c03233e5-6a19-44fd-a5f5-3d4ccd3351f5] \u2014 A Model Context Protocol server that exposes accumulated brain knowledge to AI agents, enabling new sessions to query features, insights, an\n- Storage Schema & Migration Infrastructure  [id: 8256bd6d-0698-4606-8879-da0016249ee6] \u2014 The Drizzle ORM schema defining all database tables (features, activity_events, moments, brain hierarchy) and the migration chain that keeps\n\nTop candidate \"Activity Event Backbone\" constraints (verify the Feature match before relying on these):\n  \u00b7 Event categories, tags, and actor values are fully freeform \u2014 no enums, no conventions, no taxonomy document.\n  \u00b7 Events are self-contained and queryable without joins.\n  \u00b7 source_type/source_id back-references must point to originating records.\n  \u00b7 repo, branch, and worktree are top-level columns on every event.\n  \u00b7 Embedding column stays as TEXT until pgvector is explicitly added.\n  \u00b7 Event emission must always be wrapped in try/catch so it never fails the parent operation.\n  \u00b7 Timestamps must reflect actual session time, not digest time."
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 11
+}

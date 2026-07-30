@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Intent Ledger — __WORKSPACE__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Spline+Sans+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Warm lens-chat language on the same bones: the variable NAMES kept
+   their old dark-theme meanings (--ink is the page, --paper is the
+   text) so every downstream rule and inline style keeps working. */
+:root{
+  --ink:#EFE5CE; --panel:#F5F1E8; --panel2:#FAF4E4; --line:rgba(28,26,21,.16);
+  --paper:#1C1A15; --dim:rgba(28,26,21,.62); --faint:rgba(28,26,21,.42);
+  --ok:#2E6B58; --warn:#B4681E; --drift:#C2561F; --bad:#D8492B;
+  --unk:rgba(28,26,21,.5); --ungov:#2B49D8; --none:rgba(28,26,21,.35); --accent:#2B49D8;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--ink)}
+body{
+  font-family:'Spline Sans Mono',monospace; color:var(--paper); font-size:13px;
+  background:var(--ink);
+  min-height:100vh;
+}
+::selection{background:var(--paper);color:var(--ink)}
+@keyframes rise{from{opacity:0;transform:translateY(12px);filter:blur(6px)}
+to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.28);opacity:1}}
+.masthead{
+  display:flex; align-items:baseline; gap:24px; padding:26px 32px 18px;
+  border-bottom:3px double var(--paper);
+  animation:rise .7s var(--ease) both;
+}
+.masthead h1{
+  font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:26px; letter-spacing:-.02em;
+  display:inline-flex; align-items:center; gap:9px;
+}
+.masthead h1::after{content:''; width:8px; height:8px; border-radius:50%; background:var(--ok); animation:breathe 5.4s ease-in-out infinite}
+.masthead h1 em{color:var(--paper); font-style:normal}
+.meta{color:var(--dim); font-size:12px}
+.meta b{color:var(--paper); font-weight:600}
+.contracts{margin-left:auto; display:flex; gap:6px; align-items:center}
+.contract-chip{
+  border:1px solid var(--line); padding:3px 8px; font-size:11px; color:var(--dim);
+  border-radius:2px; background:var(--panel);
+}
+.contract-chip.current{border-color:var(--accent); color:var(--accent)}
+
+/* scrubber */
+.scrubber{padding:16px 32px 6px; border-bottom:1px solid var(--line); background:var(--panel)}
+.rail{display:flex; align-items:flex-end; gap:3px; height:44px; cursor:pointer}
+.tick{flex:1; min-width:6px; max-width:26px; background:var(--none); opacity:.55;
+  height:14px; transition:height .15s ease, opacity .15s; border-radius:1px 1px 0 0}
+.tick:hover{opacity:1}
+.tick.sel{height:40px; opacity:1; box-shadow:0 0 10px rgba(28,26,21,.3)}
+.tick.revised{border-top:3px solid var(--accent)}
+.scrub-row{display:flex; gap:14px; align-items:center; padding:8px 0 6px; color:var(--dim); font-size:11px}
+.scrub-row button{
+  font:inherit; background:none; border:1px solid var(--line); color:var(--paper);
+  padding:3px 10px; cursor:pointer; border-radius:2px;
+}
+.scrub-row button:hover{border-color:var(--accent); color:var(--accent)}
+.scrub-row .live{margin-left:auto}
+.scrub-row .live.on{border-color:var(--ok); color:var(--ok); animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.55}}
+
+.layout{display:grid; grid-template-columns:390px 1fr; min-height:calc(100vh - 170px)}
+
+/* ledger */
+.ledger{border-right:1px solid var(--line); overflow-y:auto; max-height:calc(100vh - 170px)}
+.ev{padding:12px 18px; border-bottom:1px solid rgba(28,26,21,.12); cursor:pointer; position:relative}
+.ev:hover{background:var(--panel)}
+.ev.sel{background:var(--panel2)}
+.ev.sel::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent)}
+.ev .when{color:var(--faint); font-size:10px; letter-spacing:.5px}
+.ev .head{display:flex; gap:8px; align-items:center; margin:3px 0}
+.ev .prn{color:var(--dim)}
+.ev .title{font-size:12px; color:var(--paper); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.badge{font-size:10px; padding:2px 8px; border-radius:99px; letter-spacing:.6px; font-weight:600; white-space:nowrap}
+.b-ALIGNED{background:rgba(46,107,88,.12); color:var(--ok); border:1px solid rgba(46,107,88,.4)}
+.b-PARTIAL{background:rgba(180,104,30,.12); color:var(--warn); border:1px solid rgba(180,104,30,.4)}
+.b-POSSIBLE_DRIFT{background:rgba(194,86,31,.12); color:var(--drift); border:1px solid rgba(194,86,31,.45)}
+.b-OFF_INTENT{background:rgba(216,73,43,.12); color:var(--bad); border:1px solid rgba(216,73,43,.45)}
+.b-UNKNOWN{background:rgba(28,26,21,.07); color:var(--unk); border:1px solid rgba(28,26,21,.25)}
+.b-UNGOVERNED{background:rgba(43,73,216,.09); color:var(--ungov); border:1px solid rgba(43,73,216,.35)}
+.b-NO_MATERIAL_IMPACT{background:rgba(28,26,21,.06); color:var(--none); border:1px solid var(--none)}
+.revision-marker{
+  padding:8px 18px; font-size:10px; letter-spacing:1.4px; color:var(--ungov);
+  background:repeating-linear-gradient(-45deg, rgba(43,73,216,.06) 0 8px, transparent 8px 16px);
+  border-bottom:1px solid var(--line); text-transform:uppercase;
+}
+
+/* stage */
+.stage{padding:22px 30px; overflow-y:auto; max-height:calc(100vh - 170px)}
+.stage h2{font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:19px; letter-spacing:-.015em; margin-bottom:4px}
+.stage .sub{color:var(--dim); font-size:11px; margin-bottom:16px}
+.effect{border:1px solid var(--line); background:var(--panel); padding:14px 16px; margin-bottom:20px}
+.effect h3{font-size:11px; letter-spacing:1.4px; color:var(--accent); text-transform:uppercase; margin-bottom:9px}
+.change{display:flex; gap:10px; align-items:baseline; padding:5px 0; border-top:1px dashed rgba(28,26,21,.16)}
+.change:first-of-type{border-top:none}
+.change .ob{color:var(--paper); font-weight:600; min-width:86px}
+.state-word{font-weight:600}
+.s-satisfies{color:var(--ok)} .s-partially_satisfies{color:var(--warn)}
+.s-contradicts{color:var(--bad)} .s-unobserved{color:var(--faint)}
+.arrow{color:var(--faint)}
+.noeffect{color:var(--faint); font-style:italic}
+.change .why{color:var(--dim); font-size:11px; flex:1}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; margin-bottom:22px}
+.ob-card{border:1px solid var(--line); background:var(--panel); padding:12px 14px; position:relative; transition:border-color .2s}
+.ob-card.changed{border-color:var(--accent); animation:flash .9s ease}
+@keyframes flash{0%{background:rgba(43,73,216,.1)}100%{background:var(--panel)}}
+.ob-card .top{display:flex; gap:8px; align-items:baseline; margin-bottom:6px}
+.ob-card .kind{font-size:10px; color:var(--faint); letter-spacing:.8px; text-transform:uppercase}
+.ob-card .id{font-weight:600}
+.ob-card .status{margin-left:auto; font-size:11px; font-weight:600}
+.ob-card p{color:var(--dim); font-size:11px; line-height:1.55; margin-bottom:8px}
+.ob-card .cps{font-size:10px; color:var(--faint); line-height:1.7}
+.ob-card .cps span{color:var(--dim)}
+.ob-card .since{font-size:10px; color:var(--faint); margin-top:6px}
+.lamp{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px}
+.l-satisfies{background:var(--ok); box-shadow:0 0 7px rgba(46,107,88,.45)}
+.l-partially_satisfies{background:var(--warn); box-shadow:0 0 7px rgba(180,104,30,.45)}
+.l-contradicts{background:var(--bad); box-shadow:0 0 7px rgba(216,73,43,.5)}
+.l-unobserved{background:var(--none)}
+
+.inbox{border:1px solid rgba(43,73,216,.3); border-radius:12px; background:rgba(43,73,216,.05); padding:13px 16px}
+.inbox h3{font-size:11px; letter-spacing:1.4px; color:var(--ungov); text-transform:uppercase; margin-bottom:8px}
+.inbox .item{padding:4px 0; color:var(--dim); font-size:12px}
+.inbox .item b{color:var(--paper)}
+.inbox .empty{color:var(--faint); font-style:italic; font-size:12px}
+#askBox{transition:transform .35s var(--ease), box-shadow .35s var(--ease)}
+#askBox:focus{outline:none; transform:translateY(-2px); box-shadow:0 10px 26px -14px rgba(28,26,21,.4)}
+#askBox::placeholder{color:var(--faint)}
+#askCard{animation:rise .55s var(--ease) both}
+/* teach/correct affordances read as whisper chips — hover inverts to ink */
+.teachBtn{border-radius:99px!important; transition:background .3s var(--ease), color .3s var(--ease)}
+.teachBtn:hover{background:#1C1A15!important; color:#EFE5CE!important; border-color:#1C1A15!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+footer{padding:10px 32px; color:var(--faint); font-size:10px; border-top:1px solid var(--line); letter-spacing:.6px}
+.newpill{position:fixed; bottom:22px; right:26px; background:var(--accent); color:var(--ink);
+  padding:8px 14px; font-weight:600; cursor:pointer; border-radius:99px; display:none; box-shadow:0 8px 22px -8px rgba(28,26,21,.4)}
+</style>
+</head>
+<body>
+<div class="masthead">
+  <h1>Intent<em>·</em>Ledger</h1>
+  <div class="meta" id="meta">loading…</div>
+  <input type="text" id="askBox" placeholder="Ask for a name, a promise, or a doubt."
+    style="font-family:'Hanken Grotesk',sans-serif; font-size:13.5px; background:var(--panel2);
+    border:1.5px solid var(--paper); color:var(--paper); padding:9px 18px; width:320px;
+    border-radius:99px; margin-left:auto">
+  <div class="contracts" id="contracts"></div>
+</div>
+<div id="askCard" style="display:none; border-bottom:1px solid var(--accent); background:var(--panel2); padding:16px 32px"></div>
+
+<div class="scrubber">
+  <div class="rail" id="rail"></div>
+  <div class="scrub-row">
+    <button id="prev">◀ prev</button>
+    <button id="next">next ▶</button>
+    <span id="pos"></span>
+    <button class="live" id="liveBtn">● LIVE</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="ledger" id="ledger"></div>
+  <div class="stage" id="stage"></div>
+</div>
+<footer>Every verdict is recorded against the exact commit and contract version it was judged under. ⟡ marks the moments the intent itself changed. Machines propose; humans sign.</footer>
+<div class="newpill" id="newpill">new check ↓</div>
+
+<script>
+const WS = "__WORKSPACE__";
+let DATA = null, SEL = -1, LIVE = true;
+
+const KIND = {hard_rule:"⚖ hard rule", permission:"✓ permission", invariant:"∞ invariant"};
+const KIND_TIP = {
+  hard_rule:"hard rule — something the product must never break",
+  permission:"permission — behavior the product explicitly allows",
+  invariant:"invariant — a property that must stay true as the code changes"};
+const WORD = {satisfies:"SATISFIED", partially_satisfies:"PARTIAL", contradicts:"CONTRADICTED", unobserved:"NO EVIDENCE YET"};
+// Display labels only — CSS classes and API enum values keep their original spellings.
+const VERDICT = {ALIGNED:"ALIGNED", PARTIAL:"PARTIAL", POSSIBLE_DRIFT:"POSSIBLE DRIFT",
+  OFF_INTENT:"CONTRADICTS INTENT", UNKNOWN:"NEEDS REVIEW", UNGOVERNED:"NOT COVERED",
+  NO_MATERIAL_IMPACT:"NO PRODUCT IMPACT"};
+const METHOD = {lexical:"matched by name", llm:"best guess", alias:"saved alias"};
+
+function vlabel(v){ return VERDICT[v] || (v||"").replace(/_/g," "); }
+function sha8(s){ return (s||"").slice(0,8); }
+function contractV(id){
+  const i = DATA && DATA.contract_versions ? DATA.contract_versions.indexOf(id) : -1;
+  return i >= 0 ? `Contract v${i+1}` : `Contract ⟡${sha8(id)}`;
+}
+
+async function load(){
+  let fresh;
+  try{
+    const r = await fetch(`/api/intent/${WS}/timeline`);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    fresh = await r.json();
+  }catch(err){
+    if(!DATA) document.getElementById("meta").textContent = "couldn't reach the server — retrying…";
+    return;
+  }
+  const grew = DATA && fresh.events.length > DATA.events.length;
+  const first = !DATA;
+  DATA = fresh;
+  if(first){ SEL = DATA.events.length - 1; renderAll(); }
+  else if(grew){
+    if(LIVE){ SEL = DATA.events.length - 1; renderAll(); }
+    else { document.getElementById("newpill").style.display = "block"; renderRail(); }
+  }
+}
+
+function renderAll(){ renderMeta(); renderRail(); renderLedger(); renderStage(); }
+
+function renderMeta(){
+  const d = DATA;
+  document.getElementById("meta").innerHTML =
+    `<b>${esc(d.workflow_id)}</b> · ${esc(d.repository)} · ${d.obligations.length} promises · ${d.events.length} checks`;
+  const cur = SEL >= 0 && d.events.length ? d.events[SEL].contract_id : null;
+  document.getElementById("contracts").innerHTML = d.contract_versions.map((c,i) =>
+    `<span class="contract-chip ${c===cur?"current":""}" title="${esc(c)}">⟡ Contract v${i+1}</span>`).join("");
+}
+
+function renderRail(){
+  const rail = document.getElementById("rail");
+  rail.innerHTML = "";
+  DATA.events.forEach((e,i)=>{
+    const t = document.createElement("div");
+    t.className = "tick" + (i===SEL?" sel":"") + (e.contract_changed?" revised":"");
+    t.style.background = tickColor(e.verdict);
+    t.title = `#${e.pr_number} ${vlabel(e.verdict)}`;
+    t.onclick = ()=>{ select(i); };
+    rail.appendChild(t);
+  });
+  document.getElementById("pos").textContent =
+    SEL>=0 && DATA.events.length ? `event ${SEL+1} / ${DATA.events.length} — ${new Date(DATA.events[SEL].ts).toLocaleString()}` : "";
+  document.getElementById("liveBtn").className = "live" + (LIVE?" on":"");
+}
+
+function tickColor(v){
+  return {ALIGNED:"var(--ok)",PARTIAL:"var(--warn)",POSSIBLE_DRIFT:"var(--drift)",
+    OFF_INTENT:"var(--bad)",UNKNOWN:"var(--unk)",UNGOVERNED:"var(--ungov)",
+    NO_MATERIAL_IMPACT:"var(--none)"}[v] || "var(--none)";
+}
+
+function renderLedger(){
+  const box = document.getElementById("ledger");
+  box.innerHTML = "";
+  if(!DATA.events.length){
+    box.innerHTML = `<div class="ev" style="cursor:default"><span class="empty" style="color:var(--faint);font-style:italic">
+      No checks yet — this ledger fills up as commits are checked against your contract.</span></div>`;
+    return;
+  }
+  DATA.events.forEach((e,i)=>{
+    if(e.contract_changed){
+      const m = document.createElement("div");
+      m.className = "revision-marker";
+      m.textContent = `⟡ intent revised — ${contractV(e.contract_id)}`;
+      m.title = e.contract_id;
+      box.appendChild(m);
+    }
+    const div = document.createElement("div");
+    div.className = "ev" + (i===SEL?" sel":"");
+    div.innerHTML = `
+      <div class="when">${new Date(e.ts).toLocaleString()} · <span title="${esc(e.head_sha)}">${esc(sha8(e.head_sha))}</span></div>
+      <div class="head"><span class="prn">#${e.pr_number}</span>
+        <span class="badge b-${e.verdict}">${vlabel(e.verdict)}</span>
+        ${e.review_required?`<span class="badge" style="color:var(--paper);border:1px solid var(--line)">review: ${esc(e.review_state)}</span>`:""}
+      </div>
+      <div class="title">${esc(e.title) || "(no title)"}</div>`;
+    div.onclick = ()=>{ select(i); };
+    box.appendChild(div);
+  });
+  const sel = box.querySelector(".ev.sel");
+  if(sel) sel.scrollIntoView({block:"nearest"});
+}
+
+function renderStage(){
+  if(SEL<0){ return; }
+  const e = DATA.events[SEL];
+  const changedIds = new Set(e.changes.map(c=>c.obligation_id));
+  const stmtById = Object.fromEntries(DATA.obligations.map(o=>[o.obligation_id, o.statement||""]));
+  const claims = e.missing_evidence;
+  let html = `
+    <h2>State after check #${e.pr_number} — ${esc(e.title)||""}</h2>
+    <div class="sub">head <b title="${esc(e.head_sha)}">${esc(sha8(e.head_sha))}</b> · <span title="${esc(e.contract_id)}">${contractV(e.contract_id)}</span> · ${claims} claim${claims===1?"":"s"} not yet verified</div>
+    <div class="effect"><h3>Effect of this check on intent</h3>`;
+  if(e.changes.length){
+    html += e.changes.map(c=>{
+      const stmt = stmtById[c.obligation_id] || "";
+      const short = stmt.length > 72 ? stmt.slice(0,72)+"…" : stmt;
+      return `
+      <div class="change"><span class="ob" title="${esc(stmt)}">${esc(short)||esc(c.obligation_id)} <span style="color:var(--faint);font-weight:400">(${esc(c.obligation_id)})</span></span>
+        <span class="state-word s-${c.from}">${WORD[c.from]||c.from}</span>
+        <span class="arrow">──▶</span>
+        <span class="state-word s-${c.to}">${WORD[c.to]||c.to}</span>
+        <span class="why">${esc(c.reasoning)}</span></div>`;
+    }).join("");
+  } else {
+    html += `<div class="noeffect">no change to understood intent${e.verdict==="UNGOVERNED"?" — not covered by the product contract, routed to inbox":""}</div>`;
+  }
+  html += `</div><div class="grid">`;
+  for(const ob of DATA.obligations){
+    const st = e.state_after[ob.obligation_id] || {status:"unobserved"};
+    html += `
+      <div class="ob-card ${changedIds.has(ob.obligation_id)?"changed":""}">
+        <div class="top"><span class="id">${esc(ob.obligation_id)}</span>
+          <span class="kind" title="${esc(KIND_TIP[ob.kind]||"")}">${KIND[ob.kind]||esc(ob.kind)}</span>
+          <span class="status s-${st.status}"><span class="lamp l-${st.status}"></span>${WORD[st.status]||st.status}</span></div>
+        <p>${esc(ob.statement)}</p>
+        <div class="cps">${ob.control_points.map(cp=>`<span>${esc(cp.relation)}</span> ${esc(cp.path)}`).join("<br>")}</div>
+        ${st.since?`<div class="since">since check #${st.since}${st.confidence?` · confidence ${Math.round(st.confidence*100)}%`:""}</div>`:""}
+      </div>`;
+  }
+  html += `</div><div class="inbox"><h3>Intent inbox — open findings at this moment</h3>`;
+  if(e.open_findings.length){
+    html += e.open_findings.map(f=>`
+      <div class="item"><b>#${f.pr_number}</b> ${vlabel(f.verdict)} — ${esc(f.title)}<br>
+      <span style="font-size:11px">${esc(f.summary)}</span></div>`).join("");
+  } else {
+    html += `<div class="empty">nothing awaiting a human decision</div>`;
+  }
+  html += `</div>`;
+  document.getElementById("stage").innerHTML = html;
+}
+
+function select(i){
+  SEL = i; LIVE = (i === DATA.events.length-1);
+  document.getElementById("newpill").style.display = "none";
+  renderAll();
+}
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+document.getElementById("prev").onclick = ()=> SEL>0 && select(SEL-1);
+document.getElementById("next").onclick = ()=> SEL<DATA.events.length-1 && select(SEL+1);
+document.getElementById("liveBtn").onclick = ()=> select(DATA.events.length-1);
+document.getElementById("newpill").onclick = ()=> select(DATA.events.length-1);
+document.addEventListener("keydown", ev=>{
+  if(ev.key==="ArrowLeft") SEL>0 && select(SEL-1);
+  if(ev.key==="ArrowRight") SEL<DATA.events.length-1 && select(SEL+1);
+});
+
+// --- ask: their word → community card ---------------------------------
+document.getElementById("askBox").addEventListener("keydown", async ev=>{
+  if(ev.key !== "Enter") return;
+  const q = ev.target.value.trim();
+  const box = document.getElementById("askCard");
+  if(!q){ box.style.display="none"; return; }
+  box.style.display = "block";
+  box.innerHTML = `<span style="color:var(--dim)">resolving “${esc(q)}”…</span>`;
+  let d;
+  try{
+    const r = await fetch(`/api/ask/${WS}?q=${encodeURIComponent(q)}`);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    d = await r.json();
+  }catch(err){
+    box.innerHTML = `<span style="color:var(--bad)">Couldn't reach the server to answer that — try again in a moment.</span>`;
+    return;
+  }
+  if(d.entity){ renderEntityAnswer(box, q, d); return; }
+  if(!d.card){
+    const alts = (d.resolution.alternatives||[]).map(esc).join(", ");
+    box.innerHTML = `<span style="color:var(--warn)">We couldn't match “${esc(q)}” to anything on the map.</span>
+      <span style="color:var(--faint)"> ${alts ? `closest matches: ${alts}` : ""}</span>
+      <div style="margin-top:8px; font-size:11px; color:var(--dim)">Teach it:
+        <button class="teachBtn" id="teachAliasBtn" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">it's another name for an entity…</button>
+        <button class="teachBtn" id="teachNewBtn" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">it's a new thing — open a card</button>
+        <span id="teachOut" style="color:var(--faint)"></span></div>`;
+    document.getElementById("teachAliasBtn").addEventListener("click", ()=>teachAlias(q));
+    document.getElementById("teachNewBtn").addEventListener("click", ()=>teachNew(q));
+    return;
+  }
+  const c = d.card;
+  const conf = d.resolution.confidence;
+  const how = `${METHOD[d.resolution.method]||esc(d.resolution.method)}${(conf||conf===0)?` (${Math.round(conf*100)}%)`:""}`;
+  const lamp = s=>({satisfies:"l-satisfies",partially_satisfies:"l-partially_satisfies",contradicts:"l-contradicts"}[s]||"l-unobserved");
+  box.innerHTML = `
+    <div style="display:flex; gap:14px; align-items:baseline; margin-bottom:10px">
+      <span style="font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:18px; letter-spacing:-.015em; color:var(--paper)">◉ “${esc(c.label)}”</span>
+      <span style="color:var(--faint); font-size:11px">${esc(c.group_id)}</span>
+      <span style="color:var(--faint); font-size:11px">${how}</span>
+      ${d.resolution.method!=="alias" ? `<button id="saveAliasBtn" data-term="${esc(q)}" data-anchor="${esc(c.anchor)}"
+        style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);
+        padding:2px 9px;cursor:pointer;border-radius:2px">✓ remember “${esc(q)}” = this area</button>`:""}
+      <span style="margin-left:auto;color:var(--faint);font-size:10px;cursor:pointer" onclick="this.parentElement.parentElement.style.display='none'">✕ close</span>
+    </div>
+    <div style="display:flex; gap:26px; flex-wrap:wrap">
+      <div style="flex:2; min-width:340px">${c.obligations.map(o=>`
+        <div style="padding:4px 0; font-size:12px"><span class="lamp ${lamp(o.health.status)}"></span>
+          <b>${esc(o.obligation_id)}</b>${o.weight<1?` <span style="color:var(--ungov);font-size:10px">${Math.round(o.weight*100)}%</span>`:""}
+          <span style="color:var(--dim)">${esc((o.statement||"").slice(0,90))}</span></div>`).join("")}</div>
+      <div style="flex:1; min-width:240px; font-size:11px; color:var(--dim)">
+        <div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin-bottom:5px">WHERE IT LIVES IN CODE</div>
+        ${c.files.slice(0,8).map(f=>`<div>${esc(f)}</div>`).join("")}
+        ${c.open_findings.length?`<div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin:10px 0 5px">OPEN FINDINGS</div>
+          ${c.open_findings.map(f=>`<div style="color:var(--warn)">⚑ #${f.pr_number} ${vlabel(f.verdict)} — ${esc(f.title).slice(0,50)}</div>`).join("")}`:""}
+        ${c.recent_events.length?`<div style="color:var(--faint); letter-spacing:1px; font-size:10px; margin:10px 0 5px">RECENT CHECKS</div>
+          ${c.recent_events.slice(-4).map(e=>`<div>#${e.pr_number} ${vlabel(e.verdict)} ${esc(e.title).slice(0,44)}</div>`).join("")}`:""}
+      </div>
+    </div>`;
+  const btn = document.getElementById("saveAliasBtn");
+  if(btn) btn.addEventListener("click", ()=> saveAlias(btn.dataset.term, btn.dataset.anchor));
+});
+async function saveAlias(term, anchor){
+  await fetch(`/api/ask/${WS}/alias`,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({term, anchor})});
+  document.getElementById("askBox").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter"}));
+}
+
+// --- the teaching loop: misses teach, hits are correctable --------------
+function whoami(){
+  let name = localStorage.getItem("quire.reviewer") || localStorage.getItem("meridian.reviewer");
+  if(!name){
+    name = (prompt("Your name (teachings are signed):")||"").trim();
+    if(name) localStorage.setItem("quire.reviewer", name);
+  }
+  return name;
+}
+async function teachPost(path, body, outId){
+  const out = document.getElementById(outId);
+  const r = await fetch(`/api/graph/${WS}/${path}`,{method:"POST",
+    headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  if(!r.ok){
+    const detail = (await r.json().catch(()=>({}))).detail || r.statusText;
+    if(out) out.textContent = " " + detail;
+    return null;
+  }
+  return r.json();
+}
+async function teachAlias(term){
+  const by = whoami(); if(!by) return;
+  let g;
+  try{
+    const r = await fetch(`/api/graph/${WS}`);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    g = await r.json();
+  }catch(err){
+    document.getElementById("teachOut").textContent = " couldn't reach the server — try again in a moment";
+    return;
+  }
+  const active = g.entities.filter(e=>e.status==="active");
+  if(!active.length){ document.getElementById("teachOut").textContent=" no entities on the map yet — open a create card instead"; return; }
+  const menu = active.map((e,i)=>`${i+1}. ${e.name}`).join("\n");
+  const pick = parseInt(prompt(`“${term}” is another name for which entity?\n\n${menu}\n\nnumber:`),10);
+  const target = active[pick-1]; if(!target) return;
+  const done = await teachPost("teach", {term, action:"alias", entity_id:target.entity_id, by}, "teachOut");
+  if(done){
+    document.getElementById("teachOut").textContent = ` learned: “${term}” → ${target.name} (${done.diff_id}, signed ${by})`;
+    setTimeout(()=>document.getElementById("askBox").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter"})), 900);
+  }
+}
+async function teachNew(term){
+  const by = whoami(); if(!by) return;
+  const note = (prompt("One sentence: what IS it? (lands on the card, editable there)")||"").trim();
+  const done = await teachPost("teach", {term, action:"create", by, note}, "teachOut");
+  if(done) document.getElementById("teachOut").innerHTML =
+    ` opened ${esc(done.diff_id)} — <a href="/inbox/${encodeURIComponent(WS)}" style="color:var(--accent)">shape and approve it in the inbox</a>`;
+}
+function renderEntityAnswer(box, q, d){
+  const e = d.entity;
+  const fwd = d.forwarded_from;
+  const byKind = {};
+  (e.holdings||[]).forEach(h=>{ byKind[h.kind]=(byKind[h.kind]||0)+1; });
+  const holds = Object.entries(byKind).map(([k,n])=>`${n} ${k}${n===1?"":"s"}`).join(", ");
+  box.innerHTML = `
+    ${fwd ? `<div style="font-size:11px;color:var(--warn);margin-bottom:8px">“${esc(fwd.name)}” was superseded ${esc((fwd.superseded_at||"").slice(0,10))} by ${esc(fwd.superseded_by_user||"")} (${esc(fwd.via||"")}) — you were forwarded here.</div>`:""}
+    <div style="display:flex; gap:14px; align-items:baseline; margin-bottom:6px">
+      <span style="font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:18px; letter-spacing:-.015em; color:var(--paper)">◈ ${esc(e.name)}</span>
+      <span style="color:var(--faint); font-size:11px">entity · human-approved</span>
+      <span style="margin-left:auto;color:var(--faint);font-size:10px;cursor:pointer" onclick="this.parentElement.parentElement.style.display='none'">✕ close</span>
+    </div>
+    ${e.identity_sentence?`<div style="font-size:12px;color:var(--dim);font-style:italic;margin-bottom:6px">${esc(e.identity_sentence)}</div>`:""}
+    <div style="font-size:11px;color:var(--dim)">holds: ${esc(holds||"nothing yet")}${e.aliases.length?` · answers to: ${e.aliases.map(esc).join(", ")}`:""}
+      ${(e.relations||[]).map(r=>` · ${esc(r.relation.replace("_"," "))} ${esc(r.other_id)}`).join("")}</div>
+    <div style="margin-top:8px; font-size:11px; color:var(--dim)">Correct it:
+      <button class="teachBtn" id="cRename" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">wrong name…</button>
+      <button class="teachBtn" id="cAlias" style="font:inherit;font-size:10px;background:none;border:1px solid var(--line);color:var(--accent);padding:2px 9px;cursor:pointer;border-radius:2px">another word for it…</button>
+      <span id="teachOut" style="color:var(--faint)"></span></div>
+    <div style="font-size:10px;color:var(--faint);margin-top:4px">A name change opens an inbox card — shared meaning changes by review; a word you teach lands instantly, signed.</div>`;
+  document.getElementById("cRename").addEventListener("click", async ()=>{
+    const by = whoami(); if(!by) return;
+    const name = (prompt(`What should “${e.name}” be called?`)||"").trim(); if(!name) return;
+    const done = await teachPost("correct", {entity_id:e.entity_id, verb:"rename", name, by}, "teachOut");
+    if(done) document.getElementById("teachOut").innerHTML =
+      ` opened ${esc(done.diff_id)} — <a href="/inbox/${encodeURIComponent(WS)}" style="color:var(--accent)">decide it in the inbox</a>`;
+  });
+  document.getElementById("cAlias").addEventListener("click", async ()=>{
+    const by = whoami(); if(!by) return;
+    const term = (prompt(`Another word your org uses for “${e.name}”:`)||"").trim(); if(!term) return;
+    const done = await teachPost("teach", {term, action:"alias", entity_id:e.entity_id, by}, "teachOut");
+    if(done) document.getElementById("teachOut").textContent = ` learned: “${term}” (${done.diff_id}, signed ${by})`;
+  });
+}
+
+load();
+setInterval(()=>{ load().catch(()=>{}); }, 4000);
+</script>
+</body>
+</html>

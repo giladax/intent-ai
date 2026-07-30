@@ -4,3 +4,8 @@ dist
 events.ndjson
 .claude/settings.local.json
 .intent/
+eval-runs/
+backend/quire.db
+__pycache__/
+*.pyc
+.DS_Store

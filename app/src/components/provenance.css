@@ -1,0 +1,353 @@
+/* ── Provenance — the trail that lets any river event explain itself ──
+   Two altitudes in one drawer: a C-level verdict strip of chips on top,
+   the engineer chain below — statement → evidence quotes → transcript
+   anchors → verification → the digest run → observations. Same six inks
+   (--j-*), same paper, same motion vocabulary as the delight pass.       */
+
+/* the affordance — a marginal "why?", discoverable on hover, never loud */
+.prov-why {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  cursor: pointer;
+  background: transparent;
+  opacity: 0.45;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+*:hover > .prov-why,
+*:hover > * > .prov-why {
+  opacity: 1;
+}
+.prov-why:hover {
+  color: var(--j-teal);
+  border-color: color-mix(in oklch, var(--j-teal) 45%, transparent);
+}
+.prov-why[data-open="true"] {
+  opacity: 1;
+  color: var(--j-teal);
+  border-color: color-mix(in oklch, var(--j-teal) 45%, transparent);
+  background: var(--j-teal-soft);
+}
+
+/* ── The drawer — clips open like the beats do ────────────────────── */
+.prov-clip {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.prov-clip[data-open="true"] { grid-template-rows: 1fr; }
+.prov-clip > div { overflow: hidden; }
+
+.prov-drawer {
+  margin: 0.55rem 0 0.35rem;
+  padding: 0.75rem 0.9rem 0.8rem;
+  border: 1px solid var(--j-hairline);
+  border-left: 2px solid color-mix(in oklch, var(--j-teal) 55%, var(--j-hairline));
+  border-radius: 0 10px 10px 0;
+  background:
+    linear-gradient(to bottom, color-mix(in oklch, var(--j-teal-soft) 40%, transparent), transparent 3.5rem),
+    color-mix(in oklch, var(--j-paper-raise) 80%, transparent);
+}
+
+.prov-kicker {
+  font-family: var(--j-mono);
+  font-size: 0.555rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+}
+
+.prov-loading,
+.prov-quiet {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--j-faint);
+  padding: 0.4rem 0;
+}
+
+/* ── Altitude one: the C-level verdict strip ──────────────────────── */
+.prov-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+  margin-top: 0.5rem;
+}
+.prov-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: var(--j-ink-soft);
+  border: 1px solid var(--j-hairline);
+  border-radius: 999px;
+  padding: 0.16rem 0.55rem;
+  background: color-mix(in oklch, var(--j-paper) 70%, transparent);
+  white-space: nowrap;
+}
+.prov-chip .prov-fig {
+  font-weight: 600;
+  color: var(--j-ink);
+  font-variant-numeric: tabular-nums;
+}
+.prov-chip[data-tone="moss"] { color: var(--j-moss); border-color: color-mix(in oklch, var(--j-moss) 40%, var(--j-hairline)); }
+.prov-chip[data-tone="moss"] .prov-fig { color: var(--j-moss); }
+.prov-chip[data-tone="red"] { color: var(--j-red); border-color: color-mix(in oklch, var(--j-red) 40%, var(--j-hairline)); }
+.prov-chip[data-tone="red"] .prov-fig { color: var(--j-red); }
+.prov-chip[data-tone="teal"] { color: var(--j-teal); border-color: color-mix(in oklch, var(--j-teal) 40%, var(--j-hairline)); }
+.prov-chip[data-tone="teal"] .prov-fig { color: var(--j-teal); }
+.prov-chip[data-tone="gold"] { color: var(--j-gold); border-color: color-mix(in oklch, var(--j-gold) 45%, var(--j-hairline)); }
+.prov-chip[data-tone="gold"] .prov-fig { color: var(--j-gold); }
+.prov-chip[data-tone="violet"] { color: var(--j-violet); border-color: color-mix(in oklch, var(--j-violet) 40%, var(--j-hairline)); }
+.prov-chip[data-tone="violet"] .prov-fig { color: var(--j-violet); }
+
+/* ── Altitude two: the engineer trail ─────────────────────────────── */
+.prov-trail {
+  position: relative;
+  margin-top: 0.8rem;
+  padding-left: 1.15rem;
+}
+/* the trail line — dotted, like a route drawn on a map */
+.prov-trail::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 8px;
+  width: 0;
+  border-left: 1px dotted color-mix(in oklch, var(--j-faint) 60%, transparent);
+}
+
+.prov-link {
+  position: relative;
+  padding: 0.32rem 0 0.38rem;
+}
+/* each link's node takes its ink */
+.prov-link::before {
+  content: "";
+  position: absolute;
+  left: -1.15rem;
+  top: 0.72rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--j-paper);
+  border: 1.5px solid var(--prov-ink, var(--j-faint));
+  box-shadow: 0 0 0 3px var(--j-paper);
+}
+.prov-link[data-tone="gold"] { --prov-ink: var(--j-gold); }
+.prov-link[data-tone="violet"] { --prov-ink: var(--j-violet); }
+.prov-link[data-tone="teal"] { --prov-ink: var(--j-teal); }
+.prov-link[data-tone="moss"] { --prov-ink: var(--j-moss); }
+.prov-link[data-tone="red"] { --prov-ink: var(--j-red); }
+.prov-link[data-tone="consult"] { --prov-ink: var(--j-consult); }
+/* the reserved slot — a hollow, waiting node */
+.prov-link[data-reserved="true"]::before {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.prov-link-label {
+  font-family: var(--j-mono);
+  font-size: 0.555rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--prov-ink, var(--j-faint)) 80%, var(--j-faint));
+}
+.prov-link-meta {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: var(--j-faint);
+  margin-left: 0.45rem;
+}
+
+.prov-statement {
+  font-family: var(--j-serif);
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: var(--j-ink);
+  margin-top: 0.22rem;
+  text-wrap: pretty;
+}
+
+/* evidence quotes — pulled from the transcript, set like citations */
+.prov-quote {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  padding-left: 0.65rem;
+  border-left: 1px solid color-mix(in oklch, var(--prov-ink, var(--j-faint)) 35%, var(--j-hairline));
+}
+.prov-quote-text {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--j-ink-soft);
+  min-width: 0;
+}
+.prov-quote-text::before { content: "\201C"; color: var(--j-faint); }
+.prov-quote-text::after { content: "\201D"; color: var(--j-faint); }
+
+/* the anchor — [#42] jumps to the transcript event */
+.prov-anchor {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--j-teal);
+  border: 1px solid color-mix(in oklch, var(--j-teal) 40%, transparent);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  cursor: pointer;
+  background: transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.prov-anchor:hover {
+  background: var(--j-teal);
+  color: var(--j-paper);
+  transform: translateY(-1px);
+}
+.prov-anchor:active { transform: translateY(0) scale(0.96); }
+.prov-anchor[data-dead="true"] {
+  color: var(--j-faint);
+  border-color: var(--j-hairline);
+  cursor: default;
+}
+.prov-anchor[data-dead="true"]:hover { background: transparent; color: var(--j-faint); transform: none; }
+
+.prov-anchor-summary {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  color: var(--j-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 16rem;
+}
+
+/* verification — the moss tick earns a small, satisfying pop */
+.prov-verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.prov-verify[data-verdict="supported"] { color: var(--j-moss); }
+.prov-verify[data-verdict="contradicted"] { color: var(--j-red); }
+.prov-verify[data-verdict="unverified"] { color: var(--j-faint); }
+.prov-tick {
+  display: inline-flex;
+  width: 0.95rem;
+  height: 0.95rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 0.6rem;
+}
+.prov-verify[data-verdict="supported"] .prov-tick {
+  animation: prov-tick-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(min(var(--i, 0), 14) * 60ms + 180ms);
+}
+@keyframes prov-tick-pop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* the digester's own reasoning — mono ledger under a violet node */
+.prov-trace-calls {
+  margin-top: 0.35rem;
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  line-height: 1.7;
+  color: var(--j-ink-soft);
+}
+.prov-trace-calls .prov-trace-ms { color: var(--j-faint); }
+
+.prov-toggle {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-top: 0.25rem;
+  transition: color 0.15s ease;
+}
+.prov-toggle:hover { color: var(--j-ink); }
+
+/* observations — the brain-delta slot, gold ink */
+.prov-obs {
+  font-family: var(--j-serif);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--j-ink-soft);
+  margin-top: 0.28rem;
+}
+.prov-obs .prov-obs-status {
+  font-family: var(--j-mono);
+  font-size: 0.555rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-left: 0.4rem;
+  color: var(--j-faint);
+}
+.prov-obs .prov-obs-status[data-status="approved"] { color: var(--j-moss); }
+.prov-obs .prov-obs-status[data-status="pending"] { color: var(--j-red); }
+
+.prov-reserved-text {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--j-faint);
+  margin-top: 0.2rem;
+}
+
+/* ── Motion: the chain enters link by link ────────────────────────── */
+@keyframes prov-rise {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.prov-rise {
+  animation: prov-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(min(var(--i, 0), 14) * 60ms);
+}
+
+/* jump-target flash — the transcript event answers the anchor's call */
+@keyframes prov-flash {
+  0% { background: var(--j-teal-soft); }
+  100% { background: transparent; }
+}
+.prov-flash { animation: prov-flash 1.6s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .prov-rise { animation: none; }
+  .prov-clip { transition: none; }
+  .prov-verify[data-verdict="supported"] .prov-tick { animation: none; }
+  .prov-flash { animation: none; }
+  .prov-anchor, .prov-why { transition: none; }
+  .prov-anchor:hover { transform: none; }
+}

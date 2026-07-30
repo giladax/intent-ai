@@ -1,0 +1,563 @@
+/* ── The Journal — editorial field-notes treatment ─────────────────────
+   Scoped to .journal-page. A reading surface, not a dashboard: literary
+   serif masthead (Newsreader), one continuous timeline spine, red-ink
+   margin notes for pending items, day runheads like a diary.           */
+
+/* --j-* tokens are owned app-wide by .ink-app (app-ink.css); the journal
+   page inherits them and keeps only its page-specific surface below. */
+
+.journal-page {
+  background:
+    radial-gradient(120% 60% at 50% 0%, oklch(0.97 0.012 80 / 0.7), transparent 60%),
+    var(--j-paper);
+  color: var(--j-ink);
+  min-height: 100%;
+  position: relative;
+}
+
+.dark .journal-page {
+  background:
+    radial-gradient(120% 60% at 50% 0%, oklch(0.23 0.015 60 / 0.8), transparent 60%),
+    var(--j-paper);
+}
+
+/* paper grain */
+.journal-page::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+.dark .journal-page::after {
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+}
+
+.journal-page > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Masthead ─────────────────────────────────────────────────────── */
+
+.j-kicker {
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+}
+
+.j-masthead-title {
+  font-family: var(--j-serif);
+  font-weight: 500;
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--j-ink);
+}
+
+.j-rule-double {
+  border-top: 1px solid var(--j-hairline);
+  border-bottom: 1px solid var(--j-hairline);
+  height: 4px;
+}
+
+/* the Pulse — one narrated sentence, the hero of the page */
+.j-pulse {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 1.35rem;
+  line-height: 1.65;
+  font-weight: 380;
+  color: var(--j-ink-soft);
+  text-wrap: pretty;
+}
+
+.j-pulse .j-fig {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--j-ink);
+  font-variant-numeric: oldstyle-nums;
+}
+
+.j-pulse .j-nowrap {
+  white-space: nowrap;
+}
+
+.j-pulse button {
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 1px solid color-mix(in oklch, currentColor 35%, transparent);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  padding: 0 0.08em;
+  border-radius: 2px;
+}
+.j-pulse button:hover {
+  color: var(--j-ink);
+  border-bottom-color: currentColor;
+}
+.j-pulse button[data-active="true"] {
+  background: var(--j-wash);
+  color: var(--j-ink);
+  border-bottom-color: var(--j-ink);
+}
+.j-pulse .j-red-clause { color: var(--j-red); }
+.j-pulse .j-red-clause .j-fig { color: var(--j-red); }
+.j-pulse .j-moss-clause { color: var(--j-moss); }
+.j-pulse .j-moss-clause .j-fig { color: var(--j-moss); }
+
+/* ── Filter bar (quiet chrome) ────────────────────────────────────── */
+
+.j-chrome {
+  font-family: var(--j-mono);
+  font-size: 0.6875rem;
+  color: var(--j-ink-soft);
+}
+
+.j-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--j-hairline);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  color: var(--j-ink-soft);
+}
+.j-chip:hover {
+  border-color: var(--j-faint);
+  color: var(--j-ink);
+}
+.j-chip[data-active="true"] {
+  background: var(--j-ink);
+  border-color: var(--j-ink);
+  color: var(--j-paper);
+}
+
+.j-search {
+  border: none;
+  border-bottom: 1px solid var(--j-hairline);
+  background: transparent;
+  border-radius: 0;
+  font-family: var(--j-mono);
+  font-size: 0.6875rem;
+  color: var(--j-ink);
+  padding: 0.25rem 0.25rem 0.25rem 1.4rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+.j-search:focus {
+  border-bottom-color: var(--j-ink-soft);
+}
+.j-search::placeholder {
+  color: var(--j-faint);
+  font-style: italic;
+}
+
+/* ── The river: one continuous spine ──────────────────────────────── */
+
+.j-river {
+  position: relative;
+}
+.j-river::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--j-hairline) 24px,
+    var(--j-hairline) calc(100% - 24px),
+    transparent
+  );
+}
+
+/* day runhead */
+.j-runhead {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-left: 44px;
+  position: relative;
+}
+.j-runhead-date {
+  font-family: var(--j-serif);
+  font-weight: 550;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  color: var(--j-ink);
+  white-space: nowrap;
+}
+.j-runhead-count {
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  white-space: nowrap;
+}
+.j-runhead::after {
+  content: "";
+  height: 1px;
+  background: var(--j-hairline);
+  flex: 1;
+  align-self: center;
+}
+/* day tick on the spine */
+.j-runhead::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateY(-50%) rotate(45deg);
+  background: var(--j-paper);
+  border: 1px solid var(--j-faint);
+}
+
+/* ── Episode entry ────────────────────────────────────────────────── */
+
+.j-entry {
+  position: relative;
+  padding: 0.9rem 0.9rem 0.9rem 44px;
+  border-radius: 10px;
+  transition: background 0.2s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease;
+}
+.j-entry:hover {
+  background: color-mix(in oklch, var(--j-paper-raise) 75%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--j-hairline),
+    0 6px 18px -14px oklch(0.2 0.02 60 / 0.6);
+  transform: translateY(-1px);
+}
+
+/* glyph node on the spine */
+.j-node {
+  position: absolute;
+  left: 0;
+  top: 0.95rem;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  background: var(--j-paper-raise);
+  border: 1px solid var(--j-hairline);
+  color: var(--j-ink-soft);
+  user-select: none;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.j-entry:hover .j-node {
+  border-color: var(--j-faint);
+  color: var(--j-ink);
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px var(--j-node-halo, color-mix(in oklch, var(--j-faint) 14%, transparent));
+}
+.j-node[data-tone="red"] { color: var(--j-red); border-color: color-mix(in oklch, var(--j-red) 40%, var(--j-hairline)); --j-node-halo: var(--j-red-soft); }
+.j-node[data-tone="moss"] { color: var(--j-moss); border-color: color-mix(in oklch, var(--j-moss) 40%, var(--j-hairline)); --j-node-halo: var(--j-moss-soft); }
+.j-node[data-tone="gold"] { color: var(--j-gold); border-color: color-mix(in oklch, var(--j-gold) 45%, var(--j-hairline)); --j-node-halo: var(--j-gold-soft); }
+.j-node[data-tone="violet"] { color: var(--j-violet); border-color: color-mix(in oklch, var(--j-violet) 40%, var(--j-hairline)); --j-node-halo: var(--j-violet-soft); }
+.j-node[data-tone="teal"] { color: var(--j-teal); border-color: color-mix(in oklch, var(--j-teal) 40%, var(--j-hairline)); --j-node-halo: var(--j-teal-soft); }
+.j-node[data-tone="consult"] { color: var(--j-consult); border-color: color-mix(in oklch, var(--j-consult) 40%, var(--j-hairline)); --j-node-halo: var(--j-consult-soft); }
+
+.j-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  min-width: 0;
+}
+.j-meta .j-time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--j-ink-soft);
+}
+
+.j-title {
+  font-family: var(--j-serif);
+  font-size: 1.09rem;
+  font-weight: 470;
+  line-height: 1.45;
+  letter-spacing: 0.002em;
+  color: var(--j-ink);
+  margin-top: 0.3rem;
+  text-wrap: pretty;
+}
+
+.j-rollup {
+  margin-top: 0.3rem;
+  font-family: var(--j-mono);
+  font-size: 0.655rem;
+  letter-spacing: 0.02em;
+  color: var(--j-faint);
+}
+.j-rollup .j-miss-fig { color: var(--j-red); }
+
+.j-feature-tag {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--j-ink-soft);
+  border: 1px solid var(--j-hairline);
+  border-radius: 3px;
+  padding: 0.1rem 0.45rem;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.j-feature-tag:hover {
+  border-color: var(--j-faint);
+  color: var(--j-ink);
+  background: var(--j-wash);
+}
+
+.j-open-link {
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.j-entry:hover .j-open-link { opacity: 1; }
+.j-open-link:hover { color: var(--j-ink); }
+
+/* ── Margin note (pending observation) ────────────────────────────── */
+
+.j-margin-note {
+  margin-top: 0.7rem;
+  padding: 0.6rem 0.8rem 0.65rem;
+  border-left: 2px solid var(--j-red);
+  background: var(--j-red-soft);
+  border-radius: 0 8px 8px 0;
+}
+.j-margin-note-label {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--j-red);
+}
+.j-margin-note-text {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--j-ink);
+  margin-top: 0.25rem;
+}
+
+.j-stamp {
+  font-family: var(--j-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.75rem;
+  border-radius: 3px;
+  border: 1px solid;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.j-stamp:disabled { opacity: 0.4; cursor: default; }
+.j-stamp-approve {
+  color: var(--j-moss);
+  border-color: color-mix(in oklch, var(--j-moss) 50%, transparent);
+}
+.j-stamp-approve:hover:not(:disabled) {
+  background: var(--j-moss);
+  border-color: var(--j-moss);
+  color: var(--j-paper);
+}
+.j-stamp-reject {
+  color: var(--j-faint);
+  border-color: var(--j-hairline);
+}
+.j-stamp-reject:hover:not(:disabled) {
+  color: var(--j-red);
+  border-color: var(--j-red);
+}
+
+/* ── Beats ────────────────────────────────────────────────────────── */
+
+.j-expand {
+  font-family: var(--j-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  margin-top: 0.55rem;
+  transition: color 0.15s ease;
+}
+.j-expand:hover { color: var(--j-ink); }
+
+.j-beats-clip {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.j-beats-clip[data-open="true"] { grid-template-rows: 1fr; }
+.j-beats-clip > div { overflow: hidden; }
+
+.j-beats {
+  margin-top: 0.6rem;
+  padding: 0.15rem 0 0.15rem 0.9rem;
+  border-left: 1px solid var(--j-hairline);
+}
+
+.j-beat {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.22rem 0;
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+.j-beat-time {
+  font-family: var(--j-mono);
+  font-size: 0.635rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--j-faint);
+  flex-shrink: 0;
+  width: 2.6rem;
+  text-align: right;
+  padding-top: 0.15rem;
+}
+.j-beat-glyph {
+  flex-shrink: 0;
+  color: var(--j-faint);
+  width: 1rem;
+  text-align: center;
+  user-select: none;
+}
+.j-beat-glyph[data-tone="consult"] { color: var(--j-consult); }
+.j-beat-glyph[data-tone="red"] { color: var(--j-red); }
+.j-beat-glyph[data-tone="moss"] { color: var(--j-moss); }
+.j-beat-glyph[data-tone="gold"] { color: var(--j-gold); }
+.j-beat-glyph[data-tone="violet"] { color: var(--j-violet); }
+.j-beat-glyph[data-tone="teal"] { color: var(--j-teal); }
+.j-beat-body { min-width: 0; color: var(--j-ink-soft); }
+.j-beat-kind {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  margin-right: 0.45rem;
+}
+/* the kind label takes its beat's ink, quietly (75% toward faint) */
+.j-beat-kind[data-tone="consult"] { color: color-mix(in oklch, var(--j-consult) 75%, var(--j-faint)); }
+.j-beat-kind[data-tone="red"] { color: color-mix(in oklch, var(--j-red) 75%, var(--j-faint)); }
+.j-beat-kind[data-tone="moss"] { color: color-mix(in oklch, var(--j-moss) 75%, var(--j-faint)); }
+.j-beat-kind[data-tone="gold"] { color: color-mix(in oklch, var(--j-gold) 75%, var(--j-faint)); }
+.j-beat-kind[data-tone="violet"] { color: color-mix(in oklch, var(--j-violet) 75%, var(--j-faint)); }
+.j-beat-kind[data-tone="teal"] { color: color-mix(in oklch, var(--j-teal) 75%, var(--j-faint)); }
+.j-beat-miss {
+  font-family: var(--j-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--j-red);
+  border: 1px solid color-mix(in oklch, var(--j-red) 45%, transparent);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  margin-right: 0.45rem;
+}
+
+/* ── Unread rule ──────────────────────────────────────────────────── */
+
+.j-unread {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.35rem 0 0.35rem 44px;
+}
+.j-unread::before,
+.j-unread::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: color-mix(in oklch, var(--j-red) 55%, transparent);
+}
+.j-unread span {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--j-red);
+  white-space: nowrap;
+}
+
+/* ── Empty / loading states ───────────────────────────────────────── */
+
+.j-empty {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--j-faint);
+  text-align: center;
+  padding: 4.5rem 0;
+}
+/* a quiet ripple above the empty river — the water is still there */
+.j-empty::before {
+  content: "≈";
+  display: block;
+  font-style: normal;
+  font-size: 1.6rem;
+  color: color-mix(in oklch, var(--j-teal) 55%, var(--j-faint));
+  margin-bottom: 0.6rem;
+  animation: j-ripple 3.5s ease-in-out infinite;
+}
+@keyframes j-ripple {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50% { transform: translateY(3px); opacity: 0.95; }
+}
+
+/* ── Load choreography ────────────────────────────────────────────── */
+
+@keyframes j-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.j-rise {
+  animation: j-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(min(var(--i, 0), 14) * 45ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-rise { animation: none; }
+  .j-beats-clip { transition: none; }
+  .j-empty::before { animation: none; }
+  .j-entry, .j-node { transition: none; }
+  .j-entry:hover { transform: none; }
+  .j-entry:hover .j-node { transform: none; box-shadow: none; }
+}

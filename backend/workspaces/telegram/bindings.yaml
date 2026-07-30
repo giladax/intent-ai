@@ -1,0 +1,226 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
+control_points:
+- control_point_id: CP-src-telegram-parseCommand-ts
+  role: decision
+  path: src/telegram/parseCommand.ts
+  symbol: parseCommand
+  description: Returns null for non-command/non-mention messages, which is the gate that determines
+    whether Scout acts on a message at all.
+- control_point_id: CP-src-telegram-handlers-ts
+  role: enforcement
+  path: src/telegram/handlers.ts
+  description: The message handler calls parseCommand and must skip processing (not respond)
+    when it returns null, enforcing silence on regular messages.
+- control_point_id: CP-src-evals-cases-conversation-ts
+  role: test_or_eval
+  path: src/evals/cases/conversation.ts
+  description: Eval cases for conversation likely verify Scout does not respond to non-command
+    messages.
+- control_point_id: CP-src-telegram-saveMessage-ts
+  role: executor
+  path: src/telegram/saveMessage.ts
+  symbol: saveRawMessage
+  description: Persists every raw Telegram message to the database before any downstream processing
+    occurs.
+- control_point_id: CP-src-digestion-trigger-ts
+  role: decision
+  path: src/digestion/trigger.ts
+  symbol: shouldDigest
+  description: Implements the every-N-messages and every-15-minutes trigger logic that controls
+    when the digestion pipeline fires.
+- control_point_id: CP-src-digestion-graph-ts
+  role: enforcement
+  path: src/digestion/graph.ts
+  description: Digestion graph uses lastDigestedMessageId to scope the run to only new messages
+    since the last digestion.
+- control_point_id: CP-src-alerts-checkAlert-ts
+  role: executor
+  path: src/alerts/checkAlert.ts
+  symbol: checkAlert
+  description: Runs the alert check against new facts before they are merged into the persistent
+    store.
+- control_point_id: CP-src-digestion-mergeFacts-ts
+  role: executor
+  path: src/digestion/mergeFacts.ts
+  symbol: mergeFacts
+  description: Merge step that must run after the alert check; its position in the pipeline
+    enforces the ordering rule.
+- control_point_id: CP-src-alerts-sendAlert-ts
+  role: enforcement
+  path: src/alerts/sendAlert.ts
+  symbol: sendAlert
+  description: Sends the CEO alert exclusively as a private DM to ceoChatId using api.sendMessage,
+    never posting to the group chat.
+- control_point_id: CP-src-alerts-index-ts
+  role: executor
+  path: src/alerts/index.ts
+  description: Re-exports sendAlert as the sole alert-sending interface, ensuring all callers
+    go through the DM-only path.
+- control_point_id: CP-src-digestion-sweepStale-ts
+  role: executor
+  path: src/digestion/sweepStale.ts
+  symbol: sweepStaleFacts
+  description: Marks overdue deadline and action_item facts as resolved; must be called on
+    every digestion cycle.
+- control_point_id: CP-src-router-route-ts
+  role: configuration
+  path: src/router/route.ts
+  description: Routing decisions are made here; must use the Haiku model constant for the
+    routing call.
+- control_point_id: CP-src-alerts-checkMessageAlert-ts
+  role: configuration
+  path: src/alerts/checkMessageAlert.ts
+  symbol: checkMessageAlert
+  description: Explicitly uses claude-haiku-4-5 model for per-message alert/digest decisions.
+- control_point_id: CP-src-pipeline-process-ts
+  role: configuration
+  path: src/pipeline/process.ts
+  description: Pipeline process step handles briefing, research, and Q&A and must use the
+    Sonnet model for those intents.
+- control_point_id: CP-src-config-env-ts
+  role: configuration
+  path: src/config/env.ts
+  description: Environment config likely defines model name constants (Haiku/Sonnet) consumed
+    by all model-calling modules.
+- control_point_id: CP-src-evals-cases-router-ts
+  role: test_or_eval
+  path: src/evals/cases/router.ts
+  description: Router eval cases can verify the correct model is selected for routing decisions.
+- control_point_id: CP-src-digestion-updateState-ts
+  role: executor
+  path: src/digestion/updateState.ts
+  description: Updates conversation state including the lastDigestedMessageId cursor in the
+    database after each pipeline run.
+- control_point_id: CP-src-evals-cases-alert-ts
+  role: test_or_eval
+  path: src/evals/cases/alert.ts
+  description: Alert eval cases verify the model correctly applies the regret-if-missed threshold
+    for sending alerts.
+- control_point_id: CP-src-pipeline-composePrompt-ts
+  role: configuration
+  path: src/pipeline/composePrompt.ts
+  description: Composes the prompt and tool list for research requests, must declare only
+    Claude's built-in web tools.
+- control_point_id: CP-src-types-schemas-ts
+  role: enforcement
+  path: src/types/schemas.ts
+  description: Schema definitions validate that the router output always contains both intent
+    and clarity, rejecting malformed responses.
+- control_point_id: CP-src-router-index-ts
+  role: executor
+  path: src/router/index.ts
+  description: Router entry point that calls route() and must propagate both intent and clarity
+    to the pipeline.
+- control_point_id: CP-src-types-index-ts
+  role: configuration
+  path: src/types/index.ts
+  description: Defines the RouterDecision type requiring both intent and clarity fields, enforcing
+    the contract at the type level.
+bindings:
+- obligation_id: TELEGR-001
+  control_point_id: CP-src-telegram-parseCommand-ts
+  relation: decides
+- obligation_id: TELEGR-001
+  control_point_id: CP-src-telegram-handlers-ts
+  relation: enforces
+- obligation_id: TELEGR-001
+  control_point_id: CP-src-evals-cases-conversation-ts
+  relation: verifies
+- obligation_id: TELEGR-002
+  control_point_id: CP-src-telegram-saveMessage-ts
+  relation: executes
+- obligation_id: TELEGR-002
+  control_point_id: CP-src-telegram-handlers-ts
+  relation: enforces
+- obligation_id: TELEGR-003
+  control_point_id: CP-src-digestion-graph-ts
+  relation: enforces
+- obligation_id: TELEGR-003
+  control_point_id: CP-src-alerts-checkAlert-ts
+  relation: executes
+- obligation_id: TELEGR-003
+  control_point_id: CP-src-digestion-mergeFacts-ts
+  relation: executes
+- obligation_id: TELEGR-004
+  control_point_id: CP-src-digestion-mergeFacts-ts
+  relation: enforces
+- obligation_id: TELEGR-004
+  control_point_id: CP-src-digestion-mergeFacts-ts
+  relation: decides
+- obligation_id: TELEGR-005
+  control_point_id: CP-src-alerts-sendAlert-ts
+  relation: enforces
+- obligation_id: TELEGR-005
+  control_point_id: CP-src-alerts-index-ts
+  relation: executes
+- obligation_id: TELEGR-006
+  control_point_id: CP-src-digestion-sweepStale-ts
+  relation: executes
+- obligation_id: TELEGR-006
+  control_point_id: CP-src-digestion-graph-ts
+  relation: enforces
+- obligation_id: TELEGR-007
+  control_point_id: CP-src-router-route-ts
+  relation: configures
+- obligation_id: TELEGR-007
+  control_point_id: CP-src-digestion-graph-ts
+  relation: configures
+- obligation_id: TELEGR-007
+  control_point_id: CP-src-alerts-checkAlert-ts
+  relation: configures
+- obligation_id: TELEGR-007
+  control_point_id: CP-src-alerts-checkMessageAlert-ts
+  relation: configures
+- obligation_id: TELEGR-007
+  control_point_id: CP-src-pipeline-process-ts
+  relation: configures
+- obligation_id: TELEGR-007
+  control_point_id: CP-src-config-env-ts
+  relation: configures
+- obligation_id: TELEGR-007
+  control_point_id: CP-src-evals-cases-router-ts
+  relation: verifies
+- obligation_id: TELEGR-008
+  control_point_id: CP-src-digestion-trigger-ts
+  relation: enforces
+- obligation_id: TELEGR-008
+  control_point_id: CP-src-digestion-trigger-ts
+  relation: executes
+- obligation_id: TELEGR-008
+  control_point_id: CP-src-digestion-updateState-ts
+  relation: executes
+- obligation_id: TELEGR-008
+  control_point_id: CP-src-digestion-graph-ts
+  relation: decides
+- obligation_id: TELEGR-009
+  control_point_id: CP-src-alerts-checkAlert-ts
+  relation: decides
+- obligation_id: TELEGR-009
+  control_point_id: CP-src-alerts-checkMessageAlert-ts
+  relation: decides
+- obligation_id: TELEGR-009
+  control_point_id: CP-src-evals-cases-alert-ts
+  relation: verifies
+- obligation_id: TELEGR-010
+  control_point_id: CP-src-pipeline-process-ts
+  relation: enforces
+- obligation_id: TELEGR-010
+  control_point_id: CP-src-pipeline-composePrompt-ts
+  relation: configures
+- obligation_id: TELEGR-011
+  control_point_id: CP-src-router-route-ts
+  relation: enforces
+- obligation_id: TELEGR-011
+  control_point_id: CP-src-types-schemas-ts
+  relation: enforces
+- obligation_id: TELEGR-011
+  control_point_id: CP-src-router-index-ts
+  relation: executes
+- obligation_id: TELEGR-011
+  control_point_id: CP-src-types-index-ts
+  relation: configures
+- obligation_id: TELEGR-011
+  control_point_id: CP-src-evals-cases-router-ts
+  relation: verifies

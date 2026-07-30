@@ -1,184 +1,140 @@
-# Intent-AI: Org-Level Learning Layer for AI-Assisted Development
+# Intent-AI (product name: Quire)
 
-A TypeScript system that captures knowledge from AI coding sessions and makes it available to agents and humans. Ingests conversation logs, extracts execution memory into a journal of activity events, converges understanding on Features, and serves it via MCP to any agent mid-session.
+An organizational understanding engine: it correlates **intent** — "what we
+want" (PRDs, product promises) — with **implementation** — "what we have"
+(code and AI coding sessions) — and serves the current understanding to
+humans and agents. The event river (Journal) is the substrate; Feature is the
+primary lens; alignment ("is what we built still what we wanted?") is the
+differentiator. Time is the axis, search is the front door; no trees, no
+graph-viz UI.
 
-## Quick Start
+**Product source of truth: [`docs/prd.md`](docs/prd.md)** (PRD v0.3.1).
+System map: [`docs/architecture.md`](docs/architecture.md).
 
-```bash
-npm install
-npx tsx src/cli/index.ts up          # start Postgres (Docker, port 5433)
-npx tsx src/cli/index.ts digest      # digest latest CC session
-npx tsx src/cli/index.ts digest --dry-run  # deterministic pipeline only, no LLM
-npx tsx src/cli/index.ts web --port 3456   # start dashboard
+## Repo layout
+
+```
+backend/     Python — THE backend (everything). Session digestion + watcher
+             daemon, MCP brain server, dashboard web API + SPA serving,
+             PR-vs-intent analysis + alarms, Postgres read/write layer.
+             See backend/README.md.
+app/         TypeScript — the dashboard React SPA (Vite dev mode, or built
+             and served by FastAPI in production).
+docs/        durable trunk: prd, architecture, decisions/, specs/, handoffs/
 ```
 
-Requires: `ANTHROPIC_API_KEY` and `DATABASE_URL` in `.env` (see `.env.example`).
+Migration COMPLETE as of 2026-07-22. See
+`docs/decisions/2026-07-22-python-backend-migration-complete.md`.
 
-## Vision
+Both apps read credentials from the repo-root `.env` (see `.env.example`):
+`ANTHROPIC_API_KEY`, `DATABASE_URL`, optionally LangSmith/GitHub keys.
 
-Intent-AI (product name: **Brain**) is an **organizational understanding engine**: it correlates **intent** — "what we want" (PRDs and, later, other signals) — with **implementation** — "what we have" (code and sessions) — and serves the current understanding to humans and agents over MCP. **The event river (Journal) is the substrate; Feature is the primary lens** — intent and implementation are two kinds of evidence sliced by it; **alignment** ("is what we built still what we wanted?") is the differentiator. Understanding is the umbrella; alignment is the spearhead. No trees, no graph-viz UI — time is the axis, search is the front door.
+## Standing rules (do not relitigate)
 
-**Source of truth for product direction: [`docs/prd.md`](docs/prd.md) (PRD v0.3.1 — journal-as-product amendments).** Deferred bets live in [`docs/future-knowledge.md`](docs/future-knowledge.md).
+- **Never edit/regenerate `backend/workspaces/quire-brain`** — a rehearsed
+  live demo.
+- **Migration COMPLETE** — the TS backend (`journal/`) was deleted in Slice 9.
+  All logic belongs in `backend/` (Python). See decision record above.
+- (Retired 2026-07-21: the never-commit `feature.ts` rule — the standing
+  delta landed as `94ee702`.)
 
-The mechanism is a continuous loop:
+# backend/ — the Python backend
 
-1. **Capture** — ingest coding sessions (Claude Code today, Codex/Copilot/Jira/Slack later)
-2. **Understand** — extract moments, transitions, outcomes, narrative arcs
-3. **Observe** — LLM-driven observation layer notices patterns across sessions
-4. **Learn** — approved observations become Feature understanding
-5. **Serve** — MCP server makes the brain available to any agent mid-session
-6. **Improve** — each session makes the brain smarter for the next
-
-The MCP server is the integration surface — any tool that speaks MCP can query the brain. The Week-1 MVP proves feature-aware context measurably improves coding-agent performance (see the PRD's ETC/CVR measurement harness); intent ingestion and alignment/drift are Phase 2.
-
-## Commands
+Read `backend/README.md` first. From `backend/`:
 
 ```bash
-# Session digestion
-npx tsx src/cli/index.ts digest [path]       # digest a session
-npx tsx src/cli/index.ts digest --dry-run    # stats only, no LLM
-npx tsx src/cli/index.ts digest --last 3     # digest N most recent
+docker compose up -d                             # start Postgres (Docker, port 5433)
+python3 -m pytest                                # 548 tests, offline
+python3 -m evals.event_stream && python3 -m evals.alarms  # both must say "all clear"
+python3 -m evals.fidelity                        # fidelity eval (≥ TS baseline)
+python3 -m quire.cli demo                        # offline demo (canned LLM outputs)
+python3 -m quire.cli serve --port 3456           # dashboard + journal API
+python3 -m quire.cli serve --port 8321           # alignment surfaces
+# SPA (production): http://localhost:3456/
+# SPA (dev): cd ../app && npm run dev  (proxies /api → 3456)
 
-# MCP brain (available to agents via .mcp.json)
-npx tsx src/cli/index.ts mcp                        # start MCP server (stdio)
-# Tools (Feature-keyed): brain_enter, brain_file_context, brain_feature_context,
-#   brain_search, brain_report_observation, brain_report_unknown, brain_rate_context,
-#   brain_propose_knowledge_delta (deferred per F7). The Topic ontology was
-#   excised 2026-07-04 (PRD v0.3.1 / API review F1).
+# Ingestion
+python3 -m quire.cli journal digest <log>        # full digest (parse + LLM + persist)
+python3 -m quire.cli journal digest <log> --dry-run   # deterministic only, no LLM
+python3 -m quire.cli journal digest <log> --offline   # offline (canned LLM, CI/tests)
+python3 -m quire.cli journal events              # query activity event stream
+python3 -m quire.cli journal watch-sessions      # watch for new CC session logs
 
-# Activity events
-npx tsx src/cli/index.ts events                     # query activity event stream
-npx tsx src/cli/index.ts events --category struggle  # filter by category prefix
-npx tsx src/cli/index.ts events --repo intent-ai     # filter by repo
-npx tsx src/cli/index.ts observe-events              # run observation layer over recent events
-npx tsx src/cli/index.ts observe-events --dry-run    # show observations without emitting
-
-# Infrastructure
-npx tsx src/cli/index.ts up                  # start Postgres + migrate
-npx tsx src/cli/index.ts down                # stop Postgres
-npx tsx src/cli/index.ts web --port 3456     # start dashboard
-npx tsx run-gen0.ts                          # run Gen 0 fitness evaluation
-```
-
-## Testing
-
-```bash
-npm test                    # run all tests (vitest)
-npx vitest run              # same, explicit
-npx tsc --noEmit            # type check
+# MCP brain
+python3 -m quire.cli mcp                         # start MCP brain server (stdio)
 ```
 
 ## Architecture
 
-### Pipeline
+**Pipeline** (`quire/ingest/` + `quire/understand/`): CC log → parse →
+normalize → classify → chunk → extract "moments" → weave → verify →
+transitions → narrative → emit activity events. Deterministic steps and LLM
+steps (Sonnet for reasoning/moments/narrative, Haiku for classification)
+alternate; each step enriches shared context, never replaces upstream data.
 
-```
-CC log → parse → normalize (+ threading) → [classify + chunk + analyze] → moments p1 → moments p2 → transitions → narrative → emit events
-         │         │                          │          │        │           │             │             │            │           │
-       adapter   deterministic             Haiku     deterministic        Sonnet ×N     Sonnet ×1     Sonnet ×1    Sonnet ×1   deterministic
-```
+**Spine**: `activity_events` table in Postgres 16 (Docker, port **5433**) —
+every significant thing as time-ordered, self-contained, searchable events with
+freeform categories/tags. Schema in `quire/db/models.py`, managed by SQLAlchemy.
+Postgres schema is frozen as inherited from Drizzle migrations at tag
+`ts-backend-final`; future schema changes start by adopting Alembic.
 
-Each step enriches a shared context — never replaces upstream data. All types in `src/adapters/types.ts`. Read this file before modifying any pipeline step.
-
-### Activity Event Backbone
-
-A unified `activity_events` table captures every significant thing that happens — session moments, brain mutations, live observations — as time-ordered, searchable, RAG-ready events. Events are self-contained (denormalized session context). Categories and tags are freeform. See `docs/superpowers/specs/2026-06-21-activity-event-backbone-design.md`.
-
-### Source Layout
-
-```
-src/
-  adapters/        CC log parser (uses @constellos/claude-code-kit)
-    types.ts       All domain types
-  pipeline/        Processing steps (each is a function, no classes)
-    orchestrator.ts End-to-end pipeline runner
-    emit-events.ts  Builds ActivityEvents from session digest
-    observe-events.ts LLM-driven observation layer over event stream
-  llm/
-    client.ts      Anthropic SDK wrapper (streaming, retries, Zod validation)
-    prompts/       Prompt builders per pipeline step
-  storage/         Postgres via Drizzle ORM
-  cli/             Commander.js CLI
-  mcp/             MCP server — Feature context for agents (8 tools, stdio transport)
-  eval/            Fitness scoring, LLM-as-judge, organism runner
-  web/             Dashboard server (Journal-first: river + lenses + Correspondence chat dock)
-  daemon/          Background daemon for continuous session watching
-  utils/           CC log discovery
-```
+**Key paths**: `quire/ingest/` (deterministic pipeline), `quire/understand/`
+(LLM stage), `quire/journal/` (emit_events, watcher, feed, router),
+`quire/mcp/` (brain MCP server), `quire/analysis/` (PR-vs-intent),
+`quire/db/` (SQLAlchemy models + writer), `quire/cli.py` (all CLI commands).
 
 ## Conventions
 
-- TypeScript ESM (`"type": "module"` in package.json)
-- `.js` extensions in imports (ESM requirement)
-- Vitest for testing
-- Zod for LLM output validation (lenient schemas — `.optional().default()` and `.passthrough()`)
-- No classes — pipeline steps are exported functions
-- All types in `src/adapters/types.ts`
-- Sonnet (`claude-sonnet-4-6`) for reasoning, moments, narrative
-- Haiku (`claude-haiku-4-5`) for classification, critics, routing
+- Python 3.11+; Pydantic for LLM output schemas; no classes for pipeline steps
+  (functions only); pytest + canned LLM (`quire/canned.py`) for offline tests;
+  EDD (eval criteria before code) for any prompt change.
+- **NO regex for behavioral/semantic classification** — use Haiku with
+  structured output. Regex is fine for structural parsing (IDs, paths, JSON).
+- **The LLM never decides the final label** — deterministic rules in
+  `analysis/classify.py` pick verdicts; the model contributes evidence only.
+- **Archive before parsing**: `journal digest` archives the raw log at step 0
+  before any parse or LLM call; evidence must survive a failed digest.
+- Emitting events from a new source: build `ActivityEvent`s (freeform
+  `category`, `tags`, `actor`, `summary`, `metadata`), call `emit_activity_events()`
+  in try/catch — never fail the parent operation.
 
-## Database
+## Eval workflow (EDD)
 
-Postgres 16 via Docker Compose on port **5433** (not 5432). Schema in `src/storage/schema.ts`, migrations in `drizzle/`.
+Write eval criteria FIRST, run baseline, inspect actual output, THEN change
+code. Fidelity: `python3 -m evals.fidelity` (scores ≥ pinned baseline in
+`evals/baselines/2026-07-21-ts-fidelity.md`). This applies to any LLM prompt
+change, not just code. Re-run the 8× stability sweep after any prompt or
+contract change.
 
-## Anti-Patterns
+# app/ — the dashboard SPA (TypeScript/React)
 
-### NO regex for behavioral/semantic classification
+```bash
+cd app
+npm install
+npm run dev      # Vite dev server, /api proxied to backend :3456
+npm run build    # build → backend/quire/static/dashboard/ for production
+npm test         # 28 vitest tests
+npm run typecheck  # tsc --noEmit
+```
 
-Use LLM with structured output (Haiku) instead of regex for anything semantic — engagement detection, intent classification, topic shifts. Regex is fine for structural parsing (IDs, file paths, JSON extraction).
+No business logic — pure UI over the backend REST API. Tests run standalone
+(no backend required).
 
-## Eval Workflow (EDD)
+# Agent skills (`.claude/skills/agents/`)
 
-Write eval criteria FIRST, run baseline, inspect failures, THEN change code.
+Structured guides for pipeline work: `playbooks/` (procedures),
+`strategies/` (optimization approaches), `schemas/` (output contracts),
+`topologies/` (graph patterns), `experiments/` (templates). Changing how
+nodes connect → `topologies/`; changing what a node does → `strategies/`;
+running an eval experiment → `playbooks/`.
 
-1. Run eval, capture baseline: `npx tsx run-gen0.ts`
-2. Read the ACTUAL pipeline output — moments, narrative
-3. Identify what's wrong
-4. Modify code
-5. Re-run eval and compare
-
-Fixtures in `tests/eval/fixtures/`. Criteria in `tests/eval/session-criteria.ts`. Fitness in `src/eval/fitness.ts`.
-
-## How-To
-
-### Add a pipeline node
-
-1. Create `src/pipeline/<name>.ts` — export a function
-2. Define types in `src/adapters/types.ts`
-3. Create prompt builder in `src/llm/prompts/<name>.ts` if LLM-backed
-4. Wire into `src/pipeline/orchestrator.ts`
-5. Write tests in `tests/pipeline/<name>.test.ts`
-6. Run eval to verify no regression
-
-### Emit activity events from a new source
-
-1. Import `emitEvents` from `src/storage/queries.ts` and `ActivityEvent` from `src/adapters/types.ts`
-2. Build events with freeform `category`, `tags`, `actor`, `summary`, and structured `metadata`
-3. Call `emitEvents(events)` wrapped in try/catch (never fail the parent operation)
-4. Events auto-carry `repo`, `branch`, `worktree` when emitted from the pipeline
-
-## Agent Skills (`.claude/skills/agents/`)
-
-Structured guides for agentic pipeline work. **Read before modifying the pipeline or running experiments.**
-
-| Directory | When to use |
-|-----------|-------------|
-| `playbooks/` | Step-by-step procedures — running experiments, reviewing results, managing complexity budgets |
-| `strategies/` | Optimization approaches — prompts, topology, context composition, routing, judge tuning |
-| `schemas/` | Structured output contracts — eval cases, judge output, node contracts, experiment reviews |
-| `topologies/` | Graph patterns — single-node, supervisor-worker, plan-execute, reflection, verify-repair |
-| `experiments/` | Experiment templates and results |
-
-**Rule of thumb:** If you're changing how nodes connect → read `topologies/`. If you're changing what a node does → read `strategies/`. If you're running an eval experiment → read `playbooks/`.
-
-## Reference
+# Reference
 
 | Document | What |
 |----------|------|
-| `docs/prd.md` | **Product source of truth** — Brain PRD v0.3.1 (vision, journal-as-product model, MVP, measurement). Read first. |
-| `docs/future-knowledge.md` | Consciously deferred hypotheses (the alignment moat, and more). |
-| `docs/consolidation-iteration-0.md` | Triage of the prior-plan corpus → seeded MVP backlog + durable observations. |
-| `.repo/brain.md` | **Frozen legacy export** — kept only as the measurement-v2 *baseline* document (the treatment arm must beat it). The Topic subsystem that generated it was excised 2026-07-04. |
-| `docs/superpowers/specs/` | Kept design specs (execution-memory, activity-event backbone). Prior specs/plans archived. |
-| `docs/archive/` | Superseded prior plans/specs/handoffs (historical; framing replaced by v0.3). |
+| `docs/prd.md` | Product source of truth (v0.3.1). Read first. |
+| `docs/architecture.md` | Both apps in plain English. |
+| `docs/decisions/` | Dated decision records (append-only history). |
+| `docs/future-knowledge.md` | Consciously deferred hypotheses. |
+| `docs/specs/` | Kept design specs (measurement-v2, brain API, execution memory, event backbone). |
 | `docs/handoffs/` | Session handoffs for continuity. |

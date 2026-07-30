@@ -1,0 +1,6 @@
+# Approved intent sources, read from the repo checkout.
+# status governs authority: only `approved` sources feed the analyzer.
+- reference: contributing-guide
+  path: .github/CONTRIBUTING.md
+  status: approved
+  version: onboard-1

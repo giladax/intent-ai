@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quire — Feature over time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff;--panel:#f7f8f9;--sidebar:#f4f5f6;--line:#e6e8eb;--line-soft:#eef0f2;
+    --text:#1a1d21;--muted:#6b7280;--faint:#9aa1ab;
+    --accent:#2563eb;--accent-soft:#eaf0ff;
+    --red:#dc2626;--amber:#d97706;--blue:#2563eb;--green:#16a34a;--gray:#9aa1ab;
+    --red-bg:#fdecec;--amber-bg:#fdf3e7;--blue-bg:#eaf0ff;--green-bg:#e9f6ee;--gray-bg:#f0f1f3;
+    --font:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);color:var(--text);background:var(--bg);font-size:14px;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:248px 1fr;grid-template-rows:48px 1fr;height:100vh;}
+  .topbar{grid-column:1/3;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--line);}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;}
+  .brand .mark{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#2563eb,#1e40af);}
+  .org-switch{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:7px;font-weight:500;cursor:pointer;font-size:13px;}
+  .org-switch .chev{color:var(--faint);font-size:11px;}
+  .search{flex:1;max-width:400px;display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--faint);font-size:13px;}
+  .search .k{margin-left:auto;font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--bg);}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);}
+  .avatar{width:26px;height:26px;border-radius:50%;background:#d7b56d;color:#4a3a12;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+
+  .sidebar{grid-row:2;border-right:1px solid var(--line);background:var(--sidebar);overflow-y:auto;padding:10px 8px;}
+  .side-label{margin:6px 8px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:7px;color:var(--muted);font-weight:500;cursor:pointer;font-size:13.5px;}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .nav-item .ic{width:15px;text-align:center;font-size:13px;}
+  .nav-item .badge{margin-left:auto;font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;}
+  .nav-item .count{margin-left:auto;font-size:12px;color:var(--faint);font-weight:600;}
+  .explore-head{margin:16px 8px 8px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);}
+  .tr{display:flex;align-items:center;gap:7px;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:13px;}
+  .tr:hover{background:var(--line-soft);}.tr.on{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .tr .caret{color:var(--faint);font-size:9px;width:9px;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .d-red{background:var(--red);}.d-amber{background:var(--amber);}.d-blue{background:var(--blue);}.d-green{background:var(--green);}.d-gray{background:var(--gray);}
+  .l1{padding-left:8px;font-weight:600;} .l2{padding-left:26px;} .l2.on{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+
+  .main{grid-row:2;overflow-y:auto;}
+  .crumb{padding:14px 32px 0;font-size:12.5px;color:var(--muted);} .crumb b{color:var(--text);} .crumb .sep{color:var(--faint);margin:0 5px;}
+  .fhead{padding:10px 32px 16px;border-bottom:1px solid var(--line);}
+  .fhead h1{font-size:25px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:12px;}
+  .pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .p-red{color:var(--red);background:var(--red-bg);}.p-green{color:var(--green);background:var(--green-bg);}
+  .fsum{color:var(--text);font-size:15px;margin-top:9px;}
+  .builtfrom{display:flex;align-items:center;gap:16px;margin-top:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap;}
+  .builtfrom b{color:var(--text);}
+  .verpick{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:7px;padding:5px 11px;cursor:pointer;background:var(--bg);}
+  .verpick .chev{color:var(--faint);font-size:10px;}
+
+  /* the timeline */
+  .tlwrap{padding:26px 32px 8px;}
+  .tlband{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);display:flex;justify-content:space-between;margin-bottom:2px;}
+  .tline{position:relative;padding-top:26px;margin-top:6px;}
+  .tline::before{content:"";position:absolute;top:31px;left:10px;right:10px;height:2px;background:var(--line);}
+  .tline::after{content:"";position:absolute;top:31px;left:10px;width:63%;height:2px;background:linear-gradient(90deg,var(--green),var(--red));opacity:.5;}
+  .tnodes{display:flex;justify-content:space-between;position:relative;}
+  .tnode{display:flex;flex-direction:column;align-items:center;text-align:center;width:12.5%;cursor:pointer;}
+  .tdot{width:13px;height:13px;border-radius:50%;border:2px solid var(--bg);z-index:1;box-shadow:0 0 0 1px var(--line);}
+  .tnode.now .tdot{width:17px;height:17px;background:var(--accent);box-shadow:0 0 0 5px var(--accent-soft);border-color:#fff;}
+  .tnode.future .tdot{background:var(--bg);border:2px dashed var(--blue);box-shadow:none;}
+  .tkind{font-size:9px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:9px;}
+  .tlab{font-size:12px;font-weight:600;margin-top:3px;line-height:1.25;color:var(--text);}
+  .tnode.future .tlab{color:var(--muted);}
+  .tdate{font-size:10px;color:var(--faint);font-family:var(--mono);margin-top:3px;}
+
+  .fbody{padding:20px 32px;max-width:840px;}
+  .h2{font-size:12.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--faint);margin:24px 0 12px;display:flex;align-items:center;gap:8px;}
+  .h2 .now-tag{color:var(--accent);background:var(--accent-soft);font-size:10px;padding:2px 7px;border-radius:5px;letter-spacing:0;}
+  .rule{border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-bottom:10px;}
+  .rule-top{display:flex;align-items:center;gap:10px;} .rule-top .rt{font-weight:600;font-size:14.5px;}
+  .rule-why{color:var(--muted);font-size:13.5px;line-height:1.5;margin-top:7px;} .rule-why b{color:var(--text);}
+  .rule-foot{display:flex;gap:13px;margin-top:10px;font-size:12px;color:var(--faint);align-items:center;}
+  .rule-foot a{color:var(--accent);text-decoration:none;font-weight:600;} .rule-foot .src{font-family:var(--mono);font-size:11px;}
+  .next{display:flex;gap:11px;background:var(--blue-bg);border:1px dashed color-mix(in srgb,var(--blue) 40%,transparent);border-radius:11px;padding:13px 15px;font-size:14px;line-height:1.5;color:#1e3a5f;}
+  .next .ic{color:var(--blue);} .next b{color:#12283f;} .next a{color:var(--blue);font-weight:600;text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><span class="mark"></span> Quire</div>
+    <div class="org-switch">Quire <span class="chev">▾</span></div>
+    <div class="search">🔎 Search — features, rules, people, PRs… <span class="k">⌘K</span></div>
+    <div class="top-right"><span>?</span><div class="avatar">G</div></div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="side-label">Views</div>
+    <div class="nav-item"><span class="ic">☀</span> Today</div>
+    <div class="nav-item"><span class="ic">◧</span> Needs you <span class="badge">3</span></div>
+    <div class="nav-item active"><span class="ic">◇</span> Features <span class="count">18</span></div>
+    <div class="nav-item"><span class="ic">▤</span> Rules <span class="count">54</span></div>
+    <div class="nav-item"><span class="ic">◴</span> Sessions <span class="count">76</span></div>
+    <div class="explore-head">Explore · by repository</div>
+    <div class="tr l1"><span class="caret">▾</span><span class="dot d-red"></span> refund-agent</div>
+      <div class="tr l2 on"><span class="dot d-red"></span> Refund limits</div>
+      <div class="tr l2"><span class="dot d-green"></span> Audit log</div>
+      <div class="tr l2"><span class="dot d-gray"></span> Customer messages</div>
+    <div class="tr l1"><span class="caret">▸</span><span class="dot d-green"></span> intent-ai</div>
+    <div class="tr l1"><span class="caret">▸</span><span class="dot d-amber"></span> pydantic</div>
+  </aside>
+
+  <main class="main">
+    <div class="crumb"><b>Quire</b><span class="sep">/</span>refund-agent<span class="sep">/</span>Refund limits</div>
+    <div class="fhead">
+      <h1>Refund limits <span class="pill p-red">Breaks a rule</span></h1>
+      <div class="fsum">How much money we can refund, and the checks that keep it correct.</div>
+      <div class="builtfrom">
+        Built from <b>1 spec</b> · <b>3 pull requests</b> · <b>2 plans</b> · <b>9 coding sessions</b>
+        <span class="verpick">Viewing: <b style="color:var(--text)">Now</b> <span class="chev">▾</span></span>
+      </div>
+    </div>
+
+    <!-- the life of the feature: past → now → next -->
+    <div class="tlwrap">
+      <div class="tlband"><span>◀ Past — what shipped</span><span>Now</span><span>Next — planned ▶</span></div>
+      <div class="tline">
+        <div class="tnodes">
+          <div class="tnode"><span class="tdot d-gray"></span><span class="tkind">Spec v1</span><span class="tlab">First rules written</span><span class="tdate">12 Jun</span></div>
+          <div class="tnode"><span class="tdot d-green"></span><span class="tkind">PR 88</span><span class="tlab">Kept all rules</span><span class="tdate">20 Jun</span></div>
+          <div class="tnode"><span class="tdot d-gray"></span><span class="tkind">Plan</span><span class="tlab">Add premium refunds</span><span class="tdate">28 Jun</span></div>
+          <div class="tnode"><span class="tdot d-green"></span><span class="tkind">PR 98</span><span class="tlab">Kept all rules</span><span class="tdate">3 days ago</span></div>
+          <div class="tnode now"><span class="tdot"></span><span class="tkind" style="color:var(--accent)">PR 101 · now</span><span class="tlab">Broke a rule</span><span class="tdate">2 hours ago</span></div>
+          <div class="tnode future"><span class="tdot"></span><span class="tkind">Plan</span><span class="tlab">Raise limit to $100 safely</span><span class="tdate">next</span></div>
+          <div class="tnode future"><span class="tdot"></span><span class="tkind">Spec v2</span><span class="tlab">New limit rules (draft)</span><span class="tdate">soon</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fbody">
+      <div class="h2">The rules <span class="now-tag">right now</span></div>
+
+      <div class="rule">
+        <div class="rule-top"><span class="pill p-red">Broken</span><span class="rt">The safety check must match the allowed refund amount.</span></div>
+        <div class="rule-why">The limit was raised to <b>$100</b>, but the check still stops at <b>$50</b>. They don't match.</div>
+        <div class="rule-foot"><a href="#">See where it broke →</a><span>PR 101</span><span class="src">refund-spec.md, line 14</span></div>
+      </div>
+      <div class="rule">
+        <div class="rule-top"><span class="pill p-green">Kept</span><span class="rt">Every refund is saved to the log.</span></div>
+        <div class="rule-why">Working. The last 40 refunds were all logged.</div>
+        <div class="rule-foot"><a href="#">See the check →</a><span class="src">audit.py</span></div>
+      </div>
+
+      <div class="h2">Coming next</div>
+      <div class="next"><span class="ic">→</span><div>A plan is open: <b>“Raise the limit to $100 safely.”</b> It will add a new rule so the limit and the check always move together. <a href="#">Open the plan →</a></div></div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

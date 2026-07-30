@@ -1,0 +1,12 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Feature: MCP Server & Brain Query Layer  [id: c03233e5-6a19-44fd-a5f5-3d4ccd3351f5]\n\nUnderstanding: The MCP server predated the spec that proposed building one, with a sophisticated file-based implementation reading from .repo/ alongside an online REST implementation querying the DB directly \u2014 two complementary approaches coexisting. [s:3977fef3] The Brain API was discovered to be 'two APIs in a trenchcoat' \u2014 four tools speaking the retired Topic ontology and three speaking Feature from Postgres with no shared ids \u2014 which was resolved by unifying entirely around Feature keys in the v1.1 contract, with Topic tools and proposeKnowledgeDelta removed. [s:348dbc5a] MCP-to-session correlation uses explicit stamping (tools take an optional sessionId and the server stamps it), and no MCP call was emitting activity events until instrumentation was added, meaning Brain was previously blind to its own usage. [s:348dbc5a]\n\nConstraints:\n  \u00b7 The Topic ontology is retired; the Brain API contract unifies entirely around Feature keys.\n  \u00b7 Topic tools and proposeKnowledgeDelta are removed.\n  \u00b7 MCP-to-session correlation uses explicit sessionId stamping, not heuristics.\n  \u00b7 Every MCP tool call must emit an activity event for observability.\n  \u00b7 Task resolution must never silently guess on fuzzy matches \u2014 the 'never guesses' PRD promise must be honored.\n\nDrill:\n  \u00b7 8 moments (ids: 9733319e\u2026, e3792a1e\u2026, 657a3745\u2026) \u2192 brain_moments(\"c03233e5-6a19-44fd-a5f5-3d4ccd3351f5\")\n  \u00b7 1 session (s: 3977fef3\u2026) \u2192 brain_narrative(sessionId)\n  \u00b7 evidence per moment \u2192 brain_evidence(momentId)\n\nFor full context (moments+evidence+sessions+files): brain_feature_context(\"c03233e5-6a19-44fd-a5f5-3d4ccd3351f5\", depth: \"full\")"
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 10
+}

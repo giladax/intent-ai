@@ -1,0 +1,9 @@
+# Nomad CLI — approved behavioral promises across the three areas we own.
+obligations:
+  - {obligation_id: OB-CLI-1, kind: invariant, statement: "Flag names stay backwards-compatible across minor versions.", source_reference: nomad-prd, source_section: "#cli"}
+  - {obligation_id: OB-CLI-2, kind: hard_rule, statement: "The CLI exits non-zero on any error.", source_reference: nomad-prd, source_section: "#cli"}
+  - {obligation_id: OB-CLI-3, kind: permission, statement: "New flags may be added in any minor release.", source_reference: nomad-prd, source_section: "#cli"}
+  - {obligation_id: OB-CFG-1, kind: invariant, statement: "Config files written by the last major version still load.", source_reference: nomad-prd, source_section: "#config"}
+  - {obligation_id: OB-CFG-2, kind: hard_rule, statement: "An unreadable config fails loudly, never silently defaults.", source_reference: nomad-prd, source_section: "#config"}
+  - {obligation_id: OB-PLG-1, kind: hard_rule, statement: "A plugin failure never crashes the host CLI.", source_reference: nomad-prd, source_section: "#plugins"}
+  - {obligation_id: OB-PLG-2, kind: invariant, statement: "Plugins load in a fixed, deterministic order.", source_reference: nomad-prd, source_section: "#plugins"}

@@ -1,0 +1,10 @@
+# Approved intent sources, read from the repo checkout.
+# status governs authority: only `approved` sources feed the analyzer.
+- reference: brain-prd
+  path: docs/prd.md
+  status: approved
+  version: 0.3.2
+- reference: handoff-export-polish
+  path: intent/handoff-export-polish.md
+  status: draft
+  version: authored-1

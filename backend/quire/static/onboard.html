@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quire Align — Onboarding</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=IBM+Plex+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e100f; --panel:#151816; --panel2:#1b1f1c; --line:#2a2f2b;
+  --paper:#e8e3d8; --dim:#8a8f88; --faint:#565b55; --accent:#d8c08a;
+  --ok:#7dd87d; --warn:#e8b054; --bad:#e05252; --ungov:#6b8fa3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--ink)}
+body{font-family:'IBM Plex Mono',monospace; color:var(--paper); font-size:13px; min-height:100vh;
+  background:radial-gradient(1000px 420px at 15% -10%, rgba(216,192,138,.06), transparent 60%), var(--ink);}
+.masthead{display:flex; align-items:baseline; gap:22px; padding:26px 34px 16px; border-bottom:1px solid var(--line)}
+.masthead h1{font-family:'Fraunces',serif; font-weight:900; font-size:28px}
+.masthead h1 em{color:var(--accent); font-style:normal}
+.tagline{color:var(--dim); font-size:12px}
+.steps{display:flex; gap:0; padding:0 34px; border-bottom:1px solid var(--line); background:var(--panel)}
+.step{padding:12px 22px 10px; color:var(--faint); font-size:11px; letter-spacing:1.2px; text-transform:uppercase; border-bottom:2px solid transparent}
+.step.on{color:var(--accent); border-bottom-color:var(--accent)}
+.step.done{color:var(--ok)}
+main{max-width:1060px; margin:0 auto; padding:28px 34px 80px}
+h2{font-family:'Fraunces',serif; font-weight:600; font-size:19px; margin-bottom:6px}
+.sub{color:var(--dim); font-size:12px; margin-bottom:18px; line-height:1.6}
+input[type=text]{font:inherit; background:var(--panel); border:1px solid var(--line); color:var(--paper);
+  padding:9px 12px; width:420px; border-radius:2px}
+input[type=text]:focus{outline:none; border-color:var(--accent)}
+button.primary{font:inherit; font-weight:600; background:var(--accent); color:var(--ink); border:none;
+  padding:10px 20px; cursor:pointer; border-radius:2px; letter-spacing:.5px}
+button.primary:disabled{opacity:.4; cursor:default}
+button.ghost{font:inherit; background:none; border:1px solid var(--line); color:var(--paper); padding:8px 14px; cursor:pointer; border-radius:2px}
+button.ghost:hover{border-color:var(--accent); color:var(--accent)}
+.row{display:flex; gap:12px; align-items:center; margin:14px 0}
+.card{border:1px solid var(--line); background:var(--panel); padding:13px 16px; margin-bottom:9px; display:flex; gap:14px; align-items:flex-start}
+.card input[type=checkbox]{accent-color:var(--accent); margin-top:3px; transform:scale(1.15)}
+.card .body{flex:1}
+.card .path{font-weight:600}
+.card .why{color:var(--faint); font-size:11px; margin-top:3px; line-height:1.5}
+.bar{height:5px; background:var(--panel2); border-radius:2px; margin-top:7px; overflow:hidden; max-width:260px}
+.bar i{display:block; height:100%; background:linear-gradient(90deg, var(--accent), var(--ok))}
+.ob-card{border:1px solid var(--line); background:var(--panel); margin-bottom:12px}
+.ob-card.rejected{opacity:.38}
+.ob-head{display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid rgba(42,47,43,.7)}
+.kind{font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:2px 8px; border:1px solid var(--line); border-radius:2px; color:var(--dim)}
+.kind.hard_rule{color:var(--bad); border-color:rgba(224,82,82,.4)}
+.kind.permission{color:var(--ok); border-color:rgba(125,216,125,.35)}
+.kind.invariant{color:var(--ungov); border-color:rgba(107,143,163,.4)}
+.ob-head .id{font-weight:600}
+.ob-head .actions{margin-left:auto; display:flex; gap:8px}
+.ob-body{padding:12px 16px}
+.ob-body textarea{width:100%; font:inherit; font-size:12px; background:var(--panel2); color:var(--paper);
+  border:1px solid var(--line); padding:9px 11px; resize:vertical; min-height:52px; border-radius:2px; line-height:1.5}
+.quote{border-left:2px solid var(--accent); padding:6px 12px; color:var(--dim); font-size:11px; margin:10px 0; font-style:italic; line-height:1.55}
+.bind{font-size:11px; color:var(--dim); padding:3px 0}
+.bind input{accent-color:var(--accent)}
+.bind code{color:var(--paper)}
+.spin{display:inline-block; width:14px; height:14px; border:2px solid var(--line); border-top-color:var(--accent);
+  border-radius:50%; animation:sp 0.8s linear infinite; vertical-align:-2px; margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.status{color:var(--dim); font-size:12px; margin:12px 0}
+.sweep-row{display:flex; gap:10px; align-items:center; padding:9px 14px; border:1px solid var(--line); background:var(--panel); margin-bottom:7px; font-size:12px}
+.sweep-row .sha{color:var(--faint)}
+.sweep-row .verdict{margin-left:auto; font-weight:600}
+.hidden{display:none}
+.note{border:1px solid rgba(216,192,138,.35); background:rgba(216,192,138,.06); padding:11px 15px; font-size:11px; color:var(--dim); line-height:1.6; margin:14px 0}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="masthead">
+  <h1>Quire<em>·</em>Align <span style="font-weight:300">onboarding</span></h1>
+  <div class="tagline">the system scouts; you approve. nothing enters the contract without you.</div>
+</div>
+<div class="steps">
+  <div class="step on" id="st0">1 · Scan</div>
+  <div class="step" id="st1">2 · Draft</div>
+  <div class="step" id="st2">3 · Approve</div>
+  <div class="step" id="st3">4 · First results</div>
+</div>
+<main>
+
+<!-- STEP 1 -->
+<section id="s0">
+  <h2>Point at a repository</h2>
+  <div class="sub">We'll find your intent sources for you — documents ranked by how many product promises they contain —<br>
+  and line up recent commits to replay against the contract you approve.</div>
+  <div class="row">
+    <input type="text" id="repoInput" placeholder="/path/to/repo" value="">
+    <button class="primary" id="scanBtn">Scan repository</button>
+  </div>
+  <div id="scanOut" class="hidden">
+    <h2 style="margin-top:26px">Candidate intent sources <span style="color:var(--faint);font-size:12px">(top pre-selected — uncheck what isn't authoritative)</span></h2>
+    <div id="sources"></div>
+    <div class="note">No PRD? That's fine — approve whichever documents you'd stand behind.
+    Whatever the docs miss will surface later as findings you can approve into the contract.</div>
+    <div class="row"><button class="primary" id="draftBtn">Draft contract from selected sources →</button></div>
+  </div>
+</section>
+
+<!-- STEP 2/3 -->
+<section id="s1" class="hidden">
+  <h2>Approve your contract</h2>
+  <div class="sub">Each card is a promise we mined, with its verbatim source line. Edit the wording, reject what's wrong.
+  <b>This approval session is the authority</b> — nothing below is ours; it's your product, compiled.</div>
+  <div id="draftStatus" class="status"><span class="spin"></span>mining promises from your sources… (~a minute per document)</div>
+  <div id="cards"></div>
+  <div id="createRow" class="row hidden">
+    <span style="color:var(--dim)">workspace name</span>
+    <input type="text" id="wfId" style="width:220px">
+    <button class="primary" id="createBtn">Approve contract & continue →</button>
+  </div>
+</section>
+
+<!-- STEP 4 -->
+<section id="s2" class="hidden">
+  <h2>First results — see it judge your recent commits</h2>
+  <div class="sub">Your contract is live. Now watch it judge your last commits — value before your next PR even opens.</div>
+  <div id="sweep"></div>
+  <div class="row">
+    <button class="primary" id="runSweep">Check the last 5 commits</button>
+    <a id="ledgerLink" class="hidden">open the intent ledger →</a>
+  </div>
+</section>
+
+</main>
+<script>
+let SCAN=null, DRAFT=null, WSID=null, SWEEP_PRS=[];
+
+// Display labels only — API enum values are unchanged.
+const VERDICT = {ALIGNED:"ALIGNED", PARTIAL:"PARTIAL", POSSIBLE_DRIFT:"POSSIBLE DRIFT",
+  OFF_INTENT:"CONTRADICTS INTENT", UNKNOWN:"NEEDS REVIEW", UNGOVERNED:"NOT COVERED",
+  NO_MATERIAL_IMPACT:"NO PRODUCT IMPACT"};
+const KIND_TIP = {
+  hard_rule:"hard rule — something the product must never break",
+  permission:"permission — behavior the product explicitly allows",
+  invariant:"invariant — a property that must stay true as the code changes"};
+
+const $=id=>document.getElementById(id);
+function step(n){
+  ["s0","s1","s2"].forEach((s,i)=>$(s).classList.toggle("hidden", (n===0?i!==0:(n<3?i!==1:i!==2))));
+  for(let i=0;i<4;i++){ $("st"+i).className = "step"+(i<n?" done":i===n?" on":""); }
+}
+
+$("scanBtn").onclick = async ()=>{
+  $("scanBtn").disabled = true; $("scanBtn").textContent = "scanning…";
+  const r = await fetch("/api/onboard/scan",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({repo:$("repoInput").value})});
+  if(!r.ok){ alert(await r.text()); $("scanBtn").disabled=false; $("scanBtn").textContent="Scan repository"; return; }
+  SCAN = await r.json();
+  $("scanBtn").disabled = false; $("scanBtn").textContent = "Scan repository";
+  const max = Math.max(...SCAN.sources.map(s=>s.score), 1);
+  $("sources").innerHTML = SCAN.sources.map((s,i)=>`
+    <div class="card"><input type="checkbox" data-i="${i}" ${i<2?"checked":""}>
+      <div class="body"><div class="path">${esc(s.path)}</div>
+      <div class="why">${s.promise_hits} promise signals · ${s.words} words — “${esc(s.preview)}…”</div>
+      <div class="bar"><i style="width:${Math.round(100*s.score/max)}%"></i></div></div></div>`).join("");
+  $("scanOut").classList.remove("hidden");
+};
+
+$("draftBtn").onclick = async ()=>{
+  const docs = [...document.querySelectorAll("#sources input:checked")].map(cb=>SCAN.sources[+cb.dataset.i].path);
+  if(!docs.length){ alert("pick at least one source"); return; }
+  step(1); $("draftStatus").classList.remove("hidden");
+  $("draftStatus").innerHTML = `<span class="spin"></span>mining promises from your sources… (~a minute per document)`;
+  const r = await fetch("/api/onboard/draft",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({repo:SCAN.repo, docs})});
+  if(!r.ok){
+    $("draftStatus").innerHTML = `<span style="color:var(--bad)">Drafting failed — ${esc((await r.text()).slice(0,300))}. Go back and try again.</span>`;
+    return;
+  }
+  DRAFT = await r.json();
+  $("draftStatus").classList.add("hidden");
+  step(2); renderCards();
+  $("wfId").value = SCAN.suggested_workflow_id;
+  $("createRow").classList.remove("hidden");
+};
+
+const CONSTRAINTS = {must_link:[], cannot_link:[], labels:{}};
+
+function primaryGroup(obId, groups){
+  let best=null, bw=-1;
+  for(const g of groups) for(const m of (g.members||[]))
+    if(m.obligation_id===obId && m.weight>bw){ best=g.group_id; bw=m.weight; }
+  return best;
+}
+
+function groupLabel(gid, groups){
+  const g = groups.find(x=>x.group_id===gid);
+  return (g && g.label) ? g.label : (gid || "");
+}
+
+function renderCards(){
+  const byId = Object.fromEntries(DRAFT.obligations.map((o,i)=>[o.obligation_id,i]));
+  const groups = (DRAFT.groups && DRAFT.groups.length) ? DRAFT.groups
+    : [{group_id:"G1", label:"all", anchor:DRAFT.obligations[0]?.obligation_id,
+       members:DRAFT.obligations.map(o=>({obligation_id:o.obligation_id, weight:1})),
+       obligation_ids:DRAFT.obligations.map(o=>o.obligation_id), files:[]}];
+  $("cards").innerHTML = groups.map(g=>{
+    const bridgeNote = (DRAFT.bridges||[]).filter(b=>b.groups.includes(g.group_id));
+    const rows = (g.members||[]).map(m=>{
+      const home = primaryGroup(m.obligation_id, groups);
+      if(home !== g.group_id)
+        return `<div class="bind" style="padding:6px 14px; border:1px dashed var(--line); margin-bottom:8px">
+          ↳ ${esc(m.obligation_id)} <span style="color:var(--faint)">also lives here · ${Math.round(m.weight*100)}% related — mainly in ${esc(groupLabel(home, groups))}</span></div>`;
+      const extra = (m.weight < 1)
+        ? `<span style="color:var(--ungov); font-size:10px"> · ${Math.round(m.weight*100)}% here, also in ${groups.filter(x=>x.group_id!==g.group_id && (x.members||[]).some(y=>y.obligation_id===m.obligation_id)).map(x=>esc(x.label||x.group_id)).join(", ")}</span>`
+        : "";
+      return cardHtml(byId[m.obligation_id], extra, m.obligation_id);
+    }).join("");
+    return `<div style="margin:24px 0 10px; display:flex; gap:12px; align-items:baseline">
+      <input type="checkbox" class="gsel" data-anchor="${esc(g.anchor)}" title="select for merge" style="accent-color:var(--accent)">
+      <span style="font-family:'Fraunces',serif; font-size:16px; color:var(--accent)">◉</span>
+      <input type="text" value="${esc(g.label)}" data-anchor="${esc(g.anchor)}" class="glabel"
+        style="width:280px; background:none; border:none; border-bottom:1px dashed var(--line); color:var(--paper); font:inherit; letter-spacing:1px; text-transform:uppercase; font-size:11px">
+      <span style="color:var(--faint); font-size:10px">${esc(g.group_id)}</span>
+      <span style="color:var(--faint); font-size:10px">${(g.members||[]).length} promises · ${g.files.length} code locations${bridgeNote.length?` · ${bridgeNote.length} files shared with other areas`:""}</span>
+    </div>` + rows;
+  }).join("");
+  $("cards").insertAdjacentHTML("beforeend", `
+    <div class="row" style="margin-top:18px">
+      <button class="ghost" onclick="mergeSelected()">Merge selected groups</button>
+      <button class="ghost" onclick="extractSelected()">Extract checked promises to new group</button>
+      <span style="color:var(--faint); font-size:10px">your edits update the grouping and are saved with your workspace</span>
+    </div>`);
+  document.querySelectorAll(".glabel").forEach(inp=>{
+    inp.onchange = ()=>{ CONSTRAINTS.labels[inp.dataset.anchor] = inp.value; regroup(); };
+  });
+  if(DRAFT.notes && DRAFT.notes.length) $("cards").insertAdjacentHTML("beforeend",
+    `<div class="note">${DRAFT.notes.length} suggestion(s) were left out because their source quote or file path couldn't be verified.</div>`);
+}
+
+async function regroup(){
+  const r = await fetch("/api/onboard/regroup",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({obligations:DRAFT.obligations, bindings:DRAFT.bindings, constraints:CONSTRAINTS})});
+  if(!r.ok){ alert("Regrouping failed: " + await r.text()); return; }
+  const out = await r.json();
+  DRAFT.groups = out.groups; DRAFT.bridges = out.bridges;
+  renderCards();
+}
+
+function mergeSelected(){
+  const anchors = [...document.querySelectorAll(".gsel:checked")].map(cb=>cb.dataset.anchor);
+  if(anchors.length < 2){ alert("select two or more groups"); return; }
+  for(let i=1;i<anchors.length;i++) CONSTRAINTS.must_link.push([anchors[0], anchors[i]]);
+  regroup();
+}
+
+function extractSelected(){
+  const picked = [...document.querySelectorAll(".xsel:checked")].map(cb=>cb.dataset.ob);
+  if(!picked.length){ alert("check promises to extract (☐ next to the id)"); return; }
+  const groups = DRAFT.groups || [];
+  for(const ob of picked){
+    const home = groups.find(g=>g.group_id===primaryGroup(ob, groups));
+    if(home && home.anchor !== ob) CONSTRAINTS.cannot_link.push([ob, home.anchor]);
+  }
+  for(let i=1;i<picked.length;i++) CONSTRAINTS.must_link.push([picked[0], picked[i]]);
+  regroup();
+}
+function cardHtml(i, extraBadge, obId){
+  return [DRAFT.obligations[i]].map((o)=>{
+    const binds = DRAFT.bindings.map((b,j)=>({b,j})).filter(x=>x.b.obligation_id===o.obligation_id);
+    return `<div class="ob-card" id="ob${i}">
+      <div class="ob-head"><input type="checkbox" class="xsel" data-ob="${esc(o.obligation_id)}" title="select to extract" style="accent-color:var(--ungov)"><span class="id">${esc(o.obligation_id)}</span>${extraBadge||""}
+        <span class="kind ${esc(o.kind)}" title="${esc(KIND_TIP[o.kind]||"")}">${esc((o.kind||"").replace("_"," "))}</span>
+        <span style="color:var(--faint);font-size:11px">from ${esc(o.source_reference)}</span>
+        <span class="actions">
+          <button class="ghost" onclick="toggleOb(${i})" id="tg${i}">reject</button></span></div>
+      <div class="ob-body">
+        <textarea id="txt${i}">${esc(o.statement)}</textarea>
+        <div class="quote">“${esc(o.source_quote)}”</div>
+        ${binds.map(x=>`<div class="bind"><input type="checkbox" checked data-j="${x.j}">
+          <code>${esc(x.b.path)}</code> — ${esc(x.b.relation)} <span style="color:var(--faint)">(${esc(x.b.why)})</span></div>`).join("")}
+      </div></div>`;
+  }).join("");
+}
+const REJ = new Set();
+function toggleOb(i){
+  REJ.has(i) ? REJ.delete(i) : REJ.add(i);
+  $("ob"+i).classList.toggle("rejected", REJ.has(i));
+  $("tg"+i).textContent = REJ.has(i) ? "restore" : "reject";
+}
+
+$("createBtn").onclick = async ()=>{
+  const approvedIdx = DRAFT.obligations.map((_,i)=>i).filter(i=>!REJ.has(i));
+  const approvedIds = new Set(approvedIdx.map(i=>DRAFT.obligations[i].obligation_id));
+  const checkedBinds = [...document.querySelectorAll(".bind input:checked")].map(cb=>DRAFT.bindings[+cb.dataset.j])
+    .filter(b=>approvedIds.has(b.obligation_id));
+  const cps = {}; const bindRows = [];
+  for(const b of checkedBinds){
+    // Prefer the server-minted control point id; fall back to the legacy stem only if absent.
+    const cpId = b.control_point_id || ("CP-" + b.path.split("/").pop().split(".")[0]);
+    cps[cpId] = cps[cpId] || {control_point_id:cpId, role:b.role, path:b.path, ...(b.symbol?{symbol:b.symbol}:{}), description:b.why};
+    bindRows.push({obligation_id:b.obligation_id, control_point_id:cpId, relation:b.relation});
+  }
+  const obligations = approvedIdx.map(i=>{
+    const o = DRAFT.obligations[i];
+    return {obligation_id:o.obligation_id, kind:o.kind, statement:$("txt"+i).value.trim(),
+      source_reference:o.source_reference, source_section:o.source_section||"",
+      revision:"onboard-1"};
+  });
+  const sources = [...new Set(obligations.map(o=>o.source_reference))].map(ref=>{
+    const doc = SCAN.sources.find(s=>s.path.includes(ref));
+    return {reference:ref, path:doc?doc.path:ref, version:"onboard-1"};
+  });
+  const sweep = SCAN.commits.slice(0,5);
+  const r = await fetch("/api/onboard/create",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({workflow_id:$("wfId").value, repo:SCAN.repo, sources, obligations,
+      control_points:Object.values(cps), bindings:bindRows, sweep_commits:sweep,
+      grouping_constraints:CONSTRAINTS})});
+  if(!r.ok){ alert("Creating the workspace failed: " + await r.text()); return; }
+  const out = await r.json();
+  WSID = out.workspace; SWEEP_PRS = out.sweep_prs;
+  step(3);
+  $("sweep").innerHTML = SCAN.commits.slice(0,5).map((c,i)=>`
+    <div class="sweep-row"><span class="sha" title="${esc(c.sha)}">${esc(c.sha.slice(0,8))}</span> ${esc(c.subject)}
+      <span class="verdict" id="v${i+1}">—</span></div>`).join("");
+  $("ledgerLink").href = `/intent/${WSID}`;
+};
+
+$("runSweep").onclick = async ()=>{
+  $("runSweep").disabled = true;
+  for(const n of SWEEP_PRS){
+    $("v"+n).innerHTML = `<span class="spin"></span>`;
+    try{
+      const r = await fetch("/analyses",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({workspace:WSID, pr_number:n})});
+      if(!r.ok){ $("v"+n).textContent = "error"; continue; }
+      const a = await r.json();
+      $("v"+n).textContent = VERDICT[a.classification] || (a.classification||"error").replace(/_/g," ");
+    }catch(e){ $("v"+n).textContent = "error"; }
+  }
+  $("ledgerLink").classList.remove("hidden");
+};
+
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+</script>
+</body>
+</html>

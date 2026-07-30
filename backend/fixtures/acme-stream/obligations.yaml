@@ -1,0 +1,10 @@
+# Acme Commerce — approved behavioral promises (multi-area).
+obligations:
+  - {obligation_id: OB-PAY-1, kind: hard_rule, statement: "High-risk refunds always require human approval before payout.", source_reference: acme-prd, source_section: "#refunds"}
+  - {obligation_id: OB-PAY-2, kind: permission, statement: "Premium customers may receive automatic refunds up to $100.", source_reference: acme-prd, source_section: "#refunds"}
+  - {obligation_id: OB-PAY-3, kind: invariant, statement: "The tool-side guard enforces the refund ceiling independently of the decision policy.", source_reference: acme-prd, source_section: "#refunds"}
+  - {obligation_id: OB-CHK-1, kind: hard_rule, statement: "Card authorization completes before order confirmation.", source_reference: acme-prd, source_section: "#checkout"}
+  - {obligation_id: OB-CHK-2, kind: invariant, statement: "Checkout never double-charges a card on retry.", source_reference: acme-prd, source_section: "#checkout"}
+  - {obligation_id: OB-RISK-1, kind: hard_rule, statement: "Fraud scores above the threshold page the on-call risk owner.", source_reference: acme-prd, source_section: "#risk"}
+  - {obligation_id: OB-NOTIF-1, kind: permission, statement: "Order notifications send at most one message per state change.", source_reference: acme-prd, source_section: "#notifications"}
+  - {obligation_id: OB-NOTIF-2, kind: invariant, statement: "A failed notification never blocks order completion.", source_reference: acme-prd, source_section: "#notifications"}

@@ -1,0 +1,103 @@
+# First-person coding sessions in the collision window.
+# tomas firefights the Alerts incident. aisha does a routine send-path refactor
+# and, with no idea, drops the opt-in gate — the Consent break. ben does a small
+# Delivery tidy. Note aisha's session: it reads like a clean-up, not a mistake.
+
+- session_id: sess-alerts-firefight-01
+  actor: tomas
+  digested_at: '2026-07-14T09:30:00+00:00'
+  title: Get pages off the disk-write critical path
+  summary: Moved the audit write off the alert dispatch path so paging no longer blocks on a slow disk write.
+  decisions:
+  - choice: dispatch the page first, write the audit record asynchronously after
+    why: the synchronous audit write was blocking every page and stalling the worker pool under load
+    rejected: keeping the write inline but on a faster disk
+  reasoning: >
+    Traced the alert latency to a synchronous audit write that a deploy added inside
+    the dispatch path last night. Under real morning traffic the workers backed up
+    behind the disk write and the 60-second SLA slipped to minutes. I pulled the audit
+    write out of the hot path — pages fire immediately and the record is written on a
+    background worker. Verified with a synthetic threshold event: paged in under 5s.
+  touched_paths:
+  - repo/alerts/dispatch.py
+  - repo/alerts/audit.py
+  turns: 51
+
+- session_id: sess-sendpath-refactor-02
+  actor: aisha
+  digested_at: '2026-07-14T09:10:00+00:00'
+  title: Tidy the notification send path
+  summary: Refactored the send path into a single pipeline function and cleaned up the pre-send checks.
+  decisions:
+  - choice: collapse the scattered pre-send checks into one validate_and_send helper
+    why: the send path had grown three near-duplicate check blocks across two modules and was hard to follow
+    rejected: leaving the duplicated blocks in place
+  reasoning: >
+    The send path had accumulated cruft — a couple of modules each ran their own
+    pre-send validation and they had drifted out of sync. I pulled everything into a
+    single validate_and_send helper and routed both call sites through it. Removed the
+    old redundant check blocks. Ran the unit tests I knew about, green. Quiet cleanup,
+    nothing behavioral — just less duplication. Shipped between incident pings.
+  touched_paths:
+  - repo/messaging/send.py
+  - repo/consent/gate.py
+  turns: 34
+
+- session_id: sess-delivery-backoff-03
+  actor: ben
+  digested_at: '2026-07-15T14:00:00+00:00'
+  title: Cap the delivery retry backoff
+  summary: Added a ceiling to the exponential backoff so a failing recipient does not retry forever.
+  decisions:
+  - choice: cap the backoff at 5 minutes
+  reasoning: >
+    The delivery retry backoff had no upper bound, so a permanently failing recipient
+    could grow the interval without limit. Added a max interval. Small, contained.
+  touched_paths:
+  - repo/delivery/retry.py
+  turns: 14
+
+# nadia and carlos join the firefight and the surrounding dev work. Their code
+# lands on Alerts and Delivery — never near the opt-in gate. They keep the
+# incident loud on Alerts; nobody looks at the send path's consent check.
+- session_id: sess-alerts-queue-drain-04
+  actor: nadia
+  digested_at: '2026-07-14T09:50:00+00:00'
+  title: Add queue-depth backpressure to the alert worker
+  summary: Added a bounded queue and depth metric to the alert dispatch worker so a stalled path is visible before the SLA slips.
+  decisions:
+  - choice: bound the page queue and emit a depth gauge, alert on depth > 50
+    why: during the incident the worker pool backed up invisibly until pages were minutes late; we had no signal on queue depth
+    rejected: relying on end-to-end page latency alone, which only fires after the SLA is already blown
+  reasoning: >
+    Paired with tomas on the alerts fix and stayed on to make the failure mode
+    observable next time. The dispatch worker had an unbounded in-memory page
+    queue, so when the synchronous audit write stalled it this morning nobody
+    could see the backlog until clinicians were paged minutes late. Added a
+    bounded queue with a depth gauge and a threshold alert at depth 50, well
+    under the 60 second SLA budget. Verified the gauge climbs and fires under a
+    synthetic slow-dispatch injection.
+  touched_paths:
+  - repo/alerts/dispatch.py
+  turns: 41
+
+- session_id: sess-delivery-deadletter-05
+  actor: carlos
+  digested_at: '2026-07-15T15:20:00+00:00'
+  title: Dead-letter delivery failures after the backoff ceiling
+  summary: Routed a delivery that exhausts the capped backoff to a dead-letter queue instead of dropping it silently.
+  decisions:
+  - choice: on backoff-ceiling exhaustion, move the message to a dead-letter queue with the failure reason
+    why: after ben capped the backoff, a permanently failing recipient just fell off the end with no record; delivery failures were vanishing
+    rejected: keeping the drop-on-exhaustion behavior and relying on logs
+  reasoning: >
+    Follow-up to ben's delivery backoff cap. Once the retry interval had a
+    ceiling, a message to a dead recipient hit the cap and was dropped with no
+    trace. For a healthcare send pipeline a silently dropped delivery is
+    unacceptable, so I routed exhausted retries to a dead-letter queue that
+    keeps the message and the failure reason for operator review. Exponential
+    backoff still runs first; dead-lettering only happens after it is
+    exhausted. Contained change to the retry path.
+  touched_paths:
+  - repo/delivery/retry.py
+  turns: 22

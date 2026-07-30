@@ -1,0 +1,4 @@
+workflow_id: helios
+requirements: {provider: fixture, reference: helios-prd}
+repositories:
+  - {provider: fixture, repository: helios-ledger, path: repo}

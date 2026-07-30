@@ -1,0 +1,78 @@
+# Approved product promises (obligations). `revision` pins the exact
+# wording an analysis judged against — bump it whenever a statement
+# changes so history stays replayable.
+obligations:
+- obligation_id: TELEGR-001
+  kind: hard_rule
+  statement: Scout must never respond to regular (non-command) messages in the group chat.
+  source_reference: DESIGN
+  source_section: Quiet by Default
+  revision: onboard-1
+- obligation_id: TELEGR-002
+  kind: hard_rule
+  statement: Every raw message must be saved to the database before any other processing occurs.
+  source_reference: DESIGN
+  source_section: Architecture
+  revision: onboard-1
+- obligation_id: TELEGR-003
+  kind: hard_rule
+  statement: The alert check must run before facts are merged, so new facts are not mistakenly
+    treated as already known.
+  source_reference: DESIGN
+  source_section: Digestion Pipeline
+  revision: onboard-1
+- obligation_id: TELEGR-004
+  kind: hard_rule
+  statement: Facts must be deduplicated by source message overlap AND content similarity (Jaccard
+    > 0.6) during the merge step.
+  source_reference: DESIGN
+  source_section: Digestion Pipeline
+  revision: onboard-1
+- obligation_id: TELEGR-005
+  kind: hard_rule
+  statement: CEO alerts must be sent as a private DM, not posted in the group chat.
+  source_reference: DESIGN
+  source_section: Quiet by Default
+  revision: onboard-1
+- obligation_id: TELEGR-006
+  kind: hard_rule
+  statement: "The digestion pipeline must sweep stale facts \u2014 marking overdue deadlines\
+    \ and action items as resolved \u2014 on every digestion cycle."
+  source_reference: DESIGN
+  source_section: Digestion Pipeline
+  revision: onboard-1
+- obligation_id: TELEGR-007
+  kind: hard_rule
+  statement: The router must use the Haiku model for digestion, alert checks, and routing
+    decisions; the Sonnet model must be used for briefings, research, and Q&A.
+  source_reference: DESIGN
+  source_section: Model Orchestration
+  revision: onboard-1
+- obligation_id: TELEGR-008
+  kind: hard_rule
+  statement: The pipeline must track a lastDigestedMessageId cursor so each run only processes
+    new messages since the last digestion, with no re-processing.
+  source_reference: DESIGN
+  source_section: Digestion Pipeline
+  revision: onboard-1
+- obligation_id: TELEGR-009
+  kind: permission
+  statement: Scout may send a CEO alert DM only when the model judges the CEO would regret
+    missing the information if they were busy for a few hours.
+  source_reference: DESIGN
+  source_section: CEO Alerts
+  revision: onboard-1
+- obligation_id: TELEGR-010
+  kind: hard_rule
+  statement: Research commands must use Claude's server-side web_search and web_fetch tools,
+    with no external search API dependencies.
+  source_reference: DESIGN
+  source_section: Model Orchestration
+  revision: onboard-1
+- obligation_id: TELEGR-011
+  kind: invariant
+  statement: The router must always return both an intent value and a clarity value, which
+    together control the depth of the model's response.
+  source_reference: DESIGN
+  source_section: The Router Prescribes Context
+  revision: onboard-1

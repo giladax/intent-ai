@@ -1,0 +1,79 @@
+"""Workspace resolution and adapter construction — shared by CLI and API.
+
+One place decides how a workspace name maps to a directory and which
+provider adapter serves it (previously copy-pasted four times, and the
+``github`` provider was never dispatched at all, making ``--publish``
+unreachable).
+"""
+
+from __future__ import annotations
+
+import pathlib
+
+import yaml
+
+_ROOT = pathlib.Path(__file__).parent.parent
+FIXTURES = _ROOT / "fixtures"
+WORKSPACES = _ROOT / "workspaces"
+
+_env_loaded = False
+
+
+def load_env() -> None:
+    """Load credentials once: repo-root .env (ANTHROPIC_API_KEY,
+    LANGSMITH_*, GITHUB_TOKEN) then any local .env overrides.
+
+    LangSmith TRACING defaults OFF for product paths — it is telemetry,
+    and an exhausted trace quota spams every CLI run with rate-limit
+    errors that read like failures. Opt back in with QUIRE_TRACE=1
+    (eval work); the LangSmith dataset client is unaffected either way."""
+    global _env_loaded
+    if _env_loaded:
+        return
+    import os
+
+    from dotenv import load_dotenv
+
+    load_dotenv(_ROOT.parent / ".env")
+    load_dotenv()
+    if os.environ.get("QUIRE_TRACE") != "1":
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"
+        os.environ["LANGSMITH_TRACING"] = "false"
+    _env_loaded = True
+
+
+def resolve_workspace_dir(workspace: str | pathlib.Path) -> pathlib.Path:
+    """Map a workspace argument (explicit path, fixture name, or
+    workspaces/ name) to its directory. Raises FileNotFoundError with the
+    searched locations when nothing matches."""
+    for candidate in (
+        pathlib.Path(workspace),
+        FIXTURES / str(workspace),
+        WORKSPACES / str(workspace),
+    ):
+        if (candidate / "workflow.yaml").exists():
+            return candidate
+    raise FileNotFoundError(
+        f"no workflow.yaml under '{workspace}' (searched the given path, "
+        f"{FIXTURES}, and {WORKSPACES})"
+    )
+
+
+def build_adapter(workspace: str | pathlib.Path):
+    """Resolve the workspace dir and build the adapter its manifest asks
+    for: git → GitWorkspace, github → GitHubWorkspace (publishing-capable),
+    anything else → FixtureWorkspace."""
+    path = resolve_workspace_dir(workspace)
+    manifest = yaml.safe_load((path / "workflow.yaml").read_text())
+    provider = manifest["repositories"][0]["provider"]
+    if provider == "git":
+        from quire.adapters.git import GitWorkspace
+
+        return GitWorkspace(path)
+    if provider == "github":
+        from quire.adapters.github import GitHubWorkspace
+
+        return GitHubWorkspace(path)
+    from quire.adapters.fixture import FixtureWorkspace
+
+    return FixtureWorkspace(path)

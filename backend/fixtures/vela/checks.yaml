@@ -1,0 +1,22 @@
+# PR check outcomes. The Alerts fix landed clean (they fixed the SLA in the
+# incident) — no material impact. The send-path refactor QUIETLY contradicts
+# the opt-in promise: the check catches it, but by then nobody was looking —
+# every human was in the Alerts incident. That is the silent drift.
+- pr: 341
+  ts: '2026-07-14T09:40:00+00:00'
+  actor: tomas
+  verdict: no material impact
+  promises:
+  - OB-ALERTS-1
+- pr: 342
+  ts: '2026-07-14T09:20:00+00:00'
+  actor: aisha
+  verdict: contradicts intent
+  promises:
+  - OB-CONSENT-1
+- pr: 343
+  ts: '2026-07-15T14:30:00+00:00'
+  actor: ben
+  verdict: no material impact
+  promises:
+  - OB-DELIVERY-1

@@ -1,0 +1,12 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## User Attention (stale \u2014 older than 10 min)\nSurface: feed\nLens: Feature \u2014 \"Activity Event Backbone\" (id: 1bc74e71-4587-45fb-94b7-4f830c7d8022)\nExpanded stories: 1bc74e71-4587-45fb-94b7-4f830c7d8022\n\n_Updated at: 2026-07-06T19:07:39.386Z_\n\n### Feature orientation\nFeature: Activity Event Backbone  [id: 1bc74e71-4587-45fb-94b7-4f830c7d8022]\n\nUnderstanding: The daemon's live ObservedEvent stream and the DB schema's rawEvents/normalizedEvents were discovered to be completely separate pipelines with no connection, establishing the need for a unified event backbone. [s:2b589b44] The activity event table uses fully freeform categories, tags, and actor values \u2014 no enums, no taxonomy \u2014 with source_type/source_id back-references to originating records, and repo/branch/worktree as top-level columns; the embedding column is deferred as TEXT until pgvector is ready. [s:138200f0] Event emission follows the pattern of importing `emitEvents` and `ActivityEvent`, building events with freeform fields, and always wrapping in try/catch so failures never propagate to the parent operation; context fields (repo, branch, worktree) are auto-carried. [s:8e312af2]\n\nConstraints:\n  \u00b7 Event categories, tags, and actor values are fully freeform \u2014 no enums, no conventions, no taxonomy document.\n  \u00b7 Events are self-contained and queryable without joins.\n  \u00b7 source_type/source_id back-references must point to originating records.\n  \u00b7 repo, branch, and worktree are top-level columns on every event.\n  \u00b7 Embedding column stays as TEXT until pgvector is explicitly added.\n  \u00b7 Event emission must always be wrapped in try/catch so it never fails the parent operation.\n  \u00b7 Timestamps must reflect actual session time, not digest time.\n\nDrill:\n  \u00b7 8 moments (ids: d68aa268\u2026, 36ef20cb\u2026, a5ea6eb9\u2026) \u2192 brain_moments(\"1bc74e71-4587-45fb-94b7-4f830c7d8022\")\n  \u00b7 2 sessions (s: 38a57241\u2026, 8e312af2\u2026) \u2192 brain_narrative(sessionId)\n  \u00b7 evidence per moment \u2192 brain_evidence(momentId)\n\nFor full context (moments+evidence+sessions+files): brain_feature_context(\"1bc74e71-4587-45fb-94b7-4f830c7d8022\", depth: \"full\")"
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 19
+}

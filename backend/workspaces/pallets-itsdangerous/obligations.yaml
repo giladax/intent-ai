@@ -1,0 +1,443 @@
+# Approved product promises (obligations). `revision` pins the exact
+# wording an analysis judged against — bump it whenever a statement
+# changes so history stays replayable.
+obligations:
+- obligation_id: PALLET-001
+  kind: hard_rule
+  statement: Redistributions of source code must retain the copyright notice, list of conditions,
+    and disclaimer.
+  source_quote: "Redistributions of source code must retain the above copyright\n    notice,\
+    \ this list of conditions and the following disclaimer."
+  source_section: Condition 1
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: "Redistributions of source code must retain the above copyright\n    notice,\
+    \ this list of conditions and the following disclaimer."
+  accepted: true
+  editedStatement: Redistributions of source code must retain the copyright notice, list of
+    conditions, and disclaimer.
+- obligation_id: PALLET-002
+  kind: hard_rule
+  statement: Redistributions in binary form must reproduce the copyright notice, list of conditions,
+    and disclaimer in the documentation and/or other materials provided with the distribution.
+  source_quote: "Redistributions in binary form must reproduce the above copyright\n    notice,\
+    \ this list of conditions and the following disclaimer in the\n    documentation and/or\
+    \ other materials provided with the distribution."
+  source_section: Condition 2
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: "Redistributions in binary form must reproduce the above copyright\n \
+    \   notice, this list of conditions and the following disclaimer in the\n    documentation\
+    \ and/or other materials provided with the distribution."
+  accepted: true
+  editedStatement: Redistributions in binary form must reproduce the copyright notice, list
+    of conditions, and disclaimer in the documentation and/or other materials provided with
+    the distribution.
+- obligation_id: PALLET-003
+  kind: hard_rule
+  statement: The name of the copyright holder must never be used to endorse or promote products
+    derived from this software without specific prior written permission.
+  source_quote: "Neither the name of the copyright holder nor the names of its\n    contributors\
+    \ may be used to endorse or promote products derived from\n    this software without specific\
+    \ prior written permission."
+  source_section: Condition 3
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: "Neither the name of the copyright holder nor the names of its\n    contributors\
+    \ may be used to endorse or promote products derived from\n    this software without specific\
+    \ prior written permission."
+  accepted: true
+  editedStatement: The name of the copyright holder must never be used to endorse or promote
+    products derived from this software without specific prior written permission.
+- obligation_id: PALLET-004
+  kind: hard_rule
+  statement: The names of contributors must never be used to endorse or promote products derived
+    from this software without specific prior written permission.
+  source_quote: "Neither the name of the copyright holder nor the names of its\n    contributors\
+    \ may be used to endorse or promote products derived from\n    this software without specific\
+    \ prior written permission."
+  source_section: Condition 3
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: "Neither the name of the copyright holder nor the names of its\n    contributors\
+    \ may be used to endorse or promote products derived from\n    this software without specific\
+    \ prior written permission."
+  accepted: true
+  editedStatement: The names of contributors must never be used to endorse or promote products
+    derived from this software without specific prior written permission.
+- obligation_id: PALLET-005
+  kind: invariant
+  statement: The software is provided 'as is' with no express or implied warranties, including
+    no implied warranty of merchantability or fitness for a particular purpose.
+  source_quote: 'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+
+    PARTICULAR PURPOSE ARE DISCLAIMED.'
+  source_section: Disclaimer
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: 'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+
+    PARTICULAR PURPOSE ARE DISCLAIMED.'
+  accepted: true
+  editedStatement: The software is provided 'as is' with no express or implied warranties,
+    including no implied warranty of merchantability or fitness for a particular purpose.
+- obligation_id: PALLET-006
+  kind: hard_rule
+  statement: The copyright holder and contributors must never be held liable for any direct
+    damages arising from the use of this software.
+  source_quote: 'IN NO EVENT SHALL THE COPYRIGHT
+
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+
+    TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
+  source_section: Disclaimer
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: 'IN NO EVENT SHALL THE COPYRIGHT
+
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+
+    TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
+  accepted: true
+  editedStatement: The copyright holder and contributors must never be held liable for any
+    direct damages arising from the use of this software.
+- obligation_id: PALLET-007
+  kind: hard_rule
+  statement: The copyright holder and contributors must never be held liable for any indirect,
+    incidental, special, exemplary, or consequential damages arising from the use of this
+    software.
+  source_quote: 'IN NO EVENT SHALL THE COPYRIGHT
+
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+
+    TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
+  source_section: Disclaimer
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: 'IN NO EVENT SHALL THE COPYRIGHT
+
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+
+    TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
+  accepted: true
+  editedStatement: The copyright holder and contributors must never be held liable for any
+    indirect, incidental, special, exemplary, or consequential damages arising from the use
+    of this software.
+- obligation_id: PALLET-008
+  kind: permission
+  statement: Redistribution and use in source and binary forms, with or without modification,
+    are permitted provided that all stated conditions are met.
+  source_quote: 'Redistribution and use in source and binary forms, with or without
+
+    modification, are permitted provided that the following conditions are
+
+    met:'
+  source_section: Preamble
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: 'Redistribution and use in source and binary forms, with or without
+
+    modification, are permitted provided that the following conditions are
+
+    met:'
+  accepted: true
+  editedStatement: Redistribution and use in source and binary forms, with or without modification,
+    are permitted provided that all stated conditions are met.
+- obligation_id: PALLET-009
+  kind: hard_rule
+  statement: The liability exclusion applies regardless of the theory of liability, including
+    contract, strict liability, or tort (including negligence).
+  source_quote: 'HOWEVER CAUSED AND ON ANY THEORY OF
+
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
+  source_section: Disclaimer
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: 'HOWEVER CAUSED AND ON ANY THEORY OF
+
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
+  accepted: true
+  editedStatement: The liability exclusion applies regardless of the theory of liability,
+    including contract, strict liability, or tort (including negligence).
+- obligation_id: PALLET-010
+  kind: hard_rule
+  statement: The liability exclusion applies even if the copyright holder or contributors
+    have been advised of the possibility of such damage.
+  source_quote: EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  source_section: Disclaimer
+  source_reference: LICENSE.txt
+  revision: draft-1
+  provenance_quote: EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  accepted: true
+  editedStatement: The liability exclusion applies even if the copyright holder or contributors
+    have been advised of the possibility of such damage.
+- obligation_id: PALLET-011
+  kind: hard_rule
+  statement: A ticket describing the issue or feature must be opened before opening a PR.
+  source_quote: Before opening a PR, open a ticket describing the issue or feature the PR
+    will address.
+  source_section: PR Template Instructions
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Before opening a PR, open a ticket describing the issue or feature the
+    PR will address.
+  accepted: true
+  editedStatement: A ticket describing the issue or feature must be opened before opening
+    a PR.
+- obligation_id: PALLET-012
+  kind: permission
+  statement: A PR may be opened without a linked issue when fixing typos in documentation
+    or making other simple non-code changes.
+  source_quote: An issue is not required for fixing typos in documentation, or other simple
+    non-code changes.
+  source_section: PR Template Instructions
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: An issue is not required for fixing typos in documentation, or other simple
+    non-code changes.
+  accepted: true
+  editedStatement: A PR may be opened without a linked issue when fixing typos in documentation
+    or making other simple non-code changes.
+- obligation_id: PALLET-013
+  kind: hard_rule
+  statement: Tests that demonstrate the correct behavior of the change must be added, and
+    those tests must fail without the change.
+  source_quote: Add tests that demonstrate the correct behavior of the change. Tests should
+    fail without the change.
+  source_section: CONTRIBUTING.rst checklist
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Add tests that demonstrate the correct behavior of the change. Tests should
+    fail without the change.
+  accepted: true
+  editedStatement: Tests that demonstrate the correct behavior of the change must be added,
+    and those tests must fail without the change.
+- obligation_id: PALLET-014
+  kind: hard_rule
+  statement: Relevant documentation in the docs folder and in code must be added or updated.
+  source_quote: Add or update relevant docs, in the docs folder and in code.
+  source_section: CONTRIBUTING.rst checklist
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Add or update relevant docs, in the docs folder and in code.
+  accepted: true
+  editedStatement: Relevant documentation in the docs folder and in code must be added or
+    updated.
+- obligation_id: PALLET-015
+  kind: hard_rule
+  statement: An entry summarizing the change and linking to the issue must be added in CHANGES.rst.
+  source_quote: Add an entry in CHANGES.rst summarizing the change and linking to the issue.
+  source_section: CONTRIBUTING.rst checklist
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Add an entry in CHANGES.rst summarizing the change and linking to the
+    issue.
+  accepted: true
+  editedStatement: An entry summarizing the change and linking to the issue must be added
+    in CHANGES.rst.
+- obligation_id: PALLET-016
+  kind: hard_rule
+  statement: versionchanged entries must be added in any relevant code docs.
+  source_quote: Add `.. versionchanged::` entries in any relevant code docs.
+  source_section: CONTRIBUTING.rst checklist
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Add `.. versionchanged::` entries in any relevant code docs.
+  accepted: true
+  editedStatement: versionchanged entries must be added in any relevant code docs.
+- obligation_id: PALLET-017
+  kind: hard_rule
+  statement: The PR description must explain how the change addresses the linked ticket.
+  source_quote: Describe how it addresses the linked ticket.
+  source_section: PR Template Instructions
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Describe how it addresses the linked ticket.
+  accepted: true
+  editedStatement: The PR description must explain how the change addresses the linked ticket.
+- obligation_id: PALLET-018
+  kind: hard_rule
+  statement: Links to relevant issues or previous PRs must be included, one per line.
+  source_quote: Link to relevant issues or previous PRs, one per line.
+  source_section: PR Template Instructions
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Link to relevant issues or previous PRs, one per line.
+  accepted: true
+  editedStatement: Links to relevant issues or previous PRs must be included, one per line.
+- obligation_id: PALLET-019
+  kind: permission
+  statement: The contributor may use 'fixes' in the issue link to automatically close an issue.
+  source_quote: Use "fixes" to automatically close an issue.
+  source_section: PR Template Instructions
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Use "fixes" to automatically close an issue.
+  accepted: true
+  editedStatement: The contributor may use 'fixes' in the issue link to automatically close
+    an issue.
+- obligation_id: PALLET-020
+  kind: hard_rule
+  statement: Every step in CONTRIBUTING.rst must be completed before submitting a PR.
+  source_quote: Ensure each step in CONTRIBUTING.rst is complete
+  source_section: CONTRIBUTING.rst checklist
+  source_reference: .github/pull_request_template.md
+  revision: draft-1
+  provenance_quote: Ensure each step in CONTRIBUTING.rst is complete
+  accepted: true
+  editedStatement: Every step in CONTRIBUTING.rst must be completed before submitting a PR.
+- obligation_id: PALLET-021
+  kind: hard_rule
+  statement: The system must cryptographically sign data using a key so that tampering can
+    be detected when the data is returned.
+  source_quote: Given a key only you know, you can cryptographically sign your data and hand
+    it over to someone else. When you get the data back you can ensure that nobody tampered
+    with it.
+  source_section: ItsDangerous
+  source_reference: docs/index.rst
+  revision: draft-1
+  provenance_quote: Given a key only you know, you can cryptographically sign your data and
+    hand it over to someone else. When you get the data back you can ensure that nobody tampered
+    with it.
+  accepted: true
+  editedStatement: The system must cryptographically sign data using a key so that tampering
+    can be detected when the data is returned.
+- obligation_id: PALLET-022
+  kind: hard_rule
+  statement: The system must prevent a receiver from modifying signed data unless they possess
+    the signing key.
+  source_quote: The receiver can see the data, but they can not modify it unless they also
+    have your key.
+  source_section: ItsDangerous
+  source_reference: docs/index.rst
+  revision: draft-1
+  provenance_quote: The receiver can see the data, but they can not modify it unless they
+    also have your key.
+  accepted: true
+  editedStatement: The system must prevent a receiver from modifying signed data unless they
+    possess the signing key.
+- obligation_id: PALLET-023
+  kind: invariant
+  statement: Signed data must be detectable as tampered when changes are made by a party without
+    the key.
+  source_quote: To do this safely, the data must be signed to detect changes.
+  source_section: ItsDangerous
+  source_reference: docs/index.rst
+  revision: draft-1
+  provenance_quote: To do this safely, the data must be signed to detect changes.
+  accepted: true
+  editedStatement: Signed data must be detectable as tampered when changes are made by a party
+    without the key.
+- obligation_id: PALLET-024
+  kind: permission
+  statement: The system may be used to sign a user ID embedded in a URL for purposes such
+    as newsletter unsubscription, without requiring one-time tokens stored in a database.
+  source_quote: Sign a user ID in a URL and email it to them to unsubscribe from a newsletter.
+    This way you don't need to generate one-time tokens and store them in the database.
+  source_section: Example Use Cases
+  source_reference: docs/index.rst
+  revision: draft-1
+  provenance_quote: Sign a user ID in a URL and email it to them to unsubscribe from a newsletter.
+    This way you don't need to generate one-time tokens and store them in the database.
+  accepted: true
+  editedStatement: The system may be used to sign a user ID embedded in a URL for purposes
+    such as newsletter unsubscription, without requiring one-time tokens stored in a database.
+- obligation_id: PALLET-025
+  kind: permission
+  statement: The system may allow signed objects to be stored in cookies or other untrusted
+    sources without requiring server-side session storage.
+  source_quote: Signed objects can be stored in cookies or other untrusted sources which means
+    you don't need to have sessions stored on the server, which reduces the number of necessary
+    database queries.
+  source_section: Example Use Cases
+  source_reference: docs/index.rst
+  revision: draft-1
+  provenance_quote: Signed objects can be stored in cookies or other untrusted sources which
+    means you don't need to have sessions stored on the server, which reduces the number of
+    necessary database queries.
+  accepted: true
+  editedStatement: The system may allow signed objects to be stored in cookies or other untrusted
+    sources without requiring server-side session storage.
+- obligation_id: PALLET-026
+  kind: permission
+  statement: The system may allow signed information to safely make a round trip between server
+    and client, enabling server-side state to be passed to a client and back.
+  source_quote: Signed information can safely do a round trip between server and client in
+    general which makes them useful for passing server-side state to a client and then back.
+  source_section: Example Use Cases
+  source_reference: docs/index.rst
+  revision: draft-1
+  provenance_quote: Signed information can safely do a round trip between server and client
+    in general which makes them useful for passing server-side state to a client and then
+    back.
+  accepted: true
+  editedStatement: The system may allow signed information to safely make a round trip between
+    server and client, enabling server-side state to be passed to a client and back.
+- obligation_id: PALLET-027
+  kind: permission
+  statement: The system may be used to generate and verify activation links for accounts without
+    storing tokens in a database.
+  source_quote: Same thing with any kind of activation link for accounts and similar things.
+  source_section: Example Use Cases
+  source_reference: docs/index.rst
+  revision: draft-1
+  provenance_quote: Same thing with any kind of activation link for accounts and similar things.
+  accepted: true
+  editedStatement: The system may be used to generate and verify activation links for accounts
+    without storing tokens in a database.

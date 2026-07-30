@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quire — proposals</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#EFE5CE;--bone:#F5F1E8;--card:#FAF4E4;--ink:#1C1A15;
+--rule:rgba(28,26,21,.14);--muted:rgba(28,26,21,.72);--faint:rgba(28,26,21,.52);
+--ok:#2E6B58;--bad:#D8492B;--amber:#B4681E;--cobalt:#2B49D8;--wash:#E7DDC4;--add:#2E6B58;
+--ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:16px/1.6 'Hanken Grotesk',sans-serif}
+::selection{background:var(--ink);color:var(--paper)}
+.mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px;cursor:pointer;transition:color .3s var(--ease)}
+a:hover{color:var(--ink)}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.99);filter:blur(8px)}
+to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+.rise{animation:rise .7s var(--ease) both}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.28);opacity:1}}
+@keyframes needpulse{0%,100%{box-shadow:0 0 0 0 rgba(180,104,30,.5)}55%{box-shadow:0 0 0 7px rgba(180,104,30,0)}}
+@keyframes stampin{0%{opacity:0;transform:rotate(-18deg) scale(2.4)}
+62%{opacity:1;transform:rotate(-8deg) scale(.92)}82%{transform:rotate(-8deg) scale(1.06)}
+100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+.top{border-bottom:3px double var(--ink);padding:14px 48px;display:flex;align-items:baseline;gap:18px}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.02em;display:inline-flex;align-items:center;gap:8px}
+.brand::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ok);animation:breathe 5.4s ease-in-out infinite}
+.crumb{color:var(--muted);font-size:13px}
+.needdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--amber);margin-left:7px;vertical-align:1px;animation:needpulse 5.4s ease-in-out infinite}
+main{max-width:820px;margin:0 auto;padding:44px 48px 90px}
+h1{font-size:clamp(28px,3.2vw,36px);font-weight:800;letter-spacing:-.025em;line-height:1.12}
+.sub{color:var(--muted);font-style:italic;margin:6px 0 14px}
+.coverage{font-size:15px;font-style:italic;color:var(--muted);border-left:3px solid var(--ink);padding:6px 16px;margin:0 0 26px}
+.coverage b.gap{color:var(--bad);font-style:normal}
+.card{position:relative;border:1.5px solid var(--ink);border-radius:16px;background:var(--card);margin-bottom:18px;box-shadow:5px 5px 0 0 var(--wash);transition:box-shadow .6s var(--ease),opacity .6s var(--ease),transform .6s var(--ease)}
+.card.high{box-shadow:5px 5px 0 0 rgba(216,73,43,.35)}
+.card.sealed-ok{box-shadow:5px 5px 0 0 var(--ok);opacity:.85}
+.card.sealed-no{box-shadow:5px 5px 0 0 var(--bad);opacity:.7}
+.stamp{position:absolute;top:16px;right:20px;z-index:3;font-family:'Spline Sans Mono',monospace;
+font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+border:2.5px solid;border-radius:8px;padding:7px 14px;background:rgba(245,241,232,.9);
+animation:stampin .55s var(--spring) both}
+.stamp.ok{color:var(--cobalt);border-color:var(--cobalt)}
+.stamp.no{color:var(--bad);border-color:var(--bad)}
+.card .head{padding:20px 26px 0}
+.q{font-size:21px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+.meta{color:var(--faint);font-size:12.5px;font-family:'Spline Sans Mono',monospace;margin-top:6px;font-variant-numeric:tabular-nums}
+.meta .stakes-high{color:var(--bad)}
+.evidence{padding:12px 26px 0}
+.evidence h3{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.quote{border-left:3px solid var(--ink);padding:4px 14px;margin:0 0 10px;font-family:'Newsreader',serif;font-style:italic;font-size:16.5px;line-height:1.55}
+.quote .src{display:block;font-style:normal;font-size:12px;color:var(--faint);font-family:'Spline Sans Mono',monospace;margin-top:3px}
+.more{color:var(--muted);font-size:13.5px}
+.heldnote{color:var(--muted);font-size:13.5px;font-style:italic;margin:8px 0 4px}
+.plain{padding:2px 26px 0}
+.plain .say{font-size:15.5px;margin:8px 0;color:var(--ink)}
+.plain .say b{font-weight:700}
+.plain .soft{color:var(--muted)}
+/* A promise the card claims: the org's words in the quote voice, with a
+   tick that decides whether THIS signature covers it. */
+label.pstat{display:flex;gap:11px;align-items:baseline;padding:6px 14px;border-left:3px solid var(--ink);
+margin:8px 0;font-family:'Newsreader',serif;font-style:italic;font-size:16.5px;line-height:1.5;cursor:pointer}
+label.pstat input{accent-color:var(--ink);margin-top:5px;flex:none;transform:translateY(2px)}
+label.pstat.off{opacity:.45}
+label.pstat.off .pw{text-decoration:line-through}
+label.pstat .pid{font-family:'Spline Sans Mono',monospace;font-style:normal;font-size:11px;color:var(--faint);white-space:nowrap;margin-left:6px}
+details.binds{margin:10px 0 4px}
+details.binds summary{cursor:pointer;font-size:14.5px;color:var(--ink);list-style:none}
+details.binds summary::before{content:'▸ ';color:var(--faint)}
+details.binds[open] summary::before{content:'▾ ';color:var(--faint)}
+label.bindrow{display:flex;gap:10px;align-items:baseline;padding:4px 0 4px 18px;cursor:pointer;
+font-family:'Spline Sans Mono',monospace;font-size:12.5px;color:var(--muted)}
+label.bindrow input{accent-color:var(--ink);flex:none;transform:translateY(1px)}
+label.bindrow.off{opacity:.45;text-decoration:line-through}
+label.bindrow .bnote{color:var(--faint);font-size:11.5px}
+label.oprow2{display:flex;gap:11px;align-items:baseline;padding:5px 0;font-size:15.5px;cursor:pointer}
+label.oprow2 input{accent-color:var(--ink);flex:none;transform:translateY(1px)}
+label.oprow2.off{opacity:.45;text-decoration:line-through}
+details.receipt{margin:12px 26px 0}
+details.receipt summary{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);list-style:none}
+details.receipt summary::before{content:'▸ ';transition:transform .3s var(--ease)}
+details.receipt[open] summary::before{content:'▾ '}
+details.receipt summary:hover{color:var(--ink)}
+details.receipt .change{margin:10px 0 0}
+.change{background:var(--ink);color:var(--paper);border-radius:12px;margin:14px 26px;padding:14px 18px;font-family:'Spline Sans Mono',monospace;font-size:12.5px;line-height:1.9}
+.change .plus{color:#8FD0B5}
+.change .off{color:rgba(239,229,206,.4);text-decoration:line-through}
+.change .note{color:rgba(239,229,206,.45);font-size:11px}
+.editor{margin:0 26px 12px;display:none;border:1px solid var(--rule);padding:14px 16px;background:#fff}
+.editor .hint{color:var(--muted);font-size:12.5px;font-style:italic;margin-bottom:10px}
+.editor label{display:block;font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 2px}
+.editor input[type=text]{width:100%;font:14px 'Newsreader',serif;border:0;border-bottom:1px solid var(--rule);background:none;padding:4px 2px}
+.oprow{display:flex;gap:10px;align-items:baseline;padding:5px 0;font-family:'Spline Sans Mono',monospace;font-size:12.5px}
+.oprow input{accent-color:var(--ink)}
+.oprow .k{color:var(--faint);font-size:10.5px;width:56px;flex:none;text-transform:uppercase}
+.foot{display:flex;gap:14px;align-items:center;padding:14px 26px 20px;border-top:1px solid var(--rule);flex-wrap:wrap}
+button{font:700 14px 'Hanken Grotesk',sans-serif;padding:10px 22px;cursor:pointer;border:1.5px solid var(--cobalt);background:var(--cobalt);color:#fff;border-radius:99px;transition:transform .3s var(--ease),box-shadow .3s var(--ease);font-variant-numeric:tabular-nums}
+button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(28,26,21,.5)}
+button.ghost{background:none;color:var(--ink);border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+.rejects{margin-left:auto;font-size:13px;color:var(--muted)}
+.rejects a{margin-left:8px}
+.err{color:var(--bad);font-size:13px;font-style:italic;padding:0 26px 14px}
+.collapsed{position:relative;border:1px solid var(--rule);border-radius:14px;background:var(--bone);margin-bottom:12px;padding:14px 44px 14px 26px;display:flex;gap:14px;align-items:baseline;cursor:pointer;transition:transform .35s var(--ease),border-color .35s var(--ease)}
+.collapsed:hover{transform:translateY(-2px);border-color:var(--ink)}
+.collapsed::after{content:'↗';position:absolute;top:12px;right:16px;font-size:13px;color:var(--faint);transition:transform .35s var(--ease)}
+.collapsed:hover::after{transform:translate(3px,-3px);color:var(--ink)}
+.collapsed.high{border-left:3px solid var(--bad)}
+.collapsed .q2{font-size:16px;font-weight:600}
+.collapsed .n{color:var(--faint);font-size:12px;font-family:'Spline Sans Mono',monospace;margin-left:auto;white-space:nowrap}
+.decided{margin-top:44px}
+.decided h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--muted);margin-bottom:8px;border-bottom:1px solid var(--rule);padding-bottom:6px}
+.drow{padding:8px 0;border-bottom:1px dotted var(--rule);font-size:14px;display:flex;gap:12px;align-items:baseline}
+.drow .st{font-family:'Spline Sans Mono',monospace;font-size:11px;width:130px;flex:none;letter-spacing:.05em;text-transform:uppercase}
+.drow .st.approved{color:var(--ok)} .drow .st.rejected{color:var(--bad)}
+.drow .who{margin-left:auto;color:var(--faint);font-size:12px;font-family:'Spline Sans Mono',monospace;white-space:nowrap}
+.note{color:var(--muted);font-style:italic;font-size:13.5px;margin-top:22px}
+.empty{padding:24px 0}
+.empty .big{font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-.02em}
+.empty .soft{color:var(--muted);font-style:italic;margin-top:6px}
+footer{border-top:3px double var(--ink);margin-top:60px;padding:12px 48px;color:var(--faint);font-size:12px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="top"><span class="brand">Quire</span><span class="crumb"><a id="homelink">Home</a> ▸ <b id="count">In quires</b> <span style="color:var(--faint)">(never more than 5)</span></span></div>
+<main>
+  <h1>The map wants to change. You decide.</h1>
+  <p class="sub">Each card is one question. Nothing below binds until you sign it.</p>
+  <p class="coverage" id="coverage" hidden></p>
+  <div id="cards"></div>
+  <p class="note">A declined proposal never returns in the same shape. There is deliberately no “sign all.”</p>
+  <div class="decided" id="decided" hidden>
+    <h2>Decided — in decision order</h2>
+    <div id="drows"></div>
+  </div>
+</main>
+<footer>Machines propose; humans sign.</footer>
+<script>
+const WS = __WORKSPACE_JSON__;
+document.getElementById("homelink").href = "/app/" + encodeURIComponent(WS);
+const REASONS = [["not_one_thing","not one thing"],["wrong_name","wrong name"],["bad_evidence","bad evidence"],["other","other…"]];
+let expanded = null; // diff_id of the currently expanded card
+let STATEMENTS = {}; // promise id → what it actually says (ids mean nothing to a human)
+
+function el(tag, cls, text){
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function reviewer(){
+  let name = localStorage.getItem("quire.reviewer") || localStorage.getItem("meridian.reviewer");
+  if (!name){
+    name = (prompt("Your name — a signature binds the map:") || "").trim();
+    if (name) localStorage.setItem("quire.reviewer", name);
+  }
+  return name;
+}
+
+function opText(op){
+  if (op.op === "create_entity") return ["+ entity", op.name + (op.identity_sentence ? " — " + op.identity_sentence : "") + (op.aliases && op.aliases.length ? " · alias " + op.aliases.map(a=>`“${a}”`).join(", ") : "")];
+  if (op.op === "attach") return ["+ attach", op.kind + " " + op.ref];
+  if (op.op === "alias") return ["+ alias", op.terms.map(t=>`“${t}”`).join(", ")];
+  if (op.op === "rename") return ["± rename", op.entity_id + " → " + op.name];
+  if (op.op === "relate") return ["+ relation", op.entity_id + " " + op.relation.replace("_"," ") + " " + op.other_id];
+  return ["∅ supersede", op.entity_id + " → " + op.successor_id + " · fates: " + op.promise_fates.map(f=>f.ref+" "+f.fate).join(", ")];
+}
+
+async function post(diffId, body, errNode){
+  errNode.textContent = "";
+  const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/proposals/${diffId}/decision`, {
+    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  if (!res.ok){
+    const payload = await res.json().catch(()=>({}));
+    errNode.textContent = typeof payload.detail === "string" ? payload.detail : res.statusText;
+    return false;
+  }
+  return true;
+}
+
+// Editor state per card: which ops are kept, and edited create fields.
+function makeEditState(p){
+  return p.operations.map(op => ({op: structuredClone(op), keep: true}));
+}
+
+function buildOperations(editState){
+  return editState.filter(row => row.keep).map(row => row.op);
+}
+
+function norm(s){ return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+
+function toggleRow(row, node, onChange){
+  const box = el("input"); box.type = "checkbox"; box.checked = row.keep;
+  box.addEventListener("change", () => { row.keep = box.checked; onChange(); });
+  node.prepend(box);
+  node.classList.toggle("off", !row.keep);
+  return node;
+}
+
+// Meaning before mechanics — and now DIRECTLY controllable: every line a
+// signature would cover carries its own tick. Unticking is one click; the
+// Sign button restates its scope live. The promise statements ARE the
+// beef — full sentences, ids as footnotes; the exact operation list
+// lives in the receipt below.
+function renderPlain(plain, editState, onChange){
+  const bindsOpen = plain.querySelector("details.binds")?.open || editState.bindsOpen || false;
+  plain.replaceChildren();
+  const creates = editState.filter(r => r.op.op === "create_entity").map(r => r.op);
+  creates.forEach(o => {
+    const say = el("div", "say");
+    say.appendChild(el("b", "", `This puts “${o.name}” on your map`));
+    say.append(o.identity_sentence ? ` — ${o.identity_sentence}` : ".");
+    plain.appendChild(say);
+    const words = (o.aliases || []).map(a => `“${a}”`);
+    if (words.length) plain.appendChild(
+      el("div", "say soft", `It will also answer to ${words.join(", ")}.`));
+  });
+  const promiseRows = editState.filter(r => r.op.op === "attach" && r.op.kind === "promise");
+  if (promiseRows.length){
+    plain.appendChild(el("div", "say",
+      `It takes responsibility for ${promiseRows.length === 1 ? "this promise" : "these " + promiseRows.length + " promises"} — untick any that don't belong:`));
+    promiseRows.forEach(r => {
+      const line = document.createElement("label");
+      line.className = "pstat";
+      const pw = el("span", "pw", "“" + (STATEMENTS[r.op.ref] || r.op.ref) + "”");
+      pw.appendChild(el("span", "pid", r.op.ref));
+      line.appendChild(pw);
+      plain.appendChild(toggleRow(r, line, onChange));
+    });
+  }
+  const bindRows = editState.filter(r => r.op.op === "attach" && (r.op.kind === "code" || r.op.kind === "doc"));
+  if (bindRows.length){
+    const keptCode = bindRows.filter(r => r.keep && r.op.kind === "code").length;
+    const keptDocs = bindRows.filter(r => r.keep && r.op.kind === "doc").length;
+    const binds = document.createElement("details");
+    binds.className = "binds";
+    binds.open = bindsOpen;
+    binds.addEventListener("toggle", () => { editState.bindsOpen = binds.open; });
+    const bits = [];
+    if (keptCode) bits.push(`${keptCode} place${keptCode===1?"":"s"} in the code`);
+    if (keptDocs) bits.push(`${keptDocs} document${keptDocs===1?"":"s"}`);
+    binds.appendChild(el("summary", "",
+      `It points at ${bits.join(" and ") || "nothing"} — open to choose`));
+    bindRows.forEach(r => {
+      const line = document.createElement("label");
+      line.className = "bindrow";
+      const span = el("span", "", r.op.ref + " ");
+      if (r.op.note) span.appendChild(el("span", "bnote", "· " + r.op.note));
+      line.appendChild(span);
+      binds.appendChild(toggleRow(r, line, onChange));
+    });
+    plain.appendChild(binds);
+  }
+  const sentence = {
+    relate: o => `It sits ${o.relation === "part_of" ? "inside" : "depending on"} ${o.other_id}.`,
+    alias: o => `It teaches the words ${(o.terms||[]).map(t=>`“${t}”`).join(", ")}.`,
+    rename: o => `Renames ${o.entity_id} to “${o.name}”.`,
+    detach: o => `Removes the ${o.kind} “${STATEMENTS[o.ref] || o.ref}”.`,
+    supersede: o => `Retires ${o.entity_id} into ${o.successor_id} — the fate of every promise it holds is in the receipt.`,
+  };
+  editState.filter(r => sentence[r.op.op]).forEach(r => {
+    const line = document.createElement("label");
+    line.className = "oprow2";
+    line.appendChild(el("span", "", sentence[r.op.op](r.op)));
+    plain.appendChild(toggleRow(r, line, onChange));
+  });
+}
+
+// The signature says what it binds — recomputed on every tick.
+function scopeLabel(editState){
+  const kept = editState.filter(r => r.keep).map(r => r.op);
+  const n = (f) => kept.filter(f).length;
+  const parts = [];
+  const entities = n(o => o.op === "create_entity");
+  if (entities) parts.push(plural(entities, "entity", "entities"));
+  const promises = n(o => o.op === "attach" && o.kind === "promise");
+  if (promises) parts.push(plural(promises, "promise"));
+  const binds = n(o => o.op === "attach" && (o.kind === "code" || o.kind === "doc"));
+  if (binds) parts.push(plural(binds, "binding"));
+  const words = kept.filter(o => o.op === "alias").reduce((s, o) => s + (o.terms||[]).length, 0)
+    + kept.filter(o => o.op === "create_entity").reduce((s, o) => s + (o.aliases||[]).length, 0);
+  if (words) parts.push(plural(words, "word"));
+  const relations = n(o => o.op === "relate");
+  if (relations) parts.push(plural(relations, "relation"));
+  const renames = n(o => o.op === "rename");
+  if (renames) parts.push(plural(renames, "rename"));
+  const removals = n(o => o.op === "detach");
+  if (removals) parts.push(plural(removals, "removal"));
+  const retirements = n(o => o.op === "supersede");
+  if (retirements) parts.push(plural(retirements, "retirement"));
+  return parts;
+}
+function plural(n, noun, nouns){ return n === 1 ? `1 ${noun}` : `${n} ${nouns || noun + "s"}`; }
+
+function renderChange(change, editState){
+  change.replaceChildren();
+  editState.forEach(row => {
+    const [verb, rest] = opText(row.op);
+    const line = el("span", row.keep ? "" : "off");
+    line.appendChild(el("span", "plus", verb));
+    line.append(" " + rest);
+    if (row.op.op === "attach" && row.op.note){
+      line.append(" ");
+      line.appendChild(el("span", "note", "· " + row.op.note));
+    }
+    change.appendChild(line);
+    change.appendChild(document.createElement("br"));
+  });
+}
+
+// Rewording only — ticks live on the card itself now. This panel exists
+// for changing the words: the name, the identity sentence, the aliases.
+function renderEditor(editor, editState, onChange){
+  editor.replaceChildren();
+  editor.appendChild(el("div", "hint", "Reword what the map should say. A reworded signature is recorded as human-amended."));
+  editState.filter(row => row.op.op === "create_entity").forEach(row => {
+    const nameLabel = el("label", "", "entity name");
+    const nameInput = el("input"); nameInput.type = "text"; nameInput.value = row.op.name;
+    nameInput.addEventListener("input", () => { row.op.name = nameInput.value; onChange(); });
+    const idLabel = el("label", "", "identity sentence — readable aloud");
+    const idInput = el("input"); idInput.type = "text"; idInput.value = row.op.identity_sentence || "";
+    idInput.addEventListener("input", () => { row.op.identity_sentence = idInput.value; onChange(); });
+    const alLabel = el("label", "", "aliases (comma-separated)");
+    const alInput = el("input"); alInput.type = "text"; alInput.value = (row.op.aliases || []).join(", ");
+    alInput.addEventListener("input", () => {
+      row.op.aliases = alInput.value.split(",").map(s=>s.trim()).filter(Boolean); onChange();
+    });
+    editor.append(nameLabel, nameInput, idLabel, idInput, alLabel, alInput);
+  });
+}
+
+function card(p, uniformStakes){
+  const c = el("div", "card" + (p.stakes_label === "high" ? " high" : ""));
+  const head = el("div", "head");
+  head.appendChild(el("div", "q", p.question));
+  const meta = el("div", "meta");
+  const human = (p.proposed_by || "").startsWith("human:");
+  meta.append(human
+    ? `${p.diff_id} · proposed by ${p.proposed_by.slice(6)} · not signed`
+    : `${p.diff_id} · proposed by the machine · not signed`);
+  if (!uniformStakes){
+    meta.append(" · ");
+    meta.appendChild(el("span", p.stakes_label === "high" ? "stakes-high" : "", `${p.stakes_label} stakes`));
+  }
+  head.appendChild(meta);
+  c.appendChild(head);
+
+  // The org's words appear ONCE. Seed proposals quote the very promise
+  // statements the card already lists as its beef — repeating them was
+  // half the wall. Only evidence that adds something new renders here.
+  const promiseNorms = p.operations
+    .filter(o => o.op === "attach" && o.kind === "promise")
+    .map(o => norm(STATEMENTS[o.ref]));
+  const fresh = (p.evidence || []).filter(q => {
+    const nq = norm(q.quote);
+    return nq && !promiseNorms.some(np => np && (np.includes(nq) || nq.includes(np)));
+  });
+  if (fresh.length){
+    const ev = el("div", "evidence");
+    ev.appendChild(el("h3", "", "In the organization's own words"));
+    fresh.slice(0, 3).forEach(q => {
+      const quote = el("div", "quote", "“" + q.quote + "”");
+      quote.appendChild(el("span", "src", q.source));
+      ev.appendChild(quote);
+    });
+    if (fresh.length > 3) ev.appendChild(el("div", "more", `…and ${fresh.length - 3} more, in the record.`));
+    c.appendChild(ev);
+  }
+  const heldRefs = Object.keys(p.already_held || {});
+  if (heldRefs.length){
+    const held = el("div", "evidence");
+    held.appendChild(el("div", "heldnote",
+      `Already held elsewhere: ${heldRefs.map(r => `${r} (${p.already_held[r].join(", ")})`).join("; ")} — a second home can be right.`));
+    c.appendChild(held);
+  }
+
+  const editState = makeEditState(p);
+  const plain = el("div", "plain");
+  const change = el("div", "change");
+  const receipt = document.createElement("details");
+  receipt.className = "receipt";
+  receipt.appendChild(el("summary", "", "the full receipt — every operation, exact"));
+  if (p.mechanics_note) receipt.appendChild(el("div", "more", "mechanics: " + p.mechanics_note));
+  receipt.appendChild(change);
+  const editor = el("div", "editor");
+  const err = el("div", "err");
+  const foot = el("div", "foot");
+  const sign = el("button", "", "Sign");
+  const refresh = () => {
+    renderPlain(plain, editState, refresh);
+    renderChange(change, editState);
+    const parts = scopeLabel(editState);
+    sign.textContent = parts.length ? `Sign — ${parts.join(", ")}` : "Sign — nothing selected";
+    sign.disabled = !parts.length;
+  };
+  refresh();
+  c.appendChild(plain);
+  if (p.reasoning){
+    // the thinking that produced this proposal, verbatim — the human
+    // decides with the reasoning, not just the conclusion
+    const thinking = document.createElement("details");
+    thinking.className = "receipt";
+    thinking.appendChild(el("summary", "", "the thinking behind this proposal — why the machine suggests it"));
+    const body = el("div", "heldnote", p.reasoning);
+    body.style.padding = "8px 2px 0";
+    thinking.appendChild(body);
+    c.appendChild(thinking);
+  }
+  c.appendChild(receipt);
+  renderEditor(editor, editState, refresh);
+  c.appendChild(editor);
+
+  const hasCreate = p.operations.some(o => o.op === "create_entity");
+  const reword = el("button", "ghost", "Reword");
+  reword.addEventListener("click", () => {
+    const showing = editor.style.display === "block";
+    editor.style.display = showing ? "none" : "block";
+    reword.textContent = showing ? "Reword" : "Done rewording";
+  });
+  sign.addEventListener("click", async () => {
+    const by = reviewer(); if (!by) return;
+    const body = {action: "approved", by};
+    const ops = buildOperations(editState);
+    // send operations only when they differ — the record decides amended
+    if (JSON.stringify(ops) !== JSON.stringify(p.operations)) body.operations = ops;
+    sign.disabled = true;
+    if (await post(p.diff_id, body, err)) seal(c, `signed · ${new Date().toISOString().slice(0,10)} · ${by}`, "ok");
+    else sign.disabled = false;
+  });
+  foot.append(sign);
+  if (hasCreate) foot.append(reword);
+  const rejects = el("span", "rejects", "Decline:");
+  REASONS.forEach(([code, label]) => {
+    const link = el("a", "", label);
+    link.addEventListener("click", async () => {
+      const by = reviewer(); if (!by) return;
+      let text;
+      if (code === "other"){
+        text = (prompt("One sentence of reason — required, it teaches the system:") || "").trim();
+        if (!text) return;
+      } else {
+        // every rejection may teach; only "other" must
+        text = (prompt("Optionally, one sentence to teach the system what would be right (Cancel to skip):") || "").trim();
+      }
+      if (await post(p.diff_id, {action: "rejected", by, reason_code: code, reason_text: text}, err))
+        seal(c, "rejected · " + label.replace("…",""), "no");
+    });
+    rejects.appendChild(link);
+  });
+  foot.appendChild(rejects);
+  c.appendChild(err);
+  c.appendChild(foot);
+  return c;
+}
+
+// The decision is a physical act: the stamp lands, the card settles,
+// and only then does the ledger turn its page.
+function seal(cardNode, text, kind){
+  cardNode.appendChild(el("div", "stamp " + kind, text));
+  cardNode.classList.add(kind === "ok" ? "sealed-ok" : "sealed-no");
+  setTimeout(load, 1050);
+}
+
+function collapsedRow(p){
+  const row = el("div", "collapsed" + (p.stakes_label === "high" ? " high" : ""));
+  row.appendChild(el("span", "q2", p.question));
+  row.appendChild(el("span", "n",
+    `${p.diff_id} · ${p.stakes_label} stakes · ${p.evidence.length} source${p.evidence.length===1?"":"s"}`));
+  row.addEventListener("click", () => { expanded = p.diff_id; load(); });
+  return row;
+}
+
+function coverageSentence(cov){
+  const node = document.getElementById("coverage");
+  if (!cov || !cov.total){ node.hidden = true; return; }
+  node.hidden = false;
+  node.replaceChildren();
+  const housed = cov.housed.length, proposed = cov.proposed.length, homeless = cov.homeless.length;
+  node.append(`${housed} of ${cov.total} promises are housed on the map`);
+  if (proposed) node.append(`; ${proposed} proposed below`);
+  if (homeless){
+    node.append("; ");
+    node.appendChild(el("b", "gap", `${homeless} ${homeless===1?"has":"have"} no home: ${cov.homeless.join(", ")}`));
+  }
+  node.append(homeless ? " — the map does not hide its gaps." : ".");
+}
+
+async function load(){
+  const res = await fetch(`/api/graph/${encodeURIComponent(WS)}/proposals`);
+  const data = await res.json();
+  const count = document.getElementById("count");
+  count.textContent = `In quires — ${data.open.length} unsigned`;
+  if (data.open.length) count.appendChild(el("span", "needdot"));
+  STATEMENTS = data.promise_statements || {};
+  coverageSentence(data.coverage);
+  const cards = document.getElementById("cards");
+  cards.replaceChildren();
+  if (!data.open.length){
+    const empty = el("div", "empty rise");
+    empty.appendChild(el("div", "big", "Nothing needs you."));
+    empty.appendChild(el("div", "soft", "The map asks rarely — that is how it earns the right to ask."));
+    cards.appendChild(empty);
+  }
+  const uniformStakes = new Set(data.open.map(p => p.stakes_label)).size === 1 && data.open.length > 1;
+  const expandId = expanded && data.open.some(p => p.diff_id === expanded)
+    ? expanded : (data.open[0] || {}).diff_id;
+  data.open.forEach((p, i) => {
+    const node = p.diff_id === expandId ? card(p, uniformStakes) : collapsedRow(p);
+    node.classList.add("rise");
+    node.style.animationDelay = (0.08 + i * 0.09) + "s";
+    cards.appendChild(node);
+  });
+  const decided = data.decided; // already in decision order
+  document.getElementById("decided").hidden = !decided.length;
+  const drows = document.getElementById("drows");
+  drows.replaceChildren();
+  decided.forEach(d => {
+    const row = el("div", "drow");
+    row.id = "decided-" + d.diff_id; // a decision is addressable
+    const st = el("span", "st " + d.status, d.status + (d.decision && d.decision.amended ? " · amended" : ""));
+    row.appendChild(st);
+    row.appendChild(el("span", "", d.question));
+    if (d.decision){
+      const why = d.decision.reason_code ? ` · ${d.decision.reason_code.replaceAll("_"," ")}${d.decision.reason_text ? ": " + d.decision.reason_text : ""}` : "";
+      row.appendChild(el("span", "who", `${d.decision.by} · ${d.decision.at.slice(0,10)}${why}`));
+    }
+    drows.appendChild(row);
+  });
+  // arriving from a citation chip: land on the decision itself
+  if (location.hash.startsWith("#decided-")){
+    const target = document.getElementById(location.hash.slice(1));
+    if (target){
+      target.scrollIntoView({block: "center"});
+      target.style.background = "var(--wash)";
+      setTimeout(() => { target.style.background = ""; }, 2400);
+    }
+  }
+}
+load();
+</script>
+</body>
+</html>

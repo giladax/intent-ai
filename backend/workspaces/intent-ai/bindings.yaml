@@ -1,0 +1,49 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
+control_points:
+  - control_point_id: CP-feature-format
+    role: decision
+    path: src/mcp/feature.ts
+    symbol: formatFeatureOrientation
+    description: Formats the feature orientation served on brain_enter, including constraints.
+
+  - control_point_id: CP-feature-resolve
+    role: decision
+    path: src/mcp/feature.ts
+    symbol: resolveFeature
+    description: Resolves file/task to a Feature; returns candidates on 0 or >1 match.
+
+  - control_point_id: CP-mcp-server
+    role: executor
+    path: src/mcp/server.ts
+    description: MCP tool surface serving brain context to agents.
+
+  - control_point_id: CP-emit-events
+    role: audit
+    path: src/pipeline/emit-events.ts
+    description: Builds activity events from agent reports and session digests.
+
+  - control_point_id: CP-feature-tests
+    role: test_or_eval
+    path: tests/mcp/feature.test.ts
+    description: Unit tests for feature resolution and orientation formatting.
+
+bindings:
+  - {obligation_id: OB-BRAIN-201, control_point_id: CP-feature-format, relation: decides}
+  - {obligation_id: OB-BRAIN-201, control_point_id: CP-mcp-server, relation: executes}
+  - {obligation_id: OB-BRAIN-201, control_point_id: CP-feature-tests, relation: verifies}
+
+  - {obligation_id: OB-BRAIN-202, control_point_id: CP-feature-resolve, relation: decides}
+  - {obligation_id: OB-BRAIN-202, control_point_id: CP-mcp-server, relation: executes}
+  - {obligation_id: OB-BRAIN-202, control_point_id: CP-feature-tests, relation: verifies}
+
+  - {obligation_id: OB-BRAIN-203, control_point_id: CP-feature-format, relation: decides}
+  - {obligation_id: OB-BRAIN-203, control_point_id: CP-mcp-server, relation: executes}
+
+  - {obligation_id: OB-BRAIN-204, control_point_id: CP-mcp-server, relation: enforces}
+
+  - {obligation_id: OB-BRAIN-206, control_point_id: CP-mcp-server, relation: enforces}
+
+  - {obligation_id: OB-BRAIN-205, control_point_id: CP-emit-events, relation: observes}
+  - {obligation_id: OB-BRAIN-205, control_point_id: CP-mcp-server, relation: executes}

@@ -1,0 +1,23 @@
+# Who's who at Acme Commerce — every actor mapped to the ROLE they speak from.
+# Roles stamp each event's author (events.py reads this): dev writes code and
+# reasons in sessions; pm articulates user impact, priorities, and specs;
+# stakeholder sets direction with authority. Signings ride as 'system'.
+#
+# Existing cast:
+#   dana  — product lead who owns the refund policy decision, reminds the
+#           team of compliance, and runs #product. Speaks in promises, not code.
+#   lee   — product manager on checkout; triages the backlog, weighs priorities.
+#   sam   — engineer; shipped the batch auto-approve that drifted OB-PAY-1.
+#   rui   — engineer; notification retry backoff, watches the guard/policy gap.
+# New cast (this expansion):
+#   priya, omar — engineers.
+#   maya  — product manager who authors the specs.
+#   vp-eng — the executive who sets quarterly direction.
+dana: pm
+lee: pm
+sam: dev
+rui: dev
+priya: dev
+omar: dev
+maya: pm
+vp-eng: stakeholder

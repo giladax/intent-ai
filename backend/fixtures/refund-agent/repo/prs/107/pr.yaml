@@ -1,0 +1,11 @@
+number: 107
+title: "Speed up repeat refunds"
+body: |
+  Customers complained that a second legitimate refund in the same day gets
+  stuck. Drops the auto-refund cooldown so repeat refunds process
+  immediately.
+author: dev-carol
+base_sha: fixbase0001
+head_sha: pr107head01
+issue: ""
+deleted_files: []

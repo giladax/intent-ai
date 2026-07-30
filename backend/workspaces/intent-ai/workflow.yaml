@@ -1,0 +1,16 @@
+workflow_id: intent-ai-brain
+requirements:
+  provider: git
+  reference: brain-prd
+repositories:
+  - provider: git
+    repository: intent-ai
+    path: ../../..
+work_tracking:
+  provider: fixture
+  project: BRAIN
+eval_sources:
+  - type: repository
+    paths:
+      - tests/mcp/**
+      - tests/eval/**

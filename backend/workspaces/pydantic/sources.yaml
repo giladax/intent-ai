@@ -1,0 +1,14 @@
+# Approved intent sources, read from the repo checkout.
+# status governs authority: only `approved` sources feed the analyzer.
+- reference: standard_library_types
+  path: docs/api/standard_library_types.md
+  status: approved
+  version: onboard-1
+- reference: serialization
+  path: docs/concepts/serialization.md
+  status: approved
+  version: onboard-1
+- reference: unions
+  path: docs/concepts/unions.md
+  status: approved
+  version: onboard-1

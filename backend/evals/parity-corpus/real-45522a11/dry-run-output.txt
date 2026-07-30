@@ -1,0 +1,7 @@
+Log: .intent/raw-sessions/45522a11-4686-47bb-93ea-fd29b8ae5e4e.jsonl
+  Raw events:        270
+  Normalized events: 270
+  Chunks:            11
+  Time span:         Jun 27, 01:49 → Jul 3, 18:09 (9620 min)
+  Categories:        intent:34, proposal:40, reflection:97, action:30, result:69
+  Directives:

@@ -1,0 +1,10 @@
+number: 104
+title: "Waive return shipping for loyalty members"
+body: |
+  Loyalty members no longer pay return shipping when a refund is approved.
+  Adds a loyalty flag to refund requests and a waiver decision to the policy.
+author: dev-carol
+base_sha: fixbase0001
+head_sha: pr104head01
+issue: ""
+deleted_files: []

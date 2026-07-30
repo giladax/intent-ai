@@ -1,0 +1,7 @@
+Log: tests/eval/fixtures/scope-pivot.jsonl
+  Raw events:        277
+  Normalized events: 277
+  Chunks:            8
+  Time span:         May 22, 14:33 → May 22, 18:47 (254 min)
+  Categories:        intent:27, proposal:19, reflection:98, result:99, action:34
+  Directives:

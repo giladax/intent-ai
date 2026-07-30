@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout (superseded) — Meridian</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,500;0,6..72,700;1,6..72,400&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--ink:#1c1a16;--rule:#d8d2c4;--muted:#7a7466;--faint:#a39c8c;
+--ok:#2e7d4f;--wash:#f1ece1;--tomb:#efe9db}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 'Newsreader',serif}
+.mono{font-family:'Spline Sans Mono',monospace;font-size:12px}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.top{border-bottom:3px double var(--ink);padding:14px 48px;display:flex;align-items:baseline;gap:18px}
+.brand{font-weight:700;font-size:17px}
+.crumb{color:var(--muted);font-size:13px}
+main{max-width:900px;margin:0 auto;padding:36px 48px 90px}
+.banner{background:var(--tomb);border:1px solid var(--rule);border-left:4px solid var(--ink);padding:16px 22px;margin-bottom:30px}
+.banner b{font-size:16px}
+.banner .why{color:var(--muted);font-style:italic;margin-top:4px}
+.banner .links{margin-top:8px;font-size:13.5px}
+.banner .links a{margin-right:18px}
+h1{font-size:40px;font-weight:700;color:var(--muted)}
+h1 .flag{font-size:13px;font-family:'Spline Sans Mono',monospace;letter-spacing:.14em;color:var(--faint);vertical-align:middle;margin-left:12px;text-transform:uppercase;border:1px solid var(--rule);padding:2px 10px;border-radius:12px}
+.identity{font-style:italic;color:var(--faint);margin-top:8px}
+.rule{border:0;border-top:1px solid var(--rule);margin:26px 0}
+h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--muted);margin:0 0 12px;border-bottom:1px solid var(--rule);padding-bottom:6px}
+.frozen{opacity:.68}
+.hold{padding:8px 0;border-bottom:1px dotted var(--rule);font-size:14px;display:flex;gap:10px;align-items:baseline}
+.hold .kind{font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--faint);width:64px;flex:none;letter-spacing:.05em;text-transform:uppercase}
+.event{display:grid;grid-template-columns:86px 1fr;gap:14px;padding:10px 0;border-bottom:1px dotted var(--rule)}
+.event .when{color:var(--faint);font-size:12px;font-family:'Spline Sans Mono',monospace}
+.note{color:var(--muted);font-style:italic;font-size:13.5px;margin-top:20px}
+footer{border-top:3px double var(--ink);margin-top:60px;padding:12px 48px;color:var(--faint);font-size:12px}
+</style>
+</head>
+<body>
+<div class="top"><span class="brand">Meridian</span><span class="crumb"><a href="#">Home</a> ▸ <b>Checkout</b></span></div>
+<main>
+  <div class="banner">
+    <b>This entity was superseded by <a href="#">Payments</a></b> on June 30 — approved by Dana via proposal <a href="#">GD-4</a>.
+    <div class="why">“Checkout and Billing were two names for one flow of money; the map now says so.”</div>
+    <div class="links"><a href="#">Go to Payments →</a> <a href="#">View Checkout as it was on June 29</a> <a href="#">Read the proposal</a></div>
+  </div>
+  <h1>Checkout <span class="flag">frozen · superseded</span></h1>
+  <p class="identity">The order payment flow, as this organization understood it until June 30, 2026.</p>
+  <hr class="rule">
+  <div class="frozen">
+    <h2>Holdings — frozen at supersession; nothing here migrates or mutates</h2>
+    <div class="hold"><span class="kind">promise</span>“Card authorization completes before order confirmation.” <span class="mono" style="color:var(--faint)">kept, as of Jun 30</span></div>
+    <div class="hold"><span class="kind">code</span><span class="mono">checkout/authorize.py</span></div>
+    <div class="hold"><span class="kind">doc</span>Checkout spec v2 (Feb 2026)</div>
+    <div class="hold"><span class="kind">check</span>Check #148, May 12 — kept · <span class="mono" style="color:var(--faint)">belongs to Checkout forever</span></div>
+    <h2 style="margin-top:26px">Its record, ending June 30</h2>
+    <div class="event"><div class="when">Jun 30</div><div>Superseded by <b>Payments</b> — proposal GD-4, approved by Dana</div></div>
+    <div class="event"><div class="when">May 12</div><div>Check #148 — “retry idempotency for authorization” — kept</div></div>
+    <div class="event"><div class="when">Feb 8</div><div>Checkout spec v2 attached</div></div>
+  </div>
+  <p class="note">The name “checkout” still finds this page's successor — searching it lands on Payments, with a note. Scrub the date back past June 30 and this page is simply alive: no banner, its own health, no successor anywhere. History never rewrites.</p>
+</main>
+<footer>A superseded entity is a tombstone with a forwarding address — the record stays; only the future moved.</footer>
+</body>
+</html>

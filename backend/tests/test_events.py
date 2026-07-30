@@ -1,0 +1,109 @@
+"""The org event stream: multi-source, multi-user fold + the collision
+signals, over the committed acme-stream fixture."""
+
+import pathlib
+
+from quire.adapters.fixture import FixtureWorkspace
+from quire.comms import relate_message
+from quire.events import ActivityEvent, collisions, events_for
+
+WS = pathlib.Path(__file__).parent.parent / "fixtures" / "acme-stream"
+
+
+def test_break_is_read_from_the_structured_flag_not_the_verdict_text():
+    """Regression: a live check's verdict is the Classification enum
+    ("OFF_INTENT"), which does NOT contain the substring "contradict" — so
+    break detection must key off the structured `broken` flag, not sniff the
+    text. Two checks carry a break in their flag but never say "contradict";
+    the entity must still read as broken (silent-drift, no attention)."""
+    events = [
+        ActivityEvent(source="git", kind="check", ts="2026-07-01T00:00:00+00:00",
+                      ref="1", entities=["ent-x"], text="OFF_INTENT", broken=True),
+        ActivityEvent(source="git", kind="check", ts="2026-07-02T00:00:00+00:00",
+                      ref="2", entities=["ent-x"], text="OFF_INTENT", broken=True),
+    ]
+    sig = {c["entity_id"]: c for c in collisions(events)}
+    assert sig["ent-x"]["broken"] is True
+    assert sig["ent-x"]["signal"] == "silent-drift"
+    # and a passing latest check clears it, even though text never mentions it
+    events.append(ActivityEvent(source="git", kind="check",
+                                ts="2026-07-03T00:00:00+00:00", ref="3",
+                                entities=["ent-x"], text="ALIGNED", broken=False))
+    cleared = {c["entity_id"]: c for c in collisions(events)}
+    assert cleared["ent-x"]["broken"] is False
+    assert cleared["ent-x"]["signal"] == "recovered"
+
+
+def _adapter():
+    return FixtureWorkspace(WS)
+
+
+def test_stream_is_multi_source_and_multi_user():
+    evs = events_for(WS, _adapter(), None)
+    assert {e.source for e in evs} >= {"slack", "git", "quire"}
+    assert {e.actor for e in evs if e.actor} >= {"dana", "sam", "rui", "lee"}
+    assert any(e.kind == "decision" for e in evs)  # a Slack decision
+    assert any(e.kind == "session" for e in evs)   # a coding session
+    assert any(e.kind == "check" for e in evs)     # a PR check
+
+
+def test_collision_signals_match_embedded_patterns():
+    sig = {c["entity_id"]: c["signal"] for c in collisions(events_for(WS, _adapter(), None))}
+    assert sig["ent-payments"] == "drift-in-context"   # discussed + drifted + caught
+    assert sig["ent-checkout"] == "all-talk-gap"       # talked, not built
+    assert sig["ent-notifications"] == "silent-build-risk"  # built, not talked
+    # (Risk's bare-word noise filter is pinned in the relation test below;
+    # after the multi-role expansion Risk has real fraud-paging activity.)
+
+
+def test_recovery_reads_current_state_not_ever_broken():
+    """The Helios fixture: Ledger broke (check 301) then a later check
+    (302) found it holds — the collision must read 'recovered', not latch
+    on the past contradiction (the bug the recovery fixture exposed)."""
+    ws = pathlib.Path(__file__).parent.parent / "fixtures" / "helios"
+    sig = {c["entity_id"]: c for c in collisions(events_for(ws, FixtureWorkspace(ws), None))}
+    assert sig["ent-ledger"]["signal"] == "recovered"
+    assert sig["ent-ledger"]["recovered"] is True
+
+
+def test_four_independent_orgs_span_the_taxonomy():
+    """One collision detector, four independently-authored fixtures —
+    every signal represented (anti-overfit)."""
+    seen = set()
+    for org in ("acme-stream", "helios", "nomad", "vela"):
+        ws = pathlib.Path(__file__).parent.parent / "fixtures" / org
+        for c in collisions(events_for(ws, FixtureWorkspace(ws), None)):
+            seen.add(c["signal"])
+    assert {"drift-in-context", "silent-drift", "all-talk-gap",
+            "silent-build-risk", "aligned", "recovered"} <= seen
+
+
+def test_comms_relation_is_quote_backed_and_noise_filtered():
+    entities = {
+        "ent-payments": {"name": "Payments", "aliases": ["refunds"], "holdings": []},
+        "ent-risk": {"name": "Risk", "aliases": [], "holdings": []},
+    }
+    # a channel a human mapped is the strong rung
+    ties = relate_message(
+        {"channel": "#payments-eng", "text": "anything"}, entities,
+        {"#payments-eng": "ent-payments"})
+    assert ties[0]["entity_id"] == "ent-payments" and "#payments-eng" in ties[0]["why"]
+    # a bare short word inside a compound must NOT relate (noise filter)
+    ties = relate_message(
+        {"channel": "", "text": "high-risk refunds need approval"}, entities, {})
+    assert not any(t["entity_id"] == "ent-risk" for t in ties)
+    # a specific word does relate
+    ties = relate_message(
+        {"channel": "", "text": "the refunds path is slow"}, entities, {})
+    assert any(t["entity_id"] == "ent-payments" for t in ties)
+
+
+def test_orgs_are_multi_role_with_authored_intent():
+    """Every org has devs (build), PMs (spec intent), a stakeholder
+    (mandate), and at least one authored doc relating to a real area."""
+    for org in ("acme-stream", "helios", "nomad", "vela"):
+        ws = pathlib.Path(__file__).parent.parent / "fixtures" / org
+        evs = events_for(ws, FixtureWorkspace(ws), None)
+        roles = {e.role for e in evs if e.role}
+        assert {"dev", "pm", "stakeholder"} <= roles, f"{org} missing a role"
+        assert any(e.kind == "doc" for e in evs), f"{org} has no authored doc"

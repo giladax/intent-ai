@@ -1,0 +1,4 @@
+# Human-taught channel → entity. Only #incidents is a signed alias for Alerts.
+# #eng is a general channel — its messages relate only when they name an area
+# verbatim. No channel maps to Consent: attention has to be earned by words.
+'#incidents': ent-alerts

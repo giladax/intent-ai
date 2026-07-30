@@ -1,0 +1,74 @@
+# Authored intent — where PMs and the exec STATE what Helios promises.
+# events.py loads these as kind='doc' events (source='docs'), counted as
+# ATTENTION, related to entities by the area words they name verbatim
+# (same _relate_text rungs as comms). A spec is the org articulating a
+# promise; it is not code, so it never lands as dev density.
+#
+# Word discipline: these name "Ledger" / "postings" / "double-entry" to
+# tie to ent-ledger, and "reconciliation" to tie to ent-reconciliation.
+# None name reporting/reports/statements — Reporting stays undiscussed.
+
+# --- raj (PM): the source of the Ledger promise -----------------------------
+- id: GD-SPEC-LEDGER-INTEGRITY
+  author: raj
+  title: Ledger Integrity Spec — the double-entry invariant
+  ts: '2026-06-05T09:00:00+00:00'
+  text: |
+    This spec is the contract for the Ledger core. It states the promise the
+    rest of Helios is allowed to depend on: every posting in the ledger has an
+    equal and opposite entry, and the postings for any committed transaction
+    sum to zero. This is the double-entry invariant (OB-LED-1) and it is
+    non-negotiable — no optimization, batching, or derived-view shortcut may
+    weaken it. A posting, once committed, is immutable; a correction is a new
+    reversing posting, never an edit (OB-LED-3). The ledger must refuse a
+    negative balance absent an approved overdraft (OB-LED-2).
+
+    Acceptance: for any set of committed postings, sum(debits) + sum(credits)
+    == 0 must hold at all times, including under partial write failure. Any
+    change to the posting path ships with an explicit sum-to-zero assertion at
+    commit. Correctness is the acceptance criterion; throughput is a
+    non-functional target that never overrides it.
+
+    Audit note: an unbalanced ledger is a reportable control failure. The
+    balance assertion is the auditable control that proves the invariant held.
+
+# --- nadia (PM): the reconciliation promise ---------------------------------
+- id: GD-SPEC-RECONCILIATION
+  author: nadia
+  title: Reconciliation Spec — one-cycle flagging of unmatched entries
+  ts: '2026-06-06T10:30:00+00:00'
+  text: |
+    Reconciliation matches ledger entries against external settlement and
+    payroll feeds and surfaces anything that does not tie out. The promise
+    (OB-REC-1): any unmatched entry is flagged within one
+    reconciliation cycle — flagged at cycle close, the same operating day, not
+    deferred to the next run. Compliance requires same-cycle visibility so ops
+    can investigate before the discrepancy ages.
+
+    Invariant (OB-REC-2): a matched pair is never silently unmatched; breaking
+    a match requires a recorded operator override. The audit trail must show
+    who overrode and why. Prioritization: same-cycle flagging is P0 for the
+    settlement path; the operator-override ledger is P1. Reconciliation depends
+    on the Ledger integrity invariant holding — an unbalanced posting makes
+    matching meaningless.
+
+# --- cto (stakeholder): why correctness is existential ----------------------
+- id: GD-STRATEGY-CORRECTNESS
+  author: cto
+  title: Correctness is existential — the Helios engineering doctrine
+  ts: '2026-06-04T08:00:00+00:00'
+  text: |
+    Helios is a double-entry ledger for money that belongs to other people.
+    Our license to operate is correctness. I want this stated plainly so no
+    one has to rediscover it under pressure: Ledger correctness is existential.
+    A single unbalanced posting is not a bug — it is a regulatory event, a
+    control failure we would have to report. There is no throughput win, no SLO,
+    and no deadline that justifies shipping a posting path that can leave the
+    ledger unbalanced.
+
+    The doctrine, concretely: every change to the ledger postings ships with a
+    sum-to-zero assertion. If debits and credits do not net to zero, the write
+    does not commit. We would rather be slow and balanced than fast and wrong.
+    Reconciliation exists to catch what the ledger might miss; it is a control,
+    not an afterthought. Engineering leadership will back correctness over speed
+    every time this trade-off is put to us.

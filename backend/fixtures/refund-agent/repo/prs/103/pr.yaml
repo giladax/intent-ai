@@ -1,0 +1,11 @@
+number: 103
+title: "Streamline refunds: fast-path low-value high-risk requests"
+body: |
+  Reduces the human-approval queue by auto-approving high-risk refund
+  requests when the amount is within the premium limit. Low-value fraud
+  exposure is negligible.
+author: dev-bob
+base_sha: fixbase0001
+head_sha: pr103head01
+issue: ""
+deleted_files: []

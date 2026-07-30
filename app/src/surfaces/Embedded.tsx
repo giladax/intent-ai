@@ -1,0 +1,57 @@
+/* Thin router adapters for the surfaces that carry over unchanged into the
+ * familiar shell (A0 mounts them under their routes; later slices reshape
+ * them). Each wrapper turns the old callback props into navigation, and
+ * mounts the surface full-width inside the shell's content column. */
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { FeaturesPage } from "../components/FeaturesPage";
+import { FeaturePage } from "./FeaturePage";
+import { ReviewQueue } from "../components/ReviewQueue";
+import { JournalPage } from "../components/JournalPage";
+import { fetchFeatures } from "../api";
+import type { Feature } from "../types";
+
+/** Legacy surfaces keep their journal-era (paper) shadcn theme via
+ *  .ink-legacy — scoped so the shell's ink text tokens stay untouched. */
+function EmbedFrame({ children }: { children: React.ReactNode }) {
+  return <main className="ink-main ink-legacy">{children}</main>;
+}
+
+export function FeaturesRoute() {
+  const nav = useNavigate();
+  return <EmbedFrame><FeaturesPage repoId={null} onFeatureClick={(id) => nav(`/feature/${id}`)} /></EmbedFrame>;
+}
+
+/** The feature definition page brings its own main + right rail (mock 05),
+ *  so it mounts bare — no EmbedFrame. */
+export function FeatureRoute() {
+  const { id } = useParams();
+  if (!id) return null;
+  return <FeaturePage featureId={id} />;
+}
+
+export function ReviewsRoute() {
+  const nav = useNavigate();
+  return <EmbedFrame><ReviewQueue repoId={null} onFeatureClick={(id) => nav(`/feature/${id}`)} /></EmbedFrame>;
+}
+
+export function JournalRoute() {
+  const nav = useNavigate();
+  const [features, setFeatures] = useState<Feature[]>([]);
+  useEffect(() => { fetchFeatures("").then(setFeatures).catch(() => setFeatures([])); }, []);
+  return (
+    <EmbedFrame>
+      <JournalPage
+        repoId={null}
+        features={features}
+        onSessionClick={(id) => nav(`/session/${id}`)}
+        onFeatureClick={(id) => nav(`/feature/${id}`)}
+        onReviewClick={() => nav("/reviews")}
+      />
+    </EmbedFrame>
+  );
+}
+
+// Sessions routes now live in surfaces/SessionsLedger.tsx and
+// surfaces/SessionExperience.tsx — the journal-era SessionsPage /
+// SessionDetailPage embeds were replaced by the session experience.

@@ -1,0 +1,286 @@
+# Where each promise lives in code: control_points are the code
+# locations; bindings type the relation (decides/enforces/executes/
+# configures/observes/verifies) between a promise and a location.
+control_points:
+- control_point_id: CP-pyproject-toml
+  role: configuration
+  path: pyproject.toml
+  description: Declares the BSD-3-Clause license and references LICENSE.txt, which contains
+    the copyright notice, conditions, and disclaimer that must be retained in source redistributions.
+- control_point_id: CP-github-workflows-publish-yaml
+  role: executor
+  path: .github/workflows/publish.yaml
+  description: Builds and publishes the distribution package (which must include the license
+    file) to PyPI, executing the binary-form redistribution step.
+- control_point_id: CP-github-ISSUE-TEMPLATE-bug-report-md
+  role: enforcement
+  path: .github/ISSUE_TEMPLATE/bug-report.md
+  description: Provides the structured bug-report issue template that contributors must use
+    to open a ticket before a PR.
+- control_point_id: CP-github-ISSUE-TEMPLATE-feature-request-md
+  role: enforcement
+  path: .github/ISSUE_TEMPLATE/feature-request.md
+  description: Provides the structured feature-request issue template that contributors must
+    use to open a ticket before a PR.
+- control_point_id: CP-github-ISSUE-TEMPLATE-config-yml
+  role: enforcement
+  path: .github/ISSUE_TEMPLATE/config.yml
+  description: 'Disables blank issues (blank_issues_enabled: false), forcing contributors
+    to use a template and open a proper ticket.'
+- control_point_id: CP-github-pull-request-template-md
+  role: enforcement
+  path: .github/pull_request_template.md
+  description: PR template prompts contributors to link the related issue, reinforcing the
+    requirement that a ticket exists before a PR.
+- control_point_id: CP-github-workflows-tests-yaml
+  role: enforcement
+  path: .github/workflows/tests.yaml
+  description: CI workflow runs the full test suite on every PR, failing the build if new
+    or existing tests do not pass.
+- control_point_id: CP-tests-test-itsdangerous-test-encoding-py
+  role: test_or_eval
+  path: tests/test_itsdangerous/test_encoding.py
+  description: Test file that must contain tests demonstrating correct encoding behaviour;
+    new encoding changes require tests here.
+- control_point_id: CP-tests-test-itsdangerous-test-serializer-py
+  role: test_or_eval
+  path: tests/test_itsdangerous/test_serializer.py
+  description: Test file that must contain tests demonstrating correct serializer behaviour;
+    new serializer changes require tests here.
+- control_point_id: CP-tests-test-itsdangerous-test-signer-py
+  role: test_or_eval
+  path: tests/test_itsdangerous/test_signer.py
+  description: Test file that must contain tests demonstrating correct signer behaviour; new
+    signer changes require tests here.
+- control_point_id: CP-tests-test-itsdangerous-test-timed-py
+  role: test_or_eval
+  path: tests/test_itsdangerous/test_timed.py
+  description: Test file that must contain tests demonstrating correct timed-signer behaviour;
+    new timed changes require tests here.
+- control_point_id: CP-tests-test-itsdangerous-test-url-safe-py
+  role: test_or_eval
+  path: tests/test_itsdangerous/test_url_safe.py
+  description: Test file that must contain tests demonstrating correct URL-safe serializer
+    behaviour; new url_safe changes require tests here.
+- control_point_id: CP-docs-conf-py
+  role: configuration
+  path: docs/conf.py
+  description: Sphinx configuration that controls how the docs folder is built; relevant when
+    documentation must be added or updated.
+- control_point_id: CP-readthedocs-yaml
+  role: enforcement
+  path: .readthedocs.yaml
+  description: ReadTheDocs build config that will fail the docs build if newly added or updated
+    documentation contains errors.
+- control_point_id: CP-github-workflows-pre-commit-yaml
+  role: enforcement
+  path: .github/workflows/pre-commit.yaml
+  description: CI workflow runs pre-commit hooks on every PR, enforcing the code-quality steps
+    described in CONTRIBUTING.rst.
+- control_point_id: CP-pre-commit-config-yaml
+  role: configuration
+  path: .pre-commit-config.yaml
+  description: Defines the pre-commit hooks that implement the linting/formatting steps contributors
+    must complete per CONTRIBUTING.rst.
+- control_point_id: CP-src-itsdangerous-signer-py
+  role: enforcement
+  path: src/itsdangerous/signer.py
+  symbol: HMACAlgorithm.get_signature
+  description: Computes the HMAC-based cryptographic signature over the key and value, implementing
+    the core signing primitive.
+- control_point_id: CP-src-itsdangerous-timed-py
+  role: executor
+  path: src/itsdangerous/timed.py
+  symbol: TimestampSigner.sign
+  description: Extends signing to include a timestamp, cryptographically signing both value
+    and timestamp together.
+- control_point_id: CP-src-itsdangerous-serializer-py
+  role: executor
+  path: src/itsdangerous/serializer.py
+  symbol: Serializer.dumps
+  description: Serializes and signs arbitrary data objects, delegating to the Signer to produce
+    a cryptographically signed token.
+- control_point_id: CP-src-itsdangerous-exc-py
+  role: enforcement
+  path: src/itsdangerous/exc.py
+  symbol: BadSignature
+  description: Exception raised when signature verification fails, signaling that the data
+    was modified without the key.
+- control_point_id: CP-src-itsdangerous-url-safe-py
+  role: executor
+  path: src/itsdangerous/url_safe.py
+  symbol: URLSafeSerializer
+  description: Provides URL-safe signed serialization suitable for embedding signed user IDs
+    in URLs (e.g., unsubscribe links) without database tokens.
+bindings:
+- obligation_id: PALLET-001
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-002
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-002
+  control_point_id: CP-github-workflows-publish-yaml
+  relation: executes
+- obligation_id: PALLET-003
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-004
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-005
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-006
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-007
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-008
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-009
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-010
+  control_point_id: CP-pyproject-toml
+  relation: configures
+- obligation_id: PALLET-011
+  control_point_id: CP-github-ISSUE-TEMPLATE-bug-report-md
+  relation: enforces
+- obligation_id: PALLET-011
+  control_point_id: CP-github-ISSUE-TEMPLATE-feature-request-md
+  relation: enforces
+- obligation_id: PALLET-011
+  control_point_id: CP-github-ISSUE-TEMPLATE-config-yml
+  relation: enforces
+- obligation_id: PALLET-011
+  control_point_id: CP-github-pull-request-template-md
+  relation: enforces
+- obligation_id: PALLET-012
+  control_point_id: CP-github-pull-request-template-md
+  relation: configures
+- obligation_id: PALLET-013
+  control_point_id: CP-github-workflows-tests-yaml
+  relation: enforces
+- obligation_id: PALLET-013
+  control_point_id: CP-tests-test-itsdangerous-test-encoding-py
+  relation: verifies
+- obligation_id: PALLET-013
+  control_point_id: CP-tests-test-itsdangerous-test-serializer-py
+  relation: verifies
+- obligation_id: PALLET-013
+  control_point_id: CP-tests-test-itsdangerous-test-signer-py
+  relation: verifies
+- obligation_id: PALLET-013
+  control_point_id: CP-tests-test-itsdangerous-test-timed-py
+  relation: verifies
+- obligation_id: PALLET-013
+  control_point_id: CP-tests-test-itsdangerous-test-url-safe-py
+  relation: verifies
+- obligation_id: PALLET-014
+  control_point_id: CP-docs-conf-py
+  relation: configures
+- obligation_id: PALLET-014
+  control_point_id: CP-readthedocs-yaml
+  relation: enforces
+- obligation_id: PALLET-015
+  control_point_id: CP-github-pull-request-template-md
+  relation: enforces
+- obligation_id: PALLET-016
+  control_point_id: CP-docs-conf-py
+  relation: configures
+- obligation_id: PALLET-017
+  control_point_id: CP-github-pull-request-template-md
+  relation: enforces
+- obligation_id: PALLET-018
+  control_point_id: CP-github-pull-request-template-md
+  relation: enforces
+- obligation_id: PALLET-019
+  control_point_id: CP-github-pull-request-template-md
+  relation: configures
+- obligation_id: PALLET-020
+  control_point_id: CP-github-pull-request-template-md
+  relation: enforces
+- obligation_id: PALLET-020
+  control_point_id: CP-github-workflows-pre-commit-yaml
+  relation: enforces
+- obligation_id: PALLET-020
+  control_point_id: CP-pre-commit-config-yaml
+  relation: configures
+- obligation_id: PALLET-021
+  control_point_id: CP-src-itsdangerous-signer-py
+  relation: enforces
+- obligation_id: PALLET-021
+  control_point_id: CP-src-itsdangerous-signer-py
+  relation: executes
+- obligation_id: PALLET-021
+  control_point_id: CP-src-itsdangerous-timed-py
+  relation: executes
+- obligation_id: PALLET-021
+  control_point_id: CP-src-itsdangerous-serializer-py
+  relation: executes
+- obligation_id: PALLET-021
+  control_point_id: CP-tests-test-itsdangerous-test-signer-py
+  relation: verifies
+- obligation_id: PALLET-022
+  control_point_id: CP-src-itsdangerous-signer-py
+  relation: enforces
+- obligation_id: PALLET-022
+  control_point_id: CP-src-itsdangerous-signer-py
+  relation: enforces
+- obligation_id: PALLET-022
+  control_point_id: CP-src-itsdangerous-exc-py
+  relation: enforces
+- obligation_id: PALLET-022
+  control_point_id: CP-tests-test-itsdangerous-test-signer-py
+  relation: verifies
+- obligation_id: PALLET-023
+  control_point_id: CP-src-itsdangerous-signer-py
+  relation: enforces
+- obligation_id: PALLET-023
+  control_point_id: CP-tests-test-itsdangerous-test-signer-py
+  relation: verifies
+- obligation_id: PALLET-023
+  control_point_id: CP-tests-test-itsdangerous-test-signer-py
+  relation: verifies
+- obligation_id: PALLET-023
+  control_point_id: CP-tests-test-itsdangerous-test-signer-py
+  relation: verifies
+- obligation_id: PALLET-024
+  control_point_id: CP-src-itsdangerous-url-safe-py
+  relation: executes
+- obligation_id: PALLET-024
+  control_point_id: CP-src-itsdangerous-url-safe-py
+  relation: executes
+- obligation_id: PALLET-024
+  control_point_id: CP-tests-test-itsdangerous-test-url-safe-py
+  relation: verifies
+- obligation_id: PALLET-025
+  control_point_id: CP-src-itsdangerous-url-safe-py
+  relation: executes
+- obligation_id: PALLET-025
+  control_point_id: CP-src-itsdangerous-serializer-py
+  relation: decides
+- obligation_id: PALLET-026
+  control_point_id: CP-src-itsdangerous-serializer-py
+  relation: executes
+- obligation_id: PALLET-026
+  control_point_id: CP-src-itsdangerous-serializer-py
+  relation: executes
+- obligation_id: PALLET-026
+  control_point_id: CP-tests-test-itsdangerous-test-serializer-py
+  relation: verifies
+- obligation_id: PALLET-027
+  control_point_id: CP-src-itsdangerous-timed-py
+  relation: executes
+- obligation_id: PALLET-027
+  control_point_id: CP-src-itsdangerous-timed-py
+  relation: executes
+- obligation_id: PALLET-027
+  control_point_id: CP-src-itsdangerous-url-safe-py
+  relation: executes
+- obligation_id: PALLET-027
+  control_point_id: CP-tests-test-itsdangerous-test-timed-py
+  relation: verifies

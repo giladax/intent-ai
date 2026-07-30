@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quire — Today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff;--panel:#f7f8f9;--sidebar:#f4f5f6;--line:#e6e8eb;--line-soft:#eef0f2;
+    --text:#1a1d21;--muted:#6b7280;--faint:#9aa1ab;
+    --accent:#2563eb;--accent-soft:#eaf0ff;
+    --red:#dc2626;--amber:#d97706;--blue:#2563eb;--green:#16a34a;--gray:#9aa1ab;
+    --red-bg:#fdecec;--amber-bg:#fdf3e7;--blue-bg:#eaf0ff;--green-bg:#e9f6ee;--gray-bg:#f0f1f3;
+    --font:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);color:var(--text);background:var(--bg);font-size:14px;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:248px 1fr 340px;grid-template-rows:48px 1fr;height:100vh;}
+  .topbar{grid-column:1/4;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--line);}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;}
+  .brand .mark{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#2563eb,#1e40af);}
+  .org-switch{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:7px;font-weight:500;cursor:pointer;font-size:13px;}
+  .org-switch .chev{color:var(--faint);font-size:11px;}
+  .search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--faint);font-size:13px;}
+  .search .k{margin-left:auto;font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--bg);}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);}
+  .avatar{width:26px;height:26px;border-radius:50%;background:#d7b56d;color:#4a3a12;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+
+  .sidebar{grid-row:2;border-right:1px solid var(--line);background:var(--sidebar);overflow-y:auto;padding:10px 8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;color:var(--muted);font-weight:500;cursor:pointer;font-size:13.5px;}
+  .nav-item:hover{background:var(--line-soft);}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .nav-item .ic{width:16px;text-align:center;font-size:14px;}
+  .nav-item .badge{margin-left:auto;font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;}
+  .nav-item .count{margin-left:auto;font-size:12px;color:var(--faint);font-weight:600;}
+  .sec{margin:16px 8px 6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);display:flex;justify-content:space-between;}
+  .sec .add{cursor:pointer;font-size:15px;line-height:1;}
+  .tree-item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px;}
+  .tree-item:hover{background:var(--line-soft);}
+  .tree-item .caret{color:var(--faint);font-size:10px;width:10px;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .d-red{background:var(--red);}.d-amber{background:var(--amber);}.d-blue{background:var(--blue);}.d-green{background:var(--green);}.d-gray{background:var(--gray);}
+
+  .main{grid-row:2;overflow-y:auto;padding:0 0 60px;}
+  .main-head{padding:22px 28px 16px;border-bottom:1px solid var(--line);}
+  .main-head .date{font-size:12.5px;color:var(--muted);font-weight:500;}
+  .main-head h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:3px;}
+  .main-head .sub{color:var(--muted);margin-top:6px;font-size:14.5px;}
+  .chips{display:flex;gap:10px;margin-top:16px;}
+  .chip{display:flex;align-items:center;gap:8px;padding:8px 13px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-weight:500;background:var(--bg);}
+  .chip b{font-size:16px;font-weight:700;}
+  .chip.red b{color:var(--red);} .chip.amber b{color:var(--amber);} .chip.gray b{color:var(--muted);}
+
+  .sect{padding:22px 28px 6px;}
+  .sect-h{font-size:13px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--faint);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+
+  .row{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:13px;padding:13px 28px;border-bottom:1px solid var(--line-soft);cursor:pointer;margin:0 -28px;}
+  .row:hover{background:var(--panel);}
+  .row.sel{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent);}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+  .b-red{color:var(--red);background:var(--red-bg);}.b-amber{color:var(--amber);background:var(--amber-bg);}
+  .b-blue{color:var(--blue);background:var(--blue-bg);}.b-green{color:var(--green);background:var(--green-bg);}.b-gray{color:var(--muted);background:var(--gray-bg);}
+  .row .title{min-width:0;}
+  .row .title .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .row .title .m{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .row .title .m .mono{font-family:var(--mono);font-size:11.5px;}
+  .row .act{color:var(--accent);font-weight:600;font-size:13px;}
+  .row .age{color:var(--faint);font-size:12px;font-family:var(--mono);}
+
+  /* changed feed — lighter rows */
+  .chg{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft);}
+  .chg .cdot{margin-top:5px;}
+  .chg .ct{font-size:13.5px;line-height:1.45;}
+  .chg .ct b{font-weight:600;}
+  .chg .cm{font-size:12px;color:var(--faint);font-family:var(--mono);margin-top:2px;}
+  .chg .clink{margin-left:auto;color:var(--accent);font-size:12.5px;font-weight:600;white-space:nowrap;}
+
+  .detail{grid-row:2;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;}
+  .detail-head{padding:16px 18px 14px;border-bottom:1px solid var(--line);background:var(--bg);}
+  .detail-head .badge{margin-bottom:10px;display:inline-block;}
+  .detail-head h2{font-size:16px;font-weight:700;line-height:1.3;}
+  .detail-head .meta{color:var(--muted);font-size:12.5px;margin-top:8px;}
+  .detail-head .meta .mono{font-family:var(--mono);font-size:11.5px;}
+  .detail-body{padding:16px 18px;}
+  .d-sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);margin:0 0 8px;}
+  .rulecard{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin-bottom:14px;}
+  .rulecard .rt{font-weight:600;font-size:14px;}
+  .rulecard .src{display:inline-block;margin-top:9px;font-size:11px;font-weight:600;color:var(--muted);background:var(--gray-bg);border-radius:5px;padding:3px 8px;}
+  .rulecard .q{border-left:3px solid var(--red);padding:7px 10px;margin-top:10px;background:var(--red-bg);border-radius:0 6px 6px 0;font-size:13px;line-height:1.5;}
+  .consult{display:flex;gap:9px;background:var(--blue-bg);border-radius:10px;padding:11px 12px;margin-bottom:14px;font-size:13px;line-height:1.5;color:#1e3a5f;}
+  .consult .ic{color:var(--blue);} .consult a{color:var(--blue);font-weight:600;text-decoration:none;}
+  .actions{display:flex;gap:9px;}
+  .btn{flex:1;text-align:center;padding:9px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--bg);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.danger{color:var(--red);border-color:#f3c6c6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand"><span class="mark"></span> Quire</div>
+    <div class="org-switch">Quire <span class="chev">▾</span></div>
+    <div class="search">🔎 Search — features, rules, people, PRs… <span class="k">⌘K</span></div>
+    <div class="top-right"><span>?</span><div class="avatar">G</div></div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="nav-item active"><span class="ic">☀</span> Today</div>
+    <div class="nav-item"><span class="ic">◧</span> Needs you <span class="badge">3</span></div>
+    <div class="nav-item"><span class="ic">◇</span> Features <span class="count">18</span></div>
+    <div class="nav-item"><span class="ic">▤</span> Repositories <span class="count">6</span></div>
+    <div class="nav-item"><span class="ic">◴</span> Sessions <span class="count">76</span></div>
+    <div class="nav-item"><span class="ic">◑</span> Channels <span class="count">1</span></div>
+
+    <div class="sec">Repositories <span class="add">+</span></div>
+    <div class="tree-item"><span class="caret">▸</span><span class="dot d-red"></span> refund-agent</div>
+    <div class="tree-item"><span class="caret">▸</span><span class="dot d-green"></span> intent-ai</div>
+    <div class="tree-item"><span class="caret">▸</span><span class="dot d-amber"></span> pydantic</div>
+    <div class="tree-item"><span class="caret">▸</span><span class="dot d-green"></span> intent-ai-live</div>
+    <div class="tree-item"><span class="caret">▸</span><span class="dot d-gray"></span> quire-brain</div>
+    <div class="tree-item"><span class="caret">▸</span><span class="dot d-blue"></span> telegram · watching</div>
+  </aside>
+
+  <main class="main">
+    <div class="main-head">
+      <div class="date">Tuesday, 22 July</div>
+      <h1>Good morning, Gilad</h1>
+      <div class="sub">Here's what changed while you were away, and what needs you.</div>
+      <div class="chips">
+        <div class="chip red"><b>3</b> need you</div>
+        <div class="chip amber"><b>2</b> broke a rule</div>
+        <div class="chip gray"><b>5</b> coding sessions ran</div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="sect-h">Needs you</div>
+    </div>
+    <div style="padding:0 28px;">
+      <div class="row sel">
+        <span class="dot d-red"></span><span class="badge b-red">Breaks a rule</span>
+        <div class="title"><div class="t">Refund limit raised to $100, but the safety check still stops at $50</div>
+          <div class="m">refund-agent · <span class="mono">PR 101</span> · broke 1 rule</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="age">2h</span><span class="act">Review →</span></div>
+      </div>
+      <div class="row">
+        <span class="dot d-amber"></span><span class="badge b-amber">Partly kept</span>
+        <div class="title"><div class="t">A change on pydantic keeps most of a rule, but not all of it</div>
+          <div class="m">pydantic · <span class="mono">PR 7</span> · 1 of 2 rules kept</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="age">5h</span><span class="act">Review →</span></div>
+      </div>
+      <div class="row">
+        <span class="dot d-blue"></span><span class="badge b-blue">No rule yet</span>
+        <div class="title"><div class="t">A change on intent-ai touched something no rule is watching</div>
+          <div class="m">intent-ai · <span class="mono">PR 42</span> · add a rule, or let it through</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="age">1d</span><span class="act">Review →</span></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="sect-h">What changed since yesterday</div>
+    </div>
+    <div style="padding:0 28px;">
+      <div class="chg"><span class="dot d-red cdot"></span><div><div class="ct"><b>refund-agent</b> — PR 101 raised the refund limit and broke a rule</div><div class="cm">2 hours ago · written by the coding agent</div></div><a class="clink" href="#">needs you ↑</a></div>
+      <div class="chg"><span class="dot d-green cdot"></span><div><div class="ct"><b>intent-ai</b> — PR 98 kept every rule it touched</div><div class="cm">5 hours ago</div></div><a class="clink" href="#">view</a></div>
+      <div class="chg"><span class="dot d-blue cdot"></span><div><div class="ct">You added a rule to <b>pydantic</b>: “schemas must stay backward compatible”</div><div class="cm">6 hours ago · from pydantic-spec.md</div></div><a class="clink" href="#">view</a></div>
+      <div class="chg"><span class="dot d-gray cdot"></span><div><div class="ct"><b>5 coding sessions</b> ran across refund-agent, intent-ai and pydantic</div><div class="cm">today · reasoning saved for each</div></div><a class="clink" href="#">view</a></div>
+    </div>
+  </main>
+
+  <aside class="detail">
+    <div class="detail-head">
+      <span class="badge b-red">Breaks a rule</span>
+      <h2>Refund limit raised to $100, but the safety check still stops at $50</h2>
+      <div class="meta">refund-agent · <span class="mono">PR 101</span></div>
+    </div>
+    <div class="detail-body">
+      <div class="d-sec">The rule it broke</div>
+      <div class="rulecard">
+        <div class="rt">The safety check must match the allowed refund amount.</div>
+        <div class="src">From refund-spec.md, line 14 · added by you, 12 Jun</div>
+        <div class="q">The limit is now $100, but the check still stops at $50. They don't match.</div>
+      </div>
+
+      <div class="d-sec">Why the code did this</div>
+      <div class="consult"><span class="ic">◷</span><div>In a coding session 2 hours ago, the AI raised the limit and <b>kept the $50 check on purpose</b> — it thought they were separate. It never updated the check. <a href="#">Open the session →</a></div></div>
+
+      <div class="d-sec">Your call</div>
+      <div class="actions"><div class="btn danger">Send back</div><div class="btn primary">Approve</div></div>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+# Authored intent — where the stakeholder and PM STATE what Vela promises.
+# Every doc here predates the collision window (2026-07-14). That timing is
+# load-bearing: the opt-in promise was mandated and specced LONG AGO, so when
+# it silently broke during the Alerts incident there was no FRESH discussion —
+# the drift happened unwatched. Nothing here is authored during the incident.
+#
+# The opt-in / recorded-permission artifacts deliberately describe the promise
+# in its own operative words ("recorded opt-in", "no send without opt-in")
+# rather than as ambient area chatter — they are the SOURCE of the promise,
+# quotable, and they sit weeks before the break with no follow-up. That
+# silence around the promise, even after it was written down at the top of the
+# org, is the whole point.
+
+# ---- stakeholder strategy: the compliance hard line ----
+- id: STRAT-1
+  author: vp-product
+  title: 'Vela Compliance Line: opt-in is non-negotiable'
+  ts: '2026-05-28T16:00:00+00:00'
+  text: >
+    Company position, not a suggestion. Vela sends clinical messages to real
+    patients, and a recorded opt-in is our HIPAA hard line. No send without a
+    recorded opt-in, ever — not for a test, not for a migration, not "just
+    this once." If we cannot prove the recipient said yes, the message does
+    not leave the system. Engineering: the opt-in gate is a safety control,
+    treat any change near it like a change to a medical device. Product: every
+    spec that touches the send path must state how the opt-in is honored.
+    This is the one line we do not cross.
+
+# ---- PM specs: the product articulation of the promises ----
+- id: SPEC-OPTIN-1
+  author: hana
+  title: 'Opt-in Spec (v1): recorded opt-in before any send'
+  ts: '2026-06-04T10:00:00+00:00'
+  text: >
+    Patient-safety spec for the send path. Requirement: every recipient MUST
+    have a recorded opt-in on file before a single message is sent to them.
+    No opt-in, no send — the opt-in check runs before any downstream work and
+    is not optional. A revoked opt-in must stop all future messages within one
+    send cycle. Opt-ins are held per message category so a patient can accept
+    reminders but decline marketing. This is the compliance spine the exec
+    called out; it exists to keep us on the right side of HIPAA and of patient
+    trust. Owner: hana. Status: approved, in force.
+- id: SPEC-ALERTS-1
+  author: hana
+  title: 'Alerts SLA Spec: 60-second paging'
+  ts: '2026-06-18T10:00:00+00:00'
+  text: >
+    Alerts spec. When a patient threshold trips, the on-call clinician MUST be
+    paged within 60 seconds of the breach — this is the Alerts SLA and it is a
+    hard rule. Every threshold breach pages exactly one on-call clinician,
+    never zero. Paging is time-critical patient safety: a late page is a
+    triage failure. Nothing may sit on the alert dispatch path that can block
+    or delay the page. Owner: hana. Status: approved, in force.

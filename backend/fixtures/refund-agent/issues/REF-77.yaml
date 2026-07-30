@@ -1,0 +1,9 @@
+key: REF-77
+title: Reconcile premium refund limits across regions
+requirements:
+  - refund-policy-prd
+  - refund-policy-eu-addendum
+body: >-
+  Global PRD v3 approves $100 premium refunds; the approved EU addendum caps
+  premium refunds at €40. Regional reconciliation is unresolved — both
+  documents are currently authoritative.

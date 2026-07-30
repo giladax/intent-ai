@@ -1,0 +1,13 @@
+workflow_id: psf-requests
+requirements:
+  provider: github
+  reference: contributing-guide
+repositories:
+- provider: github
+  repository: psf/requests
+  path: ../../.repos/psf__requests
+eval_sources:
+- type: repository
+  paths:
+  - tests/**
+  - evals/**

@@ -1,0 +1,4 @@
+workflow_id: vela-stream
+requirements: {provider: fixture, reference: vela-prd}
+repositories:
+  - {provider: fixture, repository: vela-messaging, path: repo}

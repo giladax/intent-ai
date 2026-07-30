@@ -1,0 +1,9 @@
+pair_hints:
+  INTENT-001|INTENT-009: same
+llm_labels:
+  INTENT-001: Feature Disambiguation
+  INTENT-015: Eval Constraint Integrity
+  INTENT-011: Agent Action Attribution
+  INTENT-002: Observation Approval
+  INTENT-012: Understanding Grounding
+  INTENT-007: Session Evidence Archival

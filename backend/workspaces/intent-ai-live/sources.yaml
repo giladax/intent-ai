@@ -1,0 +1,6 @@
+# Approved intent sources, read from the repo checkout.
+# status governs authority: only `approved` sources feed the analyzer.
+- reference: prd
+  path: docs/prd.md
+  status: approved
+  version: 0.3.2

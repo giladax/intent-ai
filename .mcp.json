@@ -8,11 +8,10 @@
       ]
     },
     "intent-brain": {
-      "command": "npx",
+      "command": "sh",
       "args": [
-        "tsx",
-        "src/cli/index.ts",
-        "mcp"
+        "-c",
+        "cd backend && python3 -m quire.cli mcp"
       ]
     }
   }

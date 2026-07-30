@@ -1,0 +1,19 @@
+# Explicit project name: compose derives the default from the directory name,
+# and this file moved (root -> journal/) after the db volume already existed.
+name: intent-ai
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: intent
+      POSTGRES_PASSWORD: intent
+      POSTGRES_DB: intent
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

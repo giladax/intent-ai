@@ -1,0 +1,13 @@
+# PRs: GitHub PR number → {base, head, title, …} (repopulated by first-results).
+2:
+  base: c9d9a31971c6fc802c7b387847e5d9908ed007a4
+  head: 3e2703b6c91f5d718b0157cabea21aafb54e5da1
+  title: 'feat: raise premium auto-approval limit to $250'
+  state: open
+  html_url: https://github.com/giladax/swiftrefunds/pull/2
+1:
+  base: c9d9a31971c6fc802c7b387847e5d9908ed007a4
+  head: 11d441a21fe9fd8ccfcb6239165a7ae4a226a655
+  title: 'feat: enrich denial messages with rule label and code'
+  state: open
+  html_url: https://github.com/giladax/swiftrefunds/pull/1

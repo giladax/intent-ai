@@ -1,0 +1,68 @@
+# Ingested coding sessions — OBSERVED evidence (they happened);
+# reasoning is the agent's own words, verbatim. The transcript is
+# the external source of record.
+- session_id: 5b31a1bb-3f6b-4d03-b418-a6c0f0ab704c
+  title: session 5b31a1bb
+  summary: 332 turns touching 21 files
+  decisions: []
+  reasoning: 'I''ll read the handoff document to see what''s needed.
+
+
+    Now I''ll skim the four commits — stats first, then the load-bearing pieces (measurement
+    harness, write path).
+
+
+    The harness is where the validity question lives. Let me read its key files, plus
+    the feature resolver.
+
+
+    I''ve read the three docs and skimmed all four commits, including a close read
+    of the harness (`src/eval/mvp-eval.ts`, `transcript-metrics.ts`, `mvp-task-criteria.ts`,
+    `run-mvp-eval.ts`) and the resolver (`src/mcp/feature.ts`). Independent view below.
+
+
+    ## Verdict
+
+
+    The engineering is disciplined and the self-awareness in the PRD is real. But
+    the experiment as designed will very likely return an inconclusive result for
+    structural reasons, and even a clean pass would prove something you already believe
+    rather than the thing that''s uniquely yours. Specifics:
+
+
+    **1. The MVP is proving the wrong half of the wedge.** "Context injected at task
+    start helps an agent" is close to consensus in 2026 — nobody skeptical of Brain
+    doubts it. What''s contested and uniquely yours is that Brain can *produce* that
+    context automatically and improve it across sessions. The MVP tests hand-curated
+    context: manual features, manual file map, hand-written constraints, `currentUnderstanding`
+    = human-approved text. If it passes, you''ve shown that telling an agent the answer
+    helps — the observe→approve→improve loop, which is the actual system, is built
+    (WS-A/B) but sits outside the measurement entirely. The falsifiable claim worth
+    a week is "co'
+  touched_paths:
+  - docs/handoffs/2026-07-03-brain-v03-successor-handoff.md
+  - docs/handoffs/2026-07-03-observability-design-handoff.md
+  - docs/prd.md
+  - docs/specs/2026-07-03-brain-api-review.md
+  - docs/specs/2026-07-03-measurement-v2-spec.md
+  - src/mcp/instrument.ts
+  - src/mcp/server.ts
+  - src/web/observations.ts
+  - src/web/server.ts
+  - src/web/ui/src/App.tsx
+  - src/web/ui/src/app-ink.css
+  - src/web/ui/src/components/FeatureDetail.tsx
+  - src/web/ui/src/components/FeaturesPage.tsx
+  - src/web/ui/src/components/JournalPage.tsx
+  - src/web/ui/src/components/ReviewQueue.tsx
+  - src/web/ui/src/components/SessionsPage.tsx
+  - src/web/ui/src/components/journal-util.ts
+  - src/web/ui/src/components/journal.css
+  - tests/mcp/instrument.test.ts
+  - tests/web/observations.test.ts
+  - tmp/journal-demo/server.mjs
+  pr: 7
+  started_at: '2026-07-03T10:58:25.821Z'
+  turns: 332
+  digested_at: '2026-07-20T10:13:51+00:00'
+  source: /Users/giladkoch/.claude/projects/-Users-giladkoch-dev-intent-ai/5b31a1bb-3f6b-4d03-b418-a6c0f0ab704c.jsonl
